@@ -1,0 +1,33 @@
+{
+  "name": "@syncdocs/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@syncdocs/shared": "workspace:*",
+    "fastify": "^5",
+    "@fastify/cors": "^11",
+    "@fastify/cookie": "^11",
+    "dotenv": "^16",
+    "zod": "^3",
+    "drizzle-orm": "^0.38",
+    "postgres": "^3"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30",
+    "tsx": "^4",
+    "@types/node": "^22",
+    "vitest": "^3",
+    "typescript": "^5.7"
+  }
+}
