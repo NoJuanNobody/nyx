@@ -10,6 +10,7 @@ export const integrationTypeEnum = pgEnum('integration_type', ['github', 'jira',
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
+  clerkId: text('clerk_id').unique(),
   email: text('email').notNull().unique(),
   name: text('name').notNull(),
   avatarUrl: text('avatar_url'),
@@ -83,6 +84,8 @@ export const documentBranches = pgTable('document_branches', {
   createdById: uuid('created_by_id')
     .notNull()
     .references(() => users.id),
+  status: text('status').notNull().default('draft'),
+  reviewedById: uuid('reviewed_by_id').references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   mergedAt: timestamp('merged_at', { withTimezone: true }),
 });
@@ -108,7 +111,6 @@ export const snapshots = pgTable('snapshots', {
     .notNull()
     .references(() => documents.id),
   integrationId: uuid('integration_id')
-    .notNull()
     .references(() => integrations.id),
   externalRef: text('external_ref').notNull(),
   content: text('content').notNull(),
@@ -145,4 +147,20 @@ export const timelineEvents = pgTable('timeline_events', {
   payload: jsonb('payload').notNull().default({}),
   actorId: uuid('actor_id').references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Ticket Suggestions ────────────────────────────────
+
+export const ticketSuggestions = pgTable('ticket_suggestions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id')
+    .notNull()
+    .references(() => documents.id),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  labels: jsonb('labels').notNull().default([]),
+  status: text('status').notNull().default('pending'),
+  reviewedById: uuid('reviewed_by_id').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

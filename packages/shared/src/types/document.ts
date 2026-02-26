@@ -35,6 +35,8 @@ export const DocumentBranchSchema = z.object({
   baseVersionId: z.string().uuid(),
   content: z.string(),
   createdById: z.string().uuid(),
+  status: z.string(),
+  reviewedById: z.string().uuid().nullable(),
   createdAt: z.string().datetime(),
   mergedAt: z.string().datetime().nullable(),
 });

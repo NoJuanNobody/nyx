@@ -1,16 +1,113 @@
 // Jira integration: project listing, issue creation, status sync
-// TODO: implement with Jira REST API
+
+function authHeader(email: string, apiToken: string): string {
+  const encoded = Buffer.from(`${email}:${apiToken}`).toString('base64');
+  return `Basic ${encoded}`;
+}
+
+function baseHeaders(email: string, apiToken: string): Record<string, string> {
+  return {
+    Authorization: authHeader(email, apiToken),
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+}
+
+// ── Response types ────────────────────────────────────
+
+export interface JiraProject {
+  id: string;
+  key: string;
+  name: string;
+  self: string;
+}
+
+export interface JiraIssue {
+  id: string;
+  key: string;
+  self: string;
+  fields: {
+    summary: string;
+    status: { name: string };
+    issuetype: { name: string };
+  };
+}
+
+export interface JiraCreateIssueData {
+  projectKey: string;
+  summary: string;
+  description: string;
+  issueType?: string;
+}
+
+// ── Service ───────────────────────────────────────────
 
 export const jiraService = {
-  async listProjects(accessToken: string) {
-    return [];
+  async listProjects(
+    baseUrl: string,
+    email: string,
+    apiToken: string,
+  ): Promise<JiraProject[]> {
+    const res = await fetch(`${baseUrl}/rest/api/3/project`, {
+      headers: baseHeaders(email, apiToken),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Jira listProjects failed: ${res.status} ${res.statusText}`);
+    }
+
+    return (await res.json()) as JiraProject[];
   },
 
-  async createIssue(projectKey: string, title: string, description: string) {
-    return null;
+  async createIssue(
+    baseUrl: string,
+    email: string,
+    apiToken: string,
+    data: JiraCreateIssueData,
+  ): Promise<JiraIssue> {
+    const res = await fetch(`${baseUrl}/rest/api/3/issue`, {
+      method: 'POST',
+      headers: baseHeaders(email, apiToken),
+      body: JSON.stringify({
+        fields: {
+          project: { key: data.projectKey },
+          summary: data.summary,
+          description: {
+            type: 'doc',
+            version: 1,
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: data.description }],
+              },
+            ],
+          },
+          issuetype: { name: data.issueType ?? 'Task' },
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Jira createIssue failed: ${res.status} ${res.statusText}`);
+    }
+
+    return (await res.json()) as JiraIssue;
   },
 
-  async syncStatus(issueKey: string) {
-    return null;
+  async getIssue(
+    baseUrl: string,
+    email: string,
+    apiToken: string,
+    issueKey: string,
+  ): Promise<JiraIssue> {
+    const res = await fetch(`${baseUrl}/rest/api/3/issue/${issueKey}`, {
+      headers: baseHeaders(email, apiToken),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Jira getIssue failed: ${res.status} ${res.statusText}`);
+    }
+
+    return (await res.json()) as JiraIssue;
   },
 };

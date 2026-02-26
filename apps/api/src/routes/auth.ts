@@ -1,13 +1,15 @@
 import type { FastifyPluginAsync } from 'fastify';
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
-  app.get('/me', async () => {
-    // TODO: implement auth — return mock user for now
+  // GET /api/auth/me — return the authenticated user
+  app.get('/me', async (request) => {
     return {
-      id: '00000000-0000-0000-0000-000000000000',
-      email: 'dev@syncdocs.io',
-      name: 'Dev User',
-      role: 'owner',
+      id: request.user.id,
+      clerkId: request.user.clerkId,
+      email: request.user.email,
+      name: request.user.name,
+      avatarUrl: request.user.avatarUrl,
+      role: request.user.role,
     };
   });
 };

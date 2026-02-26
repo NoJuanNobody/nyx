@@ -11,6 +11,7 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx src/db/seed.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
@@ -21,12 +22,16 @@
     "dotenv": "^16",
     "zod": "^3",
     "drizzle-orm": "^0.38",
-    "postgres": "^3"
+    "postgres": "^3",
+    "@anthropic-ai/sdk": "^0.39",
+    "@clerk/backend": "^1",
+    "pdfkit": "^0.16"
   },
   "devDependencies": {
     "drizzle-kit": "^0.30",
     "tsx": "^4",
     "@types/node": "^22",
+    "@types/pdfkit": "^0.13",
     "vitest": "^3",
     "typescript": "^5.7"
   }
