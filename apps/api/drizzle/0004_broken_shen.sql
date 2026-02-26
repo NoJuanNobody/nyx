@@ -1,0 +1,1 @@
+ALTER TABLE "documents" ADD COLUMN "path" text DEFAULT '/' NOT NULL;

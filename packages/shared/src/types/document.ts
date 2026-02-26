@@ -7,6 +7,7 @@ export const DocumentSchema = z.object({
   id: z.string().uuid(),
   title: z.string(),
   content: z.string(),
+  path: z.string(),
   status: DocumentStatus,
   teamId: z.string().uuid(),
   createdById: z.string().uuid(),

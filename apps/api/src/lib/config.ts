@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load .env from repo root (../../.. from src/lib/)
+dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 const isDevelopment = nodeEnv !== 'production';

@@ -9,7 +9,7 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/documents?teamId=X — list documents for a team
   // viewers+ can list
   app.get('/', { preHandler: [requireRole({ minimumRole: 'viewer', source: 'request' })] }, async (request) => {
-    const { teamId } = request.query as { teamId?: string };
+    const { teamId, includeArchived } = request.query as { teamId?: string; includeArchived?: string };
 
     if (!teamId) {
       return { error: 'teamId query parameter is required' };
@@ -21,6 +21,7 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       .where(eq(documents.teamId, teamId));
 
     // Filter out archived documents by default
+    if (includeArchived === 'true') return rows;
     return rows.filter((doc) => doc.status !== 'archived');
   });
 
@@ -45,10 +46,11 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/documents — create a document
   // editors+ can create
   app.post('/', { preHandler: [requireRole({ minimumRole: 'editor', source: 'request' })] }, async (request, reply) => {
-    const { title, content, teamId } = request.body as {
+    const { title, content, teamId, path } = request.body as {
       title: string;
       content?: string;
       teamId: string;
+      path?: string;
     };
     const userId = request.user.id;
 
@@ -57,6 +59,7 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       .values({
         title,
         content: content ?? '',
+        path: path ?? '/',
         teamId,
         createdById: userId,
       })
@@ -73,6 +76,7 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
     const body = request.body as {
       title?: string;
       content?: string;
+      path?: string;
       status?: 'draft' | 'published' | 'archived';
     };
 
@@ -81,6 +85,7 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
     };
     if (body.title !== undefined) updates.title = body.title;
     if (body.content !== undefined) updates.content = body.content;
+    if (body.path !== undefined) updates.path = body.path;
     if (body.status !== undefined) updates.status = body.status;
 
     const [doc] = await db

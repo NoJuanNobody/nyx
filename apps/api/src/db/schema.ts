@@ -46,6 +46,7 @@ export const documents = pgTable('documents', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),
   content: text('content').notNull().default(''),
+  path: text('path').notNull().default('/'),
   status: documentStatusEnum('status').notNull().default('draft'),
   teamId: uuid('team_id')
     .notNull()

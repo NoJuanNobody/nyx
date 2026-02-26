@@ -29,6 +29,13 @@
       "when": 1772067125024,
       "tag": "0003_ancient_sersi",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772069638907,
+      "tag": "0004_broken_shen",
+      "breakpoints": true
     }
   ]
 }
