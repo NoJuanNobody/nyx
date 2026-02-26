@@ -22,12 +22,22 @@ export function fetchDocuments(teamId: string): Promise<Document[]> {
   return request<Document[]>(`/documents?teamId=${encodeURIComponent(teamId)}`);
 }
 
+export function fetchArchivedDocuments(teamId: string): Promise<Document[]> {
+  return request<Document[]>(
+    `/documents?teamId=${encodeURIComponent(teamId)}&includeArchived=true`,
+  ).then((docs) => docs.filter((d) => d.status === 'archived'));
+}
+
+export function restoreDocument(id: string): Promise<Document> {
+  return updateDocument(id, { status: 'draft' });
+}
+
 export function fetchDocument(id: string): Promise<Document> {
   return request<Document>(`/documents/${id}`);
 }
 
 export function createDocument(
-  data: Pick<Document, 'title' | 'content' | 'teamId'>,
+  data: Pick<Document, 'title' | 'content' | 'teamId'> & { path?: string },
 ): Promise<Document> {
   return request<Document>('/documents', {
     method: 'POST',
@@ -37,7 +47,7 @@ export function createDocument(
 
 export function updateDocument(
   id: string,
-  data: Partial<Pick<Document, 'title' | 'content' | 'status'>>,
+  data: Partial<Pick<Document, 'title' | 'content' | 'status' | 'path'>>,
 ): Promise<Document> {
   return request<Document>(`/documents/${id}`, {
     method: 'PUT',
@@ -45,8 +55,12 @@ export function updateDocument(
   });
 }
 
-export function deleteDocument(id: string): Promise<void> {
-  return request<void>(`/documents/${id}`, { method: 'DELETE' });
+export async function deleteDocument(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/documents/${id}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`API ${res.status}: ${body || res.statusText}`);
+  }
 }
 
 // ── Teams ───────────────────────────────────────────────────────────
@@ -104,8 +118,28 @@ export function fetchTimeline(documentId: string): Promise<{ documentId: string;
 export function analyzeSpecQuality(
   content: string,
 ): Promise<{ score: number; suggestions: string[] }> {
-  return request<{ score: number; suggestions: string[] }>('/ai/analyze-quality', {
+  return request<{ score: number; suggestions: string[] }>('/ai/analyze', {
     method: 'POST',
     body: JSON.stringify({ content }),
+  });
+}
+
+export function generateDocument(
+  prompt: string,
+): Promise<{ title: string; content: string }> {
+  return request<{ title: string; content: string }>('/ai/generate-document', {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
+  });
+}
+
+export function editDocumentAI(
+  content: string,
+  instruction: string,
+  history?: Array<{ role: string; content: string }>,
+): Promise<{ content: string }> {
+  return request<{ content: string }>('/ai/edit-document', {
+    method: 'POST',
+    body: JSON.stringify({ content, instruction, history }),
   });
 }

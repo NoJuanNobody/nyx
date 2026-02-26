@@ -129,6 +129,74 @@ export const aiService = {
     }
   },
 
+  async generateDocument(
+    prompt: string,
+  ): Promise<{ title: string; content: string }> {
+    const ai = requireClient();
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 4096,
+      system:
+        'You are a technical documentation writer. Given a prompt, generate a well-structured document with a clear title and markdown content. Respond ONLY with valid JSON in this exact format: {"title": "<document title>", "content": "<full markdown content>"}',
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    const text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+    try {
+      const parsed = JSON.parse(text) as { title: string; content: string };
+      return {
+        title: parsed.title || 'Untitled Document',
+        content: parsed.content || text,
+      };
+    } catch {
+      return { title: 'Untitled Document', content: text };
+    }
+  },
+
+  async editDocument(
+    currentContent: string,
+    instruction: string,
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>,
+  ): Promise<string> {
+    const ai = requireClient();
+
+    const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+
+    // Include conversation history (last 10 turns) for iterative context
+    if (history && history.length > 0) {
+      const recentHistory = history.slice(-10);
+      messages.push(...recentHistory);
+    }
+
+    messages.push({
+      role: 'user',
+      content: `Here is the current document:\n\n${currentContent}\n\n---\n\nInstruction: ${instruction}`,
+    });
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 4096,
+      system:
+        'You are an expert document editor. Given a document and an editing instruction, return ONLY the updated markdown content. Do not wrap the output in code fences. Do not include any explanations — just the raw updated markdown.',
+      messages,
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip leading/trailing triple backticks if AI wraps output
+    text = text.replace(/^```(?:markdown)?\n?/, '').replace(/\n?```$/, '');
+
+    return text;
+  },
+
   async bootstrapDocsFromCode(
     files: Array<{ path: string; content: string }>,
   ): Promise<string> {

@@ -31,6 +31,36 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
     return result;
   });
 
+  // POST /api/ai/generate-document — generate a document from a prompt
+  app.post('/generate-document', async (request, reply) => {
+    const { prompt } = request.body as { prompt: string };
+
+    if (!prompt) {
+      reply.code(400);
+      return { error: 'prompt is required' };
+    }
+
+    const result = await aiService.generateDocument(prompt);
+    return result;
+  });
+
+  // POST /api/ai/edit-document — edit a document with AI
+  app.post('/edit-document', async (request, reply) => {
+    const { content, instruction, history } = request.body as {
+      content: string;
+      instruction: string;
+      history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+    };
+
+    if (!content || !instruction) {
+      reply.code(400);
+      return { error: 'content and instruction are required' };
+    }
+
+    const result = await aiService.editDocument(content, instruction, history);
+    return { content: result };
+  });
+
   // POST /api/ai/generate-ticket — generate a ticket from a spec diff
   app.post('/generate-ticket', async (request, reply) => {
     const { diff, context } = request.body as {

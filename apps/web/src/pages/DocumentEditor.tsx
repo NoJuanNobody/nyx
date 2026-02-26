@@ -1,13 +1,14 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type PointerEvent as ReactPointerEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Document, DocumentVersion } from '@syncdocs/shared';
-import { fetchDocument, updateDocument, createVersion, fetchDiff } from '../lib/api';
-import { VersionHistory } from '../components/VersionHistory';
-import { Timeline } from '../components/Timeline';
-import { DiffView } from '../components/DiffView';
+import type { Document } from '@syncdocs/shared';
+
+import { fetchDocument, updateDocument, createVersion } from '../lib/api';
+
 import { Modal } from '../components/Modal';
-import { AIQualityPanel } from '../components/AIQualityPanel';
+import { AIEditPanel } from '../components/AIEditPanel';
+import { AIEditReview } from '../components/AIEditReview';
+import { MarkdownPreview } from '../components/MarkdownPreview';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
 
@@ -20,9 +21,10 @@ export function DocumentEditor() {
   const [saveState, setSaveState] = useState<SaveState>('saved');
   const [versionModalOpen, setVersionModalOpen] = useState(false);
   const [versionMessage, setVersionMessage] = useState('');
-  const [showHistory, setShowHistory] = useState(true);
-  const [diffData, setDiffData] = useState<{ a: DocumentVersion; b: DocumentVersion } | null>(null);
-  const [sidebarTab, setSidebarTab] = useState<'history' | 'timeline'>('history');
+  const [aiProposedContent, setAiProposedContent] = useState<string | null>(null);
+  const [editorLayout, setEditorLayout] = useState<'split' | 'editor' | 'preview'>('split');
+  const [splitPercent, setSplitPercent] = useState(50);
+  const splitContainerRef = useRef<HTMLDivElement>(null);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialised = useRef(false);
@@ -54,6 +56,11 @@ export function DocumentEditor() {
     onSuccess: (updated) => {
       setSaveState('saved');
       queryClient.setQueryData(['document', id], updated);
+      // Keep the file tree's document list in sync (title, path, status changes)
+      queryClient.setQueriesData<Document[]>(
+        { queryKey: ['documents'] },
+        (old) => old?.map((d) => (d.id === updated.id ? updated : d)),
+      );
     },
     onError: () => setSaveState('unsaved'),
   });
@@ -91,19 +98,45 @@ export function DocumentEditor() {
     scheduleSave({ title, content: newContent });
   };
 
-  const handleCompare = async (versionA: DocumentVersion, versionB: DocumentVersion) => {
-    try {
-      const result = await fetchDiff(versionA.id, versionB.id);
-      setDiffData(result);
-    } catch {
-      // If fetch fails, use the versions directly
-      setDiffData({ a: versionA, b: versionB });
+  const handleApproveAIEdit = () => {
+    if (aiProposedContent !== null) {
+      setContent(aiProposedContent);
+      scheduleSave({ title, content: aiProposedContent });
+      setAiProposedContent(null);
     }
   };
 
-  const handleExitCompare = () => {
-    setDiffData(null);
+  const handleRejectAIEdit = () => {
+    setAiProposedContent(null);
   };
+
+  const handleAIGenerate = (result: { title: string; content: string }) => {
+    setTitle(result.title);
+    setContent(result.content);
+    scheduleSave({ title: result.title, content: result.content });
+  };
+
+  const handleSplitDragStart = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const container = splitContainerRef.current;
+    if (!container) return;
+
+    const onMove = (ev: globalThis.PointerEvent) => {
+      const rect = container.getBoundingClientRect();
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100;
+      setSplitPercent(Math.min(80, Math.max(20, pct)));
+    };
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }, []);
 
   if (isLoading) {
     return (
@@ -130,125 +163,131 @@ export function DocumentEditor() {
   const { label: saveLabel, color: saveColor } = saveIndicator[saveState];
 
   return (
-    <>
-      {/* Toolbar */}
-      <div className="mb-4 flex items-center gap-4">
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => handleTitleChange(e.target.value)}
-          className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-lg font-semibold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          placeholder="Document title"
-        />
+    <div className="flex h-full flex-col">
+      {/* Scrollable content area */}
+      <div className="flex min-h-0 flex-1 flex-col">
+        {/* Toolbar */}
+        <div className="mb-4 flex flex-shrink-0 items-center gap-4">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => handleTitleChange(e.target.value)}
+            className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-lg font-semibold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            placeholder="Document title"
+          />
 
-        <span className={`text-xs font-medium ${saveColor}`}>{saveLabel}</span>
+          <span className={`text-xs font-medium ${saveColor}`}>{saveLabel}</span>
 
-        <button
-          type="button"
-          onClick={() => setVersionModalOpen(true)}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-        >
-          Save Version
-        </button>
+          <button
+            type="button"
+            onClick={() => setVersionModalOpen(true)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            Save Version
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setShowHistory((h) => !h)}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-        >
-          {showHistory ? 'Hide Sidebar' : 'Show Sidebar'}
-        </button>
-      </div>
+        </div>
 
-      {/* Editor + Preview + History */}
-      <div className="flex flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white">
-        {diffData ? (
-          <div className="flex-1">
-            <DiffView
-              oldText={diffData.a.content}
-              newText={diffData.b.content}
-              oldLabel={`v${diffData.a.version}`}
-              newLabel={`v${diffData.b.version}`}
+        {/* Editor + Preview + History */}
+        <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          {aiProposedContent !== null ? (
+            <AIEditReview
+              originalContent={content}
+              proposedContent={aiProposedContent}
+              onApprove={handleApproveAIEdit}
+              onReject={handleRejectAIEdit}
             />
-          </div>
-        ) : (
-          <>
-            {/* Markdown editor */}
-            <div className="flex flex-1 flex-col border-r border-slate-200">
-              <div className="border-b border-slate-100 px-4 py-2 text-xs font-medium text-slate-400">
-                Markdown
+          ) : (
+            <div ref={splitContainerRef} className="flex flex-1 flex-col overflow-hidden">
+              {/* Editor/Preview tab bar */}
+              <div className="flex flex-shrink-0 items-center border-b border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setEditorLayout('editor')}
+                  className={`px-4 py-2 text-xs font-medium transition-colors ${
+                    editorLayout === 'editor'
+                      ? 'border-b-2 border-blue-600 text-blue-600'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  Markdown
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorLayout('split')}
+                  className={`px-4 py-2 text-xs font-medium transition-colors ${
+                    editorLayout === 'split'
+                      ? 'border-b-2 border-blue-600 text-blue-600'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  Split
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorLayout('preview')}
+                  className={`px-4 py-2 text-xs font-medium transition-colors ${
+                    editorLayout === 'preview'
+                      ? 'border-b-2 border-blue-600 text-blue-600'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  Preview
+                </button>
               </div>
-              <textarea
-                value={content}
-                onChange={(e) => handleContentChange(e.target.value)}
-                className="flex-1 resize-none p-4 font-mono text-sm leading-relaxed text-slate-800 outline-none"
-                placeholder="Start writing your document..."
-              />
-            </div>
-            {/* Preview */}
-            <div className="flex flex-1 flex-col">
-              <div className="border-b border-slate-100 px-4 py-2 text-xs font-medium text-slate-400">
-                Preview
-              </div>
-              <div className="flex-1 overflow-y-auto p-4">
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-700">
-                  {content || (
-                    <span className="italic text-slate-300">
-                      Nothing to preview yet.
-                    </span>
-                  )}
-                </pre>
-              </div>
-            </div>
-          </>
-        )}
 
-        {/* Sidebar: History / Timeline */}
-        {showHistory && (
-          <div className="w-64 flex-shrink-0 flex flex-col border-l border-slate-200">
-            {/* Tab toggle */}
-            <div className="flex border-b border-slate-200">
-              <button
-                type="button"
-                onClick={() => setSidebarTab('history')}
-                className={`flex-1 px-3 py-2 text-xs font-medium ${
-                  sidebarTab === 'history'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                History
-              </button>
-              <button
-                type="button"
-                onClick={() => setSidebarTab('timeline')}
-                className={`flex-1 px-3 py-2 text-xs font-medium ${
-                  sidebarTab === 'timeline'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Timeline
-              </button>
+              {/* Content area */}
+              <div className="flex min-h-0 flex-1">
+                {/* Editor pane */}
+                {editorLayout !== 'preview' && (
+                  <div
+                    className="flex flex-col overflow-hidden"
+                    style={{ width: editorLayout === 'split' ? `${splitPercent}%` : '100%' }}
+                  >
+                    <textarea
+                      value={content}
+                      onChange={(e) => handleContentChange(e.target.value)}
+                      className="flex-1 resize-none p-4 font-mono text-sm leading-relaxed text-slate-800 outline-none"
+                      placeholder="Start writing your document..."
+                    />
+                  </div>
+                )}
+
+                {/* Resizable drag handle */}
+                {editorLayout === 'split' && (
+                  <div
+                    onPointerDown={handleSplitDragStart}
+                    className="group relative z-10 flex w-3 flex-shrink-0 cursor-col-resize items-center justify-center border-x border-slate-100 bg-slate-50/80 transition-colors hover:bg-blue-50"
+                  >
+                    <div className="h-10 w-1 rounded-full bg-slate-300 transition-colors group-hover:bg-blue-400 group-active:bg-blue-500" />
+                  </div>
+                )}
+
+                {/* Preview pane */}
+                {editorLayout !== 'editor' && (
+                  <div
+                    className="flex flex-col overflow-hidden"
+                    style={{ width: editorLayout === 'split' ? `${100 - splitPercent}%` : '100%' }}
+                  >
+                    <div className="flex-1 overflow-y-auto p-4">
+                      <MarkdownPreview content={content} />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            {/* Tab content */}
-            <div className="flex-1 overflow-hidden">
-              {sidebarTab === 'history' ? (
-                <VersionHistory
-                  documentId={id!}
-                  onCompare={handleCompare}
-                  onExitCompare={handleExitCompare}
-                />
-              ) : (
-                <Timeline documentId={id!} />
-              )}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* AI Quality Panel */}
-      <AIQualityPanel content={content} />
+      {/* AI Edit Panel — fixed footer tray */}
+      <AIEditPanel
+        content={content}
+        onProposedEdit={setAiProposedContent}
+        isNewDocument={!content.trim()}
+        onGenerate={handleAIGenerate}
+        isReviewMode={aiProposedContent !== null}
+      />
 
       {/* Save Version modal */}
       <Modal
@@ -285,6 +324,6 @@ export function DocumentEditor() {
           </button>
         </div>
       </Modal>
-    </>
+    </div>
   );
 }

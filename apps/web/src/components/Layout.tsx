@@ -10,17 +10,16 @@ export function Layout() {
       <Sidebar />
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top bar */}
-        <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-6">
-          {/* Mobile hamburger */}
+        {/* Mobile-only top bar */}
+        <div className="flex items-center gap-2 px-4 py-2 lg:hidden">
           <button
             type="button"
             onClick={toggleSidebar}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 lg:hidden"
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
             aria-label="Toggle sidebar"
           >
             <svg
-              className="h-6 w-6"
+              className="h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
@@ -33,29 +32,11 @@ export function Layout() {
               />
             </svg>
           </button>
-
-          {/* App name (visible on mobile when sidebar is hidden) */}
-          <span className="text-lg font-semibold text-slate-900 lg:hidden">
-            SyncDocs
-          </span>
-
-          {/* Spacer for desktop */}
-          <div className="hidden lg:block" />
-
-          {/* User avatar */}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white hover:bg-blue-700"
-              aria-label="User menu"
-            >
-              U
-            </button>
-          </div>
-        </header>
+          <span className="text-sm font-semibold text-slate-900">SyncDocs</span>
+        </div>
 
         {/* Main content */}
-        <main className="flex-1 overflow-auto p-6 lg:p-8">
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden p-6 lg:p-8">
           <Outlet />
         </main>
       </div>
