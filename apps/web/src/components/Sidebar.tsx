@@ -1,6 +1,10 @@
-import { NavLink, useMatch } from 'react-router-dom';
+import { NavLink, useMatch, useNavigate } from 'react-router-dom';
+import { useClerk } from '@clerk/clerk-react';
 import { useUIStore } from '../stores/ui.store';
+import { useAuthStore } from '../stores/auth.store';
 import { FileTree } from './FileTree';
+
+const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 function ThemeToggle() {
   const { theme, setTheme } = useUIStore();
@@ -33,6 +37,73 @@ function ThemeToggle() {
         </svg>
       )}
     </button>
+  );
+}
+
+function UserSection() {
+  const { user, teams, currentTeamId, setCurrentTeamId, clear } = useAuthStore();
+  const navigate = useNavigate();
+  const clerk = CLERK_ENABLED ? useClerk() : null;
+
+  const handleLogout = async () => {
+    if (clerk) {
+      await clerk.signOut();
+    }
+    clear();
+    navigate('/sign-in');
+  };
+
+  if (!user) return null;
+
+  const initials = user.name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  return (
+    <div className="border-t border-slate-200 px-3 py-3 space-y-2">
+      {/* Team switcher */}
+      {teams.length > 1 && (
+        <select
+          value={currentTeamId ?? ''}
+          onChange={(e) => setCurrentTeamId(e.target.value)}
+          className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        >
+          {teams.map((team) => (
+            <option key={team.id} value={team.id}>
+              {team.name}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {/* User info */}
+      <div className="flex items-center gap-2">
+        {user.imageUrl ? (
+          <img src={user.imageUrl} alt="" className="h-7 w-7 rounded-full" />
+        ) : (
+          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-[10px] font-bold text-white">
+            {initials}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="truncate text-xs font-medium text-slate-700">{user.name}</p>
+          <p className="truncate text-[10px] text-slate-400">{user.role}</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          title="Sign out"
+          className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+          </svg>
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -81,6 +152,9 @@ export function Sidebar() {
         <div className="flex-1 overflow-hidden">
           <FileTree />
         </div>
+
+        {/* User section */}
+        <UserSection />
 
         {/* Bottom: Theme toggle + Settings */}
         <div className="border-t border-slate-200">
