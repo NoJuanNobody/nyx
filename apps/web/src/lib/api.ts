@@ -85,6 +85,25 @@ export function createVersion(
   });
 }
 
+// ── Branches ─────────────────────────────────────────────────────────
+
+export interface DocumentBranch {
+  id: string;
+  documentId: string;
+  name: string;
+  baseVersionId: string;
+  content: string;
+  createdById: string;
+  status: string;
+  reviewedById: string | null;
+  createdAt: string;
+  mergedAt: string | null;
+}
+
+export function fetchBranches(documentId: string): Promise<DocumentBranch[]> {
+  return request<DocumentBranch[]>(`/documents/${documentId}/branches`);
+}
+
 // ── Diff ───────────────────────────────────────────────────────────
 
 export function fetchDiff(
@@ -142,4 +161,155 @@ export function editDocumentAI(
     method: 'POST',
     body: JSON.stringify({ content, instruction, history }),
   });
+}
+
+// ── Agent ──────────────────────────────────────────────────────────
+
+export interface AgentWorkflow {
+  id: string;
+  name: string;
+  description: string;
+  defaultPrompt?: string;
+}
+
+export function fetchWorkflows(): Promise<AgentWorkflow[]> {
+  return request<AgentWorkflow[]>('/agent/workflows');
+}
+
+export interface AgentSession {
+  id: string;
+  teamId: string;
+  userId: string;
+  documentId: string | null;
+  status: string;
+  prompt: string;
+  result: string | null;
+  toolCallCount: number;
+  tokenUsage: Record<string, number>;
+  createdAt: string;
+}
+
+export function getAgentSession(sessionId: string): Promise<{ session: AgentSession; toolCalls: unknown[] }> {
+  return request<{ session: AgentSession; toolCalls: unknown[] }>(`/agent/${sessionId}`);
+}
+
+export function cancelAgentSession(sessionId: string): Promise<{ cancelled: boolean }> {
+  return request<{ cancelled: boolean }>(`/agent/${sessionId}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+// ── API Keys ─────────────────────────────────────────────────────────
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  keyPrefix: string;
+  scopes: string[];
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+  revoked: boolean;
+  createdAt: string;
+}
+
+export function fetchApiKeys(teamId: string): Promise<ApiKey[]> {
+  return request<ApiKey[]>(`/api-keys?teamId=${encodeURIComponent(teamId)}`);
+}
+
+export function createApiKey(data: {
+  teamId: string;
+  name: string;
+  scopes?: string[];
+  expiresInDays?: number;
+}): Promise<ApiKey & { key: string }> {
+  return request<ApiKey & { key: string }>('/api-keys', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function revokeApiKey(keyId: string): Promise<{ revoked: boolean }> {
+  return request<{ revoked: boolean }>(`/api-keys/${keyId}`, {
+    method: 'DELETE',
+  });
+}
+
+// ── Change Proposals ─────────────────────────────────────────────────
+
+export interface ChangeProposal {
+  id: string;
+  documentId: string;
+  teamId: string;
+  createdById: string;
+  title: string;
+  description: string;
+  status: 'pending' | 'approved' | 'rejected' | 'pushed';
+  suggestedTickets: Array<{ title: string; description: string; priority: string; labels: string[] }>;
+  sourceVersions: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function generateChangeProposal(documentId: string): Promise<ChangeProposal> {
+  return request<ChangeProposal>(`/documents/${documentId}/change-proposals/generate`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export function fetchChangeProposals(documentId: string): Promise<ChangeProposal[]> {
+  return request<ChangeProposal[]>(`/documents/${documentId}/change-proposals`);
+}
+
+export function approveChangeProposal(
+  proposalId: string,
+  suggestedTickets?: ChangeProposal['suggestedTickets'],
+): Promise<ChangeProposal> {
+  return request<ChangeProposal>(`/change-proposals/${proposalId}/approve`, {
+    method: 'PATCH',
+    body: JSON.stringify(suggestedTickets ? { suggestedTickets } : {}),
+  });
+}
+
+export function rejectChangeProposal(proposalId: string): Promise<ChangeProposal> {
+  return request<ChangeProposal>(`/change-proposals/${proposalId}/reject`, {
+    method: 'PATCH',
+  });
+}
+
+export function pushChangeProposal(proposalId: string): Promise<{ proposal: ChangeProposal; createdTickets: unknown[] }> {
+  return request<{ proposal: ChangeProposal; createdTickets: unknown[] }>(`/change-proposals/${proposalId}/push`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+// ── Audit Trail ──────────────────────────────────────────────────────
+
+export interface AuditEvent {
+  id: string;
+  teamId: string;
+  eventType: string;
+  actorId: string | null;
+  actorName: string | null;
+  documentId: string | null;
+  snapshotId: string | null;
+  ticketId: string | null;
+  commitSha: string | null;
+  parentEventId: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export function fetchAuditTrail(documentId: string): Promise<{ documentId: string; events: AuditEvent[] }> {
+  return request<{ documentId: string; events: AuditEvent[] }>(
+    `/documents/${documentId}/audit-trail`,
+  );
+}
+
+export function fetchAuditTrace(eventId: string): Promise<{ eventId: string; chain: AuditEvent[] }> {
+  return request<{ eventId: string; chain: AuditEvent[] }>(
+    `/audit-trail/${eventId}/trace`,
+  );
 }

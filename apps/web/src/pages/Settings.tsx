@@ -1,46 +1,743 @@
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchTeams, fetchApiKeys, createApiKey, revokeApiKey, type ApiKey } from '../lib/api';
+
+// ── Types ────────────────────────────────────────────────────────────
+
+type SettingsTab = 'team' | 'integrations' | 'api-keys' | 'account';
+
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: 'owner' | 'admin' | 'developer' | 'editor' | 'viewer';
+  avatarUrl?: string;
+  joinedAt: string;
+}
+
+interface Integration {
+  id: string;
+  provider: 'github' | 'jira' | 'confluence';
+  label: string;
+  description: string;
+  connected: boolean;
+  account?: string;
+  connectedAt?: string;
+}
+
+// ── Mock Data ────────────────────────────────────────────────────────
+
+const MOCK_MEMBERS: TeamMember[] = [
+  { id: '1', name: 'You', email: 'dev@syncdocs.io', role: 'owner', joinedAt: '2025-11-01T00:00:00Z' },
+  { id: '2', name: 'Sarah Chen', email: 'sarah@example.com', role: 'admin', joinedAt: '2025-12-15T00:00:00Z' },
+  { id: '3', name: 'Marcus Rivera', email: 'marcus@example.com', role: 'developer', joinedAt: '2026-01-10T00:00:00Z' },
+  { id: '4', name: 'Priya Sharma', email: 'priya@example.com', role: 'editor', joinedAt: '2026-02-20T00:00:00Z' },
+];
+
+const MOCK_INTEGRATIONS: Integration[] = [
+  { id: '1', provider: 'github', label: 'GitHub', description: 'Sync repositories, detect code drift, and push tickets as issues.', connected: true, account: 'syncdocs-org', connectedAt: '2026-01-05T00:00:00Z' },
+  { id: '2', provider: 'jira', label: 'Jira', description: 'Push change proposal tickets directly to your Jira project boards.', connected: false },
+  { id: '3', provider: 'confluence', label: 'Confluence', description: 'Import existing documentation and keep Confluence pages in sync.', connected: false },
+];
+
+const ROLES: TeamMember['role'][] = ['owner', 'admin', 'developer', 'editor', 'viewer'];
+
+const ROLE_COLORS: Record<TeamMember['role'], string> = {
+  owner: 'bg-amber-50 text-amber-700 ring-amber-200',
+  admin: 'bg-violet-50 text-violet-700 ring-violet-200',
+  developer: 'bg-blue-50 text-blue-700 ring-blue-200',
+  editor: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  viewer: 'bg-slate-50 text-slate-500 ring-slate-200',
+};
+
+// ── Tab Navigation ───────────────────────────────────────────────────
+
+const TABS: { key: SettingsTab; label: string; icon: JSX.Element }[] = [
+  {
+    key: 'team',
+    label: 'Team',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+      </svg>
+    ),
+  },
+  {
+    key: 'integrations',
+    label: 'Integrations',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+      </svg>
+    ),
+  },
+  {
+    key: 'api-keys',
+    label: 'API Keys',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+      </svg>
+    ),
+  },
+  {
+    key: 'account',
+    label: 'Account',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+      </svg>
+    ),
+  },
+];
+
+// ── Provider Icons ───────────────────────────────────────────────────
+
+function GitHubIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z" />
+    </svg>
+  );
+}
+
+function JiraIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005Zm5.723-5.756H5.723a5.215 5.215 0 0 0 5.215 5.215h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.762a1.005 1.005 0 0 0-1.005-1.005h.017ZM23.013 0H11.441a5.218 5.218 0 0 0 5.216 5.215h2.129v2.058A5.218 5.218 0 0 0 24 12.488V1.005A1.005 1.005 0 0 0 22.996 0h.017Z" />
+    </svg>
+  );
+}
+
+function ConfluenceIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M.87 18.257c-.248.382-.53.875-.763 1.245a.764.764 0 0 0 .255 1.04l4.965 3.054a.764.764 0 0 0 1.058-.26c.199-.332.498-.868.763-1.353 1.657-3.06 3.35-2.694 6.39-1.168l4.79 2.4a.764.764 0 0 0 1.023-.383l2.367-5.28a.764.764 0 0 0-.382-1.005c-1.263-.595-3.47-1.642-4.79-2.298-5.372-2.667-9.725-2.53-15.676 3.808ZM23.131 5.743c.248-.382.53-.875.763-1.245a.764.764 0 0 0-.255-1.04L18.674.404a.764.764 0 0 0-1.058.26c-.2.332-.499.868-.764 1.353-1.657 3.06-3.35 2.694-6.39 1.168L5.672.785a.764.764 0 0 0-1.023.383L2.282 6.449a.764.764 0 0 0 .382 1.005c1.263.595 3.47 1.642 4.79 2.298 5.372 2.667 9.725 2.53 15.677-3.809Z" />
+    </svg>
+  );
+}
+
+const PROVIDER_ICON: Record<string, (props: { className?: string }) => JSX.Element> = {
+  github: GitHubIcon,
+  jira: JiraIcon,
+  confluence: ConfluenceIcon,
+};
+
+const PROVIDER_COLORS: Record<string, { bg: string; text: string; ring: string; btn: string }> = {
+  github: { bg: 'bg-slate-900', text: 'text-white', ring: 'ring-slate-300', btn: 'bg-slate-900 hover:bg-slate-800 text-white' },
+  jira: { bg: 'bg-blue-600', text: 'text-white', ring: 'ring-blue-200', btn: 'bg-blue-600 hover:bg-blue-700 text-white' },
+  confluence: { bg: 'bg-blue-500', text: 'text-white', ring: 'ring-blue-200', btn: 'bg-blue-500 hover:bg-blue-600 text-white' },
+};
+
+// ── Team Panel ───────────────────────────────────────────────────────
+
+function TeamPanel() {
+  const [members, setMembers] = useState<TeamMember[]>(MOCK_MEMBERS);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<TeamMember['role']>('editor');
+  const [inviteSent, setInviteSent] = useState(false);
+
+  const handleInvite = useCallback(() => {
+    if (!inviteEmail.trim()) return;
+    setInviteSent(true);
+    setTimeout(() => setInviteSent(false), 2500);
+    setInviteEmail('');
+  }, [inviteEmail]);
+
+  const handleRoleChange = useCallback((memberId: string, newRole: TeamMember['role']) => {
+    setMembers((prev) =>
+      prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
+    );
+  }, []);
+
+  const handleRemove = useCallback((memberId: string) => {
+    setMembers((prev) => prev.filter((m) => m.id !== memberId));
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      {/* Invite form */}
+      <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4">
+        <h3 className="text-sm font-semibold text-slate-800">Invite a team member</h3>
+        <p className="mt-0.5 text-xs text-slate-500">
+          They'll receive an email invitation to join your workspace.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <input
+            type="email"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            placeholder="colleague@company.com"
+            className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
+          />
+          <select
+            value={inviteRole}
+            onChange={(e) => setInviteRole(e.target.value as TeamMember['role'])}
+            className="rounded-md border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          >
+            {ROLES.filter((r) => r !== 'owner').map((role) => (
+              <option key={role} value={role}>
+                {role.charAt(0).toUpperCase() + role.slice(1)}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={handleInvite}
+            disabled={!inviteEmail.trim()}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-40 transition-colors"
+          >
+            Invite
+          </button>
+        </div>
+        {inviteSent && (
+          <p className="mt-2 text-xs font-medium text-green-600">
+            Invitation sent! They'll appear here once they accept.
+          </p>
+        )}
+      </div>
+
+      {/* Member list */}
+      <div className="rounded-lg border border-slate-200 overflow-hidden">
+        <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-2.5">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            {members.length} member{members.length !== 1 && 's'}
+          </span>
+        </div>
+        <ul className="divide-y divide-slate-100">
+          {members.map((member) => (
+            <li
+              key={member.id}
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50/50"
+            >
+              {/* Avatar */}
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-sm font-semibold text-slate-600">
+                {member.name.charAt(0).toUpperCase()}
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-slate-800 truncate">{member.name}</span>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${ROLE_COLORS[member.role]}`}>
+                    {member.role}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 truncate">{member.email}</p>
+              </div>
+
+              {/* Actions */}
+              {member.role !== 'owner' && (
+                <div className="flex items-center gap-2">
+                  <select
+                    value={member.role}
+                    onChange={(e) => handleRoleChange(member.id, e.target.value as TeamMember['role'])}
+                    className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  >
+                    {ROLES.filter((r) => r !== 'owner').map((role) => (
+                      <option key={role} value={role}>
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(member.id)}
+                    className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                    title="Remove member"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M22 10.5h-6m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM4 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 10.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ── Integrations Panel ───────────────────────────────────────────────
+
+function IntegrationsPanel() {
+  const [integrations, setIntegrations] = useState<Integration[]>(MOCK_INTEGRATIONS);
+  const [connecting, setConnecting] = useState<string | null>(null);
+
+  const handleConnect = useCallback((integrationId: string) => {
+    setConnecting(integrationId);
+    // Simulate OAuth flow
+    setTimeout(() => {
+      setIntegrations((prev) =>
+        prev.map((i) =>
+          i.id === integrationId
+            ? { ...i, connected: true, account: 'my-workspace', connectedAt: new Date().toISOString() }
+            : i,
+        ),
+      );
+      setConnecting(null);
+    }, 1500);
+  }, []);
+
+  const handleDisconnect = useCallback((integrationId: string) => {
+    setIntegrations((prev) =>
+      prev.map((i) =>
+        i.id === integrationId
+          ? { ...i, connected: false, account: undefined, connectedAt: undefined }
+          : i,
+      ),
+    );
+  }, []);
+
+  return (
+    <div className="space-y-4">
+      {integrations.map((integration) => {
+        const Icon = PROVIDER_ICON[integration.provider];
+        const colors = PROVIDER_COLORS[integration.provider];
+        const isConnecting = connecting === integration.id;
+
+        return (
+          <div
+            key={integration.id}
+            className={`rounded-lg border overflow-hidden transition-all ${
+              integration.connected
+                ? 'border-green-200 bg-green-50/30'
+                : 'border-slate-200 bg-white'
+            }`}
+          >
+            <div className="flex items-start gap-4 p-4">
+              {/* Provider icon */}
+              <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${colors.bg} ${colors.text}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-800">{integration.label}</span>
+                  {integration.connected && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                      Connected
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">{integration.description}</p>
+                {integration.connected && integration.account && (
+                  <p className="mt-1.5 text-xs text-slate-400">
+                    Account: <span className="font-mono text-slate-600">{integration.account}</span>
+                    {integration.connectedAt && (
+                      <> &middot; Connected {new Date(integration.connectedAt).toLocaleDateString()}</>
+                    )}
+                  </p>
+                )}
+              </div>
+
+              {/* Action */}
+              <div className="flex-shrink-0">
+                {integration.connected ? (
+                  <button
+                    type="button"
+                    onClick={() => handleDisconnect(integration.id)}
+                    className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
+                  >
+                    Disconnect
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleConnect(integration.id)}
+                    disabled={isConnecting}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium shadow-sm transition-colors disabled:opacity-60 ${colors.btn}`}
+                  >
+                    {isConnecting ? (
+                      <span className="flex items-center gap-1.5">
+                        <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Connecting...
+                      </span>
+                    ) : (
+                      'Connect'
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Account Panel ────────────────────────────────────────────────────
+
+function AccountPanel() {
+  const [name, setName] = useState('Dev User');
+  const [email, setEmail] = useState('dev@syncdocs.io');
+  const [saved, setSaved] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+
+  const handleSaveProfile = useCallback(() => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  }, []);
+
+  const handleChangePassword = useCallback(() => {
+    setPasswordError('');
+    if (!currentPassword) {
+      setPasswordError('Current password is required.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.');
+      return;
+    }
+    setPasswordSaved(true);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setTimeout(() => setPasswordSaved(false), 2500);
+  }, [currentPassword, newPassword, confirmPassword]);
+
+  return (
+    <div className="space-y-6">
+      {/* Profile */}
+      <div className="rounded-lg border border-slate-200 p-4">
+        <h3 className="text-sm font-semibold text-slate-800">Profile</h3>
+        <p className="mt-0.5 text-xs text-slate-500">Your public display name and contact email.</p>
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">Display name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">Email address</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+        </div>
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleSaveProfile}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+          >
+            Save changes
+          </button>
+          {saved && (
+            <span className="text-xs font-medium text-green-600">Profile updated.</span>
+          )}
+        </div>
+      </div>
+
+      {/* Password */}
+      <div className="rounded-lg border border-slate-200 p-4">
+        <h3 className="text-sm font-semibold text-slate-800">Change password</h3>
+        <p className="mt-0.5 text-xs text-slate-500">Update your password. You'll need your current password to confirm.</p>
+        <div className="mt-4 space-y-3 max-w-sm">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">Current password</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">New password</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">Confirm new password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+        </div>
+        {passwordError && (
+          <p className="mt-2 text-xs font-medium text-red-500">{passwordError}</p>
+        )}
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleChangePassword}
+            className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            Update password
+          </button>
+          {passwordSaved && (
+            <span className="text-xs font-medium text-green-600">Password changed.</span>
+          )}
+        </div>
+      </div>
+
+      {/* Danger zone */}
+      <div className="rounded-lg border border-red-200 bg-red-50/30 p-4">
+        <h3 className="text-sm font-semibold text-red-700">Danger zone</h3>
+        <p className="mt-0.5 text-xs text-red-500/80">
+          Permanently delete your account and all associated data. This action cannot be undone.
+        </p>
+        <button
+          type="button"
+          className="mt-3 rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+        >
+          Delete account
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── API Keys Panel ──────────────────────────────────────────────────
+
+function ApiKeysPanel() {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState('');
+  const [createdKey, setCreatedKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const { data: teams } = useQuery({
+    queryKey: ['teams'],
+    queryFn: fetchTeams,
+  });
+  const teamId = teams?.[0]?.id;
+
+  const { data: keys, isLoading } = useQuery({
+    queryKey: ['api-keys', teamId],
+    queryFn: () => fetchApiKeys(teamId!),
+    enabled: !!teamId,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (keyName: string) => createApiKey({ teamId: teamId!, name: keyName }),
+    onSuccess: (data) => {
+      setCreatedKey(data.key);
+      setName('');
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+    },
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (keyId: string) => revokeApiKey(keyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+    },
+  });
+
+  const handleCopy = useCallback(() => {
+    if (createdKey) {
+      navigator.clipboard.writeText(createdKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [createdKey]);
+
+  const handleCreate = useCallback(() => {
+    if (!name.trim()) return;
+    setCreatedKey(null);
+    createMutation.mutate(name.trim());
+  }, [name, createMutation]);
+
+  const activeKeys = keys?.filter((k) => !k.revoked) ?? [];
+  const revokedKeys = keys?.filter((k) => k.revoked) ?? [];
+
+  return (
+    <div className="space-y-6">
+      {/* Info */}
+      <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+        <h3 className="text-sm font-semibold text-blue-800">API Keys for MCP Server</h3>
+        <p className="mt-1 text-xs text-blue-600 leading-relaxed">
+          API keys let external tools like Claude Code, Cursor, and Copilot access your SyncDocs
+          workspace via the MCP server. Keys use the <code className="rounded bg-blue-100 px-1 py-0.5 font-mono text-[11px]">sd_</code> prefix.
+        </p>
+      </div>
+
+      {/* Create form */}
+      <div className="rounded-lg border border-slate-200 p-4">
+        <h3 className="text-sm font-semibold text-slate-800">Create a new key</h3>
+        <div className="mt-3 flex gap-2">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Key name (e.g. Claude Code)"
+            className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+          />
+          <button
+            type="button"
+            onClick={handleCreate}
+            disabled={!name.trim() || createMutation.isPending}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-40 transition-colors"
+          >
+            {createMutation.isPending ? 'Creating...' : 'Create'}
+          </button>
+        </div>
+
+        {/* Show newly created key */}
+        {createdKey && (
+          <div className="mt-3 rounded-md border border-green-200 bg-green-50 p-3">
+            <p className="text-xs font-medium text-green-800 mb-1.5">
+              Key created! Copy it now — it won't be shown again.
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded bg-white px-3 py-1.5 font-mono text-xs text-slate-800 border border-green-200 select-all">
+                {createdKey}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="rounded-md border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 transition-colors"
+              >
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Key list */}
+      <div className="rounded-lg border border-slate-200 overflow-hidden">
+        <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-2.5">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            {isLoading ? 'Loading...' : `${activeKeys.length} active key${activeKeys.length !== 1 ? 's' : ''}`}
+          </span>
+        </div>
+
+        {activeKeys.length === 0 && !isLoading ? (
+          <div className="px-4 py-6 text-center text-xs text-slate-400">
+            No API keys yet. Create one above to connect external tools.
+          </div>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {activeKeys.map((key) => (
+              <li key={key.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50/50 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-800">{key.name}</span>
+                    <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">
+                      {key.keyPrefix}...
+                    </code>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Created {new Date(key.createdAt).toLocaleDateString()}
+                    {key.lastUsedAt && <> &middot; Last used {new Date(key.lastUsedAt).toLocaleDateString()}</>}
+                    {key.expiresAt && <> &middot; Expires {new Date(key.expiresAt).toLocaleDateString()}</>}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => revokeMutation.mutate(key.id)}
+                  disabled={revokeMutation.isPending}
+                  className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors disabled:opacity-40"
+                >
+                  Revoke
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {revokedKeys.length > 0 && (
+          <>
+            <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-300">
+                {revokedKeys.length} revoked
+              </span>
+            </div>
+            <ul className="divide-y divide-slate-100 opacity-50">
+              {revokedKeys.map((key) => (
+                <li key={key.id} className="flex items-center gap-3 px-4 py-2">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs text-slate-400 line-through">{key.name}</span>
+                    <code className="ml-2 font-mono text-[10px] text-slate-300">{key.keyPrefix}...</code>
+                  </div>
+                  <span className="text-[10px] text-slate-300">revoked</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Settings Page ────────────────────────────────────────────────────
+
 export function Settings() {
+  const [activeTab, setActiveTab] = useState<SettingsTab>('team');
+
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
         <p className="mt-1 text-sm text-slate-500">
           Manage your team, integrations, and account preferences.
         </p>
       </div>
 
-      <div className="space-y-8">
-        {/* Team section */}
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Team</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Invite team members and manage roles.
-          </p>
-          <div className="mt-4 rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
-            Team management coming soon.
-          </div>
-        </section>
+      <div className="flex gap-8">
+        {/* Side nav */}
+        <nav className="flex w-44 flex-shrink-0 flex-col gap-0.5">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left ${
+                activeTab === tab.key
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-        {/* Integrations section */}
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Integrations</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Connect GitHub, Jira, and other tools.
-          </p>
-          <div className="mt-4 rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
-            Integration settings coming soon.
-          </div>
-        </section>
-
-        {/* Account section */}
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Account</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Update your profile and account preferences.
-          </p>
-          <div className="mt-4 rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
-            Account settings coming soon.
-          </div>
-        </section>
+        {/* Panel */}
+        <div className="flex-1 min-w-0">
+          {activeTab === 'team' && <TeamPanel />}
+          {activeTab === 'integrations' && <IntegrationsPanel />}
+          {activeTab === 'api-keys' && <ApiKeysPanel />}
+          {activeTab === 'account' && <AccountPanel />}
+        </div>
       </div>
     </>
   );
