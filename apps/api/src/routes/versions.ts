@@ -1,4 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { eq } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { documents } from '../db/schema.js';
 import { versionService } from '../services/version.service.js';
 import { requireRole } from '../middleware/permissions.js';
 import { timelineService } from '../services/timeline.service.js';
@@ -19,15 +22,30 @@ export const documentVersionRoutes: FastifyPluginAsync = async (app) => {
   app.post('/:documentId/versions', { preHandler: [requireRole({ minimumRole: 'editor', source: 'document' })] }, async (request, reply) => {
     const { documentId } = request.params as { documentId: string };
     const { content, message } = request.body as {
-      content: string;
+      content?: string;
       message?: string;
     };
 
     const createdById = request.user.id;
 
+    // If content isn't provided, snapshot the current document content
+    let versionContent = content;
+    if (versionContent === undefined) {
+      const [doc] = await db
+        .select({ content: documents.content })
+        .from(documents)
+        .where(eq(documents.id, documentId))
+        .limit(1);
+
+      if (!doc) {
+        return reply.code(404).send({ error: 'Document not found' });
+      }
+      versionContent = doc.content;
+    }
+
     const version = await versionService.create({
       documentId,
-      content,
+      content: versionContent,
       message,
       createdById,
     });

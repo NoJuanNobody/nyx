@@ -197,6 +197,46 @@ export const aiService = {
     return text;
   },
 
+  async analyzeChangesForTickets(
+    changes: Array<{ version: number; message: string | null; content: string }>,
+    documentTitle: string,
+  ): Promise<{ title: string; description: string; suggestedTickets: Array<{ title: string; description: string; priority: string; labels: string[] }> }> {
+    const ai = requireClient();
+
+    const changeSummary = changes
+      .map((c) => `### Version ${c.version}${c.message ? ` — ${c.message}` : ''}\n${c.content.slice(0, 1000)}`)
+      .join('\n\n');
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 2048,
+      system:
+        'You are a change analyst for a documentation platform. Given a set of document version changes, analyze them and suggest ticket groupings. Group related changes into logical tickets. Respond ONLY with valid JSON in this exact format: {"title": "<proposal title>", "description": "<summary of all changes>", "suggestedTickets": [{"title": "<ticket title>", "description": "<detailed description>", "priority": "high|medium|low", "labels": ["label1"]}]}',
+      messages: [
+        {
+          role: 'user',
+          content: `Analyze these changes to the document "${documentTitle}" and suggest tickets:\n\n${changeSummary}`,
+        },
+      ],
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip markdown code fences the model sometimes wraps around JSON
+    text = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+
+    try {
+      return JSON.parse(text) as { title: string; description: string; suggestedTickets: Array<{ title: string; description: string; priority: string; labels: string[] }> };
+    } catch {
+      return {
+        title: `Changes to ${documentTitle}`,
+        description: text,
+        suggestedTickets: [{ title: `Update ${documentTitle}`, description: text, priority: 'medium', labels: ['spec-change'] }],
+      };
+    }
+  },
+
   async bootstrapDocsFromCode(
     files: Array<{ path: string; content: string }>,
   ): Promise<string> {

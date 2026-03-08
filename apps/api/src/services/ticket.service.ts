@@ -5,6 +5,7 @@ import { db } from '../db/index.js';
 import { tickets, integrations, documents } from '../db/schema.js';
 import { githubService } from './github.service.js';
 import { jiraService } from './jira.service.js';
+import { auditService } from './audit.service.js';
 
 export const ticketService = {
   async createFromDocument(
@@ -72,6 +73,20 @@ export const ticketService = {
         createdById,
       })
       .returning();
+
+    // Fire-and-forget audit event
+    setImmediate(async () => {
+      try {
+        await auditService.recordEvent({
+          teamId: doc.teamId,
+          eventType: 'ticket_created',
+          actorId: createdById,
+          documentId,
+          ticketId: ticket.id,
+          metadata: { provider, title, externalUrl },
+        });
+      } catch {}
+    });
 
     return ticket;
   },

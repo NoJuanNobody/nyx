@@ -4,6 +4,7 @@ import { db } from '../db/index.js';
 import { documents } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
 import { timelineService } from '../services/timeline.service.js';
+import { auditService } from '../services/audit.service.js';
 
 export const documentRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/documents?teamId=X — list documents for a team
@@ -107,6 +108,13 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
           type: 'document_updated',
           payload: { fields: Object.keys(body).filter(k => (body as Record<string, unknown>)[k] !== undefined) },
           actorId: request.user.id,
+        });
+        await auditService.recordEvent({
+          teamId: doc.teamId,
+          eventType: 'doc_edit',
+          actorId: request.user.id,
+          documentId: id,
+          metadata: { fields: Object.keys(body).filter(k => (body as Record<string, unknown>)[k] !== undefined) },
         });
       } catch {}
     });

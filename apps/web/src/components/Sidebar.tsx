@@ -1,15 +1,43 @@
-import { useState } from 'react';
-import { NavLink, useParams, useMatch } from 'react-router-dom';
+import { NavLink, useMatch } from 'react-router-dom';
 import { useUIStore } from '../stores/ui.store';
 import { FileTree } from './FileTree';
-import { VersionHistory } from './VersionHistory';
-import { Timeline } from './Timeline';
+
+function ThemeToggle() {
+  const { theme, setTheme } = useUIStore();
+
+  const cycle = () => {
+    const next = theme === 'system' ? 'dark' : theme === 'dark' ? 'light' : 'system';
+    setTheme(next);
+  };
+
+  const label = theme === 'system' ? 'System' : theme === 'dark' ? 'Dark' : 'Light';
+
+  return (
+    <button
+      type="button"
+      onClick={cycle}
+      className="flex items-center gap-1.5 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+      title={`Theme: ${label}. Click to cycle.`}
+    >
+      {theme === 'dark' ? (
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+        </svg>
+      ) : theme === 'light' ? (
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+        </svg>
+      ) : (
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25A2.25 2.25 0 0 1 5.25 3h13.5A2.25 2.25 0 0 1 21 5.25Z" />
+        </svg>
+      )}
+    </button>
+  );
+}
 
 export function Sidebar() {
   const { sidebarOpen, setSidebarOpen } = useUIStore();
-  const docMatch = useMatch('/documents/:id');
-  const documentId = docMatch?.params.id ?? null;
-  const [sidebarDocTab, setSidebarDocTab] = useState<'history' | 'timeline'>('history');
 
   return (
     <>
@@ -49,81 +77,49 @@ export function Sidebar() {
           <span className="text-base font-semibold text-slate-900">SyncDocs</span>
         </NavLink>
 
-        {/* File tree — main content area */}
+        {/* File tree — full height */}
         <div className="flex-1 overflow-hidden">
           <FileTree />
         </div>
 
-        {/* Document History / Timeline — shown when a doc is open */}
-        {documentId && (
-          <div className="flex flex-col border-t border-slate-200" style={{ maxHeight: '40%' }}>
-            <div className="flex flex-shrink-0 border-b border-slate-100">
-              <button
-                type="button"
-                onClick={() => setSidebarDocTab('history')}
-                className={`flex-1 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
-                  sidebarDocTab === 'history'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-slate-400 hover:text-slate-600'
-                }`}
+        {/* Bottom: Theme toggle + Settings */}
+        <div className="border-t border-slate-200">
+          <div className="flex items-center">
+            <NavLink
+              to="/settings"
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) =>
+                `flex flex-1 items-center gap-3 px-5 py-2.5 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                }`
+              }
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
               >
-                History
-              </button>
-              <button
-                type="button"
-                onClick={() => setSidebarDocTab('timeline')}
-                className={`flex-1 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
-                  sidebarDocTab === 'timeline'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                Timeline
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {sidebarDocTab === 'history' ? (
-                <VersionHistory documentId={documentId} />
-              ) : (
-                <Timeline documentId={documentId} />
-              )}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                />
+              </svg>
+              Settings
+            </NavLink>
+            <div className="pr-3">
+              <ThemeToggle />
             </div>
           </div>
-        )}
-
-        {/* Bottom: Settings */}
-        <div className="border-t border-slate-200">
-          <NavLink
-            to="/settings"
-            onClick={() => setSidebarOpen(false)}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-5 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-              }`
-            }
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-              />
-            </svg>
-            Settings
-          </NavLink>
         </div>
       </aside>
     </>

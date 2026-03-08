@@ -7,6 +7,7 @@ import { config } from '../lib/config.js';
 import { aiService } from '../services/ai.service.js';
 import { githubService } from '../services/github.service.js';
 import { timelineService } from '../services/timeline.service.js';
+import { auditService } from '../services/audit.service.js';
 
 function verifyGitHubSignature(payload: string, signature: string, secret: string): boolean {
   const expected = 'sha256=' + createHmac('sha256', secret).update(payload).digest('hex');
@@ -96,7 +97,7 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
                 }
               }
 
-              // Record code_push event for all team docs
+              // Record code_push event + audit trail for all team docs
               for (const doc of teamDocs) {
                 await timelineService.create({
                   documentId: doc.id,
@@ -107,6 +108,19 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
                     changedFiles: result.changedFiles,
                   },
                 });
+
+                // Audit trail for each commit
+                for (const commit of result.commits) {
+                  try {
+                    await auditService.recordEvent({
+                      teamId: integration.teamId,
+                      eventType: 'code_commit',
+                      documentId: doc.id,
+                      commitSha: commit.id,
+                      metadata: { message: commit.message, ref: result.ref, author: commit.author },
+                    });
+                  } catch {}
+                }
               }
             }
           } catch (err) {

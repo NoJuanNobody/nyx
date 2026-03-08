@@ -1,6 +1,7 @@
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { snapshots, documents } from '../db/schema.js';
+import { auditService } from './audit.service.js';
 
 export const snapshotService = {
   async list(teamId?: string) {
@@ -39,7 +40,27 @@ export const snapshotService = {
       content: doc.content,
     }));
 
-    return db.insert(snapshots).values(values).returning();
+    const created = await db.insert(snapshots).values(values).returning();
+
+    // Fire-and-forget audit events
+    setImmediate(async () => {
+      for (const snap of created) {
+        try {
+          const [d] = await db.select({ teamId: documents.teamId }).from(documents).where(eq(documents.id, snap.documentId));
+          if (d) {
+            await auditService.recordEvent({
+              teamId: d.teamId,
+              eventType: 'snapshot_created',
+              documentId: snap.documentId,
+              snapshotId: snap.id,
+              metadata: { name: data.name },
+            });
+          }
+        } catch {}
+      }
+    });
+
+    return created;
   },
 
   async getById(id: string) {
