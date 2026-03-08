@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 
 interface MarkdownEditorProps {
   value: string;
@@ -11,9 +11,13 @@ interface MarkdownEditorProps {
  * Uses a transparent textarea overlaid on a highlighted pre element.
  * Both scroll in sync so the colors align with the typed text.
  */
-export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorProps) {
+export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProps>(
+  function MarkdownEditor({ value, onChange, placeholder }, ref) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
+
+  // Expose the internal textarea ref to the parent via forwardRef
+  useImperativeHandle(ref, () => textareaRef.current!, []);
 
   // Sync scroll positions
   const handleScroll = useCallback(() => {
@@ -57,7 +61,7 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
       />
     </div>
   );
-}
+});
 
 // ── Markdown syntax highlighting ────────────────────────────
 

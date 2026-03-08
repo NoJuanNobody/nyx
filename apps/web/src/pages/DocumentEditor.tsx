@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, type PointerEvent as ReactPointerEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Document, DocumentVersion } from '@syncdocs/shared';
@@ -10,6 +10,7 @@ import { AIEditReview } from '../components/AIEditReview';
 import { MarkdownPreview } from '../components/MarkdownPreview';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { DocDrawer, DocDrawerToggle, type DrawerPanel } from '../components/DocDrawer';
+import { MarkdownToolbar } from '../components/MarkdownToolbar';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
 
@@ -28,6 +29,7 @@ export function DocumentEditor() {
   const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
   const [viewingVersion, setViewingVersion] = useState<DocumentVersion | null>(null);
   const splitContainerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialised = useRef(false);
@@ -310,6 +312,15 @@ export function DocumentEditor() {
                 </button>
               </div>
 
+              {/* Markdown formatting toolbar */}
+              {editorLayout !== 'preview' && (
+                <MarkdownToolbar
+                  textareaRef={textareaRef as RefObject<HTMLTextAreaElement>}
+                  value={content}
+                  onChange={handleContentChange}
+                />
+              )}
+
               {/* Content area */}
               <div className="flex min-h-0 flex-1">
                 {/* Editor pane */}
@@ -319,6 +330,7 @@ export function DocumentEditor() {
                     style={{ width: editorLayout === 'split' ? `${splitPercent}%` : '100%' }}
                   >
                     <MarkdownEditor
+                      ref={textareaRef}
                       value={content}
                       onChange={handleContentChange}
                       placeholder="Start writing your document..."
