@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef, useCallback, type PointerEvent as ReactPointerEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Document } from '@syncdocs/shared';
+import type { Document, DocumentVersion } from '@syncdocs/shared';
 
 import { fetchDocument, updateDocument, createVersion } from '../lib/api';
 
 import { Modal } from '../components/Modal';
-import { AIEditPanel } from '../components/AIEditPanel';
 import { AIEditReview } from '../components/AIEditReview';
 import { MarkdownPreview } from '../components/MarkdownPreview';
+import { MarkdownEditor } from '../components/MarkdownEditor';
+import { DocDrawer, DocDrawerToggle, type DrawerPanel } from '../components/DocDrawer';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
 
@@ -24,6 +25,8 @@ export function DocumentEditor() {
   const [aiProposedContent, setAiProposedContent] = useState<string | null>(null);
   const [editorLayout, setEditorLayout] = useState<'split' | 'editor' | 'preview'>('split');
   const [splitPercent, setSplitPercent] = useState(50);
+  const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
+  const [viewingVersion, setViewingVersion] = useState<DocumentVersion | null>(null);
   const splitContainerRef = useRef<HTMLDivElement>(null);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -116,6 +119,18 @@ export function DocumentEditor() {
     scheduleSave({ title: result.title, content: result.content });
   };
 
+  const handleDrawerToggle = useCallback((panel: DrawerPanel) => {
+    setDrawerPanel((prev) => (prev === panel ? null : panel));
+  }, []);
+
+  const handleSelectVersion = useCallback((version: DocumentVersion | null) => {
+    setViewingVersion(version);
+  }, []);
+
+  const handleSwitchToHistory = useCallback((_versionId: string) => {
+    setDrawerPanel('history');
+  }, []);
+
   const handleSplitDragStart = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     const container = splitContainerRef.current;
@@ -186,11 +201,70 @@ export function DocumentEditor() {
             Save Version
           </button>
 
+          {/* Drawer panel toggles */}
+          <div className="h-5 w-px bg-slate-200" />
+          <DocDrawerToggle activePanel={drawerPanel} onToggle={handleDrawerToggle} />
         </div>
 
-        {/* Editor + Preview + History */}
+        {/* Editor + Preview + Drawer */}
         <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white">
-          {aiProposedContent !== null ? (
+          {viewingVersion !== null ? (
+            /* ── Read-only past version view ─────────────────── */
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <div className="flex flex-shrink-0 items-center gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2">
+                <svg className="h-4 w-4 flex-shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                <span className="text-xs font-medium text-amber-800">
+                  Viewing version {viewingVersion.version}
+                  {viewingVersion.message && <span className="font-normal text-amber-600"> — {viewingVersion.message}</span>}
+                </span>
+                <span className="text-[10px] text-amber-500">
+                  {new Date(viewingVersion.createdAt).toLocaleString()}
+                </span>
+                <div className="ml-auto flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setContent(viewingVersion.content);
+                      scheduleSave({ title, content: viewingVersion.content });
+                      setViewingVersion(null);
+                    }}
+                    className="rounded-md bg-amber-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-amber-700 transition-colors"
+                  >
+                    Restore this version
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewingVersion(null)}
+                    className="rounded-md border border-amber-300 bg-white px-2.5 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-50 transition-colors"
+                  >
+                    Back to current
+                  </button>
+                </div>
+              </div>
+
+              {/* Version content — split view (read-only markdown + preview) */}
+              <div className="flex min-h-0 flex-1">
+                <div className="flex flex-1 flex-col overflow-hidden border-r border-slate-100">
+                  <div className="flex-shrink-0 border-b border-slate-100 px-4 py-1.5">
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Markdown</span>
+                  </div>
+                  <pre className="flex-1 overflow-y-auto whitespace-pre-wrap p-4 font-mono text-sm leading-relaxed text-slate-600">
+                    {viewingVersion.content}
+                  </pre>
+                </div>
+                <div className="flex flex-1 flex-col overflow-hidden">
+                  <div className="flex-shrink-0 border-b border-slate-100 px-4 py-1.5">
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Preview</span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <MarkdownPreview content={viewingVersion.content} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : aiProposedContent !== null ? (
             <AIEditReview
               originalContent={content}
               proposedContent={aiProposedContent}
@@ -244,10 +318,9 @@ export function DocumentEditor() {
                     className="flex flex-col overflow-hidden"
                     style={{ width: editorLayout === 'split' ? `${splitPercent}%` : '100%' }}
                   >
-                    <textarea
+                    <MarkdownEditor
                       value={content}
-                      onChange={(e) => handleContentChange(e.target.value)}
-                      className="flex-1 resize-none p-4 font-mono text-sm leading-relaxed text-slate-800 outline-none"
+                      onChange={handleContentChange}
                       placeholder="Start writing your document..."
                     />
                   </div>
@@ -277,17 +350,28 @@ export function DocumentEditor() {
               </div>
             </div>
           )}
+
+          {/* Right-side drawer for History / Timeline / Proposals / Audit */}
+          {id && (
+            <DocDrawer
+              documentId={id}
+              teamId={doc.teamId}
+              activePanel={drawerPanel}
+              onClose={() => setDrawerPanel(null)}
+              onSelectVersion={handleSelectVersion}
+              activeVersionId={viewingVersion?.id ?? null}
+              onSwitchToHistory={handleSwitchToHistory}
+              aiChat={{
+                content,
+                onProposedEdit: setAiProposedContent,
+                isNewDocument: !content.trim(),
+                onGenerate: handleAIGenerate,
+                isReviewMode: aiProposedContent !== null,
+              }}
+            />
+          )}
         </div>
       </div>
-
-      {/* AI Edit Panel — fixed footer tray */}
-      <AIEditPanel
-        content={content}
-        onProposedEdit={setAiProposedContent}
-        isNewDocument={!content.trim()}
-        onGenerate={handleAIGenerate}
-        isReviewMode={aiProposedContent !== null}
-      />
 
       {/* Save Version modal */}
       <Modal
