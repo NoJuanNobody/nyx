@@ -323,3 +323,67 @@ export function fetchAuditTrace(eventId: string): Promise<{ eventId: string; cha
     `/audit-trail/${eventId}/trace`,
   );
 }
+
+// ── Team Members ────────────────────────────────────────────────────
+
+export function fetchTeamMembers(teamId: string): Promise<{ teamId: string; members: Array<{ id: string; userId: string; role: string; joinedAt: string; userName: string; userEmail: string }> }> {
+  return request<{ teamId: string; members: Array<{ id: string; userId: string; role: string; joinedAt: string; userName: string; userEmail: string }> }>(
+    `/teams/${teamId}/members`,
+  );
+}
+
+export function updateTeamMemberRole(teamId: string, userId: string, role: string): Promise<{ id: string; role: string }> {
+  return request<{ id: string; role: string }>(`/teams/${teamId}/members/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role }),
+  });
+}
+
+export function removeTeamMember(teamId: string, userId: string): Promise<void> {
+  return request<void>(`/teams/${teamId}/members/${userId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function inviteTeamMember(teamId: string, email: string, role: string): Promise<{ id: string }> {
+  return request<{ id: string }>(`/teams/${teamId}/members`, {
+    method: 'POST',
+    body: JSON.stringify({ email, role }),
+  });
+}
+
+// ── Integrations (Settings) ─────────────────────────────────────────
+
+export function fetchIntegrations(teamId: string): Promise<Array<{ id: string; teamId: string; type: string; config: Record<string, unknown>; createdAt: string }>> {
+  return request<Array<{ id: string; teamId: string; type: string; config: Record<string, unknown>; createdAt: string }>>(
+    `/integrations?teamId=${encodeURIComponent(teamId)}`,
+  );
+}
+
+export function deleteIntegration(id: string): Promise<{ id: string }> {
+  return request<{ id: string }>(`/integrations/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export function testIntegration(id: string): Promise<{ ok: boolean; message: string }> {
+  return request<{ ok: boolean; message: string }>(`/integrations/${id}/test`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+// ── User Profile ────────────────────────────────────────────────────
+
+export function updateProfile(data: { name?: string; email?: string }): Promise<{ id: string; name: string; email: string }> {
+  return request<{ id: string; name: string; email: string }>('/users/me', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteAccount(): Promise<void> {
+  return request<void>('/users/me', {
+    method: 'DELETE',
+  });
+}

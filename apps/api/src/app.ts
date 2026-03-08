@@ -20,6 +20,7 @@ import { changeProposalRoutes } from './routes/change-proposals.js';
 import { auditRoutes } from './routes/audit.js';
 import { agentRoutes } from './routes/agent.js';
 import { apiKeyRoutes } from './routes/api-keys.js';
+import { userRoutes } from './routes/users.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -51,6 +52,7 @@ export function buildApp() {
   app.register(auditRoutes, { prefix: '/api' });
   app.register(agentRoutes, { prefix: '/api/agent' });
   app.register(apiKeyRoutes, { prefix: '/api/api-keys' });
+  app.register(userRoutes, { prefix: '/api/users' });
 
   return app;
 }
