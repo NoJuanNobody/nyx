@@ -2,9 +2,19 @@ import type { Document, DocumentVersion } from '@syncdocs/shared';
 
 const BASE = '/api';
 
+// ── Auth Token ──────────────────────────────────────────────────────
+let authToken: string | null = null;
+export function setAuthToken(token: string | null) { authToken = token; }
+export function getAuthToken() { return authToken; }
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     ...options,
   });
 
