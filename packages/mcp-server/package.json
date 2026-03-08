@@ -8,8 +8,7 @@
     "syncdocs-mcp": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsx src/index.ts"
+    "build": "tsc"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"

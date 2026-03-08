@@ -1,5 +1,4 @@
-import { NavLink, useMatch, useNavigate } from 'react-router-dom';
-import { useClerk } from '@clerk/clerk-react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useUIStore } from '../stores/ui.store';
 import { useAuthStore } from '../stores/auth.store';
 import { FileTree } from './FileTree';
@@ -43,14 +42,20 @@ function ThemeToggle() {
 function UserSection() {
   const { user, teams, currentTeamId, setCurrentTeamId, clear } = useAuthStore();
   const navigate = useNavigate();
-  const clerk = CLERK_ENABLED ? useClerk() : null;
 
   const handleLogout = async () => {
-    if (clerk) {
-      await clerk.signOut();
+    if (CLERK_ENABLED) {
+      const { useClerk } = await import('@clerk/clerk-react');
+      // Access clerk instance from window since we can't use hooks outside render
+      try {
+        const clerkInstance = (window as unknown as { Clerk?: { signOut: () => Promise<void> } }).Clerk;
+        await clerkInstance?.signOut();
+      } catch {
+        // Clerk signout failed, continue with local cleanup
+      }
     }
     clear();
-    navigate('/sign-in');
+    navigate(CLERK_ENABLED ? '/sign-in' : '/');
   };
 
   if (!user) return null;
