@@ -1,8 +1,9 @@
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { createClerkClient, verifyToken } from '@clerk/backend';
-import { eq } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
+import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { users, teamMembers } from '../db/schema.js';
+import { users, teamMembers, apiKeys } from '../db/schema.js';
 import { config } from '../lib/config.js';
 
 // ── Types ────────────────────────────────────────────────
@@ -151,6 +152,55 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     }
 
     const token = authHeader.slice(7);
+
+    // ── API key auth path (sd_ prefix) ──────────────────
+    if (token.startsWith('sd_')) {
+      try {
+        const keyHash = createHash('sha256').update(token).digest('hex');
+        const [key] = await db
+          .select()
+          .from(apiKeys)
+          .where(and(eq(apiKeys.keyHash, keyHash), eq(apiKeys.revoked, false)))
+          .limit(1);
+
+        if (!key) {
+          reply.code(401).send({ error: 'Invalid or revoked API key' });
+          return;
+        }
+
+        if (key.expiresAt && key.expiresAt < new Date()) {
+          reply.code(401).send({ error: 'API key has expired' });
+          return;
+        }
+
+        // Update last used timestamp (fire-and-forget)
+        setImmediate(() => {
+          db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, key.id)).catch(() => {});
+        });
+
+        // Resolve the user who created the key
+        const [keyUser] = await db.select().from(users).where(eq(users.id, key.userId)).limit(1);
+        if (!keyUser) {
+          reply.code(401).send({ error: 'API key user not found' });
+          return;
+        }
+
+        const role = await resolveRole(keyUser.id);
+        request.user = {
+          id: keyUser.id,
+          clerkId: keyUser.clerkId,
+          email: keyUser.email,
+          name: keyUser.name,
+          avatarUrl: keyUser.avatarUrl,
+          role,
+        };
+        return;
+      } catch (err) {
+        request.log.error(err, 'API key authentication failed');
+        reply.code(401).send({ error: 'API key authentication failed' });
+        return;
+      }
+    }
 
     try {
       // Verify the Clerk session JWT

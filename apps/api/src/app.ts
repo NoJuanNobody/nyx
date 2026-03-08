@@ -16,6 +16,10 @@ import { exportRoutes } from './routes/export.js';
 import { onboardingRoutes } from './routes/onboarding.js';
 import { branchRoutes } from './routes/branches.js';
 import { suggestionRoutes } from './routes/suggestions.js';
+import { changeProposalRoutes } from './routes/change-proposals.js';
+import { auditRoutes } from './routes/audit.js';
+import { agentRoutes } from './routes/agent.js';
+import { apiKeyRoutes } from './routes/api-keys.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -43,6 +47,10 @@ export function buildApp() {
   app.register(onboardingRoutes, { prefix: '/api/onboarding' });
   app.register(branchRoutes, { prefix: '/api/documents' });
   app.register(suggestionRoutes, { prefix: '/api' });
+  app.register(changeProposalRoutes, { prefix: '/api' });
+  app.register(auditRoutes, { prefix: '/api' });
+  app.register(agentRoutes, { prefix: '/api/agent' });
+  app.register(apiKeyRoutes, { prefix: '/api/api-keys' });
 
   return app;
 }
