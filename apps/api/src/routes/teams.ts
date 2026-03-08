@@ -85,6 +85,30 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
     return member;
   });
 
+  // PATCH /api/teams/:id/members/:userId — update a member's role
+  // admins+ can update roles
+  app.patch('/:id/members/:userId', { preHandler: [requireRole({ minimumRole: 'admin', source: 'team' })] }, async (request, reply) => {
+    const { id, userId } = request.params as { id: string; userId: string };
+    const { role } = request.body as {
+      role: 'owner' | 'admin' | 'developer' | 'editor' | 'viewer';
+    };
+
+    const [updated] = await db
+      .update(teamMembers)
+      .set({ role })
+      .where(
+        and(eq(teamMembers.teamId, id), eq(teamMembers.userId, userId))
+      )
+      .returning();
+
+    if (!updated) {
+      reply.code(404);
+      return { error: 'Team member not found' };
+    }
+
+    return updated;
+  });
+
   // DELETE /api/teams/:id/members/:userId — remove a member from a team
   // admins+ can remove members
   app.delete('/:id/members/:userId', { preHandler: [requireRole({ minimumRole: 'admin', source: 'team' })] }, async (request, reply) => {

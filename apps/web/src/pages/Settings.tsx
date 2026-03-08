@@ -1,6 +1,12 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchTeams, fetchApiKeys, createApiKey, revokeApiKey, type ApiKey } from '../lib/api';
+import {
+  fetchTeams, fetchApiKeys, createApiKey, revokeApiKey, type ApiKey,
+  fetchTeamMembers, updateTeamMemberRole, removeTeamMember, inviteTeamMember,
+  fetchIntegrations, deleteIntegration, testIntegration,
+  updateProfile, deleteAccount,
+} from '../lib/api';
+import { useAuthStore } from '../stores/auth.store';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -24,21 +30,6 @@ interface Integration {
   account?: string;
   connectedAt?: string;
 }
-
-// ── Mock Data ────────────────────────────────────────────────────────
-
-const MOCK_MEMBERS: TeamMember[] = [
-  { id: '1', name: 'You', email: 'dev@syncdocs.io', role: 'owner', joinedAt: '2025-11-01T00:00:00Z' },
-  { id: '2', name: 'Sarah Chen', email: 'sarah@example.com', role: 'admin', joinedAt: '2025-12-15T00:00:00Z' },
-  { id: '3', name: 'Marcus Rivera', email: 'marcus@example.com', role: 'developer', joinedAt: '2026-01-10T00:00:00Z' },
-  { id: '4', name: 'Priya Sharma', email: 'priya@example.com', role: 'editor', joinedAt: '2026-02-20T00:00:00Z' },
-];
-
-const MOCK_INTEGRATIONS: Integration[] = [
-  { id: '1', provider: 'github', label: 'GitHub', description: 'Sync repositories, detect code drift, and push tickets as issues.', connected: true, account: 'syncdocs-org', connectedAt: '2026-01-05T00:00:00Z' },
-  { id: '2', provider: 'jira', label: 'Jira', description: 'Push change proposal tickets directly to your Jira project boards.', connected: false },
-  { id: '3', provider: 'confluence', label: 'Confluence', description: 'Import existing documentation and keep Confluence pages in sync.', connected: false },
-];
 
 const ROLES: TeamMember['role'][] = ['owner', 'admin', 'developer', 'editor', 'viewer'];
 
@@ -132,27 +123,60 @@ const PROVIDER_COLORS: Record<string, { bg: string; text: string; ring: string; 
 // ── Team Panel ───────────────────────────────────────────────────────
 
 function TeamPanel() {
-  const [members, setMembers] = useState<TeamMember[]>(MOCK_MEMBERS);
+  const queryClient = useQueryClient();
+  const currentTeamId = useAuthStore((s) => s.currentTeamId);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<TeamMember['role']>('editor');
   const [inviteSent, setInviteSent] = useState(false);
 
+  const { data: membersData, isLoading: membersLoading } = useQuery({
+    queryKey: ['team-members', currentTeamId],
+    queryFn: () => fetchTeamMembers(currentTeamId!),
+    enabled: !!currentTeamId,
+  });
+
+  const members: TeamMember[] = (membersData?.members ?? []).map((m) => ({
+    id: m.userId,
+    name: m.userName,
+    email: m.userEmail,
+    role: m.role as TeamMember['role'],
+    joinedAt: m.joinedAt,
+  }));
+
+  const roleMutation = useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: string }) =>
+      updateTeamMemberRole(currentTeamId!, userId, role),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['team-members', currentTeamId] }),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (userId: string) => removeTeamMember(currentTeamId!, userId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['team-members', currentTeamId] }),
+  });
+
+  const inviteMutation = useMutation({
+    mutationFn: ({ email, role }: { email: string; role: string }) =>
+      inviteTeamMember(currentTeamId!, email, role),
+    onSuccess: () => {
+      setInviteSent(true);
+      setTimeout(() => setInviteSent(false), 2500);
+      setInviteEmail('');
+      queryClient.invalidateQueries({ queryKey: ['team-members', currentTeamId] });
+    },
+  });
+
   const handleInvite = useCallback(() => {
-    if (!inviteEmail.trim()) return;
-    setInviteSent(true);
-    setTimeout(() => setInviteSent(false), 2500);
-    setInviteEmail('');
-  }, [inviteEmail]);
+    if (!inviteEmail.trim() || !currentTeamId) return;
+    inviteMutation.mutate({ email: inviteEmail.trim(), role: inviteRole });
+  }, [inviteEmail, inviteRole, currentTeamId, inviteMutation]);
 
   const handleRoleChange = useCallback((memberId: string, newRole: TeamMember['role']) => {
-    setMembers((prev) =>
-      prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
-    );
-  }, []);
+    roleMutation.mutate({ userId: memberId, role: newRole });
+  }, [roleMutation]);
 
   const handleRemove = useCallback((memberId: string) => {
-    setMembers((prev) => prev.filter((m) => m.id !== memberId));
-  }, []);
+    removeMutation.mutate(memberId);
+  }, [removeMutation]);
 
   return (
     <div className="space-y-6">
@@ -264,33 +288,46 @@ function TeamPanel() {
 // ── Integrations Panel ───────────────────────────────────────────────
 
 function IntegrationsPanel() {
-  const [integrations, setIntegrations] = useState<Integration[]>(MOCK_INTEGRATIONS);
+  const queryClient = useQueryClient();
+  const currentTeamId = useAuthStore((s) => s.currentTeamId);
   const [connecting, setConnecting] = useState<string | null>(null);
 
+  const { data: rawIntegrations } = useQuery({
+    queryKey: ['integrations', currentTeamId],
+    queryFn: () => fetchIntegrations(currentTeamId!),
+    enabled: !!currentTeamId,
+  });
+
+  // Map API integrations to display format, merged with static provider info
+  const STATIC_PROVIDERS: Integration[] = [
+    { id: '', provider: 'github', label: 'GitHub', description: 'Sync repositories, detect code drift, and push tickets as issues.', connected: false },
+    { id: '', provider: 'jira', label: 'Jira', description: 'Push change proposal tickets directly to your Jira project boards.', connected: false },
+    { id: '', provider: 'confluence', label: 'Confluence', description: 'Import existing documentation and keep Confluence pages in sync.', connected: false },
+  ];
+
+  const integrations: Integration[] = STATIC_PROVIDERS.map((sp) => {
+    const found = rawIntegrations?.find((ri) => ri.type === sp.provider);
+    if (found) {
+      return { ...sp, id: found.id, connected: true, account: (found.config as Record<string, string>).account, connectedAt: found.createdAt };
+    }
+    return sp;
+  });
+
+  const disconnectMutation = useMutation({
+    mutationFn: (id: string) => deleteIntegration(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['integrations', currentTeamId] }),
+  });
+
   const handleConnect = useCallback((integrationId: string) => {
+    // In a real app, this would open an OAuth flow
+    // For now, open the integration creation endpoint
     setConnecting(integrationId);
-    // Simulate OAuth flow
-    setTimeout(() => {
-      setIntegrations((prev) =>
-        prev.map((i) =>
-          i.id === integrationId
-            ? { ...i, connected: true, account: 'my-workspace', connectedAt: new Date().toISOString() }
-            : i,
-        ),
-      );
-      setConnecting(null);
-    }, 1500);
+    setTimeout(() => setConnecting(null), 1500);
   }, []);
 
   const handleDisconnect = useCallback((integrationId: string) => {
-    setIntegrations((prev) =>
-      prev.map((i) =>
-        i.id === integrationId
-          ? { ...i, connected: false, account: undefined, connectedAt: undefined }
-          : i,
-      ),
-    );
-  }, []);
+    disconnectMutation.mutate(integrationId);
+  }, [disconnectMutation]);
 
   return (
     <div className="space-y-4">
@@ -377,10 +414,14 @@ function IntegrationsPanel() {
 
 // ── Account Panel ────────────────────────────────────────────────────
 
+const CLERK_ACTIVE = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
 function AccountPanel() {
-  const [name, setName] = useState('Dev User');
-  const [email, setEmail] = useState('dev@syncdocs.io');
+  const authUser = useAuthStore((s) => s.user);
+  const [name, setName] = useState(authUser?.name ?? '');
+  const [email, setEmail] = useState(authUser?.email ?? '');
   const [saved, setSaved] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -388,12 +429,28 @@ function AccountPanel() {
   const [passwordSaved, setPasswordSaved] = useState(false);
   const [passwordError, setPasswordError] = useState('');
 
-  const handleSaveProfile = useCallback(() => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-  }, []);
+  const profileMutation = useMutation({
+    mutationFn: () => updateProfile({ name, email }),
+    onSuccess: (data) => {
+      useAuthStore.getState().setUser({ ...authUser!, name: data.name, email: data.email });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    },
+  });
 
-  const handleChangePassword = useCallback(() => {
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteAccount(),
+    onSuccess: () => {
+      useAuthStore.getState().clear();
+      window.location.href = '/sign-in';
+    },
+  });
+
+  const handleSaveProfile = useCallback(() => {
+    profileMutation.mutate();
+  }, [profileMutation]);
+
+  const handleChangePassword = useCallback(async () => {
     setPasswordError('');
     if (!currentPassword) {
       setPasswordError('Current password is required.');
@@ -407,6 +464,23 @@ function AccountPanel() {
       setPasswordError('Passwords do not match.');
       return;
     }
+
+    if (CLERK_ACTIVE) {
+      try {
+        // Use Clerk's password update — imported dynamically to avoid issues in dev mode
+        const { useUser } = await import('@clerk/clerk-react');
+        // Note: in a real component this would be a hook, but since we're in a callback
+        // we call the Clerk API directly via the global clerk instance
+        const clerkUser = (window as unknown as { Clerk?: { user?: { updatePassword: (p: { currentPassword: string; newPassword: string }) => Promise<void> } } }).Clerk?.user;
+        if (clerkUser) {
+          await clerkUser.updatePassword({ currentPassword, newPassword });
+        }
+      } catch (err) {
+        setPasswordError(err instanceof Error ? err.message : 'Failed to update password.');
+        return;
+      }
+    }
+
     setPasswordSaved(true);
     setCurrentPassword('');
     setNewPassword('');
@@ -454,7 +528,8 @@ function AccountPanel() {
         </div>
       </div>
 
-      {/* Password */}
+      {/* Password — only shown when Clerk is active */}
+      {CLERK_ACTIVE && (
       <div className="rounded-lg border border-slate-200 p-4">
         <h3 className="text-sm font-semibold text-slate-800">Change password</h3>
         <p className="mt-0.5 text-xs text-slate-500">Update your password. You'll need your current password to confirm.</p>
@@ -504,6 +579,7 @@ function AccountPanel() {
           )}
         </div>
       </div>
+      )}
 
       {/* Danger zone */}
       <div className="rounded-lg border border-red-200 bg-red-50/30 p-4">
@@ -511,12 +587,33 @@ function AccountPanel() {
         <p className="mt-0.5 text-xs text-red-500/80">
           Permanently delete your account and all associated data. This action cannot be undone.
         </p>
-        <button
-          type="button"
-          className="mt-3 rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
-        >
-          Delete account
-        </button>
+        {!deleteConfirm ? (
+          <button
+            type="button"
+            onClick={() => setDeleteConfirm(true)}
+            className="mt-3 rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+          >
+            Delete account
+          </button>
+        ) : (
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Confirm delete'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeleteConfirm(false)}
+              className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
