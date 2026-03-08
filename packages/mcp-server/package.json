@@ -1,0 +1,21 @@
+{
+  "name": "@syncdocs/mcp-server",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MCP server for SyncDocs — exposes documents and AI features to coding agents",
+  "main": "dist/index.js",
+  "bin": {
+    "syncdocs-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
