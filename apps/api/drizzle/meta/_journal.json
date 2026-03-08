@@ -36,6 +36,20 @@
       "when": 1772069638907,
       "tag": "0004_broken_shen",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772912240268,
+      "tag": "0005_groovy_leo",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1773187200000,
+      "tag": "0006_agent_sessions",
+      "breakpoints": true
     }
   ]
 }

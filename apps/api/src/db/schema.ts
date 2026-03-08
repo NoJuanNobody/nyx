@@ -1,10 +1,17 @@
-import { pgTable, uuid, text, timestamp, integer, jsonb, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, jsonb, pgEnum, boolean } from 'drizzle-orm/pg-core';
 
 export const userRoleEnum = pgEnum('user_role', ['owner', 'admin', 'developer', 'editor', 'viewer']);
 export const documentStatusEnum = pgEnum('document_status', ['draft', 'published', 'archived']);
 export const ticketProviderEnum = pgEnum('ticket_provider', ['github', 'jira']);
 export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'closed']);
 export const integrationTypeEnum = pgEnum('integration_type', ['github', 'jira', 'confluence']);
+export const proposalStatusEnum = pgEnum('proposal_status', ['pending', 'approved', 'rejected', 'pushed']);
+export const auditEventTypeEnum = pgEnum('audit_event_type', [
+  'doc_edit', 'snapshot_created', 'ticket_created', 'ticket_updated',
+  'code_commit', 'proposal_created', 'proposal_approved', 'proposal_pushed',
+  'agent_workflow',
+]);
+export const agentSessionStatusEnum = pgEnum('agent_session_status', ['running', 'completed', 'failed', 'cancelled']);
 
 // ── Users ──────────────────────────────────────────────
 
@@ -147,6 +154,100 @@ export const timelineEvents = pgTable('timeline_events', {
   type: text('type').notNull(),
   payload: jsonb('payload').notNull().default({}),
   actorId: uuid('actor_id').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Change Proposals ──────────────────────────────────
+
+export const changeProposals = pgTable('change_proposals', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id')
+    .notNull()
+    .references(() => documents.id),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id),
+  createdById: uuid('created_by_id')
+    .notNull()
+    .references(() => users.id),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  status: proposalStatusEnum('status').notNull().default('pending'),
+  suggestedTickets: jsonb('suggested_tickets').notNull().default([]),
+  sourceVersions: jsonb('source_versions').notNull().default([]),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Audit Trail ───────────────────────────────────────
+
+export const auditTrail = pgTable('audit_trail', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id),
+  eventType: auditEventTypeEnum('event_type').notNull(),
+  actorId: uuid('actor_id').references(() => users.id),
+  documentId: uuid('document_id').references(() => documents.id),
+  snapshotId: uuid('snapshot_id').references(() => snapshots.id),
+  ticketId: uuid('ticket_id').references(() => tickets.id),
+  commitSha: text('commit_sha'),
+  parentEventId: uuid('parent_event_id'),
+  metadata: jsonb('metadata').notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Agent Sessions ────────────────────────────────────
+
+export const agentSessions = pgTable('agent_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
+  documentId: uuid('document_id').references(() => documents.id),
+  status: agentSessionStatusEnum('status').notNull().default('running'),
+  prompt: text('prompt').notNull(),
+  result: text('result'),
+  toolCallCount: integer('tool_call_count').notNull().default(0),
+  tokenUsage: jsonb('token_usage').notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const agentToolCalls = pgTable('agent_tool_calls', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id')
+    .notNull()
+    .references(() => agentSessions.id),
+  toolName: text('tool_name').notNull(),
+  input: jsonb('input').notNull().default({}),
+  output: jsonb('output').notNull().default({}),
+  durationMs: integer('duration_ms').notNull().default(0),
+  error: text('error'),
+  sequence: integer('sequence').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── API Keys ──────────────────────────────────────────
+
+export const apiKeys = pgTable('api_keys', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
+  name: text('name').notNull(),
+  keyHash: text('key_hash').notNull(),
+  keyPrefix: text('key_prefix').notNull(),
+  scopes: jsonb('scopes').notNull().default([]),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  revoked: boolean('revoked').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
