@@ -8,7 +8,10 @@ export function setAuthToken(token: string | null) { authToken = token; }
 export function getAuthToken() { return authToken; }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = {};
+  if (options?.body) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (authToken) {
     headers['Authorization'] = `Bearer ${authToken}`;
   }
@@ -352,6 +355,61 @@ export function inviteTeamMember(teamId: string, email: string, role: string): P
   });
 }
 
+// ── Team Invitations ────────────────────────────────────────────────
+
+export interface TeamInvitation {
+  id: string;
+  teamId: string;
+  email: string;
+  role: string;
+  invitedById: string;
+  status: 'pending' | 'accepted' | 'expired';
+  createdAt: string;
+  expiresAt: string;
+}
+
+export function fetchTeamInvitations(teamId: string): Promise<{ teamId: string; invitations: TeamInvitation[] }> {
+  return request<{ teamId: string; invitations: TeamInvitation[] }>(
+    `/teams/${teamId}/invitations`,
+  );
+}
+
+export function cancelInvitation(teamId: string, invitationId: string): Promise<void> {
+  return request<void>(`/teams/${teamId}/invitations/${invitationId}`, {
+    method: 'DELETE',
+  });
+}
+
+// ── Tickets (Board) ─────────────────────────────────────────────────
+
+export interface Ticket {
+  id: string;
+  documentId: string;
+  provider: 'github' | 'jira';
+  externalId: string;
+  externalUrl: string;
+  title: string;
+  status: 'open' | 'in_progress' | 'closed';
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  documentTitle?: string;
+}
+
+export function fetchTickets(teamId: string, filters?: { status?: string; provider?: string }): Promise<Ticket[]> {
+  const params = new URLSearchParams({ teamId });
+  if (filters?.status) params.set('status', filters.status);
+  if (filters?.provider) params.set('provider', filters.provider);
+  return request<Ticket[]>(`/tickets?${params.toString()}`);
+}
+
+export function syncAllTickets(teamId: string): Promise<{ synced: number }> {
+  return request<{ synced: number }>(`/tickets/sync-all?teamId=${encodeURIComponent(teamId)}`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
 // ── Integrations (Settings) ─────────────────────────────────────────
 
 export function fetchIntegrations(teamId: string): Promise<Array<{ id: string; teamId: string; type: string; config: Record<string, unknown>; createdAt: string }>> {
@@ -370,6 +428,26 @@ export function testIntegration(id: string): Promise<{ ok: boolean; message: str
   return request<{ ok: boolean; message: string }>(`/integrations/${id}/test`, {
     method: 'POST',
     body: JSON.stringify({}),
+  });
+}
+
+export interface GitHubRepoItem {
+  id: number;
+  name: string;
+  full_name: string;
+  private: boolean;
+  html_url: string;
+  default_branch: string;
+}
+
+export function fetchGitHubRepos(integrationId: string): Promise<{ repos: GitHubRepoItem[] }> {
+  return request<{ repos: GitHubRepoItem[] }>(`/integrations/${integrationId}/github/repos`);
+}
+
+export function saveSelectedRepos(integrationId: string, repos: Array<{ owner: string; name: string; fullName: string }>): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>(`/integrations/${integrationId}/github/repos`, {
+    method: 'PUT',
+    body: JSON.stringify({ repos }),
   });
 }
 

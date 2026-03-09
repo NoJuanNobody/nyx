@@ -1,15 +1,16 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { teams, teamMembers, users } from '../db/schema.js';
+import { teams, teamMembers, users, teamInvitations } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
 
 export const teamRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/teams — list teams for the current user
+  // Auto-provisions a default team if the user has none.
   app.get('/', async (request) => {
     const userId = request.user.id;
 
-    const rows = await db
+    let rows = await db
       .select({
         id: teams.id,
         name: teams.name,
@@ -21,6 +22,26 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
       .from(teamMembers)
       .innerJoin(teams, eq(teamMembers.teamId, teams.id))
       .where(eq(teamMembers.userId, userId));
+
+    // Auto-create a personal team for users with no memberships
+    if (rows.length === 0) {
+      const slug = `personal-${userId.slice(0, 8)}`;
+      const [team] = await db.insert(teams).values({ name: 'My Workspace', slug }).returning();
+      await db.insert(teamMembers).values({ teamId: team.id, userId, role: 'owner' });
+
+      rows = await db
+        .select({
+          id: teams.id,
+          name: teams.name,
+          slug: teams.slug,
+          role: teamMembers.role,
+          createdAt: teams.createdAt,
+          updatedAt: teams.updatedAt,
+        })
+        .from(teamMembers)
+        .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+        .where(eq(teamMembers.userId, userId));
+    }
 
     return rows;
   });
@@ -63,26 +84,94 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
     return { teamId: id, members: rows };
   });
 
-  // POST /api/teams/:id/members — add a member to a team
+  // POST /api/teams/:id/members — invite by email (add directly or create pending invitation)
   // admins+ can add members
   app.post('/:id/members', { preHandler: [requireRole({ minimumRole: 'admin', source: 'team' })] }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { userId, role } = request.body as {
-      userId: string;
+    const { email, role } = request.body as {
+      email: string;
       role?: 'owner' | 'admin' | 'developer' | 'editor' | 'viewer';
     };
 
-    const [member] = await db
-      .insert(teamMembers)
+    const memberRole = role ?? 'viewer';
+
+    // Look up user by email
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (existingUser) {
+      // Check if already a member
+      const [alreadyMember] = await db
+        .select()
+        .from(teamMembers)
+        .where(and(eq(teamMembers.teamId, id), eq(teamMembers.userId, existingUser.id)))
+        .limit(1);
+
+      if (alreadyMember) {
+        reply.code(409);
+        return { error: 'User is already a member of this team' };
+      }
+
+      // Add directly
+      const [member] = await db
+        .insert(teamMembers)
+        .values({ teamId: id, userId: existingUser.id, role: memberRole })
+        .returning();
+
+      reply.code(201);
+      return { ...member, type: 'added' };
+    }
+
+    // User not found — create pending invitation
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiry
+
+    const [invitation] = await db
+      .insert(teamInvitations)
       .values({
         teamId: id,
-        userId,
-        role: role ?? 'viewer',
+        email,
+        role: memberRole,
+        invitedById: request.user.id,
+        expiresAt,
       })
       .returning();
 
     reply.code(201);
-    return member;
+    return { ...invitation, type: 'invited' };
+  });
+
+  // GET /api/teams/:id/invitations — list pending invitations
+  app.get('/:id/invitations', { preHandler: [requireRole({ minimumRole: 'viewer', source: 'team' })] }, async (request) => {
+    const { id } = request.params as { id: string };
+
+    const rows = await db
+      .select()
+      .from(teamInvitations)
+      .where(and(eq(teamInvitations.teamId, id), eq(teamInvitations.status, 'pending')));
+
+    return { teamId: id, invitations: rows };
+  });
+
+  // DELETE /api/teams/:id/invitations/:invId — cancel a pending invitation
+  app.delete('/:id/invitations/:invId', { preHandler: [requireRole({ minimumRole: 'admin', source: 'team' })] }, async (request, reply) => {
+    const { id, invId } = request.params as { id: string; invId: string };
+
+    const [deleted] = await db
+      .delete(teamInvitations)
+      .where(and(eq(teamInvitations.id, invId), eq(teamInvitations.teamId, id)))
+      .returning();
+
+    if (!deleted) {
+      reply.code(404);
+      return { error: 'Invitation not found' };
+    }
+
+    reply.code(204);
+    return;
   });
 
   // PATCH /api/teams/:id/members/:userId — update a member's role

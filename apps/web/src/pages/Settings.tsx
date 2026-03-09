@@ -3,10 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchTeams, fetchApiKeys, createApiKey, revokeApiKey, type ApiKey,
   fetchTeamMembers, updateTeamMemberRole, removeTeamMember, inviteTeamMember,
+  fetchTeamInvitations, cancelInvitation, type TeamInvitation,
   fetchIntegrations, deleteIntegration, testIntegration,
   updateProfile, deleteAccount,
 } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
+import { RepoPickerModal } from '../components/RepoPickerModal';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -135,6 +137,19 @@ function TeamPanel() {
     enabled: !!currentTeamId,
   });
 
+  const { data: invitationsData } = useQuery({
+    queryKey: ['team-invitations', currentTeamId],
+    queryFn: () => fetchTeamInvitations(currentTeamId!),
+    enabled: !!currentTeamId,
+  });
+
+  const pendingInvitations = invitationsData?.invitations ?? [];
+
+  const cancelInviteMutation = useMutation({
+    mutationFn: (invId: string) => cancelInvitation(currentTeamId!, invId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['team-invitations', currentTeamId] }),
+  });
+
   const members: TeamMember[] = (membersData?.members ?? []).map((m) => ({
     id: m.userId,
     name: m.userName,
@@ -154,14 +169,18 @@ function TeamPanel() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['team-members', currentTeamId] }),
   });
 
+  const [inviteResultMsg, setInviteResultMsg] = useState('');
+
   const inviteMutation = useMutation({
     mutationFn: ({ email, role }: { email: string; role: string }) =>
       inviteTeamMember(currentTeamId!, email, role),
-    onSuccess: () => {
+    onSuccess: (data: { type?: string }) => {
       setInviteSent(true);
-      setTimeout(() => setInviteSent(false), 2500);
+      setInviteResultMsg(data.type === 'added' ? 'Added to team!' : 'Invitation created!');
+      setTimeout(() => { setInviteSent(false); setInviteResultMsg(''); }, 2500);
       setInviteEmail('');
       queryClient.invalidateQueries({ queryKey: ['team-members', currentTeamId] });
+      queryClient.invalidateQueries({ queryKey: ['team-invitations', currentTeamId] });
     },
   });
 
@@ -217,10 +236,54 @@ function TeamPanel() {
         </div>
         {inviteSent && (
           <p className="mt-2 text-xs font-medium text-green-600">
-            Invitation sent! They'll appear here once they accept.
+            {inviteResultMsg || 'Done!'}
           </p>
         )}
       </div>
+
+      {/* Pending invitations */}
+      {pendingInvitations.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50/30 overflow-hidden">
+          <div className="border-b border-amber-100 bg-amber-50/70 px-4 py-2.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-amber-500">
+              {pendingInvitations.length} pending invitation{pendingInvitations.length !== 1 && 's'}
+            </span>
+          </div>
+          <ul className="divide-y divide-amber-100">
+            {pendingInvitations.map((inv) => (
+              <li key={inv.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-600">
+                  {inv.email.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-800 truncate">{inv.email}</span>
+                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">
+                      Pending
+                    </span>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${ROLE_COLORS[inv.role as TeamMember['role']] ?? ROLE_COLORS.viewer}`}>
+                      {inv.role}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    Invited {new Date(inv.createdAt).toLocaleDateString()} &middot; Expires {new Date(inv.expiresAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => cancelInviteMutation.mutate(inv.id)}
+                  className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                  title="Cancel invitation"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Member list */}
       <div className="rounded-lg border border-slate-200 overflow-hidden">
@@ -291,6 +354,7 @@ function IntegrationsPanel() {
   const queryClient = useQueryClient();
   const currentTeamId = useAuthStore((s) => s.currentTeamId);
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [repoPickerFor, setRepoPickerFor] = useState<string | null>(null);
 
   const { data: rawIntegrations } = useQuery({
     queryKey: ['integrations', currentTeamId],
@@ -308,7 +372,8 @@ function IntegrationsPanel() {
   const integrations: Integration[] = STATIC_PROVIDERS.map((sp) => {
     const found = rawIntegrations?.find((ri) => ri.type === sp.provider);
     if (found) {
-      return { ...sp, id: found.id, connected: true, account: (found.config as Record<string, string>).account, connectedAt: found.createdAt };
+      const cfg = found.config as Record<string, string>;
+      return { ...sp, id: found.id, connected: true, account: cfg.githubUsername ?? cfg.account, connectedAt: found.createdAt };
     }
     return sp;
   });
@@ -318,12 +383,16 @@ function IntegrationsPanel() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['integrations', currentTeamId] }),
   });
 
-  const handleConnect = useCallback((integrationId: string) => {
-    // In a real app, this would open an OAuth flow
-    // For now, open the integration creation endpoint
-    setConnecting(integrationId);
+  const handleConnect = useCallback((provider: string) => {
+    if (provider === 'github' && currentTeamId) {
+      setConnecting(provider);
+      window.location.href = `/api/integrations/github/connect?teamId=${currentTeamId}`;
+      return;
+    }
+    // Future: jira, confluence OAuth flows
+    setConnecting(provider);
     setTimeout(() => setConnecting(null), 1500);
-  }, []);
+  }, [currentTeamId]);
 
   const handleDisconnect = useCallback((integrationId: string) => {
     disconnectMutation.mutate(integrationId);
@@ -334,11 +403,11 @@ function IntegrationsPanel() {
       {integrations.map((integration) => {
         const Icon = PROVIDER_ICON[integration.provider];
         const colors = PROVIDER_COLORS[integration.provider];
-        const isConnecting = connecting === integration.id;
+        const isConnecting = connecting === integration.provider;
 
         return (
           <div
-            key={integration.id}
+            key={integration.provider}
             className={`rounded-lg border overflow-hidden transition-all ${
               integration.connected
                 ? 'border-green-200 bg-green-50/30'
@@ -374,7 +443,16 @@ function IntegrationsPanel() {
               </div>
 
               {/* Action */}
-              <div className="flex-shrink-0">
+              <div className="flex flex-shrink-0 items-center gap-2">
+                {integration.connected && integration.provider === 'github' && (
+                  <button
+                    type="button"
+                    onClick={() => setRepoPickerFor(integration.id)}
+                    className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                  >
+                    Manage Repos
+                  </button>
+                )}
                 {integration.connected ? (
                   <button
                     type="button"
@@ -386,7 +464,7 @@ function IntegrationsPanel() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => handleConnect(integration.id)}
+                    onClick={() => handleConnect(integration.provider)}
                     disabled={isConnecting}
                     className={`rounded-md px-3 py-1.5 text-xs font-medium shadow-sm transition-colors disabled:opacity-60 ${colors.btn}`}
                   >
@@ -408,6 +486,14 @@ function IntegrationsPanel() {
           </div>
         );
       })}
+
+      {/* Repo picker modal */}
+      {repoPickerFor && (
+        <RepoPickerModal
+          integrationId={repoPickerFor}
+          onClose={() => setRepoPickerFor(null)}
+        />
+      )}
     </div>
   );
 }

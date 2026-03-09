@@ -36,24 +36,49 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
   app.post('/github', async (request, reply) => {
     const event = request.headers['x-github-event'] as string | undefined;
     const signature = request.headers['x-hub-signature-256'] as string | undefined;
+    const rawBody = JSON.stringify(request.body);
 
-    // Signature verification
-    if (config.GITHUB_WEBHOOK_SECRET) {
+    // Parse repo full_name from payload for per-integration secret lookup
+    const payload = request.body as { repository?: { full_name?: string } };
+    const repoFullName = payload.repository?.full_name;
+
+    // Per-integration signature verification
+    let verified = false;
+    let matchedIntegration: { teamId: string; config: Record<string, unknown> } | null = null;
+
+    if (repoFullName && signature) {
+      // Look up integration whose selectedRepos contains this repo
+      const allIntegrations = await db.select().from(integrations).where(eq(integrations.type, 'github'));
+      for (const integration of allIntegrations) {
+        const cfg = integration.config as { selectedRepos?: Array<{ fullName: string }>; webhookSecret?: string };
+        const hasRepo = cfg.selectedRepos?.some((r) => r.fullName === repoFullName);
+        if (hasRepo && cfg.webhookSecret) {
+          if (verifyGitHubSignature(rawBody, signature, cfg.webhookSecret)) {
+            verified = true;
+            matchedIntegration = { teamId: integration.teamId, config: integration.config as Record<string, unknown> };
+            break;
+          }
+        }
+      }
+    }
+
+    // Fall back to global GITHUB_WEBHOOK_SECRET for backward compat
+    if (!verified && config.GITHUB_WEBHOOK_SECRET) {
       if (!signature) {
         reply.code(401);
         return { error: 'Missing webhook signature' };
       }
-
-      const rawBody = JSON.stringify(request.body);
       if (!verifyGitHubSignature(rawBody, signature, config.GITHUB_WEBHOOK_SECRET)) {
         reply.code(401);
         return { error: 'Invalid webhook signature' };
       }
-    } else if (config.NODE_ENV === 'production') {
-      reply.code(401);
-      return { error: 'Webhook signature verification is required in production' };
-    } else {
-      request.log.warn('GITHUB_WEBHOOK_SECRET not configured — skipping signature verification');
+      verified = true;
+    } else if (!verified) {
+      if (config.NODE_ENV === 'production') {
+        reply.code(401);
+        return { error: 'Webhook signature verification is required in production' };
+      }
+      request.log.warn('Webhook secret not configured — skipping signature verification');
     }
 
     if (event === 'push') {
@@ -64,16 +89,15 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
       );
 
       // Fire-and-forget: drift detection
-      const payload = request.body as { repository?: { full_name?: string } };
-      const repoFullName = payload.repository?.full_name;
       if (repoFullName) {
         setImmediate(async () => {
           try {
-            // Find integrations linked to this repo
+            // Find integrations linked to this repo via selectedRepos
             const allIntegrations = await db.select().from(integrations).where(eq(integrations.type, 'github'));
             for (const integration of allIntegrations) {
-              const cfg = integration.config as { owner?: string; repo?: string; accessToken?: string };
-              if (`${cfg.owner}/${cfg.repo}` !== repoFullName) continue;
+              const cfg = integration.config as { selectedRepos?: Array<{ fullName: string }>; accessToken?: string };
+              const hasRepo = cfg.selectedRepos?.some((r) => r.fullName === repoFullName);
+              if (!hasRepo) continue;
 
               // Get team documents
               const teamDocs = await db.select().from(documents).where(eq(documents.teamId, integration.teamId));

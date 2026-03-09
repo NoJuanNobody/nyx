@@ -47,6 +47,33 @@ export const teamMembers = pgTable('team_members', {
   joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── Team Invitations ──────────────────────────────────
+
+export const invitationStatusEnum = pgEnum('invitation_status', ['pending', 'accepted', 'expired']);
+
+export const teamInvitations = pgTable('team_invitations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id),
+  email: text('email').notNull(),
+  role: userRoleEnum('role').notNull().default('viewer'),
+  invitedById: uuid('invited_by_id')
+    .notNull()
+    .references(() => users.id),
+  status: invitationStatusEnum('status').notNull().default('pending'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+});
+
+// ── Waitlist Signups ──────────────────────────────────
+
+export const waitlistSignups = pgTable('waitlist_signups', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull().unique(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ── Documents ──────────────────────────────────────────
 
 export const documents = pgTable('documents', {

@@ -17,7 +17,7 @@ function ClerkAuthGuard() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const { user: clerkUser } = useUser();
   const navigate = useNavigate();
-  const { setUser, setTeams, setCurrentTeamId, currentTeamId } = useAuthStore();
+  const { setUser, setTeams, setCurrentTeamId, currentTeamId, isLoading } = useAuthStore();
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -60,7 +60,7 @@ function ClerkAuthGuard() {
     return () => { cancelled = true; };
   }, [isLoaded, isSignedIn, clerkUser]);
 
-  if (!isLoaded || !isSignedIn) {
+  if (!isLoaded || !isSignedIn || isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />

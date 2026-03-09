@@ -3,7 +3,7 @@ import { createClerkClient, verifyToken } from '@clerk/backend';
 import { createHash } from 'node:crypto';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { users, teamMembers, apiKeys } from '../db/schema.js';
+import { users, teamMembers, apiKeys, teamInvitations } from '../db/schema.js';
 import { config } from '../lib/config.js';
 
 // ── Types ────────────────────────────────────────────────
@@ -95,7 +95,45 @@ async function upsertUser(clerkUserId: string, email: string, name: string, avat
     .values({ clerkId: clerkUserId, email, name, avatarUrl })
     .returning();
 
-  return { id: newUser.id, clerkId: clerkUserId, email, name, avatarUrl, role: 'viewer' };
+  // Check for pending team invitations and auto-accept them
+  await acceptPendingInvitations(newUser.id, email);
+
+  const role = await resolveRole(newUser.id);
+  return { id: newUser.id, clerkId: clerkUserId, email, name, avatarUrl, role };
+}
+
+/**
+ * Accept any pending team invitations matching this email address.
+ */
+async function acceptPendingInvitations(userId: string, email: string): Promise<void> {
+  const pendingInvites = await db
+    .select()
+    .from(teamInvitations)
+    .where(and(eq(teamInvitations.email, email), eq(teamInvitations.status, 'pending')));
+
+  for (const invite of pendingInvites) {
+    if (invite.expiresAt < new Date()) {
+      await db.update(teamInvitations).set({ status: 'expired' }).where(eq(teamInvitations.id, invite.id));
+      continue;
+    }
+
+    // Check not already a member
+    const [existing] = await db
+      .select()
+      .from(teamMembers)
+      .where(and(eq(teamMembers.teamId, invite.teamId), eq(teamMembers.userId, userId)))
+      .limit(1);
+
+    if (!existing) {
+      await db.insert(teamMembers).values({
+        teamId: invite.teamId,
+        userId,
+        role: invite.role,
+      });
+    }
+
+    await db.update(teamInvitations).set({ status: 'accepted' }).where(eq(teamInvitations.id, invite.id));
+  }
 }
 
 /**
@@ -131,7 +169,20 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     ? createClerkClient({ secretKey: config.CLERK_SECRET_KEY, publishableKey: config.CLERK_PUBLISHABLE_KEY ?? undefined })
     : null;
 
+  // Paths that are browser redirects (OAuth flows) and cannot carry Bearer tokens
+  const AUTH_EXEMPT_PATHS = [
+    '/api/integrations/github/connect',
+    '/api/integrations/github/callback',
+    '/api/waitlist',
+  ];
+
   fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
+    // ── Skip auth for OAuth redirect routes ─────────────
+    if (AUTH_EXEMPT_PATHS.some((p) => request.url.startsWith(p))) {
+      request.user = DEV_USER; // provide a minimal user; OAuth state carries real identity
+      return;
+    }
+
     // ── Dev bypass ──────────────────────────────────────
     if (isDevBypass()) {
       request.user = DEV_USER;

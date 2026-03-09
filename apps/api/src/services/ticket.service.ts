@@ -1,6 +1,6 @@
 // Ticket service: create tickets from documents, list, sync status
 
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { tickets, integrations, documents } from '../db/schema.js';
 import { githubService } from './github.service.js';
@@ -37,12 +37,16 @@ export const ticketService = {
     let externalUrl: string;
 
     if (provider === 'github') {
-      const { accessToken, owner, repo } = integration.config as {
+      const cfg = integration.config as {
         accessToken: string;
-        owner: string;
-        repo: string;
+        owner?: string;
+        repo?: string;
+        selectedRepos?: Array<{ owner: string; name: string; fullName: string }>;
       };
-      const issue = await githubService.createIssue(accessToken, owner, repo, title, body);
+      const owner = cfg.selectedRepos?.[0]?.owner ?? cfg.owner ?? '';
+      const repo = cfg.selectedRepos?.[0]?.name ?? cfg.repo ?? '';
+      if (!owner || !repo) throw new Error('No GitHub repository configured for this team');
+      const issue = await githubService.createIssue(cfg.accessToken, owner, repo, title, body);
       externalId = String(issue.number);
       externalUrl = issue.html_url;
     } else {
@@ -95,6 +99,44 @@ export const ticketService = {
     return db.select().from(tickets).where(eq(tickets.documentId, documentId));
   },
 
+  async listByTeam(teamId: string, filters?: { status?: string; provider?: string }) {
+    // Get all documents belonging to the team
+    const teamDocs = await db
+      .select({ id: documents.id, title: documents.title })
+      .from(documents)
+      .where(eq(documents.teamId, teamId));
+
+    if (teamDocs.length === 0) return [];
+
+    const docIds = teamDocs.map((d) => d.id);
+    const docTitleMap = new Map(teamDocs.map((d) => [d.id, d.title]));
+
+    let rows = await db.select().from(tickets).where(inArray(tickets.documentId, docIds));
+
+    if (filters?.status) {
+      rows = rows.filter((t) => t.status === filters.status);
+    }
+    if (filters?.provider) {
+      rows = rows.filter((t) => t.provider === filters.provider);
+    }
+
+    return rows.map((t) => ({ ...t, documentTitle: docTitleMap.get(t.documentId) ?? '' }));
+  },
+
+  async syncAllForTeam(teamId: string): Promise<number> {
+    const allTickets = await this.listByTeam(teamId);
+    let synced = 0;
+    for (const ticket of allTickets) {
+      try {
+        await this.syncStatus(ticket.id);
+        synced++;
+      } catch {
+        // Best-effort sync
+      }
+    }
+    return synced;
+  },
+
   async syncStatus(ticketId: string) {
     const [ticket] = await db
       .select()
@@ -122,10 +164,12 @@ export const ticketService = {
         .where(and(eq(integrations.type, 'github'), eq(integrations.teamId, doc.teamId)));
 
       if (integration) {
-        const config = integration.config as { accessToken?: string; owner?: string; repo?: string };
-        if (config.accessToken && config.owner && config.repo) {
+        const config = integration.config as { accessToken?: string; owner?: string; repo?: string; selectedRepos?: Array<{ owner: string; name: string }> };
+        const owner = config.selectedRepos?.[0]?.owner ?? config.owner;
+        const repo = config.selectedRepos?.[0]?.name ?? config.repo;
+        if (config.accessToken && owner && repo) {
           const res = await fetch(
-            `https://api.github.com/repos/${config.owner}/${config.repo}/issues/${ticket.externalId}`,
+            `https://api.github.com/repos/${owner}/${repo}/issues/${ticket.externalId}`,
             {
               headers: {
                 Authorization: `Bearer ${config.accessToken}`,

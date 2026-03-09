@@ -17,9 +17,12 @@ const envSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   ANTHROPIC_API_KEY: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
   GITHUB_WEBHOOK_SECRET: z.string().optional(),
   CLERK_SECRET_KEY: z.string().optional(),
   CLERK_PUBLISHABLE_KEY: z.string().optional(),
+  WEBHOOK_BASE_URL: z.string().url().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production' && !data.GITHUB_WEBHOOK_SECRET) {
     ctx.addIssue({

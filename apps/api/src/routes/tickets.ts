@@ -3,6 +3,31 @@ import { ticketService } from '../services/ticket.service.js';
 import { timelineService } from '../services/timeline.service.js';
 
 export const ticketRoutes: FastifyPluginAsync = async (app) => {
+  // GET /api/tickets?teamId=X&status=&provider= — list tickets for a team (Board view)
+  app.get('/tickets', async (request, reply) => {
+    const { teamId, status, provider } = request.query as { teamId?: string; status?: string; provider?: string };
+
+    if (!teamId) {
+      reply.code(400);
+      return { error: 'teamId query parameter is required' };
+    }
+
+    return ticketService.listByTeam(teamId, { status, provider });
+  });
+
+  // POST /api/tickets/sync-all?teamId=X — sync all ticket statuses for a team
+  app.post('/tickets/sync-all', async (request, reply) => {
+    const { teamId } = request.query as { teamId?: string };
+
+    if (!teamId) {
+      reply.code(400);
+      return { error: 'teamId query parameter is required' };
+    }
+
+    const synced = await ticketService.syncAllForTeam(teamId);
+    return { synced };
+  });
+
   // GET /api/documents/:documentId/tickets — list tickets for a document
   app.get('/documents/:documentId/tickets', async (request) => {
     const { documentId } = request.params as { documentId: string };

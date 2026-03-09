@@ -57,11 +57,14 @@ Everything currently mocked, hardcoded, returning placeholder data, or not yet b
 
 | # | What | Where | Status |
 |---|------|-------|--------|
-| 31 | **Agile / Kanban board** — aggregated ticket view across GitHub/Jira | Not started | TODO |
+| 31 | ~~**Agile / Kanban board** — aggregated ticket view across GitHub/Jira~~ | `apps/web/src/pages/Board.tsx`, `apps/api/src/routes/tickets.ts`, `apps/api/src/services/ticket.service.ts` | **DONE** — 3-column kanban (Open/In Progress/Closed), ticket cards with provider badges, document links, external links, sync-all button, provider filter; backend `GET /api/tickets?teamId=`, `POST /api/tickets/sync-all`; `listByTeam()` and `syncAllForTeam()` in ticket service; `listIssues()` in GitHub service, `searchIssues()` in Jira service |
 | 32 | **Coding agent integrations** — Cursor, Copilot, Claude Code | `packages/mcp-server/`, `apps/api/src/services/agent.service.ts`, `apps/web/src/components/AgentPanel.tsx` | PARTIAL — MCP server package with 8 tools + 3 resources for external agents; internal agentic AI with tool use, SSE streaming, and workflows; Cursor/Copilot extensions not yet built |
 | 35 | **Document lifecycle stages** — 5-phase model (Conception → Definition → Architecture → Implementation → Execution) with per-stage document types, roles, AI assistance, and outputs; stage transitions with connectors describing how each phase seeds the next | Not started | TODO — Design artifacts exist (`SyncDocs_Landing.jsx` stages, `SyncDocs_Lifecycle.jsx` full detail); needs doc schema `stage` field, stage-specific templates, stage-aware AI prompts, and transition logic in editor |
-| 37 | **Landing page / waitlist site** — Deployable marketing site with waitlist signup | `SyncDocs_Landing.jsx` | TODO — React component exists but not integrated into build, no backend for waitlist email collection |
+| 37 | ~~**Landing page / waitlist site** — Deployable marketing site with waitlist signup~~ | `apps/web/src/pages/Landing.tsx`, `apps/api/src/routes/waitlist.ts`, `apps/api/src/db/schema.ts` | **DONE** — Landing page converted from JSX to TypeScript, wired to `POST /api/waitlist` with loading/success/error states; `waitlist_signups` table; auth-exempt endpoint; `/landing` route + auth-aware root `/` (landing if unauthenticated, dashboard if signed in); Sidebar logo links to `/dashboard` |
 | 38 | **Lifecycle explorer view** — Interactive stage-by-stage product lifecycle navigator showing docs, AI role, and output per phase | `SyncDocs_Lifecycle.jsx` | TODO — Standalone React component exists with full 5-phase data model; needs integration into app as a dashboard/onboarding view |
+| 39 | ~~**Team invite flow is broken** — frontend sends `{ email, role }` but backend expects `{ userId, role }`; no email-to-user lookup~~ | `apps/api/src/routes/teams.ts`, `apps/api/src/db/schema.ts`, `apps/api/src/middleware/auth.ts`, `apps/web/src/pages/Settings.tsx` | **DONE** — Backend accepts `{ email, role }`: adds directly if user exists, creates pending `teamInvitations` row if not; `GET /:id/invitations` and `DELETE /:id/invitations/:invId`; auth middleware auto-accepts pending invitations on signup; Settings TeamPanel shows pending invitations with cancel button and contextual success toast |
+| 40 | **Jira/Confluence OAuth connect flows are simulated** — clicking "Connect" shows a 1.5s spinner then does nothing; comment says "Future: jira, confluence OAuth flows". GitHub OAuth works; Jira and Confluence do not. | `apps/web/src/pages/Settings.tsx:324-333` | TODO — Needs: Jira OAuth or manual API token config form, Confluence OAuth flow |
+| 44 | ~~**Webhook secret is global, not per-integration** — `GITHUB_WEBHOOK_SECRET` env var is used for all webhook verification; should be generated per-integration and stored in DB `config` JSONB. Also: webhook registration is manual; should auto-register via GitHub API when user selects repos in repo picker.~~ | `apps/api/src/routes/integrations.ts`, `apps/api/src/routes/webhooks.ts`, `apps/api/src/services/github.service.ts`, `apps/api/src/lib/config.ts` | **DONE** — Per-integration `webhookSecret` generated on first repo save; `createWebhook()`/`deleteWebhook()` in GitHub service; `PUT /:id/github/repos` diffs repos and auto-registers/deletes webhooks; webhook route verifies signature against per-integration secret first, falls back to global; OAuth scope updated to `admin:repo_hook`; `WEBHOOK_BASE_URL` env var; ticket service reads from `selectedRepos[0]` |
 
 ## P4 — Post-MVP (future integrations & enhancements)
 
@@ -70,18 +73,21 @@ Everything currently mocked, hardcoded, returning placeholder data, or not yet b
 | 33 | **Confluence integration** — schema mentions it but no service | `apps/api/src/db/schema.ts` (`integrationType`) | TODO |
 | 34 | **BYOK (Bring Your Own Key)** — teams connect their own Anthropic API key | Not started | TODO |
 | 36 | **AI Agent Map** — Artifact relationship graph visualizing how a stakeholder request traces through doc → ticket → code | Not started | TODO — Landing page feature; audit trail (#17) provides the data, but no visual graph/map UI |
+| 41 | **Health check is static** — returns `{ status: 'ok' }` with no DB connectivity or service health probes | `apps/api/src/routes/health.ts` | TODO |
+| 42 | **No notifications system** — no email notifications for drift detected, tickets created, change proposals, or team activity; no in-app notification center | Not started | TODO |
+| 43 | **No real-time collaboration** — no WebSocket or CRDT-based sync; document editing is single-user only, no presence indicators or live cursors | Not started | TODO |
 
 ---
 
 ## Progress Summary
 
-**35 of 40 items completed**, 1 partially done, 4 remaining.
+**39 of 44 items completed**, 1 partially done, 4 remaining.
 
 ### Remaining work:
 - **P0:** All complete!
 - **P1:** All complete!
 - **P2:** All complete!
-- **P3 (MVP):** #31 (Kanban board), #32 (agent integrations — partial), #35 (document lifecycle stages), #37 (landing page / waitlist site), #38 (lifecycle explorer view)
-- **P4 (Post-MVP):** #33 (Confluence), #34 (BYOK), #36 (AI Agent Map)
+- **P3 (MVP):** #32 (agent integrations — partial), #35 (document lifecycle stages), #38 (lifecycle explorer view), #40 (Jira/Confluence OAuth simulated)
+- **P4 (Post-MVP):** #33 (Confluence), #34 (BYOK), #36 (AI Agent Map), #41 (static health check), #42 (no notifications system), #43 (no real-time collaboration)
 
-All P0–P2 features are done. P3 is MVP scope — the product lifecycle model (#35, #38), agent integrations (#32), Kanban board (#31), and marketing site (#37). P4 deferred items: Confluence (#33), BYOK (#34), and AI Agent Map (#36).
+All P0–P2 features are done. P3 has 4 remaining items: product lifecycle model (#35, #38), agent integrations (#32 — partial), and simulated Jira/Confluence OAuth (#40). P4 deferred items: Confluence (#33), BYOK (#34), AI Agent Map (#36), static health check (#41), notifications (#42), and real-time collaboration (#43).

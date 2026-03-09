@@ -153,6 +153,108 @@ export const githubService = {
     return config.accessToken ?? null;
   },
 
+  async exchangeCodeForToken(
+    clientId: string,
+    clientSecret: string,
+    code: string,
+  ): Promise<{ access_token: string; token_type: string; scope: string }> {
+    const res = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, code }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`GitHub token exchange failed: ${res.status} ${res.statusText}`);
+    }
+
+    const data = (await res.json()) as { access_token?: string; token_type?: string; scope?: string; error?: string; error_description?: string };
+    if (data.error) {
+      throw new Error(`GitHub OAuth error: ${data.error_description || data.error}`);
+    }
+    if (!data.access_token) {
+      throw new Error('GitHub token exchange returned no access_token');
+    }
+
+    return { access_token: data.access_token, token_type: data.token_type ?? 'bearer', scope: data.scope ?? '' };
+  },
+
+  async getAuthenticatedUser(accessToken: string): Promise<{ login: string; id: number; avatar_url: string; name: string | null }> {
+    const res = await fetch(`${GITHUB_API}/user`, {
+      headers: headers(accessToken),
+    });
+
+    if (!res.ok) {
+      throw new Error(`GitHub getUser failed: ${res.status} ${res.statusText}`);
+    }
+
+    return (await res.json()) as { login: string; id: number; avatar_url: string; name: string | null };
+  },
+
+  async createWebhook(
+    token: string,
+    owner: string,
+    repo: string,
+    webhookUrl: string,
+    secret: string,
+  ): Promise<{ id: number }> {
+    const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/hooks`, {
+      method: 'POST',
+      headers: { ...headers(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'web',
+        active: true,
+        events: ['push'],
+        config: {
+          url: webhookUrl,
+          content_type: 'json',
+          secret,
+          insecure_ssl: '0',
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`GitHub createWebhook failed: ${res.status} ${res.statusText}`);
+    }
+
+    return (await res.json()) as { id: number };
+  },
+
+  async deleteWebhook(
+    token: string,
+    owner: string,
+    repo: string,
+    hookId: number,
+  ): Promise<void> {
+    const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/hooks/${hookId}`, {
+      method: 'DELETE',
+      headers: headers(token),
+    });
+
+    if (!res.ok && res.status !== 404) {
+      throw new Error(`GitHub deleteWebhook failed: ${res.status} ${res.statusText}`);
+    }
+  },
+
+  async listIssues(
+    token: string,
+    owner: string,
+    repo: string,
+    state: 'open' | 'closed' | 'all' = 'all',
+  ): Promise<GitHubIssue[]> {
+    const res = await fetch(
+      `${GITHUB_API}/repos/${owner}/${repo}/issues?state=${state}&per_page=100`,
+      { headers: headers(token) },
+    );
+
+    if (!res.ok) {
+      throw new Error(`GitHub listIssues failed: ${res.status} ${res.statusText}`);
+    }
+
+    return (await res.json()) as GitHubIssue[];
+  },
+
   handlePushWebhook(payload: unknown): PushWebhookResult {
     const p = payload as {
       ref?: string;

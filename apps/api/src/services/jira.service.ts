@@ -94,6 +94,25 @@ export const jiraService = {
     return (await res.json()) as JiraIssue;
   },
 
+  async searchIssues(
+    baseUrl: string,
+    email: string,
+    apiToken: string,
+    projectKey?: string,
+  ): Promise<JiraIssue[]> {
+    const jql = projectKey ? `project = ${projectKey} ORDER BY updated DESC` : 'ORDER BY updated DESC';
+    const res = await fetch(`${baseUrl}/rest/api/3/search?jql=${encodeURIComponent(jql)}&maxResults=100`, {
+      headers: baseHeaders(email, apiToken),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Jira searchIssues failed: ${res.status} ${res.statusText}`);
+    }
+
+    const data = (await res.json()) as { issues: JiraIssue[] };
+    return data.issues;
+  },
+
   async getIssue(
     baseUrl: string,
     email: string,
