@@ -57,7 +57,7 @@ CRDTs are data structures where any two replicas can merge without coordination.
 **Use Yjs** for the following reasons:
 
 1. **Offline-first fits SyncDocs** — users editing specs in airplanes or spotty connections should not lose work. Yjs accumulates local changes and merges cleanly on reconnect with no server involvement.
-2. **Mature ecosystem** — Yjs has first-class bindings for CodeMirror, ProseMirror, and TipTap (the likely underlying editor), as well as a maintained WebSocket provider (`y-websocket`).
+2. **Mature ecosystem** — Yjs has first-class bindings for CodeMirror, ProseMirror, and TipTap, as well as a maintained WebSocket provider (`y-websocket`). Since SyncDocs uses a plain markdown `<textarea>` editor, `Y.Text` integration is straightforward without requiring a rich-text editor binding.
 3. **No transform complexity** — OT transform functions for rich text are a known source of subtle bugs. Yjs's CRDT semantics make merge correctness a library guarantee.
 4. **Horizontal scalability** — WebSocket servers can be stateless coordination layers; the document state lives in the CRDT, not the server.
 
@@ -244,7 +244,7 @@ Server broadcasts awareness update (user left)
 
 - For MVP: a single `y-websocket` process handles all rooms
 - For scale: use a Redis pub/sub adapter so multiple `y-websocket` instances can share document rooms across pods
-- Maximum concurrent editors per document: **20** (enforced at the WebSocket room join step; additional users see a read-only view)
+- Maximum concurrent editors per document: **5 (free tier) / 10 (paid tier)** (enforced at the WebSocket room join step; users over the limit see a read-only markdown preview)
 
 ---
 
@@ -282,8 +282,9 @@ The existing diff view compares any two stored versions. Real-time sessions prod
 
 ### Max concurrent editors
 
-- **Soft limit: 10 editors** — above this, cursor noise degrades the editing experience
-- **Hard limit: 20 editors** — enforced at the WebSocket room join; additional users see a read-only presence view
+- **Free tier: up to 5 simultaneous editors** — enforced at the WebSocket room join; users beyond this limit are connected in read-only markdown preview mode (no editor interface, markdown rendered as preview)
+- **Paid tier: up to 10 simultaneous editors** — above this, cursor noise degrades the editing experience; additional users are connected in read-only markdown preview mode
+- Read-only users can still view others' cursors but cannot type or make edits
 
 ### Message size
 
@@ -329,13 +330,13 @@ The existing `DocumentEditor` component requires the following changes:
 
 | Change | Detail |
 |--------|--------|
-| **Yjs binding** | Wrap the editor's content model in a `Y.Text` or `Y.XmlFragment` type. Replace the current `useState` for content with the Yjs-backed model. |
+| **Yjs binding** | Wrap the editor's content model in a `Y.Text` type (the markdown `<textarea>` stays as-is; `Y.Text` maps directly to plain text content). Replace the current `useState` for content with the Yjs-backed model. |
 | **Provider wiring** | Add `y-websocket` provider initialization on document open. Provide `documentId` and auth token. |
 | **Presence rendering** | Add cursor and selection overlay components. Yjs awareness API provides the raw data; a `CollaboratorCursors` component renders the overlays. |
 | **Connection status UI** | Add a header bar element showing collaborator avatars and connection state. |
 | **Offline indicator** | Show "Offline" banner when WebSocket provider reports disconnected state. |
 | **Version save** | "Save version" button triggers an explicit version snapshot via the existing versioning API plus a Y.Doc binary flush. |
-| **Read-only mode** | When document is locked or user is over the editor limit, disable all Yjs writes but keep the provider connected for read-only cursor visibility. |
+| **Read-only mode** | When document is locked or user is over the tier editor limit, disable all Yjs writes and render the document in markdown preview mode (no editor interface). Keep the provider connected so the user can still see others' cursors. |
 
 ---
 
@@ -363,7 +364,7 @@ In-editor presence (cursors, avatars) is handled by this feature. Cross-session 
 3. **User goes offline, makes edits, reconnects, and edits sync to other clients**
 4. **Third user joining an in-progress session receives the current document state**
 5. **Last collaborator disconnecting triggers a version snapshot**
-6. **Editor limit (20 users) is enforced — 21st connection is read-only**
+6. **Editor limit is enforced by tier (5 free / 10 paid) — users beyond the limit are read-only in markdown preview mode**
 7. **Unauthenticated WebSocket connection is rejected**
 
 ---
@@ -424,10 +425,10 @@ And the version content matches the final merged document state
 #### Scenario 6 — Editor limit enforcement
 
 ```
-Given 20 users are actively editing a document
-When a 21st user opens the document
-Then the 21st user sees a read-only view of the document
-And the 21st user sees other users' cursors but cannot type
+Given the tier editor limit is reached (5 users on free tier, or 10 users on paid tier)
+When an additional user opens the document
+Then the additional user sees the document in read-only markdown preview mode (not the editor)
+And the user can see other users' cursors but cannot type or make edits
 And an informational banner explains "Max editors reached — viewing in read-only mode"
 ```
 
@@ -489,7 +490,7 @@ tests/
         ├── offline-sync.spec.ts        # Scenario 3: offline edit and reconnect
         ├── session-join.spec.ts        # Scenario 4: new user joins in-progress session
         ├── version-snapshot.spec.ts    # Scenario 5: version created on session end
-        ├── editor-limit.spec.ts        # Scenario 6: read-only enforcement at 20 editors
+        ├── editor-limit.spec.ts        # Scenario 6: read-only enforcement at tier limits (5 free / 10 paid)
         └── auth.spec.ts                # Scenario 7: unauthenticated WebSocket rejection
 ```
 
@@ -556,10 +557,13 @@ test('two users see each other edits', async ({ browser }) => {
 
 ---
 
+## Decisions
+
+- **Rich text vs. plain markdown** — The existing markdown `<textarea>` editor is kept for now. Use `Y.Text` for Yjs integration — simpler to wire up than a ProseMirror/TipTap binding and sufficient for plain text collaborative editing.
+- **Awareness persistence** — Presence is strictly ephemeral. Cursor positions are not persisted across browser refresh. Presence lives only in active WebSocket sessions via the Yjs awareness protocol.
+- **Pricing and limits** — Real-time collaboration has tier-based editor limits: **5 simultaneous editors on the free tier**, **10 on paid**. Users beyond the limit connect in read-only markdown preview mode. This aligns with the familiar Google Docs model while gating power usage to paid plans.
+- **Session attribution granularity** — Per-session attribution is sufficient for MVP (all contributing user IDs listed at the version level). Per-character attribution via Yjs client IDs is deferred — it adds storage and query complexity that is not needed now. Revisit post-MVP if blame/annotation features are prioritized.
+
 ## Open questions
 
-- **Rich text vs. plain markdown** — Yjs has mature bindings for ProseMirror/TipTap (rich text) but the current editor uses a markdown textarea. If the editor stays as a `<textarea>` with markdown, `Y.Text` is simpler to integrate but loses character-level conflict resolution semantics for structured content. Decision needed before implementation starts.
-- **Awareness persistence** — should cursor positions survive a browser refresh (restored from IndexedDB)? Or is presence strictly ephemeral?
 - **Comment sync** — comments and inline annotations are currently stored server-side. Should they be part of the Y.Doc (synced in real time) or remain async?
-- **Pricing and limits** — real-time collaboration requires persistent WebSocket connections, which are more expensive than HTTP. Should it be a paid-tier feature? Should concurrent editors count toward a plan limit?
-- **Session attribution granularity** — Yjs can track per-character origin client IDs. Is this level of attribution useful enough to store, or is per-session attribution (all contributors listed at the version level) sufficient?
