@@ -20,7 +20,9 @@ SyncDocs currently supports only single-user document editing. This feature adds
 
 ---
 
-## Collaboration model: OT vs CRDT
+## Collaboration model: CRDT (decided)
+
+> **Decision:** CRDT via Yjs is the chosen approach. OT is documented below for context only.
 
 Two established approaches exist for merging concurrent edits:
 
@@ -559,6 +561,7 @@ test('two users see each other edits', async ({ browser }) => {
 
 ## Decisions
 
+- **CRDT over OT** — CRDT (via Yjs) is the chosen collaboration model. OT requires server round-trips for every keystroke and is difficult to implement correctly for rich/plain text; CRDT is offline-first, horizontally scalable, and offloads correctness to the Yjs library.
 - **Rich text vs. plain markdown** — The existing markdown `<textarea>` editor is kept for now. Use `Y.Text` for Yjs integration — simpler to wire up than a ProseMirror/TipTap binding and sufficient for plain text collaborative editing.
 - **Awareness persistence** — Presence is strictly ephemeral. Cursor positions are not persisted across browser refresh. Presence lives only in active WebSocket sessions via the Yjs awareness protocol.
 - **Pricing and limits** — Real-time collaboration has tier-based editor limits: **5 simultaneous editors on the free tier**, **10 on paid**. Users beyond the limit connect in read-only markdown preview mode. This aligns with the familiar Google Docs model while gating power usage to paid plans.
