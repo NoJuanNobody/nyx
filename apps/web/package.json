@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
     "test": "vitest run"
   },
   "dependencies": {
@@ -35,6 +36,7 @@
     "tailwindcss": "^4",
     "typescript": "^5.7",
     "vite": "^6",
-    "vitest": "^3"
+    "vitest": "^3",
+    "@vitest/coverage-v8": "^3"
   }
 }
