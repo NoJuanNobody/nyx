@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -33,6 +34,7 @@
     "@types/node": "^22",
     "@types/pdfkit": "^0.13",
     "vitest": "^3",
+    "@vitest/coverage-v8": "^3",
     "typescript": "^5.7"
   }
 }
