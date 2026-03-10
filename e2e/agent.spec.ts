@@ -30,7 +30,7 @@ test.describe('Agent Integration', () => {
     // The AgentPanel has a <select> for workflow selection, plus there may be other selects on the page
     // (e.g., stage selector in the editor toolbar). Wait for the panel to render fully.
     // The workflow select is inside the drawer panel and contains "Custom prompt..." as the first option.
-    const workflowSelect = page.locator('select:has(option:text-is("Custom prompt..."))');
+    const workflowSelect = page.locator('select:has(option:text-is("Quick edit"))');
     await expect(workflowSelect).toBeVisible({ timeout: 5_000 });
     // Verify workflow options are populated
     await expect(workflowSelect.locator('option', { hasText: 'Sync Spec' })).toBeAttached({ timeout: 5_000 });

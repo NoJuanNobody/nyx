@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { generateDocument, editDocumentAI, fetchWorkflows } from '../lib/api';
-import { startAgentStream, type AgentStreamEvent } from '../lib/agent-stream';
+import { startAgentStream, type AgentStreamEvent, type SessionStatus } from '../lib/agent-stream';
 import { STAGE_SUGGESTIONS, type DocumentStage } from '../lib/stages';
 import { useQuery } from '@tanstack/react-query';
 import { MarkdownPreview } from './MarkdownPreview';
@@ -16,12 +16,18 @@ interface ToolCallEntry {
 }
 
 type UnifiedMessage =
-  | { kind: 'user'; content: string; timestamp: Date }
-  | { kind: 'assistant'; content: string; timestamp: Date }
-  | { kind: 'tool_call'; entry: ToolCallEntry }
-  | { kind: 'proposed_edit'; proposed: string; resolved: boolean; accepted?: boolean };
+  | { id: number; kind: 'user'; content: string; timestamp: Date }
+  | { id: number; kind: 'assistant'; content: string; timestamp: Date }
+  | { id: number; kind: 'tool_call'; entry: ToolCallEntry }
+  | { id: number; kind: 'proposed_edit'; proposed: string; resolved: boolean; accepted?: boolean };
 
-type SessionStatus = 'idle' | 'running' | 'completed' | 'failed' | 'cancelled';
+const statusColors: Record<SessionStatus, string> = {
+  idle: 'bg-slate-100 text-slate-600',
+  running: 'bg-blue-100 text-blue-700',
+  completed: 'bg-green-100 text-green-700',
+  failed: 'bg-red-100 text-red-700',
+  cancelled: 'bg-amber-100 text-amber-700',
+};
 
 export interface UnifiedAIPanelProps {
   content: string;
@@ -36,19 +42,13 @@ export interface UnifiedAIPanelProps {
 
 const QUICK_EDIT_VALUE = 'quick';
 
-const statusColors: Record<SessionStatus, string> = {
-  idle: 'bg-slate-100 text-slate-600',
-  running: 'bg-blue-100 text-blue-700',
-  completed: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
-  cancelled: 'bg-amber-100 text-amber-700',
-};
-
-const AI_ICON = (
-  <svg className="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-    <path d="M12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2Z" />
-  </svg>
-);
+function AIIcon({ className }: { className: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2Z" />
+    </svg>
+  );
+}
 
 export function UnifiedAIPanel({
   content,
@@ -71,6 +71,7 @@ export function UnifiedAIPanel({
   const streamingContentRef = useRef('');
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const msgIdRef = useRef(0);
 
   const { data: workflows } = useQuery({
     queryKey: ['agent-workflows'],
@@ -89,8 +90,9 @@ export function UnifiedAIPanel({
     }
   }, [prompt]);
 
-  const appendMessage = useCallback((msg: UnifiedMessage) => {
-    setMessages((prev) => [...prev, msg]);
+  const appendMessage = useCallback((msg: Omit<UnifiedMessage, 'id'>) => {
+    const id = ++msgIdRef.current;
+    setMessages((prev) => [...prev, { ...msg, id } as UnifiedMessage]);
   }, []);
 
   const commitStreamingContent = useCallback(() => {
@@ -107,10 +109,10 @@ export function UnifiedAIPanel({
   const handleAgentEvent = useCallback((event: AgentStreamEvent) => {
     switch (event.type) {
       case 'status':
-        setStatus(event.status as SessionStatus);
+        setStatus(event.status);
         break;
       case 'text':
-        streamingContentRef.current += event.text as string;
+        streamingContentRef.current += event.text;
         setStreamingContent(streamingContentRef.current);
         break;
       case 'tool_call':
@@ -121,9 +123,9 @@ export function UnifiedAIPanel({
           appendMessage({
             kind: 'tool_call',
             entry: {
-              toolName: event.toolName as string,
-              input: event.input as Record<string, unknown>,
-              sequence: event.sequence as number,
+              toolName: event.toolName,
+              input: event.input,
+              sequence: event.sequence,
               collapsed: true,
             },
           });
@@ -132,14 +134,14 @@ export function UnifiedAIPanel({
       case 'tool_result':
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.kind === 'tool_call' && msg.entry.sequence === (event.sequence as number)
+            msg.kind === 'tool_call' && msg.entry.sequence === event.sequence
               ? {
                   ...msg,
                   entry: {
                     ...msg.entry,
                     output: event.output,
-                    durationMs: event.durationMs as number,
-                    error: event.error as string | undefined,
+                    durationMs: event.durationMs,
+                    error: event.error,
                   },
                 }
               : msg,
@@ -148,7 +150,7 @@ export function UnifiedAIPanel({
         break;
       case 'done':
         setStatus('completed');
-        setTokenUsage(event.tokenUsage as { inputTokens: number; outputTokens: number });
+        setTokenUsage(event.tokenUsage);
         commitStreamingContent();
         break;
     }
@@ -187,13 +189,15 @@ export function UnifiedAIPanel({
 
     // Quick edit — fast path
     if (selectedWorkflow === QUICK_EDIT_VALUE) {
+      const controller = new AbortController();
+      abortRef.current = () => controller.abort();
       try {
         const history = messages
           .filter((m): m is Extract<UnifiedMessage, { kind: 'user' | 'assistant' }> =>
             m.kind === 'user' || m.kind === 'assistant',
           )
           .map((m) => ({ role: m.kind === 'user' ? ('user' as const) : ('assistant' as const), content: m.content }));
-        const result = await editDocumentAI(content, trimmed, history);
+        const result = await editDocumentAI(content, trimmed, history, controller.signal);
         appendMessage({
           kind: 'assistant',
           content: 'Changes ready for review. Check the diff in the editor.',
@@ -202,12 +206,15 @@ export function UnifiedAIPanel({
         onProposedEdit(result.content);
         setStatus('completed');
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
         appendMessage({
           kind: 'assistant',
           content: `Something went wrong. ${err instanceof Error ? err.message : 'Please try again.'}`,
           timestamp: new Date(),
         });
         setStatus('failed');
+      } finally {
+        abortRef.current = null;
       }
       return;
     }
@@ -238,7 +245,6 @@ export function UnifiedAIPanel({
         });
         setStatus('failed');
       },
-      onComplete: () => {},
     });
 
     abortRef.current = abort;
@@ -275,19 +281,19 @@ export function UnifiedAIPanel({
     );
   };
 
-  const handleAcceptEdit = (proposed: string, index: number) => {
+  const handleAcceptEdit = (proposed: string, id: number) => {
     onProposedEdit(proposed);
     setMessages((prev) =>
-      prev.map((msg, i) =>
-        i === index && msg.kind === 'proposed_edit' ? { ...msg, resolved: true, accepted: true } : msg,
+      prev.map((msg) =>
+        msg.id === id && msg.kind === 'proposed_edit' ? { ...msg, resolved: true, accepted: true } : msg,
       ),
     );
   };
 
-  const handleRejectEdit = (index: number) => {
+  const handleRejectEdit = (id: number) => {
     setMessages((prev) =>
-      prev.map((msg, i) =>
-        i === index && msg.kind === 'proposed_edit' ? { ...msg, resolved: true, accepted: false } : msg,
+      prev.map((msg) =>
+        msg.id === id && msg.kind === 'proposed_edit' ? { ...msg, resolved: true, accepted: false } : msg,
       ),
     );
   };
@@ -343,9 +349,7 @@ export function UnifiedAIPanel({
           /* Empty state with suggestion prompts */
           <div className="flex h-full flex-col items-center justify-center px-4 py-8">
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shadow-blue-200/50">
-              <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2Z" />
-              </svg>
+              <AIIcon className="h-5 w-5 text-white" />
             </div>
             <p className="text-center text-xs font-medium text-slate-500">
               {isNewDocument && !content.trim() ? 'Describe the document you want to create' : 'Ask AI to edit this document'}
@@ -366,10 +370,10 @@ export function UnifiedAIPanel({
         ) : (
           /* Chat messages */
           <div className="space-y-0.5 p-2">
-            {messages.map((msg, i) => {
+            {messages.map((msg) => {
               if (msg.kind === 'user') {
                 return (
-                  <div key={i} className="rounded-lg bg-blue-50/70 px-3 py-2">
+                  <div key={msg.id} className="rounded-lg bg-blue-50/70 px-3 py-2">
                     <div className="mb-0.5 flex items-center gap-1.5">
                       <span className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[9px] font-bold text-slate-500">
                         Y
@@ -386,10 +390,10 @@ export function UnifiedAIPanel({
 
               if (msg.kind === 'assistant') {
                 return (
-                  <div key={i} className="rounded-lg px-3 py-2">
+                  <div key={msg.id} className="rounded-lg px-3 py-2">
                     <div className="mb-0.5 flex items-center gap-1.5">
                       <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600">
-                        {AI_ICON}
+                        <AIIcon className="h-2.5 w-2.5 text-white" />
                       </span>
                       <span className="text-[10px] font-semibold text-slate-400">AI</span>
                       <span className="text-[9px] text-slate-300">
@@ -406,7 +410,7 @@ export function UnifiedAIPanel({
               if (msg.kind === 'tool_call') {
                 const tc = msg.entry;
                 return (
-                  <div key={i} className="rounded-lg border border-slate-100 bg-slate-50">
+                  <div key={msg.id} className="rounded-lg border border-slate-100 bg-slate-50">
                     <button
                       type="button"
                       onClick={() => toggleToolCall(tc.sequence)}
@@ -452,7 +456,7 @@ export function UnifiedAIPanel({
 
               if (msg.kind === 'proposed_edit') {
                 return (
-                  <div key={i} className="rounded-lg border border-blue-200 bg-blue-50/40">
+                  <div key={msg.id} className="rounded-lg border border-blue-200 bg-blue-50/40">
                     <div className="flex items-center gap-2 border-b border-blue-100 px-3 py-1.5">
                       <svg
                         className="h-3.5 w-3.5 text-blue-500"
@@ -487,14 +491,14 @@ export function UnifiedAIPanel({
                       <div className="flex gap-1.5 border-t border-blue-100 px-3 py-2">
                         <button
                           type="button"
-                          onClick={() => handleAcceptEdit(msg.proposed, i)}
+                          onClick={() => handleAcceptEdit(msg.proposed, msg.id)}
                           className="rounded-md bg-blue-600 px-3 py-1 text-[11px] font-medium text-white transition-colors hover:bg-blue-700"
                         >
                           Accept
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleRejectEdit(i)}
+                          onClick={() => handleRejectEdit(msg.id)}
                           className="rounded-md border border-slate-200 px-3 py-1 text-[11px] font-medium text-slate-600 transition-colors hover:bg-slate-100"
                         >
                           Reject
@@ -513,7 +517,7 @@ export function UnifiedAIPanel({
               <div className="rounded-lg px-3 py-2">
                 <div className="mb-0.5 flex items-center gap-1.5">
                   <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600">
-                    {AI_ICON}
+                    <AIIcon className="h-2.5 w-2.5 text-white" />
                   </span>
                   <span className="text-[10px] font-semibold text-slate-400">AI</span>
                   <span className="ml-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
@@ -529,7 +533,7 @@ export function UnifiedAIPanel({
               <div className="rounded-lg px-3 py-2">
                 <div className="flex items-center gap-1.5">
                   <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600">
-                    {AI_ICON}
+                    <AIIcon className="h-2.5 w-2.5 text-white" />
                   </span>
                   <span className="text-[10px] font-semibold text-slate-400">AI</span>
                 </div>
