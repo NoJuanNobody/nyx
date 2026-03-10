@@ -318,9 +318,154 @@ Each detector runs independently. They push notifications into a local `notifica
 - Expanded panel: auto-height up to 40% of the editor area, then scrollable
 - Text input area: single line by default, grows to max 3 lines
 
-## Open questions
+## Decisions
 
-- **Notification frequency** — how aggressively should Tier 3 (proactive) notifications fire? Too many and the panel becomes noisy. Should there be a daily/session cap, or a user-configurable "AI verbosity" setting?
-- **Notification history** — should dismissed notifications be recoverable? A "recent notifications" dropdown in the status bar could let users revisit things they dismissed too quickly.
-- **Sound/visual alert** — should high-priority notifications (drift detected) produce a subtle visual pulse on the status bar when the user is scrolled away from the panel? Or is the badge count sufficient?
-- **Handoff to AI Chat** — when a user clicks "Continue in AI Chat →", how much context transfers? Just the notification text, or the full conversation thread (notification + reply + follow-up)?
+- **Notification frequency** — not a concern for now. Ship without throttling and tune later based on real usage.
+- **Notification history** — no. Dismissed notifications are gone. Keep the UX simple.
+- **Sound/visual alerts** — no sounds or visual pulses. Badge count in the status bar is sufficient.
+
+## Handoff to AI Chat
+
+When a notification thread gets complex, the user can click **"Continue in AI Chat →"** to seamlessly move the conversation into the DocDrawer's AI Chat tab. This bridges the gap between the Advisor's quick-interaction model and the Chat's extended-conversation model.
+
+### What transfers
+
+The full thread context carries over — not just the notification text, but the complete sequence:
+
+1. **Original notification** — the trigger event, AI analysis, and any structured data (e.g., drift diff, quality suggestions, conflicting spec excerpts)
+2. **User replies** — any text the user typed in the Advisor's reply input
+3. **AI follow-ups** — any follow-up notifications the AI posted in response
+4. **Document context** — the current document title, stage, and a content summary so the AI Chat doesn't need to re-analyze
+
+### How it works
+
+1. User clicks "Continue in AI Chat →" on a notification card
+2. The Advisor serializes the thread into a structured handoff payload:
+   ```json
+   {
+     "source": "advisor",
+     "notificationType": "drift_detected",
+     "thread": [
+       { "role": "ai", "content": "Code in auth-service.ts has diverged..." },
+       { "role": "user", "content": "The auth changes are intentional..." },
+       { "role": "ai", "content": "Understood. I can update sections 3.2 and 3.4..." }
+     ],
+     "metadata": { "documentId": "...", "stage": "architecture", "driftFiles": ["auth-service.ts"] }
+   }
+   ```
+3. The DocDrawer opens to the AI Chat tab
+4. The AI Chat renders the thread as prior messages (visually distinguished as "continued from Advisor") and the user can keep typing naturally
+5. The original notification in the Advisor is marked as "Continued in Chat" and auto-dismissed
+
+### UX details
+
+- The handoff link appears on any notification that has received at least one user reply, or on any Tier 2/3 notification with a "Reply" CTA
+- The link does not appear on simple CTA-only notifications (quality suggestions, pre-fill offers) — those are fully resolvable in the Advisor
+- If the AI Chat already has an active conversation, the handoff appends a separator and the new thread below it, preserving both contexts
+- The AI Chat's system prompt receives the handoff metadata so it has full context without the user needing to re-explain
+
+---
+
+## E2E Tests
+
+**Test file:** `tests/e2e/ai-advisor-panel.spec.ts`
+
+### Panel states & rendering
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 1 | Status bar visible on document load | Navigate to document editor | AI Advisor status bar visible at bottom (~28px); shows "AI Advisor" label |
+| 2 | Status bar shows quality score | Open document with content → wait for analysis (3s debounce) | Status bar right side shows "Score: N/10" badge |
+| 3 | Click status bar expands panel | Click on the AI Advisor status bar | Panel expands showing notification cards |
+| 4 | Collapse button returns to status bar | Expand panel → click "Collapse" | Panel animates back to status bar |
+| 5 | Panel replaces old AIQualityPanel | Open document editor | No `AIQualityPanel` rendered; `AIAdvisor` component in its place |
+| 6 | No stage guide banner at top | Open document with stage assigned | No top banner; stage guide info appears as Tier 1 notification in Advisor panel |
+
+### Tier 1 — Quality score notifications
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 7 | Quality analysis triggers on content change | Open document → type new content → wait 3s | Quality notification card appears with score and bullet-point suggestions |
+| 8 | "Fix these" CTA triggers AI edit | Expand panel → click "Fix these" on quality card | Loading state on card → AI auto-applies fixes → card shows success message → auto-dismiss after 3s |
+| 9 | Dismiss quality notification | Click "Dismiss" on quality card | Card removed immediately; no action taken |
+| 10 | Quality re-analyzes on subsequent edits | Dismiss quality card → edit content → wait 3s | New quality card appears with updated score and suggestions |
+
+### Tier 2 — Pre-fill offer
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 11 | Pre-fill offered for new staged doc with prior-stage docs | Create blank Architecture doc (while Definition docs exist) | Panel auto-expands; pre-fill notification: "You have N Definition docs that could seed an outline" with "Generate outline" / "Dismiss" |
+| 12 | "Generate outline" populates document | Click "Generate outline" on pre-fill card | Loading state → document content populated with AI-generated outline seeded from prior-stage docs → card auto-dismisses |
+| 13 | No pre-fill when no prior-stage docs exist | Create blank Conception doc (first stage, no prior docs) | No pre-fill notification appears |
+| 14 | No pre-fill for non-blank documents | Create document from template (has content) | No pre-fill notification — only triggers for blank stage docs |
+
+### Tier 2 — Drift detected
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 15 | Drift notification appears after webhook push | Simulate webhook push that triggers `detectDrift()` with divergence → navigate to affected document | Panel auto-expands; drift card shows affected file(s), divergence summary |
+| 16 | "Update spec to match code" CTA | Click "Update spec to match code" on drift card | Loading state → AI updates document content to reflect code changes → diff review shown in editor |
+| 17 | "View diff" CTA | Click "View diff" on drift card | Editor switches to diff view showing doc vs code divergence |
+| 18 | "Reply" opens text input | Click "Reply" on drift card | Text input appears at bottom of panel, scoped to drift notification |
+| 19 | Text reply processed by AI | Type "The auth changes are intentional — update spec to include OAuth2" → Send | Input disappears; AI processes reply; follow-up notification posted with proposed spec update |
+
+### Tier 2 — Stage transition nudge
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 20 | Stage nudge appears when content matures | Write extensive product spec content in a Conception-stage document → wait for analysis | Stage transition card: "This document reads like a Definition spec" with "Move to Definition" / "Keep current stage" / "Why?" |
+| 21 | "Move to stage" updates document | Click "Move to Definition" on nudge card | Document stage updated to Definition; badge changes in FileTree; card auto-dismisses |
+| 22 | "Keep current stage" dismisses | Click "Keep current stage" | Card dismissed; no stage change |
+| 23 | "Why?" expands explanation | Click "Why?" | Card expands with AI explanation of why the content matches the next stage |
+
+### Tier 3 — Missing section alert
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 24 | Missing section detected | Open Architecture doc without "System Design" heading → wait for analysis | Notification: "Missing section: System Design" with "Add section" / "Dismiss" |
+| 25 | "Add section" inserts AI content | Click "Add section" | AI generates section content and inserts it into document at appropriate position |
+
+### Tier 3 — Spec conflict
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 26 | Spec conflict surfaced | Two team documents have contradictory claims (e.g., auth method) → analysis detects conflict | Inline selection card showing both conflicting excerpts with radio buttons and "Use X approach" CTAs |
+| 27 | Resolve conflict via selection | Select "Use JWT approach" on conflict card | AI proposes edits to the other document; diff review shown |
+
+### Clearing & suppression behavior
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 28 | Individual clear via X button | Click ✕ on any notification card | Card removed immediately; no confirmation |
+| 29 | Clear all button | Have 3+ notifications → click "Clear all" | All cards removed; panel collapses to status bar |
+| 30 | "Clear all" only shows with 2+ notifications | Have exactly 1 notification visible | "Clear all" button not visible |
+| 31 | Suppress notification type | Right-click ✕ on quality card → click "Stop showing these" | Quality notifications suppressed for session; "Paused notifications" indicator in status bar |
+| 32 | Re-enable suppressed type | Click "Paused notifications" indicator in status bar | Suppressed type re-enabled; future notifications of that type appear again |
+| 33 | Auto-expand suppression (30s cooldown) | Manually collapse panel → new notification arrives within 30s | Panel does NOT auto-expand; badge count updates in status bar |
+| 34 | Auto-expand suppression (3 collapses) | Collapse panel 3 times without engaging any notification | Panel stops auto-expanding for entire session; badge count still updates |
+| 35 | No expand mid-typing | Start typing in editor → notification arrives during typing | Panel stays collapsed; badge count updates; panel expands only after 2s typing pause |
+
+### Notification stacking & priority
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 36 | Tier 2 notifications appear above Tier 1 | Quality card visible → drift notification arrives | Drift card appears at top; quality card stays at bottom |
+| 37 | Max 3 cards visible | 4+ notifications arrive | Only 3 cards visible; remaining accessible via scroll |
+| 38 | Duplicate notifications replace previous | Same drift notification fires twice for same trigger | Second notification replaces the first; no duplicate cards |
+
+### Handoff to AI Chat
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 39 | "Continue in AI Chat" link appears after reply | Reply to a drift notification → AI posts follow-up | "Continue in AI Chat →" link visible on the notification |
+| 40 | Handoff opens DocDrawer AI tab | Click "Continue in AI Chat →" | DocDrawer opens to AI tab; prior thread (notification + replies + follow-ups) rendered as messages marked "continued from Advisor" |
+| 41 | Original notification auto-dismissed after handoff | Click "Continue in AI Chat →" | Notification card in Advisor marked "Continued in Chat" and auto-dismissed |
+| 42 | Handoff appends to existing chat | AI Chat already has messages → handoff from Advisor | Separator line added; handed-off thread appended below existing messages |
+| 43 | No handoff link on CTA-only notifications | Quality card with only "Fix these" / "Dismiss" | No "Continue in AI Chat →" link visible |
+
+### Session lifecycle
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 44 | Notifications cleared on page load | Have notifications → navigate away → navigate back | No stale notifications from prior session; fresh analysis starts |
+| 45 | Panel state resets on document switch | Expand panel on Doc A → switch to Doc B | Panel resets to status bar; new analysis starts for Doc B |

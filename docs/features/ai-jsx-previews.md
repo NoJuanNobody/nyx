@@ -170,3 +170,71 @@ Test file: `tests/e2e/ai-jsx-previews.spec.ts` — **22 scenarios**
 - **Chart support** — for data visualizations, inline SVG vs. a chart library (Recharts via CDN) vs. Canvas-based rendering?
 - **Version history** — should preview iterations be saved as snapshots alongside the document version history?
 - **Collaborative previews** — in a future real-time collab world (#43), should previews be shared/visible to other team members?
+
+---
+
+## E2E Tests
+
+**Test file:** `tests/e2e/ai-jsx-previews.spec.ts`
+
+### Preview generation
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 1 | Generate preview from prompt | Open document → open JSXPreviewPanel tab in DocDrawer → type "Show me a dashboard with 3 metric cards" → click "Generate Preview" | Loading state → `POST /api/ai/jsx-preview` called → JSX code returned → iframe renders live React component showing 3 metric cards |
+| 2 | Generate from selected spec text | Select a paragraph in the editor describing a UI → click "Generate Preview" button | Selected text sent as prompt context; preview generated matching the description |
+| 3 | Preview renders in sandboxed iframe | Generate a preview → inspect the iframe element | iframe has `sandbox="allow-scripts"` attribute; no `allow-same-origin`; `src` is a `blob:` URL |
+| 4 | Fresh iframe per generation | Generate preview A → generate preview B | Previous iframe destroyed; new iframe created; no state leakage between previews |
+
+### View modes
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 5 | Code view shows JSX | Generate preview → switch to "Code" view mode | Read-only JSX code displayed with syntax highlighting |
+| 6 | Preview view shows rendered component | Generate preview → switch to "Preview" view mode | Only the rendered iframe visible; no code |
+| 7 | Split view shows both | Generate preview → switch to "Split" view mode | Code on left, rendered preview on right, side by side |
+| 8 | Default view is Preview | Generate a new preview | Preview (iframe) view shown by default |
+
+### Iterative refinement
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 9 | Refine via chat | Generate preview → type "Make the cards blue" in refinement input → Send | `POST /api/ai/jsx-preview/refine` called with current JSX + refinement prompt; iframe re-renders with blue cards |
+| 10 | Multiple refinement rounds | Generate preview → refine once → refine again ("add a sidebar") | Each refinement builds on previous; preview updates incrementally; chat history shows full prompt chain |
+| 11 | Refinement preserves prior context | Generate dashboard → refine "add a header" → refine "make header sticky" | All three elements present (dashboard + header + sticky behavior); no regression |
+
+### Copy & download
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 12 | Copy JSX to clipboard | Generate preview → click "Copy JSX" | JSX code copied to clipboard; toast confirmation shown |
+| 13 | Download button | Generate preview → click "Download" | `.jsx` file downloaded with generated component code |
+
+### Error handling
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 14 | Transpilation error displayed | Mock AI to return invalid JSX (e.g., unclosed tag) → generate | Error message shown in preview area (caught via `window.onerror` inside iframe → `postMessage` to parent); code view shows the faulty JSX |
+| 15 | API error shown | Mock `/api/ai/jsx-preview` to return 500 → generate | Error message displayed in panel; user can retry |
+| 16 | Empty prompt rejected | Click "Generate Preview" with empty input | Button disabled or validation error; no API call made |
+
+### Security
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 17 | iframe cannot access parent localStorage | Generate preview with JSX that tries `window.localStorage.getItem('token')` | Access blocked by sandbox; no data returned to generated component |
+| 18 | iframe cannot make credentialed API calls | Generate preview with JSX that tries `fetch('/api/documents')` | Request blocked or returns unauthorized; no SyncDocs data exposed |
+| 19 | Blob URL isolation | Inspect iframe src attribute | URL is `blob:` scheme; not same-origin with parent |
+
+### DocDrawer integration
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 20 | Preview tab visible in DocDrawer | Open document → open DocDrawer | "Preview" tab available alongside AI Chat, Timeline, Versions, Audit |
+| 21 | Panel state preserved on tab switch | Generate preview → switch to Timeline tab → switch back to Preview tab | Previous preview still rendered; chat history preserved |
+
+### Performance
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 22 | Preview renders within 5 seconds | Generate preview → measure time from API response to iframe render complete | Iframe renders in under 5 seconds (CDN loading + Babel transpilation + React mount) |

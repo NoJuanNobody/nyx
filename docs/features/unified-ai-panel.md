@@ -107,3 +107,61 @@ interface UnifiedAIPanelProps {
 ## Backend
 
 No backend changes needed. Both `/ai/edit-document` and `/api/agent` endpoints remain as-is. The routing decision is entirely client-side.
+
+---
+
+## E2E Tests
+
+**Test file:** `tests/e2e/unified-ai-panel.spec.ts`
+
+### Panel rendering & tab consolidation
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 1 | Single "AI" tab in DocDrawer | Open a document → open DocDrawer | Only one "AI" tab visible; no separate "Agent" tab |
+| 2 | Panel shows workflow selector | Click AI tab in DocDrawer | Workflow selector dropdown visible with "Quick edit" option and workflows from `/agent/workflows` |
+| 3 | Suggestion prompts shown when empty | Open AI tab with no prior messages | Context-aware suggestion pills displayed (carried from AIChatPanel behavior) |
+| 4 | Input area with send button | Open AI tab | Auto-resizing textarea visible with Send button |
+
+### Quick edit (fast path)
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 5 | Quick edit via workflow selector | Select "Quick edit" from workflow dropdown → type "Make the intro shorter" → Send | Request sent to `POST /ai/edit-document` (not `/api/agent`); proposed edit shown as diff block with Accept/Reject buttons |
+| 6 | Accept proposed edit | Trigger quick edit → click Accept on diff block | Document content updates with proposed changes; diff block replaced with success message |
+| 7 | Reject proposed edit | Trigger quick edit → click Reject | Diff block dismissed; document unchanged; user can type a new prompt |
+| 8 | Auto-detection routes simple edits to fast path | Leave workflow on "Freeform" → type "fix the typos in paragraph 2" → Send | Request sent to `/ai/edit-document` (auto-detected as simple edit); result shown as diff |
+
+### Agent workflow (SSE path)
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 9 | Freeform prompt uses agent SSE | Type "Analyze this spec and suggest improvements" → Send | Request sent to `POST /api/agent` via SSE; assistant text streams in real-time in chat area |
+| 10 | Selected workflow uses agent SSE | Select a predefined workflow → type prompt → Send | SSE stream starts; workflow-specific tool calls appear |
+| 11 | Tool calls shown as collapsible cards | Agent makes tool calls during workflow | Each tool call rendered as collapsible card showing: tool name, input, output, duration |
+| 12 | SSE streaming cancellation | Start a workflow → click Cancel button during streaming | SSE stream aborted (AbortController); partial response preserved in chat; status shows "Cancelled" |
+| 13 | Status bar shows during streaming | Start agent workflow | Status badge shows "Running" with token usage counter; hidden when idle |
+
+### `update_document` tool interception
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 14 | Agent update_document shows diff | Start workflow that triggers `update_document` tool call | Diff view rendered inline in chat (current content vs proposed); Accept/Reject buttons shown |
+| 15 | Accept agent-proposed edit | Agent proposes edit via `update_document` → click Accept | Document content updated; success returned to agent; agent continues workflow |
+| 16 | Reject agent-proposed edit | Agent proposes edit → click Reject | Rejection message returned to agent; agent adjusts and may propose alternative |
+
+### Chat history & messages
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 17 | User messages rendered as bubbles | Send multiple prompts | Each user message appears as a styled bubble |
+| 18 | Assistant messages stream in | Agent responds with text | Text appears incrementally (streaming), rendered as markdown |
+| 19 | Chat history preserved in session | Send prompt → get response → send another prompt | Previous messages still visible above; full conversation thread maintained |
+| 20 | New document shows generation flow | Open AI tab on a brand new (empty) document | "Generate document" option or suggestion prompt visible; generation result populates document |
+
+### Error handling
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 21 | API error shows inline message | Mock AI endpoint to return 500 → send prompt | Error message displayed in chat area; user can retry |
+| 22 | Network timeout handling | Mock slow response exceeding timeout → send prompt | Timeout error shown; cancel button works; user can retry |

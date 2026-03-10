@@ -159,3 +159,69 @@ These map directly to `STAGES[n].who` and `STAGES[n].purpose` from `apps/web/src
 - ~~**Stage onboarding**~~ — **RESOLVED:** The context menu tooltips with stage descriptions and role hints (see "Stage metadata in the menu" section) provide organic education. No separate onboarding flow needed.
 - ~~**Mobile / touch**~~ — **RESOLVED:** App is desktop-only for MVP. Mobile is post-MVP; no touch consideration needed now.
 - ~~**AI suggestion**~~ — **RESOLVED:** Yes, but handled by the AI Advisor panel (#49), not inline in the context menu. When a blank stage doc is created and prior-stage docs exist, the AI Advisor surfaces a "Pre-fill from {previous stage} docs?" notification with a Generate/Dismiss CTA. See `docs/features/ai-advisor-panel.md`.
+
+---
+
+## E2E Tests
+
+**Test file:** `tests/e2e/lifecycle-context-menu.spec.ts`
+
+### Context menu rendering
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 1 | Right-click on folder shows lifecycle stages | Navigate to dashboard → right-click a folder in FileTree | Context menu appears with "New blank document", "New subfolder", separator, all 5 lifecycle stages (Conception, Definition, Architecture, Implementation, Execution), separator, "Browse all templates…" |
+| 2 | Right-click on empty tree space | Right-click on empty area below all file tree items | Same context menu as folder right-click; documents created at root level |
+| 3 | Right-click on document shows Set stage | Right-click an existing document in FileTree | Context menu shows Rename, Delete, separator, "Set stage ▸", "Duplicate" |
+| 4 | All 5 stages always visible | Right-click on folder when some stages have no templates | All 5 stages visible in menu — none hidden even if empty |
+| 5 | Stage items show correct metadata | Right-click folder → inspect each stage row | Each row has: colored dot matching `STAGES[n].color`, abbreviation (CO/DF/AR/IM/EX), label, subtitle |
+
+### Template submenu
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 6 | Hover on stage shows template submenu | Right-click folder → hover over "Conception" | Submenu flies out listing all Conception templates from `GET /api/templates`, plus "Blank Conception doc" at bottom |
+| 7 | Empty stage shows only blank option | Right-click folder → hover over a stage with no templates | Submenu shows only "Blank {stage} doc" option |
+| 8 | Template submenu reads from cache | Right-click folder → hover stage → close → right-click again → hover same stage | No additional network request to `/api/templates` (verify via request interception) |
+| 9 | Click template creates document in folder | Right-click "specs/" folder → hover "Definition" → click "Product Brief" template | New document created inside "specs/" with template title, content, and stage=Definition; document opens in editor |
+| 10 | Click "Blank {stage} doc" creates empty staged doc | Right-click folder → hover "Architecture" → click "Blank Architecture doc" | New document created with stage=Architecture, empty content, default title |
+| 11 | "Browse all templates…" opens TemplatePicker | Right-click folder → click "Browse all templates…" | TemplatePicker modal opens (existing modal, not context menu) |
+
+### Document context menu actions
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 12 | Set stage on existing document | Right-click document → "Set stage" → click "Architecture" | Document's stage updates to Architecture; stage badge updates in FileTree; checkmark appears next to Architecture in subsequent opens |
+| 13 | Set stage shows current stage checkmark | Right-click a document with stage=Definition → hover "Set stage" | Definition has a checkmark; other stages do not |
+| 14 | Remove stage clears assignment | Right-click staged document → "Set stage" → "Remove stage" | Document's stage cleared to null; stage badge removed from FileTree item |
+| 15 | Duplicate document | Right-click document → "Duplicate" | New document created with same content, same stage, title suffixed with "(copy)"; appears in same folder |
+
+### Keyboard navigation
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 16 | Arrow keys navigate menu | Right-click folder → press Down arrow 3 times | Focus moves through menu items: "New blank document" → "New subfolder" → "Conception" |
+| 17 | Right arrow opens submenu | Focus on "Conception" → press Right arrow | Submenu opens; focus moves to first template |
+| 18 | Left arrow closes submenu | Inside submenu → press Left arrow | Submenu closes; focus returns to parent "Conception" item |
+| 19 | Enter selects focused item | Focus on a template → press Enter | Document created from that template |
+| 20 | Escape closes menu | Right-click folder → press Escape | Context menu closes; no action taken |
+
+### Menu positioning
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 21 | Menu clamped to viewport edges | Right-click near bottom-right corner of FileTree | Menu appears fully within viewport; not clipped |
+| 22 | Submenu flips when near right edge | Right-click near right viewport edge → hover a stage | Submenu opens to the left instead of right |
+
+### Stage tooltips
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 23 | Stage tooltip on hover | Right-click folder → hover over "Architecture" and wait | Tooltip appears with "Design the system that implements the specification. Owned by tech leads and senior engineers." |
+
+### Integration with document creation API
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 24 | Created document persists after refresh | Create document via context menu template → refresh page | Document appears in FileTree with correct title, stage, and content |
+| 25 | Created document has correct version history | Create document via template → open version history | First version exists with template content as initial content |

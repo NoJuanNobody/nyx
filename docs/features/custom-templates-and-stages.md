@@ -116,3 +116,50 @@ New `team_stages` table. System stages are defined in code (`stages.ts`) and mer
 - **Stage-specific AI prompts** — when teams add custom stages, should they also be able to configure the AI suggestions and quality analysis criteria for that stage? Or should AI behavior only apply to the 5 system stages?
 - **Stage migration** — if a team disables a system stage, what happens to documents already assigned to it? Options: keep the stage assignment (shown as greyed-out badge), auto-clear it, or prompt user to reassign.
 - **Cross-team templates** — should there be a "template gallery" where teams can publish templates for other teams to discover? Or keep templates strictly team-private?
+
+---
+
+## E2E Tests
+
+### Custom Templates
+
+**Test file:** `tests/e2e/custom-templates.spec.ts`
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 1 | Admin creates a team template | Log in as admin → Settings > Templates → fill name, description, stage, content → Save | Template appears in list with team badge; `POST /api/templates` returns 201 |
+| 2 | Team template appears in context menu | Create a template for "Definition" stage → go to FileTree → right-click folder → hover "Definition" | New template appears in submenu alongside system templates, visually distinguished with "Custom" badge |
+| 3 | Team template appears in TemplatePicker | Create a template → open TemplatePicker modal → filter by stage | Template appears in grid with team icon |
+| 4 | Create document from team template | Right-click folder → stage submenu → click team template | Document created with template's name, content, and stage pre-filled |
+| 5 | Edit team template | Settings > Templates → click existing template → change name and content → Save | Template updates; `PUT /api/templates/:id` returns 200; changes reflected in context menu |
+| 6 | Delete team template | Settings > Templates → click delete on template → confirm | Template removed from list and no longer appears in context menu or TemplatePicker |
+| 7 | Cannot edit system templates | Settings > Templates → locate a system template | No edit or delete controls visible; system templates are read-only |
+| 8 | Cannot delete system templates | Attempt `DELETE /api/templates/:systemId` via API | Returns 403 Forbidden |
+| 9 | Reorder templates within stage | Settings > Templates → drag template A below template B within same stage → Save | Sort order persists; context menu submenu reflects new order |
+| 10 | Editor role can use but not create templates | Log in as editor → FileTree context menu shows templates; Settings > Templates shows no create button | Templates usable for doc creation; no CRUD controls |
+| 11 | Viewer cannot create documents from templates | Log in as viewer → right-click folder → hover stage → click template | Action blocked or button disabled; toast shows permission error |
+| 12 | Templates scoped to team | Create template as Team A admin → log in as Team B member | Template not visible in Team B's context menu, TemplatePicker, or Settings |
+| 13 | GET /api/templates?teamId returns merged list | Call API with teamId parameter | Response includes both system templates (teamId=null) and team templates, properly merged |
+
+### Custom Stages
+
+**Test file:** `tests/e2e/custom-stages.spec.ts`
+
+| # | Scenario | Steps | Expected |
+|---|----------|-------|----------|
+| 14 | Admin creates a custom stage | Settings > Stages → click "Add stage" → fill label ("QA Review"), abbreviation ("QA"), subtitle, color → Save | Stage appears in list; `POST /api/teams/:id/stages` returns 201 |
+| 15 | Custom stage appears in FileTree context menu | Create custom stage → right-click folder in FileTree | New stage appears in context menu alongside the 5 system stages in correct sort order |
+| 16 | Custom stage appears in stage filter dropdown | Create custom stage → open stage filter dropdown in FileTree header | Custom stage listed with correct color dot and label |
+| 17 | Custom stage appears in TemplatePicker tabs | Create custom stage → open TemplatePicker modal | New tab for custom stage appears |
+| 18 | Assign custom stage to document | Create custom stage → right-click document → Set stage → select custom stage | Document shows custom stage badge with correct color |
+| 19 | Assign template to custom stage | Create custom stage → create template assigned to it → right-click folder → hover custom stage | Template appears in custom stage's submenu |
+| 20 | Edit custom stage metadata | Settings > Stages → click custom stage → change label to "QA Testing" and color → Save | Label and color update everywhere: context menu, filter dropdown, document badges |
+| 21 | Delete custom stage | Settings > Stages → delete custom stage → confirm | Stage removed from all UI; documents assigned to it lose their stage (or show greyed badge per decision) |
+| 22 | Cannot delete system stages | Settings > Stages → locate "Conception" system stage | No delete button; only disable toggle |
+| 23 | Disable system stage | Settings > Stages → toggle off "Execution" | "Execution" hidden from context menu, filter dropdown, and TemplatePicker; existing "Execution" documents retain their badge (greyed) |
+| 24 | Re-enable disabled system stage | Settings > Stages → toggle "Execution" back on | Stage reappears in all stage-aware UI in correct sort position |
+| 25 | Reorder stages | Settings > Stages → drag "Architecture" above "Definition" → Save | New order reflected in context menu, filter dropdown, and TemplatePicker tabs |
+| 26 | Stage order persists after refresh | Reorder stages → refresh page → right-click folder | Custom order maintained |
+| 27 | Merged stage list via API | `GET /api/teams/:id/stages` | Returns system stages (filtered by enabled) + custom stages, ordered by sortOrder |
+| 28 | Custom stages scoped to team | Create custom stage as Team A → log in as Team B | Custom stage not visible in Team B's UI |
+| 29 | Bulk reorder via API | `PATCH /api/teams/:id/stages/reorder` with new sort orders | All stages reflect new order; subsequent GET returns updated list |
