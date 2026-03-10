@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Document } from '@syncdocs/shared';
+import type { Document, DocumentTemplate } from '@syncdocs/shared';
 import {
   fetchDocuments,
   fetchArchivedDocuments,
@@ -10,9 +10,17 @@ import {
   deleteDocument,
   restoreDocument,
   fetchTeams,
+  fetchTemplates,
 } from '../lib/api';
-import { STAGE_MAP, type DocumentStage } from '../lib/stages';
+import { STAGE_MAP, STAGES, type DocumentStage } from '../lib/stages';
 import { TemplatePicker } from './TemplatePicker';
+import {
+  ContextMenu,
+  type ContextMenuState,
+  type ContextMenuItem,
+  type ContextMenuLeafItem,
+  type ContextMenuSeparator,
+} from './ContextMenu';
 
 // ── Folder persistence (localStorage) ─────────────────
 
@@ -174,58 +182,6 @@ function NewFolderRow({
   );
 }
 
-// ── Context menu ──────────────────────────────────────
-
-interface ContextMenuState {
-  x: number;
-  y: number;
-  items: { label: string; danger?: boolean; action: () => void }[];
-}
-
-function ContextMenu({
-  menu,
-  onClose,
-}: {
-  menu: ContextMenuState;
-  onClose: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
-
-  return (
-    <div
-      ref={ref}
-      className="fixed z-[100] min-w-[140px] rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
-      style={{ left: menu.x, top: menu.y }}
-    >
-      {menu.items.map((item) => (
-        <button
-          key={item.label}
-          type="button"
-          onClick={() => {
-            item.action();
-            onClose();
-          }}
-          className={`block w-full px-3 py-1.5 text-left text-xs transition-colors ${
-            item.danger
-              ? 'text-red-600 hover:bg-red-50'
-              : 'text-slate-700 hover:bg-slate-50'
-          }`}
-        >
-          {item.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 // ── Folder component ──────────────────────────────────
 
 function Folder({
@@ -256,7 +212,12 @@ function Folder({
   onFolderNameCancel: () => void;
   expandedFolders: Set<string>;
   toggleFolder: (path: string) => void;
-  onContextMenu: (e: React.MouseEvent, items: ContextMenuState['items']) => void;
+  onContextMenu: (
+    e: React.MouseEvent,
+    targetPath: string,
+    targetType: 'folder' | 'doc' | 'root',
+    doc?: Document,
+  ) => void;
   onRenameDoc: (docId: string) => void;
   renamingDocId: string | null;
   onDocRenameSubmit: (docId: string, newTitle: string) => void;
@@ -280,12 +241,7 @@ function Folder({
         onMouseLeave={() => setShowActions(false)}
         onContextMenu={(e) => {
           e.preventDefault();
-          onContextMenu(e, [
-            { label: 'New document', action: () => onCreateDoc(node.path) },
-            { label: 'New subfolder', action: () => onCreateFolder(node.path) },
-            { label: 'Rename folder', action: () => onFolderRenameSubmit(node.path, '') },
-            { label: 'Delete folder', danger: true, action: () => onDeleteFolder(node.path) },
-          ]);
+          onContextMenu(e, node.path, 'folder');
         }}
       >
         {/* Chevron */}
@@ -455,7 +411,12 @@ function DocItem({
 }: {
   doc: Document;
   depth: number;
-  onContextMenu: (e: React.MouseEvent, items: ContextMenuState['items']) => void;
+  onContextMenu: (
+    e: React.MouseEvent,
+    targetPath: string,
+    targetType: 'folder' | 'doc' | 'root',
+    doc?: Document,
+  ) => void;
   onRenameDoc: (docId: string) => void;
   isRenaming: boolean;
   onRenameSubmit: (docId: string, newTitle: string) => void;
@@ -492,10 +453,7 @@ function DocItem({
         }}
         onContextMenu={(e) => {
           e.preventDefault();
-          onContextMenu(e, [
-            { label: 'Rename', action: () => onRenameDoc(doc.id) },
-            { label: 'Delete', danger: true, action: () => onRenameSubmit(doc.id, '__DELETE__') },
-          ]);
+          onContextMenu(e, doc.id, 'doc', doc);
         }}
       >
         <svg className="h-3.5 w-3.5 flex-shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -637,6 +595,31 @@ export function FileTree() {
     enabled: !!teamId && showTrash,
   });
 
+  // Pre-fetch templates so context menu opens instantly
+  const { data: templates } = useQuery<DocumentTemplate[]>({
+    queryKey: ['templates'],
+    queryFn: () => fetchTemplates(),
+    staleTime: 5 * 60 * 1000, // 5 min
+  });
+
+  // Group templates by stage for fast lookup
+  const templatesByStage = useMemo(() => {
+    const map: Record<string, DocumentTemplate[]> = {
+      conception: [],
+      definition: [],
+      architecture: [],
+      implementation: [],
+      execution: [],
+    };
+    for (const t of templates ?? []) {
+      const stageKey = t.stage as string | undefined;
+      if (stageKey && stageKey in map) {
+        map[stageKey].push(t);
+      }
+    }
+    return map;
+  }, [templates]);
+
   const createMutation = useMutation({
     mutationFn: (data: { title: string; content: string; teamId: string; path: string; stage?: DocumentStage | null; templateId?: string }) =>
       createDocument(data),
@@ -674,6 +657,31 @@ export function FileTree() {
     },
   });
 
+  const updateStageMutation = useMutation({
+    mutationFn: ({ id, stage }: { id: string; stage: DocumentStage | null }) =>
+      updateDocument(id, { stage }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
+    },
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: (doc: Document) => {
+      const docWithStage = doc as Document & { stage?: DocumentStage | null };
+      return createDocument({
+        title: `${doc.title || 'Untitled'} (copy)`,
+        content: doc.content || '',
+        teamId: teamId!,
+        path: doc.path || '/',
+        stage: docWithStage.stage ?? null,
+      });
+    },
+    onSuccess: (newDoc) => {
+      queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
+      navigate(`/documents/${newDoc.id}`);
+    },
+  });
+
   const toggleFolder = useCallback((path: string) => {
     setExpandedFolders((prev) => {
       const next = new Set(prev);
@@ -704,10 +712,6 @@ export function FileTree() {
 
   const handleFolderNameCancel = () => {
     setCreatingFolderAt(null);
-  };
-
-  const handleContextMenu = (e: React.MouseEvent, items: ContextMenuState['items']) => {
-    setContextMenu({ x: e.clientX, y: e.clientY, items });
   };
 
   const handleDocRenameSubmit = (docId: string, newTitle: string) => {
@@ -783,6 +787,144 @@ export function FileTree() {
     }
   };
 
+  // ── Menu item builders ────────────────────────────────
+
+  function buildFolderMenuItems(
+    path: string,
+    isFolder: boolean,
+  ): ContextMenuItem[] {
+    const stageItems: ContextMenuItem[] = STAGES.map((stage) => {
+      const stageTemplates = templatesByStage[stage.id] ?? [];
+      const submenu: (ContextMenuLeafItem | ContextMenuSeparator)[] = [
+        ...stageTemplates.map(
+          (template): ContextMenuLeafItem => ({
+            label: template.name,
+            action: () => {
+              if (!teamId) return;
+              createMutation.mutate({
+                title: template.name,
+                content: template.content,
+                teamId,
+                path,
+                stage: stage.id,
+                templateId: template.id,
+              });
+            },
+          }),
+        ),
+        ...(stageTemplates.length > 0
+          ? ([{ type: 'separator' }] as ContextMenuSeparator[])
+          : []),
+        {
+          label: `Blank ${stage.label} doc`,
+          action: () => {
+            if (!teamId) return;
+            createMutation.mutate({
+              title: `Untitled ${stage.label}`,
+              content: '',
+              teamId,
+              path,
+              stage: stage.id,
+            });
+          },
+        },
+      ];
+
+      return {
+        label: `${stage.label} — ${stage.subtitle}`,
+        dotColorClass: stage.dotColor,
+        submenu,
+      };
+    });
+
+    const items: ContextMenuItem[] = [
+      {
+        label: 'New blank document',
+        action: () => handleCreateDoc(path),
+      },
+      {
+        label: 'New subfolder',
+        action: () => handleCreateFolder(path),
+      },
+      { type: 'separator' },
+      ...stageItems,
+      { type: 'separator' },
+      {
+        label: 'Browse all templates…',
+        action: () => setShowTemplatePicker(true),
+      },
+    ];
+
+    if (isFolder) {
+      items.push(
+        { type: 'separator' },
+        { label: 'Rename folder', action: () => setRenamingFolderPath(path) },
+        { label: 'Delete folder', danger: true, action: () => handleDeleteFolder(path) },
+      );
+    }
+
+    return items;
+  }
+
+  function buildDocMenuItems(doc: Document): ContextMenuItem[] {
+    const docStage =
+      (doc as Document & { stage?: DocumentStage | null }).stage ?? null;
+
+    const setStageSubmenu: (ContextMenuLeafItem | ContextMenuSeparator)[] = [
+      ...STAGES.map(
+        (stage): ContextMenuLeafItem => ({
+          label: stage.label,
+          dotColorClass: stage.dotColor,
+          checked: docStage === stage.id,
+          action: () => {
+            updateStageMutation.mutate({ id: doc.id, stage: stage.id });
+          },
+        }),
+      ),
+      { type: 'separator' },
+      {
+        label: 'Remove stage',
+        checked: docStage === null,
+        action: () => {
+          updateStageMutation.mutate({ id: doc.id, stage: null });
+        },
+      },
+    ];
+
+    return [
+      { label: 'Rename', action: () => setRenamingDocId(doc.id) },
+      {
+        label: 'Duplicate',
+        action: () => {
+          if (!teamId) return;
+          duplicateMutation.mutate(doc);
+        },
+      },
+      { type: 'separator' },
+      {
+        label: 'Set stage',
+        submenu: setStageSubmenu,
+      },
+      { type: 'separator' },
+      { label: 'Delete', danger: true, action: () => softDeleteMutation.mutate(doc.id) },
+    ];
+  }
+
+  const handleContextMenu = (
+    e: React.MouseEvent,
+    targetPath: string,
+    targetType: 'folder' | 'doc' | 'root',
+    doc?: Document,
+  ) => {
+    let items: ContextMenuItem[];
+    if (targetType === 'doc' && doc) {
+      items = buildDocMenuItems(doc);
+    } else {
+      items = buildFolderMenuItems(targetPath, targetType === 'folder');
+    }
+    setContextMenu({ x: e.clientX, y: e.clientY, items });
+  };
+
   // Apply client-side stage filter
   const filteredDocs = (documents ?? []).filter((doc) => {
     if (stageFilter === 'all') return true;
@@ -854,7 +996,16 @@ export function FileTree() {
       </div>
 
       {/* Tree */}
-      <div className="flex-1 overflow-y-auto px-1 pb-4">
+      <div
+        className="flex-1 overflow-y-auto px-1 pb-4"
+        onContextMenu={(e) => {
+          // Only trigger on the root scroll area itself, not on child elements
+          if (e.target === e.currentTarget) {
+            e.preventDefault();
+            handleContextMenu(e, '/', 'root');
+          }
+        }}
+      >
         {isLoading && (
           <p className="px-4 py-3 text-xs text-slate-400">Loading...</p>
         )}
