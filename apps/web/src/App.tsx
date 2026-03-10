@@ -3,6 +3,7 @@ import { Layout } from './components/Layout';
 import { AuthGuard } from './components/AuthGuard';
 import { Dashboard } from './pages/Dashboard';
 import { DocumentEditor } from './pages/DocumentEditor';
+import { JSXPreviewPage } from './pages/JSXPreviewPage';
 import { Settings } from './pages/Settings';
 import { Landing } from './pages/Landing';
 import { Board } from './pages/Board';
@@ -34,6 +35,7 @@ export function App() {
             <Route path="/" element={<LandingOrDashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/documents/:id" element={<DocumentEditor />} />
+            <Route path="/documents/:id/preview" element={<JSXPreviewPage />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/board" element={<Board />} />
           </Route>
