@@ -3,6 +3,7 @@ import { analyzeSpecQuality } from '../lib/api';
 
 interface AIQualityPanelProps {
   content: string;
+  stage?: string | null;
 }
 
 function ScoreBadge({ score }: { score: number }) {
@@ -17,26 +18,28 @@ function ScoreBadge({ score }: { score: number }) {
   );
 }
 
-export function AIQualityPanel({ content }: AIQualityPanelProps) {
+export function AIQualityPanel({ content, stage }: AIQualityPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ score: number; suggestions: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastContentRef = useRef('');
+  const lastStageRef = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     if (!content || content.length < 20) return;
-    if (content === lastContentRef.current) return;
+    if (content === lastContentRef.current && stage === lastStageRef.current) return;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = setTimeout(async () => {
       lastContentRef.current = content;
+      lastStageRef.current = stage;
       setLoading(true);
       setError(null);
       try {
-        const data = await analyzeSpecQuality(content);
+        const data = await analyzeSpecQuality(content, stage);
         setResult(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Analysis failed');
@@ -48,7 +51,11 @@ export function AIQualityPanel({ content }: AIQualityPanelProps) {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [content]);
+  }, [content, stage]);
+
+  const stageLabel = stage
+    ? stage.charAt(0).toUpperCase() + stage.slice(1)
+    : null;
 
   return (
     <div className="border-t border-slate-200 bg-white">
@@ -58,7 +65,9 @@ export function AIQualityPanel({ content }: AIQualityPanelProps) {
         className="flex w-full items-center justify-between px-4 py-2 text-left"
       >
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-900">AI Quality</span>
+          <span className="text-xs font-semibold text-slate-900">
+            AI Quality{stageLabel ? ` (${stageLabel})` : ''}
+          </span>
           {result && !loading && <ScoreBadge score={result.score} />}
           {loading && (
             <span className="text-xs text-slate-400">Analyzing...</span>

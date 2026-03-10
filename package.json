@@ -10,15 +10,17 @@
     "db:generate": "pnpm --filter api db:generate",
     "db:migrate": "pnpm --filter api db:migrate",
     "db:seed": "pnpm --filter api db:seed",
-    "db:studio": "pnpm --filter api db:studio"
+    "db:studio": "pnpm --filter api db:studio",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "turbo": "^2",
-    "typescript": "^5.7",
-    "prettier": "^3",
-    "eslint": "^9",
+    "@playwright/test": "^1.58.2",
+    "@typescript-eslint/eslint-plugin": "^8",
     "@typescript-eslint/parser": "^8",
-    "@typescript-eslint/eslint-plugin": "^8"
+    "eslint": "^9",
+    "prettier": "^3",
+    "turbo": "^2",
+    "typescript": "^5.7"
   },
   "packageManager": "pnpm@9.15.4"
 }

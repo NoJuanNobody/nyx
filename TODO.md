@@ -76,18 +76,23 @@ Everything currently mocked, hardcoded, returning placeholder data, or not yet b
 | 41 | **Health check is static** — returns `{ status: 'ok' }` with no DB connectivity or service health probes | `apps/api/src/routes/health.ts` | TODO |
 | 42 | **No notifications system** — no email notifications for drift detected, tickets created, change proposals, or team activity; no in-app notification center | Not started | TODO |
 | 43 | **No real-time collaboration** — no WebSocket or CRDT-based sync; document editing is single-user only, no presence indicators or live cursors | Not started | TODO |
+| 48 | **Custom templates & custom stages** — teams can create their own document templates (assigned to any stage) and define custom lifecycle stages beyond the default five; Settings UI for CRUD, reordering, and disabling system stages | `docs/features/custom-templates-and-stages.md` | TODO |
+| 49 | **AI Advisor panel** — replace AIQualityPanel with a full-width bottom rail that unifies all proactive AI notifications (quality scores, pre-fill offers, drift alerts, stage nudges, missing sections, spec conflicts); supports CTA buttons, text replies, and inline selection; collapsible to a thin status bar when idle | `docs/features/ai-advisor-panel.md` | TODO |
+| 45 | **AI UI mockup generation** — generate UI mockups from spec descriptions via AI (Claude API → HTML/CSS → Puppeteer screenshot or image generation API), auto-attach to GitHub Issues / Jira tickets / Confluence pages | `apps/api/src/services/mockup.service.ts`, `apps/api/src/routes/mockups.ts` | TODO |
+| 46 | **AI JSX preview generation (artifacts-style)** — generate self-contained React components from spec descriptions via AI (Claude API → JSX → Babel standalone → sandboxed iframe), viewable in-browser for UI mockups, reports, dashboards; iterative refinement via chat | `apps/api/src/services/ai.service.ts`, `apps/api/src/routes/ai.ts`, `apps/web/src/components/JSXPreviewPanel.tsx` | TODO |
+| 47 | **Unified AI panel** — merge AIChatPanel (simple edits) and AgentPanel (agentic workflows + tool use) into a single "AI" drawer tab with workflow selector, SSE streaming, inline tool call display, and proposed-edit diff review; dual backend (fast `/ai/edit-document` for simple edits, `/agent` SSE for workflows) | `apps/web/src/components/AIChatPanel.tsx`, `apps/web/src/components/AgentPanel.tsx`, `apps/web/src/components/DocDrawer.tsx` | TODO |
 
 ---
 
 ## Progress Summary
 
-**39 of 44 items completed**, 1 partially done, 4 remaining.
+**39 of 47 items completed**, 1 partially done, 7 remaining.
 
 ### Remaining work:
 - **P0:** All complete!
 - **P1:** All complete!
 - **P2:** All complete!
 - **P3 (MVP):** #32 (agent integrations — partial), #35 (document lifecycle stages), #38 (lifecycle explorer view), #40 (Jira/Confluence OAuth simulated)
-- **P4 (Post-MVP):** #33 (Confluence), #34 (BYOK), #36 (AI Agent Map), #41 (static health check), #42 (no notifications system), #43 (no real-time collaboration)
+- **P4 (Post-MVP):** #33 (Confluence), #34 (BYOK), #36 (AI Agent Map), #41 (static health check), #42 (no notifications system), #43 (no real-time collaboration), #45 (AI UI mockup generation), #46 (AI JSX preview generation), #47 (unified AI panel), #48 (custom templates & custom stages), #49 (AI Advisor panel)
 
-All P0–P2 features are done. P3 has 4 remaining items: product lifecycle model (#35, #38), agent integrations (#32 — partial), and simulated Jira/Confluence OAuth (#40). P4 deferred items: Confluence (#33), BYOK (#34), AI Agent Map (#36), static health check (#41), notifications (#42), and real-time collaboration (#43).
+All P0–P2 features are done. P3 has 4 remaining items: product lifecycle model (#35, #38), agent integrations (#32 — partial), and simulated Jira/Confluence OAuth (#40). P4 deferred items: Confluence (#33), BYOK (#34), AI Agent Map (#36), static health check (#41), notifications (#42), real-time collaboration (#43), AI UI mockup generation (#45), AI JSX preview generation (#46), and unified AI panel (#47).

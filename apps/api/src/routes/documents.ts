@@ -1,16 +1,20 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { documents } from '../db/schema.js';
+import { documents, documentTemplates } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
 import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
 
 export const documentRoutes: FastifyPluginAsync = async (app) => {
-  // GET /api/documents?teamId=X — list documents for a team
+  // GET /api/documents?teamId=X&stage=Y — list documents for a team
   // viewers+ can list
   app.get('/', { preHandler: [requireRole({ minimumRole: 'viewer', source: 'request' })] }, async (request) => {
-    const { teamId, includeArchived } = request.query as { teamId?: string; includeArchived?: string };
+    const { teamId, includeArchived, stage } = request.query as {
+      teamId?: string;
+      includeArchived?: string;
+      stage?: string;
+    };
 
     if (!teamId) {
       return { error: 'teamId query parameter is required' };
@@ -21,9 +25,19 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       .from(documents)
       .where(eq(documents.teamId, teamId));
 
+    let filtered = rows;
+
     // Filter out archived documents by default
-    if (includeArchived === 'true') return rows;
-    return rows.filter((doc) => doc.status !== 'archived');
+    if (includeArchived !== 'true') {
+      filtered = filtered.filter((doc) => doc.status !== 'archived');
+    }
+
+    // Filter by stage if provided
+    if (stage) {
+      filtered = filtered.filter((doc) => doc.stage === stage);
+    }
+
+    return filtered;
   });
 
   // GET /api/documents/:id — get a single document
@@ -47,20 +61,41 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/documents — create a document
   // editors+ can create
   app.post('/', { preHandler: [requireRole({ minimumRole: 'editor', source: 'request' })] }, async (request, reply) => {
-    const { title, content, teamId, path } = request.body as {
+    const { title, content, teamId, path, stage, templateId } = request.body as {
       title: string;
       content?: string;
       teamId: string;
       path?: string;
+      stage?: 'conception' | 'definition' | 'architecture' | 'implementation' | 'execution' | null;
+      templateId?: string;
     };
     const userId = request.user.id;
+
+    let docTitle = title;
+    let docContent = content ?? '';
+    let docStage = stage ?? null;
+
+    // If templateId is provided, use template's content/title as defaults
+    if (templateId) {
+      const [template] = await db
+        .select()
+        .from(documentTemplates)
+        .where(eq(documentTemplates.id, templateId));
+
+      if (template) {
+        if (!content) docContent = template.content;
+        if (title === 'Untitled Document') docTitle = template.name;
+        if (!stage) docStage = template.stage;
+      }
+    }
 
     const [doc] = await db
       .insert(documents)
       .values({
-        title,
-        content: content ?? '',
+        title: docTitle,
+        content: docContent,
         path: path ?? '/',
+        stage: docStage,
         teamId,
         createdById: userId,
       })
@@ -79,6 +114,7 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       content?: string;
       path?: string;
       status?: 'draft' | 'published' | 'archived';
+      stage?: 'conception' | 'definition' | 'architecture' | 'implementation' | 'execution' | null;
     };
 
     const updates: Partial<typeof documents.$inferInsert> = {
@@ -88,6 +124,7 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
     if (body.content !== undefined) updates.content = body.content;
     if (body.path !== undefined) updates.path = body.path;
     if (body.status !== undefined) updates.status = body.status;
+    if (body.stage !== undefined) updates.stage = body.stage;
 
     const [doc] = await db
       .update(documents)

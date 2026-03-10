@@ -3,12 +3,18 @@ import { z } from 'zod';
 export const DocumentStatus = z.enum(['draft', 'published', 'archived']);
 export type DocumentStatus = z.infer<typeof DocumentStatus>;
 
+export const DocumentStage = z.enum([
+  'conception', 'definition', 'architecture', 'implementation', 'execution',
+]);
+export type DocumentStage = z.infer<typeof DocumentStage>;
+
 export const DocumentSchema = z.object({
   id: z.string().uuid(),
   title: z.string(),
   content: z.string(),
   path: z.string(),
   status: DocumentStatus,
+  stage: DocumentStage.nullable().optional(),
   teamId: z.string().uuid(),
   createdById: z.string().uuid(),
   createdAt: z.string().datetime(),
@@ -43,3 +49,15 @@ export const DocumentBranchSchema = z.object({
 });
 
 export type DocumentBranch = z.infer<typeof DocumentBranchSchema>;
+
+export const DocumentTemplateSchema = z.object({
+  id: z.string().uuid(),
+  stage: DocumentStage,
+  name: z.string(),
+  description: z.string(),
+  content: z.string(),
+  sortOrder: z.number().int(),
+  createdAt: z.string().datetime(),
+});
+
+export type DocumentTemplate = z.infer<typeof DocumentTemplateSchema>;

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { generateDocument, editDocumentAI } from '../lib/api';
+import { STAGE_SUGGESTIONS, type DocumentStage } from '../lib/stages';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -13,6 +14,7 @@ interface AIChatPanelProps {
   isNewDocument: boolean;
   onGenerate: (result: { title: string; content: string }) => void;
   isReviewMode: boolean;
+  stage?: string | null;
 }
 
 export function AIChatPanel({
@@ -21,6 +23,7 @@ export function AIChatPanel({
   isNewDocument,
   onGenerate,
   isReviewMode,
+  stage,
 }: AIChatPanelProps) {
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -123,11 +126,13 @@ export function AIChatPanel({
                     'Create a project architecture doc',
                     'Draft an onboarding guide for new developers',
                   ]
-                : [
-                    'Add a section about error handling',
-                    'Rewrite the intro to be more concise',
-                    'Add code examples for each endpoint',
-                  ]
+                : stage && STAGE_SUGGESTIONS[stage as DocumentStage]
+                  ? STAGE_SUGGESTIONS[stage as DocumentStage]
+                  : [
+                      'Add a section about error handling',
+                      'Rewrite the intro to be more concise',
+                      'Add code examples for each endpoint',
+                    ]
               ).map((suggestion) => (
                 <button
                   key={suggestion}

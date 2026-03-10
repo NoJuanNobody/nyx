@@ -15,6 +15,7 @@ interface AIChatProps {
   isNewDocument: boolean;
   onGenerate: (result: { title: string; content: string }) => void;
   isReviewMode: boolean;
+  stage?: string | null;
 }
 
 interface DocDrawerProps {
@@ -144,6 +145,7 @@ export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVe
                 isNewDocument={aiChat.isNewDocument}
                 onGenerate={aiChat.onGenerate}
                 isReviewMode={aiChat.isReviewMode}
+                stage={aiChat.stage}
               />
             )}
             {activePanel === 'agent' && <AgentPanel documentId={documentId} teamId={teamId} />}

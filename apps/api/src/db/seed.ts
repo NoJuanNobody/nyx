@@ -1,12 +1,14 @@
 import 'dotenv/config';
 import { eq, and } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
 import { db } from './index.js';
-import { users, teams, teamMembers } from './schema.js';
+import {
+  users, teams, teamMembers, teamInvitations,
+  documents, documentVersions, integrations, tickets,
+  auditTrail, timelineEvents, apiKeys,
+} from './schema.js';
 
 // ── Development-only guard ────────────────────────────────────────
-// This seed file creates fake users and teams with hardcoded UUIDs.
-// It must NEVER run in production.
-
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 if (NODE_ENV === 'production') {
@@ -17,61 +19,404 @@ if (NODE_ENV === 'production') {
   process.exit(1);
 }
 
-// ── Dev-only mock data ────────────────────────────────────────────
-// These IDs are intentionally hardcoded zeroed UUIDs so they are
-// easily recognisable as development fixtures.
+// ── Hardcoded IDs for deterministic, idempotent seeding ───────────
+// All IDs use a recognizable pattern: 00000000-0000-0000-0000-00000000XXXX
 
-const MOCK_USER_ID = '00000000-0000-0000-0000-000000000000';
-const DEFAULT_TEAM_ID = '00000000-0000-0000-0000-000000000001';
+const ID = {
+  // Users
+  DEV_USER:     '00000000-0000-0000-0000-000000000000',
+  ALICE:        '00000000-0000-0000-0000-000000000010',
+  BOB:          '00000000-0000-0000-0000-000000000011',
+
+  // Teams
+  DEFAULT_TEAM: '00000000-0000-0000-0000-000000000001',
+  SECOND_TEAM:  '00000000-0000-0000-0000-000000000002',
+
+  // Documents
+  DOC_API_SPEC:     '00000000-0000-0000-0000-000000000100',
+  DOC_ARCHITECTURE: '00000000-0000-0000-0000-000000000101',
+  DOC_DEPRECATED:   '00000000-0000-0000-0000-000000000102',
+  DOC_QUICKSTART:   '00000000-0000-0000-0000-000000000103',
+  DOC_SECOND_TEAM:  '00000000-0000-0000-0000-000000000104',
+
+  // Document Versions
+  VER_API_V1: '00000000-0000-0000-0000-000000000200',
+  VER_API_V2: '00000000-0000-0000-0000-000000000201',
+  VER_ARCH_V1: '00000000-0000-0000-0000-000000000202',
+
+  // Integrations
+  INT_GITHUB: '00000000-0000-0000-0000-000000000300',
+  INT_JIRA:   '00000000-0000-0000-0000-000000000301',
+
+  // Tickets
+  TKT_GH_OPEN:    '00000000-0000-0000-0000-000000000400',
+  TKT_GH_CLOSED:  '00000000-0000-0000-0000-000000000401',
+  TKT_JIRA_OPEN:  '00000000-0000-0000-0000-000000000402',
+  TKT_JIRA_INPROG: '00000000-0000-0000-0000-000000000403',
+
+  // Audit Trail
+  AUDIT_DOC_EDIT:      '00000000-0000-0000-0000-000000000500',
+  AUDIT_TICKET_CREATE: '00000000-0000-0000-0000-000000000501',
+  AUDIT_DOC_EDIT_2:    '00000000-0000-0000-0000-000000000502',
+
+  // Timeline Events
+  TL_DOC_UPDATED:    '00000000-0000-0000-0000-000000000600',
+  TL_VERSION_CREATED: '00000000-0000-0000-0000-000000000601',
+
+  // Invitation
+  INVITATION_PENDING: '00000000-0000-0000-0000-000000000700',
+
+  // API Key
+  API_KEY_CICD: '00000000-0000-0000-0000-000000000800',
+} as const;
+
+// ── Rich markdown content for documents ───────────────────────────
+
+const API_SPEC_CONTENT = `# API Specification
+
+## Authentication
+
+All API endpoints require authentication via Bearer token (JWT or API key).
+
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /api/documents | List all documents |
+| POST | /api/documents | Create a document |
+| GET | /api/documents/:id | Get document by ID |
+| PUT | /api/documents/:id | Update document |
+| DELETE | /api/documents/:id | Archive document |
+
+### Request Headers
+
+\`\`\`
+Authorization: Bearer <token>
+Content-Type: application/json
+\`\`\`
+
+## Rate Limiting
+
+API requests are rate-limited to **100 requests per minute** per API key.
+
+### Error Responses
+
+\`\`\`json
+{
+  "error": "Rate limit exceeded",
+  "retryAfter": 60
+}
+\`\`\`
+`;
+
+const API_SPEC_V1_CONTENT = `# API Specification
+
+## Authentication
+
+All API endpoints require authentication via Bearer token.
+
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /api/documents | List all documents |
+| POST | /api/documents | Create a document |
+`;
+
+const ARCHITECTURE_CONTENT = `# Architecture Overview
+
+## System Design
+
+SyncDocs uses a monorepo architecture with three main packages:
+
+- **apps/api** — Fastify backend with PostgreSQL
+- **apps/web** — React frontend with Vite
+- **packages/shared** — Shared types and utilities
+
+## Data Flow
+
+1. User edits a document in the web editor
+2. Changes are saved to PostgreSQL via the API
+3. AI analyzes spec quality on save
+4. GitHub webhooks detect code changes
+5. Drift detection compares spec vs code
+
+## Deployment
+
+- Frontend: Vercel
+- Backend: Railway
+- Database: Neon PostgreSQL
+`;
+
+// ── Helper: idempotent team member insert ─────────────────────────
+
+async function ensureMember(teamId: string, userId: string, role: 'owner' | 'admin' | 'developer' | 'editor' | 'viewer') {
+  const existing = await db
+    .select({ id: teamMembers.id })
+    .from(teamMembers)
+    .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    await db.insert(teamMembers).values({ teamId, userId, role });
+  }
+}
+
+// ── Main seed function ────────────────────────────────────────────
 
 async function seed() {
   console.log(`\n[seed] Running DEVELOPMENT seed data (NODE_ENV=${NODE_ENV})...`);
   console.log('[seed] WARNING: This data is for local development only.\n');
 
-  // Upsert mock user (idempotent — unique constraint on email)
-  await db
-    .insert(users)
-    .values({
-      id: MOCK_USER_ID,
-      email: 'dev@syncdocs.io',
-      name: 'Dev User',
-    })
-    .onConflictDoNothing();
+  // ── Users (3) ──────────────────────────────────────────
+  await db.insert(users).values([
+    { id: ID.DEV_USER, email: 'dev@syncdocs.io', name: 'Dev User' },
+    { id: ID.ALICE, email: 'alice@syncdocs.io', name: 'Alice Admin' },
+    { id: ID.BOB, email: 'bob@syncdocs.io', name: 'Bob Viewer' },
+  ]).onConflictDoNothing();
+  console.log('[seed] Users: dev, alice, bob');
 
-  console.log('[seed] Upserted mock user: dev@syncdocs.io');
+  // ── Teams (2) ──────────────────────────────────────────
+  await db.insert(teams).values([
+    { id: ID.DEFAULT_TEAM, name: 'Default Team', slug: 'default' },
+    { id: ID.SECOND_TEAM, name: 'Second Team', slug: 'second-team' },
+  ]).onConflictDoNothing();
+  console.log('[seed] Teams: default, second-team');
 
-  // Upsert default team (idempotent — unique constraint on slug)
-  await db
-    .insert(teams)
-    .values({
-      id: DEFAULT_TEAM_ID,
-      name: 'Default Team',
-      slug: 'default',
-    })
-    .onConflictDoNothing();
+  // ── Team Members (4) ──────────────────────────────────
+  await ensureMember(ID.DEFAULT_TEAM, ID.DEV_USER, 'owner');
+  await ensureMember(ID.DEFAULT_TEAM, ID.ALICE, 'admin');
+  await ensureMember(ID.DEFAULT_TEAM, ID.BOB, 'viewer');
+  await ensureMember(ID.SECOND_TEAM, ID.DEV_USER, 'owner');
+  console.log('[seed] Team members: 4 memberships');
 
-  console.log('[seed] Upserted default team: default');
+  // ── Documents (5) ─────────────────────────────────────
+  await db.insert(documents).values([
+    {
+      id: ID.DOC_API_SPEC,
+      title: 'API Specification',
+      content: API_SPEC_CONTENT,
+      path: '/api',
+      status: 'draft',
+      teamId: ID.DEFAULT_TEAM,
+      createdById: ID.DEV_USER,
+    },
+    {
+      id: ID.DOC_ARCHITECTURE,
+      title: 'Architecture Overview',
+      content: ARCHITECTURE_CONTENT,
+      path: '/',
+      status: 'published',
+      teamId: ID.DEFAULT_TEAM,
+      createdById: ID.DEV_USER,
+    },
+    {
+      id: ID.DOC_DEPRECATED,
+      title: 'Deprecated Guide',
+      content: '# Deprecated Guide\n\nThis document is no longer maintained.',
+      path: '/api',
+      status: 'archived',
+      teamId: ID.DEFAULT_TEAM,
+      createdById: ID.DEV_USER,
+    },
+    {
+      id: ID.DOC_QUICKSTART,
+      title: 'Quick Start',
+      content: '# Quick Start\n\nGet up and running with SyncDocs in 5 minutes.',
+      path: '/',
+      status: 'draft',
+      teamId: ID.DEFAULT_TEAM,
+      createdById: ID.DEV_USER,
+    },
+    {
+      id: ID.DOC_SECOND_TEAM,
+      title: 'Second Team Doc',
+      content: '# Second Team\n\nDocumentation for the second team.',
+      path: '/',
+      status: 'draft',
+      teamId: ID.SECOND_TEAM,
+      createdById: ID.DEV_USER,
+    },
+  ]).onConflictDoNothing();
+  console.log('[seed] Documents: 5');
 
-  // Add mock user to default team as owner (idempotent — check before insert
-  // because team_members has no unique constraint on (team_id, user_id))
-  const existingMembership = await db
-    .select({ id: teamMembers.id })
-    .from(teamMembers)
-    .where(and(eq(teamMembers.teamId, DEFAULT_TEAM_ID), eq(teamMembers.userId, MOCK_USER_ID)))
-    .limit(1);
+  // ── Document Versions (3) ─────────────────────────────
+  await db.insert(documentVersions).values([
+    {
+      id: ID.VER_API_V1,
+      documentId: ID.DOC_API_SPEC,
+      version: 1,
+      content: API_SPEC_V1_CONTENT,
+      message: 'Initial draft',
+      createdById: ID.DEV_USER,
+    },
+    {
+      id: ID.VER_API_V2,
+      documentId: ID.DOC_API_SPEC,
+      version: 2,
+      content: API_SPEC_CONTENT,
+      message: 'Added endpoints',
+      createdById: ID.DEV_USER,
+    },
+    {
+      id: ID.VER_ARCH_V1,
+      documentId: ID.DOC_ARCHITECTURE,
+      version: 1,
+      content: ARCHITECTURE_CONTENT,
+      message: 'First draft',
+      createdById: ID.DEV_USER,
+    },
+  ]).onConflictDoNothing();
+  console.log('[seed] Document versions: 3');
 
-  if (existingMembership.length === 0) {
-    await db.insert(teamMembers).values({
-      teamId: DEFAULT_TEAM_ID,
-      userId: MOCK_USER_ID,
-      role: 'owner',
-    });
-    console.log('[seed] Added mock user to default team as owner');
-  } else {
-    console.log('[seed] Mock user already a member of default team — skipped');
-  }
+  // ── Integrations (2) ──────────────────────────────────
+  await db.insert(integrations).values([
+    {
+      id: ID.INT_GITHUB,
+      teamId: ID.DEFAULT_TEAM,
+      type: 'github',
+      config: {
+        accessToken: 'ghp_test_token_for_e2e_seeding',
+        selectedRepos: [{ owner: 'syncdocs', name: 'app', fullName: 'syncdocs/app' }],
+        webhookSecret: 'wh-secret-123',
+      },
+    },
+    {
+      id: ID.INT_JIRA,
+      teamId: ID.DEFAULT_TEAM,
+      type: 'jira',
+      config: {
+        baseUrl: 'https://syncdocs.atlassian.net',
+        email: 'admin@syncdocs.io',
+        apiToken: 'jira-token-for-e2e',
+        projectKey: 'SD',
+      },
+    },
+  ]).onConflictDoNothing();
+  console.log('[seed] Integrations: github, jira');
 
-  console.log('\n[seed] Development seed complete.\n');
+  // ── Tickets (4) ───────────────────────────────────────
+  await db.insert(tickets).values([
+    {
+      id: ID.TKT_GH_OPEN,
+      documentId: ID.DOC_API_SPEC,
+      provider: 'github',
+      externalId: '101',
+      externalUrl: 'https://github.com/syncdocs/app/issues/101',
+      title: 'Implement auth endpoints',
+      status: 'open',
+      createdById: ID.DEV_USER,
+    },
+    {
+      id: ID.TKT_GH_CLOSED,
+      documentId: ID.DOC_API_SPEC,
+      provider: 'github',
+      externalId: '102',
+      externalUrl: 'https://github.com/syncdocs/app/issues/102',
+      title: 'Fix rate limiting',
+      status: 'closed',
+      createdById: ID.DEV_USER,
+    },
+    {
+      id: ID.TKT_JIRA_OPEN,
+      documentId: ID.DOC_ARCHITECTURE,
+      provider: 'jira',
+      externalId: 'SD-1',
+      externalUrl: 'https://syncdocs.atlassian.net/browse/SD-1',
+      title: 'Review architecture',
+      status: 'open',
+      createdById: ID.DEV_USER,
+    },
+    {
+      id: ID.TKT_JIRA_INPROG,
+      documentId: ID.DOC_ARCHITECTURE,
+      provider: 'jira',
+      externalId: 'SD-2',
+      externalUrl: 'https://syncdocs.atlassian.net/browse/SD-2',
+      title: 'Update deployment docs',
+      status: 'in_progress',
+      createdById: ID.DEV_USER,
+    },
+  ]).onConflictDoNothing();
+  console.log('[seed] Tickets: 4');
+
+  // ── Audit Trail (3) — with parent chaining ────────────
+  await db.insert(auditTrail).values([
+    {
+      id: ID.AUDIT_DOC_EDIT,
+      teamId: ID.DEFAULT_TEAM,
+      eventType: 'doc_edit',
+      actorId: ID.DEV_USER,
+      documentId: ID.DOC_API_SPEC,
+      metadata: { fields: ['content'] },
+    },
+    {
+      id: ID.AUDIT_TICKET_CREATE,
+      teamId: ID.DEFAULT_TEAM,
+      eventType: 'ticket_created',
+      actorId: ID.DEV_USER,
+      documentId: ID.DOC_API_SPEC,
+      ticketId: ID.TKT_GH_OPEN,
+      metadata: { provider: 'github', title: 'Implement auth endpoints' },
+    },
+    {
+      id: ID.AUDIT_DOC_EDIT_2,
+      teamId: ID.DEFAULT_TEAM,
+      eventType: 'doc_edit',
+      actorId: ID.DEV_USER,
+      documentId: ID.DOC_API_SPEC,
+      parentEventId: ID.AUDIT_TICKET_CREATE,
+      metadata: { fields: ['title'] },
+    },
+  ]).onConflictDoNothing();
+  console.log('[seed] Audit trail events: 3');
+
+  // ── Timeline Events (2) ───────────────────────────────
+  await db.insert(timelineEvents).values([
+    {
+      id: ID.TL_DOC_UPDATED,
+      documentId: ID.DOC_API_SPEC,
+      type: 'document_updated',
+      payload: { fields: ['content'] },
+      actorId: ID.DEV_USER,
+    },
+    {
+      id: ID.TL_VERSION_CREATED,
+      documentId: ID.DOC_API_SPEC,
+      type: 'version_created',
+      payload: { version: 1, message: 'Initial draft' },
+      actorId: ID.DEV_USER,
+    },
+  ]).onConflictDoNothing();
+  console.log('[seed] Timeline events: 2');
+
+  // ── Team Invitation (1) ───────────────────────────────
+  await db.insert(teamInvitations).values({
+    id: ID.INVITATION_PENDING,
+    teamId: ID.DEFAULT_TEAM,
+    email: 'pending@syncdocs.io',
+    role: 'developer',
+    invitedById: ID.DEV_USER,
+    status: 'pending',
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+  }).onConflictDoNothing();
+  console.log('[seed] Invitations: 1 pending');
+
+  // ── API Key (1) ───────────────────────────────────────
+  const keyHash = createHash('sha256').update('sd_test_cicd_key_12345').digest('hex');
+  await db.insert(apiKeys).values({
+    id: ID.API_KEY_CICD,
+    teamId: ID.DEFAULT_TEAM,
+    userId: ID.DEV_USER,
+    name: 'CI/CD Key',
+    keyHash,
+    keyPrefix: 'sd_test_cicd',
+    scopes: ['read', 'write'],
+    revoked: false,
+  }).onConflictDoNothing();
+  console.log('[seed] API keys: 1');
+
+  console.log('\n[seed] Development seed complete. ~25 rows seeded.\n');
   process.exit(0);
 }
 

@@ -2,16 +2,16 @@ import type { FastifyPluginAsync } from 'fastify';
 import { aiService } from '../services/ai.service.js';
 
 export const aiRoutes: FastifyPluginAsync = async (app) => {
-  // POST /api/ai/analyze — analyze spec quality
+  // POST /api/ai/analyze — analyze spec quality (stage-aware)
   app.post('/analyze', async (request, reply) => {
-    const { content } = request.body as { content: string };
+    const { content, stage } = request.body as { content: string; stage?: string };
 
     if (!content) {
       reply.code(400);
       return { error: 'content is required' };
     }
 
-    const result = await aiService.analyzeSpecQuality(content);
+    const result = await aiService.analyzeSpecQuality(content, stage);
     return result;
   });
 
@@ -74,6 +74,23 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const result = await aiService.generateTicketFromDiff(diff, context);
+    return result;
+  });
+
+  // POST /api/ai/seed-next-stage — generate content for the next lifecycle stage
+  app.post('/seed-next-stage', async (request, reply) => {
+    const { content, fromStage, toStage } = request.body as {
+      content: string;
+      fromStage: string;
+      toStage: string;
+    };
+
+    if (!content || !fromStage || !toStage) {
+      reply.code(400);
+      return { error: 'content, fromStage, and toStage are required' };
+    }
+
+    const result = await aiService.seedNextStage(content, fromStage, toStage);
     return result;
   });
 };

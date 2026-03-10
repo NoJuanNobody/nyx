@@ -22,6 +22,7 @@ import { agentRoutes } from './routes/agent.js';
 import { apiKeyRoutes } from './routes/api-keys.js';
 import { userRoutes } from './routes/users.js';
 import { waitlistRoutes } from './routes/waitlist.js';
+import { templateRoutes } from './routes/templates.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -55,6 +56,7 @@ export function buildApp() {
   app.register(apiKeyRoutes, { prefix: '/api/api-keys' });
   app.register(userRoutes, { prefix: '/api/users' });
   app.register(waitlistRoutes, { prefix: '/api/waitlist' });
+  app.register(templateRoutes, { prefix: '/api/templates' });
 
   return app;
 }

@@ -1,3 +1,5 @@
+import { resolveToken } from './api';
+
 export type AgentEventType = 'status' | 'tool_call' | 'tool_result' | 'text' | 'done';
 
 export interface AgentStreamEvent {
@@ -28,9 +30,13 @@ export function startAgentStream(options: AgentStreamOptions): { abort: () => vo
 
   (async () => {
     try {
+      const token = await resolveToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch('/api/agent', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           prompt: options.prompt,
           workflowId: options.workflowId,

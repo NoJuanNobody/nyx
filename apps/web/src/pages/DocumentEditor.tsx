@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Document, DocumentVersion } from '@syncdocs/shared';
 
-import { fetchDocument, updateDocument, createVersion } from '../lib/api';
+import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage } from '../lib/api';
+import { STAGE_MAP, STAGES, STAGE_ORDER, getNextStage, type DocumentStage } from '../lib/stages';
 
 import { Modal } from '../components/Modal';
 import { AIEditReview } from '../components/AIEditReview';
@@ -11,11 +12,13 @@ import { MarkdownPreview } from '../components/MarkdownPreview';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { DocDrawer, DocDrawerToggle, type DrawerPanel } from '../components/DocDrawer';
 import { MarkdownToolbar } from '../components/MarkdownToolbar';
+import { AIQualityPanel } from '../components/AIQualityPanel';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
 
 export function DocumentEditor() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [title, setTitle] = useState('');
@@ -25,6 +28,8 @@ export function DocumentEditor() {
   const [versionMessage, setVersionMessage] = useState('');
   const [aiProposedContent, setAiProposedContent] = useState<string | null>(null);
   const [editorLayout, setEditorLayout] = useState<'split' | 'editor' | 'preview'>('split');
+  const [showStageGuide, setShowStageGuide] = useState(true);
+  const [seeding, setSeeding] = useState(false);
   const [splitPercent, setSplitPercent] = useState(50);
   const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
   const [viewingVersion, setViewingVersion] = useState<DocumentVersion | null>(null);
@@ -121,6 +126,36 @@ export function DocumentEditor() {
     scheduleSave({ title: result.title, content: result.content });
   };
 
+  const docStage = (doc as Document & { stage?: DocumentStage | null })?.stage ?? null;
+
+  const handleStageChange = (newStage: DocumentStage | null) => {
+    saveMutation.mutate({ stage: newStage } as Parameters<typeof saveMutation.mutate>[0]);
+  };
+
+  const handleSeedNextStage = async () => {
+    if (!docStage || !doc) return;
+    const next = getNextStage(docStage);
+    if (!next) return;
+
+    setSeeding(true);
+    try {
+      const result = await seedNextStage(content, docStage, next);
+      const seededContent = `<!-- Seeded from: ${doc.id} -->\n\n${result.content}`;
+      const newDoc = await createDocument({
+        title: result.title,
+        content: seededContent,
+        teamId: doc.teamId,
+        stage: next,
+      });
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      navigate(`/documents/${newDoc.id}`);
+    } catch (err) {
+      console.error('Seeding failed:', err);
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   const handleDrawerToggle = useCallback((panel: DrawerPanel) => {
     setDrawerPanel((prev) => (prev === panel ? null : panel));
   }, []);
@@ -193,7 +228,43 @@ export function DocumentEditor() {
             placeholder="Document title"
           />
 
+          {/* Stage selector */}
+          <div className="relative">
+            <select
+              value={docStage ?? ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                handleStageChange(val ? (val as DocumentStage) : null);
+              }}
+              className={`rounded-md border px-2 py-1.5 text-xs font-medium outline-none transition-colors ${
+                docStage && STAGE_MAP[docStage]
+                  ? `${STAGE_MAP[docStage].color} ${STAGE_MAP[docStage].textColor} ${STAGE_MAP[docStage].borderColor}`
+                  : 'border-slate-200 bg-white text-slate-500'
+              }`}
+            >
+              <option value="">No stage</option>
+              {STAGES.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.abbreviation} {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <span className={`text-xs font-medium ${saveColor}`}>{saveLabel}</span>
+
+          {/* Seed next stage button */}
+          {docStage && docStage !== 'execution' && (
+            <button
+              type="button"
+              onClick={handleSeedNextStage}
+              disabled={seeding}
+              title={`Seed ${getNextStage(docStage) ? STAGE_MAP[getNextStage(docStage)!].label : 'next'} stage`}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+            >
+              {seeding ? 'Seeding...' : `Seed ${getNextStage(docStage) ? STAGE_MAP[getNextStage(docStage)!].label : 'Next'}`}
+            </button>
+          )}
 
           <button
             type="button"
@@ -207,6 +278,28 @@ export function DocumentEditor() {
           <div className="h-5 w-px bg-slate-200" />
           <DocDrawerToggle activePanel={drawerPanel} onToggle={handleDrawerToggle} />
         </div>
+
+        {/* Stage guide banner */}
+        {docStage && STAGE_MAP[docStage] && showStageGuide && (
+          <div className={`mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 ${STAGE_MAP[docStage].color} ${STAGE_MAP[docStage].borderColor}`}>
+            <span className={`h-2 w-2 rounded-full ${STAGE_MAP[docStage].dotColor}`} />
+            <span className={`text-xs font-medium ${STAGE_MAP[docStage].textColor}`}>
+              {STAGE_MAP[docStage].label}
+            </span>
+            <span className="text-xs text-slate-500">
+              {STAGE_MAP[docStage].who} &middot; {STAGE_MAP[docStage].description}
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowStageGuide(false)}
+              className="ml-auto rounded p-0.5 text-slate-400 hover:text-slate-600"
+            >
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Editor + Preview + Drawer */}
         <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -379,10 +472,14 @@ export function DocumentEditor() {
                 isNewDocument: !content.trim(),
                 onGenerate: handleAIGenerate,
                 isReviewMode: aiProposedContent !== null,
+                stage: docStage,
               }}
             />
           )}
         </div>
+
+        {/* AI Quality Analysis */}
+        <AIQualityPanel content={content} stage={docStage} />
       </div>
 
       {/* Save Version modal */}

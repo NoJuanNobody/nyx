@@ -1,19 +1,34 @@
-import type { Document, DocumentVersion } from '@syncdocs/shared';
+import type { Document, DocumentVersion, DocumentTemplate } from '@syncdocs/shared';
+import type { DocumentStage } from './stages';
 
 const BASE = '/api';
 
 // ── Auth Token ──────────────────────────────────────────────────────
+// Store either a static token or a getter function (for Clerk's getToken())
 let authToken: string | null = null;
-export function setAuthToken(token: string | null) { authToken = token; }
+let authTokenGetter: (() => Promise<string | null>) | null = null;
+
+export function setAuthToken(token: string | null) { authToken = token; authTokenGetter = null; }
+export function setAuthTokenGetter(getter: () => Promise<string | null>) { authTokenGetter = getter; }
 export function getAuthToken() { return authToken; }
+
+export async function resolveToken(): Promise<string | null> {
+  if (authTokenGetter) {
+    const token = await authTokenGetter();
+    authToken = token; // cache latest for getAuthToken() callers
+    return token;
+  }
+  return authToken;
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {};
   if (options?.body) {
     headers['Content-Type'] = 'application/json';
   }
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
+  const token = await resolveToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   const res = await fetch(`${BASE}${path}`, {
@@ -50,7 +65,11 @@ export function fetchDocument(id: string): Promise<Document> {
 }
 
 export function createDocument(
-  data: Pick<Document, 'title' | 'content' | 'teamId'> & { path?: string },
+  data: Pick<Document, 'title' | 'content' | 'teamId'> & {
+    path?: string;
+    stage?: DocumentStage | null;
+    templateId?: string;
+  },
 ): Promise<Document> {
   return request<Document>('/documents', {
     method: 'POST',
@@ -60,7 +79,9 @@ export function createDocument(
 
 export function updateDocument(
   id: string,
-  data: Partial<Pick<Document, 'title' | 'content' | 'status' | 'path'>>,
+  data: Partial<Pick<Document, 'title' | 'content' | 'status' | 'path'>> & {
+    stage?: DocumentStage | null;
+  },
 ): Promise<Document> {
   return request<Document>(`/documents/${id}`, {
     method: 'PUT',
@@ -69,11 +90,7 @@ export function updateDocument(
 }
 
 export async function deleteDocument(id: string): Promise<void> {
-  const res = await fetch(`${BASE}/documents/${id}`, { method: 'DELETE' });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`API ${res.status}: ${body || res.statusText}`);
-  }
+  await request<void>(`/documents/${id}`, { method: 'DELETE' });
 }
 
 // ── Teams ───────────────────────────────────────────────────────────
@@ -147,12 +164,37 @@ export function fetchTimeline(documentId: string): Promise<{ documentId: string;
 
 // ── AI ─────────────────────────────────────────────────────────────
 
+// ── Templates ──────────────────────────────────────────────────────
+
+export function fetchTemplates(stage?: DocumentStage): Promise<DocumentTemplate[]> {
+  const params = stage ? `?stage=${encodeURIComponent(stage)}` : '';
+  return request<DocumentTemplate[]>(`/templates${params}`);
+}
+
+export function fetchTemplate(id: string): Promise<DocumentTemplate> {
+  return request<DocumentTemplate>(`/templates/${id}`);
+}
+
+// ── AI ─────────────────────────────────────────────────────────────
+
 export function analyzeSpecQuality(
   content: string,
+  stage?: string | null,
 ): Promise<{ score: number; suggestions: string[] }> {
   return request<{ score: number; suggestions: string[] }>('/ai/analyze', {
     method: 'POST',
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({ content, stage }),
+  });
+}
+
+export function seedNextStage(
+  content: string,
+  fromStage: string,
+  toStage: string,
+): Promise<{ title: string; content: string }> {
+  return request<{ title: string; content: string }>('/ai/seed-next-stage', {
+    method: 'POST',
+    body: JSON.stringify({ content, fromStage, toStage }),
   });
 }
 

@@ -11,6 +11,8 @@ import {
   restoreDocument,
   fetchTeams,
 } from '../lib/api';
+import { STAGE_MAP, type DocumentStage } from '../lib/stages';
+import { TemplatePicker } from './TemplatePicker';
 
 // ── Folder persistence (localStorage) ─────────────────
 
@@ -486,6 +488,13 @@ function DocItem({
         ) : (
           <span className="flex-1 truncate text-xs">{doc.title || 'Untitled'}</span>
         )}
+        {(doc as Document & { stage?: DocumentStage | null }).stage && STAGE_MAP[(doc as Document & { stage: DocumentStage }).stage] && (
+          <span
+            className={`flex-shrink-0 rounded px-1 py-0.5 text-[9px] font-bold leading-none ${STAGE_MAP[(doc as Document & { stage: DocumentStage }).stage].color} ${STAGE_MAP[(doc as Document & { stage: DocumentStage }).stage].textColor}`}
+          >
+            {STAGE_MAP[(doc as Document & { stage: DocumentStage }).stage].abbreviation}
+          </span>
+        )}
         <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${statusDot[doc.status] ?? 'bg-slate-300'}`} />
       </NavLink>
 
@@ -579,6 +588,8 @@ export function FileTree() {
   const [renamingDocId, setRenamingDocId] = useState<string | null>(null);
   const [renamingFolderPath, setRenamingFolderPath] = useState<string | null>(null);
   const [showTrash, setShowTrash] = useState(false);
+  const [stageFilter, setStageFilter] = useState<string>('all');
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   const { data: teams } = useQuery({
     queryKey: ['teams'],
@@ -600,7 +611,7 @@ export function FileTree() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: { title: string; content: string; teamId: string; path: string }) =>
+    mutationFn: (data: { title: string; content: string; teamId: string; path: string; stage?: DocumentStage | null; templateId?: string }) =>
       createDocument(data),
     onSuccess: (doc) => {
       queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
@@ -745,7 +756,14 @@ export function FileTree() {
     }
   };
 
-  const tree = buildTree(documents ?? [], folders);
+  // Apply client-side stage filter
+  const filteredDocs = (documents ?? []).filter((doc) => {
+    if (stageFilter === 'all') return true;
+    if (stageFilter === 'none') return !(doc as Document & { stage?: string | null }).stage;
+    return (doc as Document & { stage?: string | null }).stage === stageFilter;
+  });
+
+  const tree = buildTree(filteredDocs, folders);
 
   const rootDocs = tree.filter((n): n is DocNode => n.type === 'doc');
   const rootFolders = tree.filter((n): n is FolderNode => n.type === 'folder');
@@ -758,6 +776,16 @@ export function FileTree() {
           Explorer
         </span>
         <div className="flex items-center gap-1">
+          <button
+            type="button"
+            title="New from template"
+            onClick={() => setShowTemplatePicker(true)}
+            className="rounded p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776" />
+            </svg>
+          </button>
           <button
             type="button"
             title="New document"
@@ -779,6 +807,23 @@ export function FileTree() {
             </svg>
           </button>
         </div>
+      </div>
+
+      {/* Stage filter */}
+      <div className="px-4 pb-2">
+        <select
+          value={stageFilter}
+          onChange={(e) => setStageFilter(e.target.value)}
+          className="w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-600 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100"
+        >
+          <option value="all">All stages</option>
+          <option value="conception">Conception</option>
+          <option value="definition">Definition</option>
+          <option value="architecture">Architecture</option>
+          <option value="implementation">Implementation</option>
+          <option value="execution">Execution</option>
+          <option value="none">No stage</option>
+        </select>
       </div>
 
       {/* Tree */}
@@ -900,6 +945,17 @@ export function FileTree() {
       {/* Context menu */}
       {contextMenu && (
         <ContextMenu menu={contextMenu} onClose={() => setContextMenu(null)} />
+      )}
+
+      {/* Template picker modal */}
+      {showTemplatePicker && teamId && (
+        <TemplatePicker
+          onClose={() => setShowTemplatePicker(false)}
+          onCreate={(data) => {
+            createMutation.mutate({ ...data, teamId, path: '/' });
+            setShowTemplatePicker(false);
+          }}
+        />
       )}
     </div>
   );

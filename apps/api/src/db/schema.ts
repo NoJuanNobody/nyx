@@ -12,6 +12,9 @@ export const auditEventTypeEnum = pgEnum('audit_event_type', [
   'agent_workflow',
 ]);
 export const agentSessionStatusEnum = pgEnum('agent_session_status', ['running', 'completed', 'failed', 'cancelled']);
+export const documentStageEnum = pgEnum('document_stage', [
+  'conception', 'definition', 'architecture', 'implementation', 'execution',
+]);
 
 // ── Users ──────────────────────────────────────────────
 
@@ -88,8 +91,19 @@ export const documents = pgTable('documents', {
   createdById: uuid('created_by_id')
     .notNull()
     .references(() => users.id),
+  stage: documentStageEnum('stage'),  // nullable — existing docs unaffected
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const documentTemplates = pgTable('document_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  stage: documentStageEnum('stage').notNull(),
+  name: text('name').notNull(),
+  description: text('description').notNull(),
+  content: text('content').notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const documentVersions = pgTable('document_versions', {

@@ -14,17 +14,48 @@ function requireClient(): Anthropic {
   return client;
 }
 
+// Stage-aware quality criteria
+const STAGE_QUALITY_PROMPTS: Record<string, string> = {
+  conception:
+    'Focus on: clarity of problem definition, evidence of market validation, target user identification, uniqueness of proposed approach, and completeness of problem framing.',
+  definition:
+    'Focus on: completeness of requirements, unambiguous language, user story coverage with acceptance criteria, measurable success metrics, and clearly bounded scope.',
+  architecture:
+    'Focus on: technical feasibility, traceability back to PRD requirements, scalability and security considerations, documented trade-offs, and dependency analysis.',
+  implementation:
+    'Focus on: AI-readiness (can an AI coding agent act on this spec?), testable acceptance criteria, edge case coverage, ticket granularity, and rollback planning.',
+  execution:
+    'Focus on: documentation freshness, drift coverage against current codebase, release completeness, accuracy of documented behavior, and changelog coverage.',
+};
+
+// Seeding prompts by transition
+const SEED_PROMPTS: Record<string, string> = {
+  'conception->definition':
+    'Based on this conception document (problem statement, vision, market analysis), generate a Product Requirements Document. Extract clear requirements, user stories with acceptance criteria, success metrics, and scope boundaries. Structure it as a proper PRD.',
+  'definition->architecture':
+    'Based on this product requirements document, design the system architecture. Include data model design, API contracts, component specifications, and key architectural decisions. Trace each architecture element back to a requirement.',
+  'architecture->implementation':
+    'Based on this architecture document, create an implementation specification. Include step-by-step coding plan, file-by-file changes, acceptance criteria, test plan, edge cases, and a ticket breakdown. Make it actionable for an AI coding agent.',
+  'implementation->execution':
+    'Based on this implementation specification, generate execution documentation. Include release notes template, deployment checklist, drift monitoring setup, and changelog entries. Focus on what was built and how to verify it.',
+};
+
 export const aiService = {
   async analyzeSpecQuality(
     content: string,
+    stage?: string | null,
   ): Promise<{ score: number; suggestions: string[] }> {
     const ai = requireClient();
+
+    const stageContext = stage && STAGE_QUALITY_PROMPTS[stage]
+      ? `\n\nThis is a "${stage}" stage document. ${STAGE_QUALITY_PROMPTS[stage]}`
+      : '';
 
     const response = await ai.messages.create({
       model: MODEL,
       max_tokens: 1024,
       system:
-        'You are a technical specification quality analyzer. Given a spec document, rate its quality from 1 to 10 and provide actionable improvement suggestions. Respond ONLY with valid JSON in this exact format: {"score": <number>, "suggestions": ["suggestion1", "suggestion2", ...]}',
+        `You are a technical specification quality analyzer. Given a spec document, rate its quality from 1 to 10 and provide actionable improvement suggestions. Respond ONLY with valid JSON in this exact format: {"score": <number>, "suggestions": ["suggestion1", "suggestion2", ...]}${stageContext}`,
       messages: [
         {
           role: 'user',
@@ -262,5 +293,45 @@ export const aiService = {
     const text =
       response.content[0].type === 'text' ? response.content[0].text : '';
     return text;
+  },
+
+  async seedNextStage(
+    content: string,
+    fromStage: string,
+    toStage: string,
+  ): Promise<{ title: string; content: string }> {
+    const ai = requireClient();
+
+    const transitionKey = `${fromStage}->${toStage}`;
+    const seedPrompt = SEED_PROMPTS[transitionKey] ||
+      `Based on this ${fromStage} document, generate appropriate content for a ${toStage} stage document.`;
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 4096,
+      system:
+        `You are a technical documentation expert helping teams progress through their product lifecycle. ${seedPrompt} Respond ONLY with valid JSON in this exact format: {"title": "<document title>", "content": "<full markdown content>"}`,
+      messages: [
+        {
+          role: 'user',
+          content: `Generate the next-stage document from this source:\n\n${content}`,
+        },
+      ],
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    text = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+
+    try {
+      const parsed = JSON.parse(text) as { title: string; content: string };
+      return {
+        title: parsed.title || 'Untitled Document',
+        content: parsed.content || text,
+      };
+    } catch {
+      return { title: 'Untitled Document', content: text };
+    }
   },
 };
