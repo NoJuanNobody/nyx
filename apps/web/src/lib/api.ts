@@ -218,6 +218,26 @@ export function editDocumentAI(
   });
 }
 
+export function generateJSXPreview(
+  prompt: string,
+  context?: string,
+): Promise<{ jsx: string }> {
+  return request<{ jsx: string }>('/ai/jsx-preview', {
+    method: 'POST',
+    body: JSON.stringify({ prompt, context }),
+  });
+}
+
+export function refineJSXPreview(
+  currentJSX: string,
+  prompt: string,
+): Promise<{ jsx: string }> {
+  return request<{ jsx: string }>('/ai/jsx-preview/refine', {
+    method: 'POST',
+    body: JSON.stringify({ currentJSX, prompt }),
+  });
+}
+
 // ── Agent ──────────────────────────────────────────────────────────
 
 export interface AgentWorkflow {

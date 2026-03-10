@@ -77,6 +77,32 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
     return result;
   });
 
+  // POST /api/ai/jsx-preview — generate a self-contained JSX component from a prompt
+  app.post('/jsx-preview', async (request, reply) => {
+    const { prompt, context } = request.body as { prompt: string; context?: string };
+
+    if (!prompt) {
+      reply.code(400);
+      return { error: 'prompt is required' };
+    }
+
+    const jsx = await aiService.generateJSXPreview(prompt, context);
+    return { jsx };
+  });
+
+  // POST /api/ai/jsx-preview/refine — refine an existing JSX component
+  app.post('/jsx-preview/refine', async (request, reply) => {
+    const { currentJSX, prompt } = request.body as { currentJSX: string; prompt: string };
+
+    if (!currentJSX || !prompt) {
+      reply.code(400);
+      return { error: 'currentJSX and prompt are required' };
+    }
+
+    const jsx = await aiService.refineJSXPreview(currentJSX, prompt);
+    return { jsx };
+  });
+
   // POST /api/ai/seed-next-stage — generate content for the next lifecycle stage
   app.post('/seed-next-stage', async (request, reply) => {
     const { content, fromStage, toStage } = request.body as {
