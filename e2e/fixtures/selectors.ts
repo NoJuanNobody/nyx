@@ -68,8 +68,7 @@ export const SEL = {
     timelineTab: 'button[title="Timeline"]',
     proposalsTab: 'button[title="Proposals"]',
     auditTab: 'button[title="Audit"]',
-    aiEditTab: 'button[title="AI Edit"]',
-    agentTab: 'button[title="Agent"]',
+    aiTab: 'button[title="AI"]',
   },
 
   // ── Settings ─────────────────────────────────────────

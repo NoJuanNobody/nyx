@@ -211,10 +211,12 @@ export function editDocumentAI(
   content: string,
   instruction: string,
   history?: Array<{ role: string; content: string }>,
+  signal?: AbortSignal,
 ): Promise<{ content: string }> {
   return request<{ content: string }>('/ai/edit-document', {
     method: 'POST',
     body: JSON.stringify({ content, instruction, history }),
+    signal,
   });
 }
 

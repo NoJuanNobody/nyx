@@ -10,12 +10,10 @@ test.describe('AI Chat Panel', () => {
     await page.goto(DOC_URL);
     await page.locator(SEL.editor.textarea).first().waitFor({ state: 'visible', timeout: 10_000 });
 
-    await page.locator(SEL.drawer.aiEditTab).click();
+    await page.locator(SEL.drawer.aiTab).click();
 
-    // Verify the AI Edit heading is present
-    await expect(
-      page.locator('text=/AI EDIT/i').first(),
-    ).toBeVisible({ timeout: 5_000 });
+    // Verify the drawer opened
+    await expect(page.locator(SEL.editor.drawerClose)).toBeVisible({ timeout: 5_000 });
 
     // The chat textarea should be visible inside the drawer
     // The AIChatPanel has a textarea with placeholder "Ask AI to edit..."
@@ -29,10 +27,8 @@ test.describe('AI Chat Panel', () => {
     await page.goto(DOC_URL);
     await page.locator(SEL.editor.textarea).first().waitFor({ state: 'visible', timeout: 10_000 });
 
-    await page.locator(SEL.drawer.aiEditTab).click();
-    await expect(
-      page.locator('text=/AI EDIT/i').first(),
-    ).toBeVisible({ timeout: 5_000 });
+    await page.locator(SEL.drawer.aiTab).click();
+    await expect(page.locator(SEL.editor.drawerClose)).toBeVisible({ timeout: 5_000 });
 
     // Type a message in the chat textarea
     const chatInput = page.locator('textarea[placeholder*="Ask AI"], textarea[placeholder*="Describe"]').first();
@@ -54,10 +50,8 @@ test.describe('AI Chat Panel', () => {
     await page.goto(DOC_URL);
     await page.locator(SEL.editor.textarea).first().waitFor({ state: 'visible', timeout: 10_000 });
 
-    await page.locator(SEL.drawer.aiEditTab).click();
-    await expect(
-      page.locator('text=/AI EDIT/i').first(),
-    ).toBeVisible({ timeout: 5_000 });
+    await page.locator(SEL.drawer.aiTab).click();
+    await expect(page.locator(SEL.editor.drawerClose)).toBeVisible({ timeout: 5_000 });
 
     // Suggestion chips are buttons like "Add a section about error handling", "Rewrite the intro"
     const chips = page.locator('button').filter({ hasText: /error handling|Rewrite|code examples/i });
@@ -78,10 +72,8 @@ test.describe('AI Chat Panel', () => {
     await page.goto(DOC_URL);
     await page.locator(SEL.editor.textarea).first().waitFor({ state: 'visible', timeout: 10_000 });
 
-    await page.locator(SEL.drawer.aiEditTab).click();
-    await expect(
-      page.locator('text=/AI EDIT/i').first(),
-    ).toBeVisible({ timeout: 5_000 });
+    await page.locator(SEL.drawer.aiTab).click();
+    await expect(page.locator(SEL.editor.drawerClose)).toBeVisible({ timeout: 5_000 });
 
     // Send a message first so there is history to clear
     const chatInput = page.locator('textarea[placeholder*="Ask AI"], textarea[placeholder*="Describe"]').first();
@@ -112,10 +104,8 @@ test.describe('AI Chat Panel', () => {
     await page.goto(DOC_URL);
     await page.locator(SEL.editor.textarea).first().waitFor({ state: 'visible', timeout: 10_000 });
 
-    await page.locator(SEL.drawer.aiEditTab).click();
-    await expect(
-      page.locator('text=/AI EDIT/i').first(),
-    ).toBeVisible({ timeout: 5_000 });
+    await page.locator(SEL.drawer.aiTab).click();
+    await expect(page.locator(SEL.editor.drawerClose)).toBeVisible({ timeout: 5_000 });
 
     // Press Escape to close the drawer
     await page.keyboard.press('Escape');

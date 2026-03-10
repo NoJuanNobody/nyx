@@ -9,13 +9,11 @@ test.describe('Agent Integration', () => {
     await page.goto(DOC_URL);
     await page.locator(SEL.editor.textarea).first().waitFor({ state: 'visible', timeout: 10_000 });
 
-    // Click the Agent drawer tab
-    await page.locator(SEL.drawer.agentTab).click();
+    // Click the AI drawer tab
+    await page.locator(SEL.drawer.aiTab).click();
 
-    // Verify the Agent panel heading appears
-    await expect(
-      page.locator('text=/AGENT/i').first(),
-    ).toBeVisible({ timeout: 5_000 });
+    // Verify the drawer opened
+    await expect(page.locator(SEL.editor.drawerClose)).toBeVisible({ timeout: 5_000 });
   });
 
   test('32.2 — workflow list loads in agent panel', async ({ authenticatedPage: page, mockAI }) => {
@@ -23,18 +21,16 @@ test.describe('Agent Integration', () => {
     await page.goto(DOC_URL);
     await page.locator(SEL.editor.textarea).first().waitFor({ state: 'visible', timeout: 10_000 });
 
-    // Open Agent drawer
-    await page.locator(SEL.drawer.agentTab).click();
+    // Open AI drawer
+    await page.locator(SEL.drawer.aiTab).click();
 
-    await expect(
-      page.locator('text=/AGENT/i').first(),
-    ).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator(SEL.editor.drawerClose)).toBeVisible({ timeout: 5_000 });
 
     // Verify workflow selector is shown — the mock returns "Sync Spec" and "Auto Review"
     // The AgentPanel has a <select> for workflow selection, plus there may be other selects on the page
     // (e.g., stage selector in the editor toolbar). Wait for the panel to render fully.
     // The workflow select is inside the drawer panel and contains "Custom prompt..." as the first option.
-    const workflowSelect = page.locator('select:has(option:text-is("Custom prompt..."))');
+    const workflowSelect = page.locator('select:has(option:text-is("Quick edit"))');
     await expect(workflowSelect).toBeVisible({ timeout: 5_000 });
     // Verify workflow options are populated
     await expect(workflowSelect.locator('option', { hasText: 'Sync Spec' })).toBeAttached({ timeout: 5_000 });

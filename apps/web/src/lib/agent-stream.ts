@@ -1,11 +1,13 @@
 import { resolveToken } from './api';
 
-export type AgentEventType = 'status' | 'tool_call' | 'tool_result' | 'text' | 'done';
+export type SessionStatus = 'idle' | 'running' | 'completed' | 'failed' | 'cancelled';
 
-export interface AgentStreamEvent {
-  type: AgentEventType;
-  [key: string]: unknown;
-}
+export type AgentStreamEvent =
+  | { type: 'status'; status: Exclude<SessionStatus, 'idle'> }
+  | { type: 'text'; text: string }
+  | { type: 'tool_call'; toolName: string; input: Record<string, unknown>; sequence: number }
+  | { type: 'tool_result'; sequence: number; output: unknown; durationMs: number; error?: string }
+  | { type: 'done'; tokenUsage: { inputTokens: number; outputTokens: number } };
 
 export interface AgentStreamOptions {
   teamId: string;
@@ -14,7 +16,7 @@ export interface AgentStreamOptions {
   documentId?: string;
   onEvent: (event: AgentStreamEvent) => void;
   onError: (error: Error) => void;
-  onComplete: () => void;
+  onComplete?: () => void;
 }
 
 /**
@@ -81,7 +83,7 @@ export function startAgentStream(options: AgentStreamOptions): { abort: () => vo
         }
       }
 
-      options.onComplete();
+      options.onComplete?.();
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
         options.onError(err instanceof Error ? err : new Error(String(err)));
