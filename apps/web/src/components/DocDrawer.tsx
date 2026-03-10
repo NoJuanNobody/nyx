@@ -4,11 +4,10 @@ import { VersionHistory } from './VersionHistory';
 import { Timeline } from './Timeline';
 import { ChangeProposals } from './ChangeProposals';
 import { AuditTrail } from './AuditTrail';
-import { AgentPanel } from './AgentPanel';
-import { AIChatPanel } from './AIChatPanel';
+import { UnifiedAIPanel } from './UnifiedAIPanel';
 import { JSXPreviewPanel } from './JSXPreviewPanel';
 
-export type DrawerPanel = 'history' | 'timeline' | 'proposals' | 'audit' | 'agent' | 'ai' | 'jsx-preview';
+export type DrawerPanel = 'history' | 'timeline' | 'proposals' | 'audit' | 'ai' | 'jsx-preview';
 
 interface AIChatProps {
   content: string;
@@ -70,19 +69,10 @@ const PANELS: { key: DrawerPanel; label: string; icon: JSX.Element }[] = [
   },
   {
     key: 'ai',
-    label: 'AI Edit',
+    label: 'AI',
     icon: (
       <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2Z" />
-      </svg>
-    ),
-  },
-  {
-    key: 'agent',
-    label: 'Agent',
-    icon: (
-      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
       </svg>
     ),
   },
@@ -150,16 +140,17 @@ export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVe
             {activePanel === 'proposals' && <ChangeProposals documentId={documentId} />}
             {activePanel === 'audit' && <AuditTrail documentId={documentId} />}
             {activePanel === 'ai' && aiChat && (
-              <AIChatPanel
+              <UnifiedAIPanel
                 content={aiChat.content}
                 onProposedEdit={aiChat.onProposedEdit}
                 isNewDocument={aiChat.isNewDocument}
                 onGenerate={aiChat.onGenerate}
                 isReviewMode={aiChat.isReviewMode}
                 stage={aiChat.stage}
+                documentId={documentId}
+                teamId={teamId}
               />
             )}
-            {activePanel === 'agent' && <AgentPanel documentId={documentId} teamId={teamId} />}
             {activePanel === 'jsx-preview' && <JSXPreviewPanel specContext={jsxPreviewContext} />}
           </div>
         </div>
