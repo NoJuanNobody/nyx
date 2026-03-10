@@ -106,6 +106,62 @@ These are complementary: #46 is for live exploration during spec writing, #45 is
 5. **No `postMessage` secrets** — parent ↔ iframe communication limited to error reporting and resize events
 6. **Generated code review** — optionally show the JSX code alongside the preview so users can inspect what was generated
 
+## Implementation
+
+### Backend
+
+- **`apps/api/src/services/ai.service.ts`** — `generateJSXPreview(prompt, context?)` and `refineJSXPreview(currentJSX, refinementPrompt)` methods added to `aiService`
+- **`apps/api/src/routes/ai.ts`** — `POST /api/ai/jsx-preview` and `POST /api/ai/jsx-preview/refine` routes
+
+### Frontend
+
+- **`apps/web/src/lib/api.ts`** — `generateJSXPreview()` and `refineJSXPreview()` client functions
+- **`apps/web/src/components/JSXPreviewRenderer.tsx`** — sandboxed iframe component; constructs HTML with CDN React/Tailwind/Babel, injects JSX via blob URL, listens for `postMessage` errors
+- **`apps/web/src/components/JSXPreviewPanel.tsx`** — Code/Preview/Split view modes, refinement chat, copy/download actions
+- **`apps/web/src/components/DocDrawer.tsx`** — "Preview" tab added alongside AI Edit, Agent, History, etc.
+
+## E2E Tests
+
+Test file: `tests/e2e/ai-jsx-previews.spec.ts` — **22 scenarios**
+
+### Preview generation (4 tests)
+1. Generate from typed prompt → Claude API call → JSX → iframe render
+2. Generate from selected spec text (context passed with prompt)
+3. iframe has `sandbox="allow-scripts"` attribute and no `allow-same-origin`; `src` uses `blob:` URL
+4. Fresh iframe per generation — each new generation mounts a new iframe (no state leakage)
+
+### View modes (4 tests)
+5. Code view: read-only JSX displayed with syntax-style formatting
+6. Preview view: only the sandboxed iframe is shown
+7. Split view: code panel and iframe rendered side by side
+8. Default view on first generation is Preview
+
+### Iterative refinement (3 tests)
+9. Refine via chat sends `POST /api/ai/jsx-preview/refine` with `currentJSX` + `prompt`
+10. Multiple refinement rounds: each round sends updated JSX from previous response
+11. Refinement preserves prior context — component structure not regressed
+
+### Copy & download (2 tests)
+12. Copy JSX to clipboard shows confirmation ("Copied!") toast
+13. Download triggers file download as `.jsx`
+
+### Error handling (3 tests)
+14. Invalid JSX transpilation error caught via `postMessage` from iframe; error shown in panel
+15. API 500 error displayed in panel's error banner
+16. Empty prompt: submit button disabled; no API call made
+
+### Security (3 tests)
+17. iframe cannot read `window.parent.localStorage`
+18. iframe cannot make credentialed fetch requests to the SyncDocs API (no `allow-same-origin`)
+19. Blob URL isolation: iframe `src` starts with `blob:` not a network URL
+
+### DocDrawer integration (2 tests)
+20. "Preview" tab visible in DocDrawer toggle alongside History, Timeline, AI Edit, Agent, etc.
+21. Switching away from Preview tab and back preserves generated JSX state
+
+### Performance (1 test)
+22. Preview renders (iframe `onload` fires) within 5 seconds of API response
+
 ## Open Questions
 
 - **Code editing** — should users be able to edit the generated JSX directly? If so, need a lightweight code editor (Monaco/CodeMirror) in the Code view tab.
