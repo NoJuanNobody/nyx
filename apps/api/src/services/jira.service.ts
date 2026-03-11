@@ -113,6 +113,38 @@ export const jiraService = {
     return data.issues;
   },
 
+  async attachFileToIssue(
+    baseUrl: string,
+    email: string,
+    apiToken: string,
+    issueKey: string,
+    fileBuffer: Buffer,
+    filename: string,
+  ): Promise<void> {
+    const boundary = '----SyncDocsFormBoundary' + Date.now();
+    const body = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`),
+      fileBuffer,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+
+    const auth = Buffer.from(`${email}:${apiToken}`).toString('base64');
+    const res = await fetch(`${baseUrl}/rest/api/3/issue/${issueKey}/attachments`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${auth}`,
+        'X-Atlassian-Token': 'no-check',
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+      },
+      body,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Jira API error ${res.status}: ${text}`);
+    }
+  },
+
   async getIssue(
     baseUrl: string,
     email: string,

@@ -37,6 +37,21 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       filtered = filtered.filter((doc) => doc.stage === stage);
     }
 
+    // Sort
+    const { sort, limit } = request.query as { sort?: string; limit?: string };
+    if (sort === 'name') {
+      filtered.sort((a, b) => (a.title ?? '').localeCompare(b.title ?? ''));
+    } else {
+      // Default: recent first
+      filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    }
+
+    // Limit
+    if (limit) {
+      const n = parseInt(limit, 10);
+      if (!isNaN(n) && n > 0) filtered = filtered.slice(0, n);
+    }
+
     return filtered;
   });
 

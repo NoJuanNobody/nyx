@@ -27,9 +27,26 @@ export const SEL = {
 
   // ── Dashboard ────────────────────────────────────────
   dashboard: {
-    title: 'h1:has-text("Documents")',
+    title: 'h1:has-text("Dashboard")',
     newDocButton: 'button:has-text("New Document")',
     docRow: 'a[href*="/documents/"]',
+    aiPrompt: {
+      textarea: 'main textarea[placeholder*="Ask AI"]',
+      generateButton: 'main button:has-text("Generate")',
+      chip: (text: string) => `main button:has-text("${text}")`,
+      result: 'main h3',
+      createDocButton: 'main button:has-text("Create doc from this")',
+      loading: 'main button:has-text("Generating")',
+    },
+    phases: {
+      card: (stage: string) => `main div:has(h3:has-text("${stage}"))`,
+      createButton: (stage: string) => `main div:has(h3:has-text("${stage}")) button:has-text("Create")`,
+    },
+    recentDocs: {
+      section: 'main h2:has-text("Recent Documents")',
+      viewAllLink: 'main a:has-text("View all")',
+      docItem: 'main ul a[href*="/documents/"]',
+    },
   },
 
   // ── Document Editor ──────────────────────────────────
