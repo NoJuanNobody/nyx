@@ -5,7 +5,9 @@
 
 ## Overview
 
-Generate UI mockups from spec descriptions via AI and auto-attach them to tickets (GitHub Issues, Jira, Confluence). This gives non-technical stakeholders a visual preview of proposed changes before development begins.
+Generate UI mockups from spec descriptions via AI and auto-attach them to tickets (GitHub Issues, Jira). This gives non-technical stakeholders a visual preview of proposed changes before development begins.
+
+> **Note:** Confluence attachment is out of scope for this feature. The Confluence integration (#33) is pull-only (importing docs from Confluence into SyncDocs) and does not support writing attachments back to Confluence pages. See [docs/features/confluence-integration.md](./confluence-integration.md) for details.
 
 ## Proposed Flow
 
@@ -17,7 +19,6 @@ Generate UI mockups from spec descriptions via AI and auto-attach them to ticket
 6. Screenshot is uploaded and attached to the relevant ticket:
    - GitHub Issues: uploaded via Issues API as an image attachment
    - Jira: attached via the Jira attachments REST API
-   - Confluence: embedded as an attachment on the linked page
 
 ## API Options
 
@@ -34,7 +35,6 @@ Generate UI mockups from spec descriptions via AI and auto-attach them to ticket
 
 - **GitHub Issues API:** Upload image via `POST /repos/{owner}/{repo}/issues/{number}/comments` with embedded markdown image
 - **Jira Attachments API:** `POST /rest/api/3/issue/{issueKey}/attachments` with multipart file upload
-- **Confluence Attachments API:** `POST /wiki/rest/api/content/{pageId}/child/attachment` with multipart file upload
 
 ## Required Services & Routes
 
@@ -94,9 +94,7 @@ Generate UI mockups from spec descriptions via AI and auto-attach them to ticket
 
 ### Attach to Confluence
 
-| # | Scenario | Steps | Expected |
-|---|----------|-------|----------|
-| 10 | Attach mockup to Confluence page | Generate mockup → click "Attach to ticket" → select a Confluence page | Image uploaded as attachment on Confluence page |
+> **Out of scope.** Confluence attachment is not part of this feature. The Confluence integration (#33) is pull-only and does not support writing back to Confluence. Mockup attachment to Confluence pages would be addressed as part of the Confluence integration if push support is added in a future iteration.
 
 ### API endpoints
 
