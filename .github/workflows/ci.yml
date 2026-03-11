@@ -124,8 +124,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
-      - name: Run database migrations
-        run: pnpm --filter api db:migrate
+      - name: Push database schema
+        run: pnpm --filter api drizzle-kit push --force
         env:
           DATABASE_URL: postgres://postgres:testpassword@localhost:5432/syncdocs_test
       - name: Run E2E tests
