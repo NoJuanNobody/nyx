@@ -3,7 +3,7 @@
  */
 import { randomUUID } from 'node:crypto';
 
-export function makeUser(overrides?: Partial<ReturnType<typeof makeUser>>) {
+export function makeUser(overrides?: Record<string, unknown>) {
   return {
     id: randomUUID(),
     clerkId: `clerk_${randomUUID().slice(0, 8)}`,
@@ -16,7 +16,7 @@ export function makeUser(overrides?: Partial<ReturnType<typeof makeUser>>) {
   };
 }
 
-export function makeTeam(overrides?: Partial<ReturnType<typeof makeTeam>>) {
+export function makeTeam(overrides?: Record<string, unknown>) {
   return {
     id: randomUUID(),
     name: 'Test Team',
@@ -27,7 +27,7 @@ export function makeTeam(overrides?: Partial<ReturnType<typeof makeTeam>>) {
   };
 }
 
-export function makeDocument(overrides?: Partial<ReturnType<typeof makeDocument>>) {
+export function makeDocument(overrides?: Record<string, unknown>) {
   return {
     id: randomUUID(),
     title: 'Test Document',
@@ -42,7 +42,7 @@ export function makeDocument(overrides?: Partial<ReturnType<typeof makeDocument>
   };
 }
 
-export function makeIntegration(overrides?: Partial<ReturnType<typeof makeIntegration>>) {
+export function makeIntegration(overrides?: Record<string, unknown>) {
   return {
     id: randomUUID(),
     teamId: randomUUID(),
@@ -56,7 +56,7 @@ export function makeIntegration(overrides?: Partial<ReturnType<typeof makeIntegr
   };
 }
 
-export function makeTicket(overrides?: Partial<ReturnType<typeof makeTicket>>) {
+export function makeTicket(overrides?: Record<string, unknown>) {
   return {
     id: randomUUID(),
     documentId: randomUUID(),
@@ -72,7 +72,7 @@ export function makeTicket(overrides?: Partial<ReturnType<typeof makeTicket>>) {
   };
 }
 
-export function makeTeamMember(overrides?: Partial<ReturnType<typeof makeTeamMember>>) {
+export function makeTeamMember(overrides?: Record<string, unknown>) {
   return {
     id: randomUUID(),
     teamId: randomUUID(),
@@ -83,7 +83,7 @@ export function makeTeamMember(overrides?: Partial<ReturnType<typeof makeTeamMem
   };
 }
 
-export function makeVersion(overrides?: Partial<ReturnType<typeof makeVersion>>) {
+export function makeVersion(overrides?: Record<string, unknown>) {
   return {
     id: randomUUID(),
     documentId: randomUUID(),
@@ -96,7 +96,7 @@ export function makeVersion(overrides?: Partial<ReturnType<typeof makeVersion>>)
   };
 }
 
-export function makeChangeProposal(overrides?: Partial<ReturnType<typeof makeChangeProposal>>) {
+export function makeChangeProposal(overrides?: Record<string, unknown>) {
   return {
     id: randomUUID(),
     documentId: randomUUID(),
@@ -115,7 +115,7 @@ export function makeChangeProposal(overrides?: Partial<ReturnType<typeof makeCha
   };
 }
 
-export function makeInvitation(overrides?: Partial<ReturnType<typeof makeInvitation>>) {
+export function makeInvitation(overrides?: Record<string, unknown>) {
   const future = new Date();
   future.setDate(future.getDate() + 7);
   return {
