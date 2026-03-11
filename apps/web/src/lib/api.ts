@@ -418,8 +418,8 @@ export function removeTeamMember(teamId: string, userId: string): Promise<void> 
   });
 }
 
-export function inviteTeamMember(teamId: string, email: string, role: string): Promise<{ id: string }> {
-  return request<{ id: string }>(`/teams/${teamId}/members`, {
+export function inviteTeamMember(teamId: string, email: string, role: string): Promise<{ id: string; type?: string }> {
+  return request<{ id: string; type?: string }>(`/teams/${teamId}/members`, {
     method: 'POST',
     body: JSON.stringify({ email, role }),
   });
