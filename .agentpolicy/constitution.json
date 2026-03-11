@@ -1,0 +1,85 @@
+{
+  "$schema": "https://schema.aegis.dev/constitution.v0.1.0.json",
+  "version": "0.1.0",
+  "project": {
+    "name": "SyncDocs",
+    "description": "Product versioning platform enabling teams to manage specs and context that any AI coding agent can consume. Turborepo monorepo with Fastify API, React web app, shared types/utilities package, and an agent-agnostic MCP server.",
+    "language": "TypeScript",
+    "framework": [
+      "React",
+      "Fastify",
+      "Drizzle ORM",
+      "Vite",
+      "Turborepo",
+      "Playwright"
+    ],
+    "repository": "monorepo",
+    "modules": [
+      {
+        "name": "apps/api",
+        "description": "Fastify backend API with Drizzle ORM on PostgreSQL, Clerk auth integration"
+      },
+      {
+        "name": "apps/web",
+        "description": "React + TypeScript frontend built with Vite, deployed on Vercel"
+      },
+      {
+        "name": "packages/shared",
+        "description": "Cross-app shared types, utilities, and constants consumed by both apps"
+      },
+      {
+        "name": "packages/mcp-server",
+        "description": "Standalone MCP server providing agent-agnostic interface for AI coding tools (Cursor, Claude Code, Gemini, etc.) to consume SyncDocs context. Web search tool (Brave/Tavily) planned."
+      }
+    ]
+  },
+  "principles": [
+    {
+      "id": "security-first",
+      "priority": 1,
+      "title": "Security First",
+      "description": "Never read, log, echo, or transmit real environment variables or secrets. Never introduce code patterns with known security vulnerabilities. Treat security as a non-negotiable constraint on every change.",
+      "enforceable": true
+    },
+    {
+      "id": "agent-agnostic-architecture",
+      "priority": 2,
+      "title": "Agent-Agnostic Architecture",
+      "description": "Design all AI-related features toward provider abstractions and interfaces, not hardcoded to any single AI provider. Support BYOK (Bring Your Own Key) for Anthropic, OpenAI, Gemini, and others. The MCP server is the universal interface for any coding agent.",
+      "enforceable": true
+    },
+    {
+      "id": "tests-mandatory",
+      "priority": 3,
+      "title": "Tests Are Mandatory and Thorough",
+      "description": "Every implementation must include unit tests for new services/components and E2E tests for user-facing behavior. Coverage must be thorough — specific assertions, edge cases, not just happy-path smoke tests. Match the thoroughness of the existing Playwright test plan.",
+      "enforceable": true
+    },
+    {
+      "id": "scope-discipline",
+      "priority": 4,
+      "title": "Stay Scoped and Respect Sequencing",
+      "description": "Agents must stay within the scope of their assigned issue. Do not pull future work forward or fix unrelated things. Respect the sprint plan sequencing — the order of work is intentional.",
+      "enforceable": true
+    },
+    {
+      "id": "comments-over-files",
+      "priority": 5,
+      "title": "Documentation Lives in Comments, Not Files",
+      "description": "Feature docs, implementation docs, analysis, and all documentation go into GitHub issue or PR comments. Never create .md files unless explicitly requested. The repo is for code, not prose.",
+      "enforceable": true
+    },
+    {
+      "id": "transparency",
+      "priority": 6,
+      "title": "Transparent About Done, Not Done, and Noticed",
+      "description": "Agents must document what was completed, what was skipped (and why) as PR comments, and note unrelated improvements as issue comments. Nothing falls through the cracks.",
+      "enforceable": true
+    }
+  ],
+  "owner": {
+    "name": "Alejandro",
+    "role": "PM / Product Owner",
+    "context": "Technical PM with engineering background who does not write code. Uses agents as the entire engineering team. Decision-maker and reviewer, not implementer."
+  }
+}
