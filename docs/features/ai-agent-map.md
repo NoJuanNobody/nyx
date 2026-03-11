@@ -263,13 +263,17 @@ The panel closes when the user clicks outside it or presses Escape.
 
 ---
 
-## Open Questions
+## Decisions
 
-- **Inferred intent quality** — how confident should Claude be before showing an inferred intent label? Should it show a confidence indicator, or only show the label when confidence is high?
-- **Cross-document traces** — if a ticket was created from one doc but the implementation is linked to a different doc, how does the trace handle that? Does it show a cross-document edge?
-- **External ticket systems** — for teams using Jira, ticket events may come from a webhook. Does the trace show Jira tickets inline, or link out to Jira and exclude them from the graph?
-- **Permissions** — can all roles see the full trace? Should commits or PR diffs be hidden from non-technical stakeholders?
-- **Real-time updates** — should the trace view update live as new events arrive, or require a manual refresh?
+- **Inferred intent quality** — Always show the inferred intent label with a **confidence score** on the edge. For MVP, display the score as a simple indicator alongside the label (e.g., "85% confidence"). Post-MVP opportunity: collect these confidence scores as labeled data (team confirms via Slack discussion or in-app thumbs-up/down) and use them as inputs to an unsupervised learning model to improve intent classification over time.
+
+- **Cross-document traces** — Cross-document links are treated as **implicit references**. To surface them, add a UI flow when creating a new stage document: a modal prompts the user to select what this document is related to. Ticket search can also surface implicit cross-document relationships. Implementation details TBD — ideas welcome.
+
+- **External ticket systems** — Show Jira tickets and GitHub Issues **inline** in the trace. They are typically created from proposal requests and are a first-class part of the change flow. Excluding them from the graph would break traceability for Jira-connected teams.
+
+- **Permissions** — The full trace is visible to **all roles**. Transparency is a cross-cutting concern of the product. Commits and PR diffs are not hidden from non-technical stakeholders.
+
+- **Real-time updates** — The trace view updates **in real time** as new events arrive. No manual refresh required.
 
 ---
 
