@@ -93,7 +93,6 @@ export function DocumentEditor() {
       }, 500);
     },
     // saveMutation is stable via useMutation; we only depend on id changing
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [id],
   );
 
