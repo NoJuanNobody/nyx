@@ -50,6 +50,12 @@ export function fetchDocuments(teamId: string): Promise<Document[]> {
   return request<Document[]>(`/documents?teamId=${encodeURIComponent(teamId)}`);
 }
 
+export function fetchRecentDocuments(teamId: string, limit = 5): Promise<Document[]> {
+  return request<Document[]>(
+    `/documents?teamId=${encodeURIComponent(teamId)}&sort=recent&limit=${limit}`,
+  );
+}
+
 export function fetchArchivedDocuments(teamId: string): Promise<Document[]> {
   return request<Document[]>(
     `/documents?teamId=${encodeURIComponent(teamId)}&includeArchived=true`,

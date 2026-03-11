@@ -1,4 +1,5 @@
 import { apiRequest } from './auth.js';
+import { performWebSearch } from './search/search.service.js';
 
 /**
  * MCP tool definitions and handlers.
@@ -113,6 +114,27 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       required: ['document_id'],
     },
   },
+  {
+    name: 'syncdocs_web_search',
+    description:
+      'Search the web for information relevant to documentation. Returns search results with titles, URLs, and snippets. Useful for finding API references, library documentation, changelogs, and technical articles.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The search query' },
+        search_type: {
+          type: 'string',
+          enum: ['general', 'api_reference', 'changelog', 'documentation'],
+          description: 'Type of search to optimize results (default: general)',
+        },
+        max_results: {
+          type: 'number',
+          description: 'Maximum number of results to return (1-10, default: 5)',
+        },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
 /**
@@ -176,6 +198,14 @@ export async function executeTool(
     }
     case 'syncdocs_get_timeline': {
       return apiRequest(`/api/documents/${args.document_id}/timeline`);
+    }
+    case 'syncdocs_web_search': {
+      const query = args.query as string;
+      const searchType = (args.search_type as string) ?? 'general';
+      const maxResults = Math.min(Math.max((args.max_results as number) ?? 5, 1), 10);
+
+      const results = await performWebSearch(query, searchType, maxResults);
+      return results;
     }
     default:
       throw new Error(`Unknown tool: ${name}`);

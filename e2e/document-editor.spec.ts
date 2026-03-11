@@ -290,8 +290,19 @@ test.describe('Document Editor', () => {
 
     // Select 'conception'
     await stageSelect.selectOption('conception');
-    // The stage guide banner should appear with the stage description text
-    await expect(page.locator('text=Capture the initial idea')).toBeVisible({ timeout: 5_000 });
+
+    // Stage guide now appears as a notification inside the AI Advisor panel
+    // Expand the panel to see the notification
+    await page.locator('[data-testid="ai-advisor-status-bar"]').click();
+    await expect(page.locator('[data-testid="ai-advisor-panel"]')).toBeVisible({ timeout: 3_000 });
+
+    // The stage guide notification should contain the stage description text
+    await expect(
+      page.locator('[data-testid="advisor-notification-stage_guide"]'),
+    ).toBeVisible({ timeout: 5_000 });
+    await expect(
+      page.locator('[data-testid="advisor-notification-stage_guide"]'),
+    ).toContainText('Capture the initial idea');
   });
 
   test('28.2 — dismiss stage guide banner', async ({ authenticatedPage: page }) => {
@@ -301,17 +312,18 @@ test.describe('Document Editor', () => {
 
     const stageSelect = page.locator('main select').first();
     await stageSelect.selectOption('conception');
-    
-    // Wait for banner to appear — use the unique description text
-    const banner = page.locator('text=Capture the initial idea');
-    await expect(banner).toBeVisible({ timeout: 5_000 });
 
-    // Click dismiss (X button inside the banner's parent div)
-    const bannerDiv = page.locator('.mb-2.flex.items-center').first();
-    const dismissBtn = bannerDiv.locator('button').first();
-    await dismissBtn.click();
+    // Expand the AI Advisor panel to see the stage guide notification
+    await page.locator('[data-testid="ai-advisor-status-bar"]').click();
+    await expect(page.locator('[data-testid="ai-advisor-panel"]')).toBeVisible({ timeout: 3_000 });
 
-    await expect(banner).toBeHidden({ timeout: 3_000 });
+    const stageGuide = page.locator('[data-testid="advisor-notification-stage_guide"]');
+    await expect(stageGuide).toBeVisible({ timeout: 5_000 });
+
+    // Click dismiss via the X button inside the notification card
+    await stageGuide.locator('[aria-label="Dismiss notification"]').click();
+
+    await expect(stageGuide).not.toBeVisible({ timeout: 3_000 });
   });
 
   test('28.3 — seed next stage button navigates to new document', async ({ authenticatedPage: page }) => {
