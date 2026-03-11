@@ -34,13 +34,13 @@ export const SEL = {
       textarea: 'main textarea[placeholder*="Ask AI"]',
       generateButton: 'main button:has-text("Generate")',
       chip: (text: string) => `main button:has-text("${text}")`,
-      result: 'main h3',
+      result: 'main .rounded-xl h3.mb-1',
       createDocButton: 'main button:has-text("Create doc from this")',
       loading: 'main button:has-text("Generating")',
     },
     phases: {
-      card: (stage: string) => `main div:has(h3:has-text("${stage}"))`,
-      createButton: (stage: string) => `main div:has(h3:has-text("${stage}")) button:has-text("Create")`,
+      card: (stage: string) => `main .grid > div:has(h3:has-text("${stage}"))`,
+      createButton: (stage: string) => `main .grid > div:has(h3:has-text("${stage}")) button:has-text("Create")`,
     },
     recentDocs: {
       section: 'main h2:has-text("Recent Documents")',
