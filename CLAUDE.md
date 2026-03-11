@@ -18,7 +18,7 @@ Pre-MVP / scaffolding phase. No code has been written yet. The next step is to s
 - **Backend:** Node.js + Express or Fastify, hosted on Railway or Render
 - **Database:** PostgreSQL (document storage, version history)
 - **AI:** Anthropic Claude API (spec quality analysis, drift detection, ticket generation)
-- **Auth:** Auth0 or Clerk
+- **Auth:** Clerk
 - **Integrations:** GitHub API + Webhooks, Jira REST API, Confluence REST API
 - **Agent Integrations:** Cursor extension, GitHub Copilot extension, Claude Code MCP/CLI
 
