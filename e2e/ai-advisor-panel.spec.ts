@@ -141,14 +141,10 @@ test.describe('AI Advisor Panel', () => {
     // Click "Fix these"
     await page.locator('[data-testid="advisor-notification-quality"] button:has-text("Fix these")').click();
 
-    // Card should show loading state
+    // The mock resolves instantly, so the loading→success transition is near-instant.
+    // Verify the AI edit was applied: the diff view should appear with "AI suggested changes".
     await expect(
-      page.locator('[data-testid="advisor-notification-quality"]').locator('text=Processing'),
-    ).toBeVisible({ timeout: 5_000 });
-
-    // After AI call resolves, show success message
-    await expect(
-      page.locator('[data-testid="advisor-notification-quality"]').locator('text=/Fixes applied|review/i'),
+      page.locator('text=AI suggested changes'),
     ).toBeVisible({ timeout: 10_000 });
   });
 

@@ -510,7 +510,23 @@ async function setupApiMocks(page: Page) {
       const docs = includeArchived === 'true'
         ? [...activeDocs, ...archivedDocs]
         : activeDocs;
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(docs) });
+
+      const sortParam = urlObj.searchParams.get('sort');
+      const limitParam = urlObj.searchParams.get('limit');
+
+      let result = [...docs];
+      if (sortParam === 'name') {
+        result.sort((a: any, b: any) => (a.title ?? '').localeCompare(b.title ?? ''));
+      } else {
+        result.sort((a: any, b: any) => new Date(b.updatedAt as string).getTime() - new Date(a.updatedAt as string).getTime());
+      }
+
+      if (limitParam) {
+        const n = parseInt(limitParam, 10);
+        if (!isNaN(n) && n > 0) result = result.slice(0, n);
+      }
+
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(result) });
     }
 
     // --- Create document: POST /api/documents ---

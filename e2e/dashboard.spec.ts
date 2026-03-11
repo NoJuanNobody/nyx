@@ -47,4 +47,61 @@ test.describe('Dashboard', () => {
     await page.waitForURL(/\/documents\//, { timeout: 10_000 });
     expect(page.url()).toContain('/documents/');
   });
+
+  test('D.5 — AI prompt textarea is visible and accepts text', async ({ authenticatedPage: page }) => {
+    await expect(page.locator(SEL.dashboard.aiPrompt.textarea)).toBeVisible({ timeout: 10_000 });
+    await page.locator(SEL.dashboard.aiPrompt.textarea).fill('Write a user guide');
+    await expect(page.locator(SEL.dashboard.aiPrompt.textarea)).toHaveValue('Write a user guide');
+  });
+
+  test('D.6 — Quick-action chip pre-fills the textarea', async ({ authenticatedPage: page }) => {
+    await expect(page.locator(SEL.dashboard.aiPrompt.textarea)).toBeVisible({ timeout: 10_000 });
+    await page.locator(SEL.dashboard.aiPrompt.chip('Write a spec for a new feature')).click();
+    await expect(page.locator(SEL.dashboard.aiPrompt.textarea)).toHaveValue('Write a spec for a new feature');
+  });
+
+  test('D.7 — Submitting AI prompt shows streaming response', async ({ authenticatedPage: page }) => {
+    await expect(page.locator(SEL.dashboard.aiPrompt.textarea)).toBeVisible({ timeout: 10_000 });
+    await page.locator(SEL.dashboard.aiPrompt.textarea).fill('Write a user guide');
+    await page.locator(SEL.dashboard.aiPrompt.generateButton).click();
+    // Wait for result to appear (mock returns immediately)
+    await expect(page.locator(SEL.dashboard.aiPrompt.result)).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('D.8 — "Create doc from this" navigates to document editor', async ({ authenticatedPage: page }) => {
+    await expect(page.locator(SEL.dashboard.aiPrompt.textarea)).toBeVisible({ timeout: 10_000 });
+    await page.locator(SEL.dashboard.aiPrompt.textarea).fill('Write a user guide');
+    await page.locator(SEL.dashboard.aiPrompt.generateButton).click();
+    await expect(page.locator(SEL.dashboard.aiPrompt.createDocButton)).toBeVisible({ timeout: 10_000 });
+    await page.locator(SEL.dashboard.aiPrompt.createDocButton).click();
+    await page.waitForURL(/\/documents\//, { timeout: 10_000 });
+    expect(page.url()).toContain('/documents/');
+  });
+
+  test('D.9 — All 5 phase cards are visible', async ({ authenticatedPage: page }) => {
+    const phases = ['Conception', 'Definition', 'Architecture', 'Implementation', 'Execution'];
+    for (const phase of phases) {
+      await expect(page.locator(SEL.dashboard.phases.card(phase))).toBeVisible({ timeout: 10_000 });
+    }
+  });
+
+  test('D.10 — Phase "Create" button navigates to new document', async ({ authenticatedPage: page }) => {
+    await expect(page.locator(SEL.dashboard.phases.createButton('Conception'))).toBeVisible({ timeout: 10_000 });
+    await page.locator(SEL.dashboard.phases.createButton('Conception')).click();
+    await page.waitForURL(/\/documents\//, { timeout: 10_000 });
+    expect(page.url()).toContain('/documents/');
+  });
+
+  test('D.11 — Recent documents section shows at most 5 documents', async ({ authenticatedPage: page }) => {
+    await expect(page.locator(SEL.dashboard.recentDocs.section)).toBeVisible({ timeout: 10_000 });
+    const items = page.locator(SEL.dashboard.recentDocs.docItem);
+    await expect(items.first()).toBeVisible({ timeout: 10_000 });
+    const count = await items.count();
+    expect(count).toBeLessThanOrEqual(5);
+    expect(count).toBeGreaterThan(0);
+  });
+
+  test('D.12 — "View all" link is visible in recent documents section', async ({ authenticatedPage: page }) => {
+    await expect(page.locator(SEL.dashboard.recentDocs.viewAllLink)).toBeVisible({ timeout: 10_000 });
+  });
 });
