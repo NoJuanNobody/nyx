@@ -157,9 +157,21 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       return { error: 'GitHub integration not found' };
     }
 
-    const cfg = integration.config as { accessToken: string };
-    const repos = await githubService.listRepos(cfg.accessToken);
-    return { repos };
+    const cfg = integration.config as { accessToken?: string };
+
+    if (!cfg.accessToken) {
+      reply.code(400);
+      return { error: 'GitHub access token is missing. Please reconnect the integration.' };
+    }
+
+    try {
+      const repos = await githubService.listRepos(cfg.accessToken);
+      return { repos };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(502);
+      return { error: message };
+    }
   });
 
   // PUT /api/integrations/:id/github/repos — save selected repos + auto-register webhooks
