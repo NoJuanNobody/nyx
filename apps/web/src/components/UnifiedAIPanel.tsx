@@ -15,11 +15,13 @@ interface ToolCallEntry {
   collapsed: boolean;
 }
 
-type UnifiedMessage =
-  | { id: number; kind: 'user'; content: string; timestamp: Date }
-  | { id: number; kind: 'assistant'; content: string; timestamp: Date }
-  | { id: number; kind: 'tool_call'; entry: ToolCallEntry }
-  | { id: number; kind: 'proposed_edit'; proposed: string; resolved: boolean; accepted?: boolean };
+type UnifiedMessageBase =
+  | { kind: 'user'; content: string; timestamp: Date }
+  | { kind: 'assistant'; content: string; timestamp: Date }
+  | { kind: 'tool_call'; entry: ToolCallEntry }
+  | { kind: 'proposed_edit'; proposed: string; resolved: boolean; accepted?: boolean };
+
+type UnifiedMessage = UnifiedMessageBase & { id: number };
 
 const statusColors: Record<SessionStatus, string> = {
   idle: 'bg-slate-100 text-slate-600',
@@ -90,7 +92,7 @@ export function UnifiedAIPanel({
     }
   }, [prompt]);
 
-  const appendMessage = useCallback((msg: Omit<UnifiedMessage, 'id'>) => {
+  const appendMessage = useCallback((msg: UnifiedMessageBase) => {
     const id = ++msgIdRef.current;
     setMessages((prev) => [...prev, { ...msg, id } as UnifiedMessage]);
   }, []);

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schema.aegis.dev/ledger.v0.1.0.json",
+  "version": "0.1.0",
+  "entries": [],
+  "write_protocol": {
+    "required_fields": [
+      "timestamp",
+      "agent",
+      "action",
+      "description",
+      "issue_ref"
+    ],
+    "format": "append-only",
+    "description": "All agent actions that modify the codebase, create PRs, or make significant decisions must be logged. Each entry records what was done, by which agent, and linked to the relevant GitHub issue."
+  }
+}

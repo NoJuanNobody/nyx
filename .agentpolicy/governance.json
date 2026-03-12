@@ -1,0 +1,133 @@
+{
+  "$schema": "https://schema.aegis.dev/governance.v0.1.0.json",
+  "version": "0.1.0",
+  "autonomy": {
+    "default_level": "autonomous",
+    "rationale": "Alejandro operates as PM with agents as his full engineering team. Agents have broad autonomy to implement across the entire codebase, constrained by explicit forbidden paths and quality gates."
+  },
+  "forbidden_paths": [
+    {
+      "pattern": ".env",
+      "reason": "Real environment files contain secrets. Never read, modify, or reference."
+    },
+    {
+      "pattern": ".env.local",
+      "reason": "Local environment secrets. Never read, modify, or reference."
+    },
+    {
+      "pattern": ".env.production",
+      "reason": "Production secrets. Never read, modify, or reference."
+    },
+    {
+      "pattern": ".env.development",
+      "reason": "Development secrets. Never read, modify, or reference."
+    },
+    {
+      "pattern": ".env.*",
+      "exception": ".env.example",
+      "reason": "All env files except .env.example and .env.template are forbidden. These contain real secrets."
+    }
+  ],
+  "allowed_env_files": [
+    ".env.example",
+    ".env.template"
+  ],
+  "sensitive_data_rules": [
+    "Never read real .env files — only .env.example or .env.template",
+    "Never log, echo, print, or transmit environment variable values",
+    "Never hardcode secrets, API keys, tokens, or credentials in source code",
+    "Never send secret values to any external API or service",
+    "Use environment variable references (process.env.KEY_NAME) without reading actual values"
+  ],
+  "security_conventions": [
+    "Always parameterize database queries — no raw string concatenation or interpolation in SQL",
+    "Validate and sanitize all user input at API boundaries",
+    "No eval(), Function(), or dynamic code execution",
+    "Use CORS and helmet-style protections on Fastify",
+    "Auth checks on every protected route — never assume a request is authenticated",
+    "Never expose stack traces or internal error details to clients in production",
+    "No exposing internal service topology or infrastructure details in API responses"
+  ],
+  "file_creation_rules": [
+    {
+      "pattern": "*.md",
+      "rule": "forbidden_unless_requested",
+      "description": "Never create markdown files unless Alejandro explicitly asks for one. Documentation belongs in GitHub issue and PR comments."
+    }
+  ],
+  "quality_gates": {
+    "before_merge": [
+      "All new code must include unit tests for services and components",
+      "All user-facing behavior must include E2E (Playwright) tests",
+      "Tests must be thorough — specific assertions, edge cases, not just happy-path",
+      "Code must pass ESLint with typescript-eslint recommended rules",
+      "Code must pass Prettier formatting (single quotes, semicolons, trailing commas, 100 char print width)",
+      "Code must pass TypeScript type checking with no errors"
+    ]
+  },
+  "escalation_protocols": [
+    {
+      "trigger": "Change requires environment variables, secrets, or API keys to be set",
+      "action": "Write a step-by-step tutorial in the PR comment explaining exactly what Alejandro needs to do, where, and in what order. Treat him as a smart PM, not a senior engineer. Include platform-specific instructions (e.g., Railway dashboard, Vercel settings, GitHub Secrets)."
+    },
+    {
+      "trigger": "Change requires infrastructure configuration, DNS, or third-party dashboard actions",
+      "action": "Document the exact manual steps needed as a PR comment with clear instructions so Alejandro can complete them before merging."
+    },
+    {
+      "trigger": "Agent notices an unrelated improvement opportunity",
+      "action": "Do not fix it. Comment on the issue describing the improvement so Alejandro can decide whether to create a separate issue."
+    },
+    {
+      "trigger": "Something in scope was skipped or could not be completed",
+      "action": "Document what was skipped and why in a PR comment so Alejandro can convert it to a new issue."
+    }
+  ],
+  "collaboration_protocols": {
+    "github_integration": {
+      "default_mode": "comment",
+      "description": "When @claude is invoked on an issue or PR, the default behavior is to respond as a comment. Feature docs, implementation docs, analysis, and answers are all written as comments.",
+      "code_mode_trigger": "@claude implement",
+      "code_mode_description": "Only when Alejandro explicitly says '@claude implement' should the agent create branches, write code, or open PRs. All other invocations are comment-only."
+    },
+    "scope_discipline": {
+      "description": "Stay within the assigned issue scope. Do not fix unrelated issues. Do not pull work from future sprint items. Respect the sprint plan sequencing — the order is intentional.",
+      "on_improvement_spotted": "Comment on the issue describing the opportunity",
+      "on_skipped_work": "Comment on the PR describing what was not done and why"
+    }
+  },
+  "coding_conventions": [
+    {
+      "id": "formatting",
+      "description": "Prettier is the formatting authority. Single quotes, semicolons, trailing commas, 100 character print width. No deviations."
+    },
+    {
+      "id": "linting",
+      "description": "ESLint with typescript-eslint recommended rules. All code must pass lint with zero warnings treated seriously."
+    },
+    {
+      "id": "consistency",
+      "description": "Follow existing codebase patterns and conventions. When in doubt, match what's already there."
+    },
+    {
+      "id": "package-manager",
+      "description": "Use pnpm exclusively. Never use npm or yarn commands."
+    },
+    {
+      "id": "monorepo-orchestration",
+      "description": "Use Turborepo for builds and task orchestration. Respect turbo.json pipeline configuration."
+    },
+    {
+      "id": "database",
+      "description": "Use Drizzle ORM for all database operations. Schema changes go through db:generate and db:migrate scripts."
+    },
+    {
+      "id": "auth",
+      "description": "Use Clerk for authentication. Dev bypass exists for local development. Auth checks required on all protected API routes."
+    },
+    {
+      "id": "ai-provider-abstraction",
+      "description": "AI features must be built behind provider-agnostic interfaces. No hardcoding to Anthropic, OpenAI, or any single provider. Support BYOK (Bring Your Own Key) pattern."
+    }
+  ]
+}

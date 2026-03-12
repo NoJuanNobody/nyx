@@ -12,7 +12,7 @@ import { MarkdownPreview } from '../components/MarkdownPreview';
 import { MarkdownEditor } from '../components/MarkdownEditor';
 import { DocDrawer, DocDrawerToggle, type DrawerPanel } from '../components/DocDrawer';
 import { MarkdownToolbar } from '../components/MarkdownToolbar';
-import { AIQualityPanel } from '../components/AIQualityPanel';
+import { AIAdvisor } from '../components/AIAdvisor';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
 
@@ -28,7 +28,6 @@ export function DocumentEditor() {
   const [versionMessage, setVersionMessage] = useState('');
   const [aiProposedContent, setAiProposedContent] = useState<string | null>(null);
   const [editorLayout, setEditorLayout] = useState<'split' | 'editor' | 'preview'>('split');
-  const [showStageGuide, setShowStageGuide] = useState(true);
   const [seeding, setSeeding] = useState(false);
   const [splitPercent, setSplitPercent] = useState(50);
   const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
@@ -94,7 +93,6 @@ export function DocumentEditor() {
       }, 500);
     },
     // saveMutation is stable via useMutation; we only depend on id changing
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [id],
   );
 
@@ -279,28 +277,6 @@ export function DocumentEditor() {
           <DocDrawerToggle activePanel={drawerPanel} onToggle={handleDrawerToggle} />
         </div>
 
-        {/* Stage guide banner */}
-        {docStage && STAGE_MAP[docStage] && showStageGuide && (
-          <div className={`mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 ${STAGE_MAP[docStage].color} ${STAGE_MAP[docStage].borderColor}`}>
-            <span className={`h-2 w-2 rounded-full ${STAGE_MAP[docStage].dotColor}`} />
-            <span className={`text-xs font-medium ${STAGE_MAP[docStage].textColor}`}>
-              {STAGE_MAP[docStage].label}
-            </span>
-            <span className="text-xs text-slate-500">
-              {STAGE_MAP[docStage].who} &middot; {STAGE_MAP[docStage].description}
-            </span>
-            <button
-              type="button"
-              onClick={() => setShowStageGuide(false)}
-              className="ml-auto rounded p-0.5 text-slate-400 hover:text-slate-600"
-            >
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
-
         {/* Editor + Preview + Drawer */}
         <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white">
           {viewingVersion !== null ? (
@@ -478,8 +454,14 @@ export function DocumentEditor() {
           )}
         </div>
 
-        {/* AI Quality Analysis */}
-        <AIQualityPanel content={content} stage={docStage} />
+        {/* AI Advisor — unified AI notification panel */}
+        <AIAdvisor
+          content={content}
+          stage={docStage}
+          documentId={id}
+          onApplyEdit={setAiProposedContent}
+          onStageChange={handleStageChange}
+        />
       </div>
 
       {/* Save Version modal */}

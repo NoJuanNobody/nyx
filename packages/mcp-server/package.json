@@ -8,13 +8,15 @@
     "syncdocs-mcp": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test": "vitest run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"
   },
   "devDependencies": {
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^3"
   }
 }

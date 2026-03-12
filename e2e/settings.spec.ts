@@ -96,11 +96,20 @@ test.describe('Settings — Account tab', () => {
     await expect(page.locator('main').getByText(/[Pp]rofile updated/)).toBeVisible({ timeout: 5_000 });
   });
 
-  test('22.3: Delete danger zone exists', async ({ authenticatedPage: page }) => {
+  test('22.3: Delete account flow', async ({ authenticatedPage: page }) => {
     await page.goto('/settings');
     await page.locator(SEL.settings.accountTab).click();
 
-    await expect(page.locator(SEL.settings.deleteAccountButton)).toBeVisible({ timeout: 10_000 });
+    const deleteBtn = page.locator(SEL.settings.deleteAccountButton);
+    await expect(deleteBtn).toBeVisible({ timeout: 10_000 });
+    await deleteBtn.click();
+
+    const confirmBtn = page.locator('main button:has-text("Confirm delete")');
+    await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
+    await confirmBtn.click();
+
+    // Check for redirect to sign-in or home
+    await expect(page).toHaveURL(/\/(sign-in|$)/, { timeout: 10_000 });
   });
 
   test('30c.2: Profile update persists after reload', async ({ authenticatedPage: page }) => {

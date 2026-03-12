@@ -30,7 +30,7 @@ export async function injectAs(
   };
 
   if (body !== undefined) {
-    opts.payload = body;
+    opts.payload = body as InjectOptions['payload'];
     opts.headers = {
       ...opts.headers,
       'content-type': 'application/json',

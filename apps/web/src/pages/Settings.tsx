@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, type ReactElement } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchTeams, fetchApiKeys, createApiKey, revokeApiKey, type ApiKey,
@@ -45,7 +45,7 @@ const ROLE_COLORS: Record<TeamMember['role'], string> = {
 
 // ── Tab Navigation ───────────────────────────────────────────────────
 
-const TABS: { key: SettingsTab; label: string; icon: JSX.Element }[] = [
+const TABS: { key: SettingsTab; label: string; icon: ReactElement }[] = [
   {
     key: 'team',
     label: 'Team',
@@ -110,7 +110,7 @@ function ConfluenceIcon({ className }: { className?: string }) {
   );
 }
 
-const PROVIDER_ICON: Record<string, (props: { className?: string }) => JSX.Element> = {
+const PROVIDER_ICON: Record<string, (props: { className?: string }) => ReactElement> = {
   github: GitHubIcon,
   jira: JiraIcon,
   confluence: ConfluenceIcon,

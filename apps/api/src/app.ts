@@ -23,6 +23,7 @@ import { apiKeyRoutes } from './routes/api-keys.js';
 import { userRoutes } from './routes/users.js';
 import { waitlistRoutes } from './routes/waitlist.js';
 import { templateRoutes } from './routes/templates.js';
+import { mockupRoutes, setMockupCluster } from './routes/mockups.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -57,6 +58,22 @@ export function buildApp() {
   app.register(userRoutes, { prefix: '/api/users' });
   app.register(waitlistRoutes, { prefix: '/api/waitlist' });
   app.register(templateRoutes, { prefix: '/api/templates' });
+  app.register(mockupRoutes, { prefix: '/api/mockups' });
 
   return app;
+}
+
+export async function initPuppeteerCluster() {
+  try {
+    const { Cluster } = await import('puppeteer-cluster');
+    const cluster = await Cluster.launch({
+      concurrency: Cluster.CONCURRENCY_CONTEXT,
+      maxConcurrency: 4,
+    });
+    setMockupCluster(cluster);
+    return cluster;
+  } catch (err) {
+    console.warn('Puppeteer cluster initialization failed:', err);
+    return null;
+  }
 }
