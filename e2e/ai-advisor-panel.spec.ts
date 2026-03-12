@@ -188,7 +188,7 @@ test.describe('AI Advisor Panel', () => {
 
     // Edit the document content to trigger re-analysis
     await textarea.click();
-    await textarea.type(' Additional content for re-analysis trigger.');
+    await textarea.pressSequentially(' Re-analysis.', { delay: 10 });
 
     // Quality card should re-appear after 3s debounce
     await expect(
@@ -284,7 +284,7 @@ test.describe('AI Advisor Panel', () => {
 
     // Start typing to simulate active editing
     await textarea.click();
-    await textarea.type('Typing content now to trigger typing detection. ');
+    await textarea.pressSequentially('Typing now.', { delay: 50 });
 
     // Panel should not auto-expand while typing
     // (the existing notifications from quality analysis may be pending,
@@ -332,7 +332,7 @@ test.describe('AI Advisor Panel', () => {
 
     // Trigger re-analysis by editing content
     await textarea.click();
-    await textarea.type(' Triggering a second analysis run.');
+    await textarea.pressSequentially(' Second run.', { delay: 10 });
 
     // Wait for new quality card (should replace the old one, not stack)
     await page.waitForTimeout(4_000); // wait for debounce + API

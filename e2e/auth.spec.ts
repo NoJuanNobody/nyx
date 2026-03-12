@@ -18,6 +18,20 @@ test.describe('Authentication & Dev Bypass', () => {
   });
 
   test('1.4 — /sign-in redirects to / in dev bypass', async ({ page }) => {
+    // Bypass Clerk so the app uses DevAuthGuard (no Clerk sign-in page)
+    for (const mod of ['src/main.tsx', 'src/App.tsx', 'src/components/AuthGuard.tsx', 'src/pages/SignIn.tsx', 'src/pages/SignUp.tsx']) {
+      await page.route(`**/${mod}*`, async (route) => {
+        try {
+          const response = await route.fetch();
+          const body = (await response.text()).replace(
+            /import\.meta\.env\.VITE_CLERK_PUBLISHABLE_KEY/g, '""',
+          );
+          await route.fulfill({ response, body });
+        } catch {
+          await route.fallback();
+        }
+      });
+    }
     await page.goto('/sign-in');
     // In dev bypass there are no Clerk components, so the app redirects away
     await page.waitForURL(/\/(dashboard|landing)?$/, { timeout: 10_000 });
@@ -25,6 +39,19 @@ test.describe('Authentication & Dev Bypass', () => {
   });
 
   test('1.5 — /sign-up redirects to / in dev bypass', async ({ page }) => {
+    for (const mod of ['src/main.tsx', 'src/App.tsx', 'src/components/AuthGuard.tsx', 'src/pages/SignIn.tsx', 'src/pages/SignUp.tsx']) {
+      await page.route(`**/${mod}*`, async (route) => {
+        try {
+          const response = await route.fetch();
+          const body = (await response.text()).replace(
+            /import\.meta\.env\.VITE_CLERK_PUBLISHABLE_KEY/g, '""',
+          );
+          await route.fulfill({ response, body });
+        } catch {
+          await route.fallback();
+        }
+      });
+    }
     await page.goto('/sign-up');
     await page.waitForURL(/\/(dashboard|landing)?$/, { timeout: 10_000 });
     expect(page.url()).not.toContain('/sign-up');

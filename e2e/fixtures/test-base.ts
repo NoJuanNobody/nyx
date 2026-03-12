@@ -303,6 +303,38 @@ async function setupApiMocks(page: Page) {
   _restoredDocIds = new Set();
   _deletedDocIds = new Set();
   _generatedProposals = [];
+
+  // ── Clerk bypass ────────────────────────────────────────────────
+  // When the dev server has VITE_CLERK_PUBLISHABLE_KEY set, the app uses
+  // ClerkAuthGuard which redirects to a real Clerk sign-in page. To avoid
+  // this in E2E tests, intercept the Vite-served source modules and replace
+  // the env var reference with an empty string so the app falls back to
+  // DevAuthGuard (which uses /api/auth/me — mocked below).
+  for (const mod of ['src/main.tsx', 'src/App.tsx', 'src/components/AuthGuard.tsx']) {
+    await page.route(`**/${mod}*`, async (route) => {
+      try {
+        const response = await route.fetch();
+        const body = (await response.text()).replace(
+          /import\.meta\.env\.VITE_CLERK_PUBLISHABLE_KEY/g,
+          '""',
+        );
+        await route.fulfill({ response, body });
+      } catch {
+        // ECONNRESET under heavy parallelism — retry once
+        try {
+          const response = await route.fetch();
+          const body = (await response.text()).replace(
+            /import\.meta\.env\.VITE_CLERK_PUBLISHABLE_KEY/g,
+            '""',
+          );
+          await route.fulfill({ response, body });
+        } catch {
+          await route.fallback();
+        }
+      }
+    });
+  }
+
   // Auth
   await page.route('**/api/auth/me', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SEEDED_USER) }),

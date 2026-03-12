@@ -5,15 +5,26 @@ interface JSXPreviewRendererProps {
 }
 
 function buildIframeHTML(jsx: string): string {
+  // Strip export default — Babel in non-module mode transforms it to CommonJS
+  // which references `exports` (undefined in browser), causing a ReferenceError.
+  const cleanedJsx = jsx.replace(/^\s*export\s+default\s+/m, '');
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Register error handler early — before CDN scripts or Babel run —
+    // so syntax errors and CDN failures are always caught.
+    window.onerror = function(msg, src, line, col, err) {
+      window.parent.postMessage({ type: 'jsx-preview-error', error: String(msg) }, '*');
+    };
+  </script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js" onerror="window.parent.postMessage({type:'jsx-preview-error',error:'Failed to load Babel'},'*')"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" onerror="window.parent.postMessage({type:'jsx-preview-error',error:'Failed to load React'},'*')"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" onerror="window.parent.postMessage({type:'jsx-preview-error',error:'Failed to load ReactDOM'},'*')"></script>
+  <script src="https://cdn.tailwindcss.com" onerror="window.parent.postMessage({type:'jsx-preview-error',error:'Failed to load Tailwind CSS'},'*')"></script>
   <style>
     body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; }
   </style>
@@ -21,11 +32,8 @@ function buildIframeHTML(jsx: string): string {
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    window.onerror = function(msg, src, line, col, err) {
-      window.parent.postMessage({ type: 'jsx-preview-error', error: msg }, '*');
-    };
     try {
-      ${jsx}
+      ${cleanedJsx}
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(React.createElement(App));
     } catch (err) {

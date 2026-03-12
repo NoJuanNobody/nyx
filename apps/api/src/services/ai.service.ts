@@ -284,7 +284,7 @@ export const aiService = {
 
 STRICT RULES:
 1. Output ONLY the raw JSX/JavaScript code — no markdown, no code fences, no explanations
-2. The component MUST be a default export named "App": export default function App() { ... }
+2. The component MUST be a plain function named "App": function App() { ... } — do NOT use export default
 3. Use ONLY inline Tailwind CSS classes for styling (Tailwind is available via CDN)
 4. Do NOT use any imports — React, ReactDOM, and Tailwind are available as globals
 5. Do NOT use TypeScript — plain JavaScript/JSX only
