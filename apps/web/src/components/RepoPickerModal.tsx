@@ -15,7 +15,7 @@ export function RepoPickerModal({ integrationId, initialSelected = [], onClose }
     new Set(initialSelected.map((r) => r.fullName)),
   );
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['github-repos', integrationId],
     queryFn: () => fetchGitHubRepos(integrationId),
   });
@@ -114,6 +114,10 @@ export function RepoPickerModal({ integrationId, initialSelected = [], onClose }
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+            </div>
+          ) : isError ? (
+            <div className="py-8 text-center text-xs text-red-500">
+              Failed to load repositories. Check your GitHub connection.
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-400">
