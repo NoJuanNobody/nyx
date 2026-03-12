@@ -102,6 +102,22 @@ test.describe('Landing Page', () => {
   });
 
   test('37.8 — authenticated visit to / shows dashboard', async ({ page }) => {
+    // Bypass Clerk so the app falls back to DevAuthGuard
+    for (const mod of ['src/main.tsx', 'src/App.tsx', 'src/components/AuthGuard.tsx']) {
+      await page.route(`**/${mod}*`, async (route) => {
+        try {
+          const response = await route.fetch();
+          const body = (await response.text()).replace(
+            /import\.meta\.env\.VITE_CLERK_PUBLISHABLE_KEY/g,
+            '""',
+          );
+          await route.fulfill({ response, body });
+        } catch {
+          await route.fallback();
+        }
+      });
+    }
+
     // Mock API routes for authenticated state
     await page.route('**/api/auth/me', (route) =>
       route.fulfill({
