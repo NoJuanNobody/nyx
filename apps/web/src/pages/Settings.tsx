@@ -491,6 +491,10 @@ function IntegrationsPanel() {
       {repoPickerFor && (
         <RepoPickerModal
           integrationId={repoPickerFor}
+          initialSelected={
+            (rawIntegrations?.find((ri) => ri.id === repoPickerFor)?.config as Record<string, unknown>)
+              ?.selectedRepos as Array<{ owner: string; name: string; fullName: string }> | undefined
+          }
           onClose={() => setRepoPickerFor(null)}
         />
       )}
