@@ -25,6 +25,16 @@ Pre-MVP / scaffolding phase. The next step is to scaffold the project using the 
 - **Integrations:** GitHub API + Webhooks, Jira REST API, Confluence REST API
 - **Agent Integrations:** Cursor extension, GitHub Copilot extension, Claude Code MCP/CLI
 
+## Package Manager
+
+This project uses **pnpm 9.15.4** (pinned via `packageManager` in `package.json`). Always use `pnpm` — never `npm` or `yarn`.
+
+- **Run a script in a workspace:** `pnpm --filter <package> <script>`
+- **Run an arbitrary binary in a workspace:** `pnpm --filter <package> exec <command>`
+- **Add a dependency:** `pnpm --filter <package> add <dep>`
+- **Install all deps:** `pnpm install`
+- CI uses `pnpm install --frozen-lockfile` — keep `pnpm-lock.yaml` up to date.
+
 ## Key Commands
 
 ```bash

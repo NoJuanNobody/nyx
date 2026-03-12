@@ -35,7 +35,9 @@ jobs:
         with:
           ref: ${{ github.event.check_suite.head_sha }}
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # GH_PAT must belong to a repo admin — this lets the bot push to
+          # protected branches without needing a GitHub Teams plan.
+          token: ${{ secrets.GH_PAT }}
 
       # ── 2. Set the branch name and configure git ────────────────────────────
       - name: Configure git
