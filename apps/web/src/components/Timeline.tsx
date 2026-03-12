@@ -39,7 +39,8 @@ function EventDetails({
   event: TimelineEvent;
   onSwitchToHistory?: (versionId: string) => void;
 }) {
-  const p = event.payload;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const p = event.payload as Record<string, any>;
 
   switch (event.type) {
     case 'document_updated': {

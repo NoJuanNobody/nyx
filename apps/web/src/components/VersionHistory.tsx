@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { DocumentVersion } from '@syncdocs/shared';
 import { fetchVersions, fetchBranches, type DocumentBranch } from '../lib/api';
@@ -164,7 +164,7 @@ function GraphSvg({ nodes, laneCount }: { nodes: GraphNode[]; laneCount: number 
 
   // Track y positions
   let y = 0;
-  const elements: JSX.Element[] = [];
+  const elements: ReactElement[] = [];
 
   // Draw the main branch line
   const commitNodes = nodes.filter((n) => n.kind === 'commit');

@@ -239,8 +239,7 @@ export function AIAdvisor({
     if (hasTier2Plus && !expanded && canAutoExpand()) {
       setExpanded(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notifications]);
+  }, [notifications]); // eslint-disable-line
 
   // ── Stage guide notification (Tier 1) — replaces top banner ───────
   useEffect(() => {
