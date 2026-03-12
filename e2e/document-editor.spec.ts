@@ -259,7 +259,8 @@ test.describe('Document Editor', () => {
     await textarea.focus();
     await textarea.fill('hello');
     // Select all text so italic wraps it
-    await textarea.press('Meta+a');
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+    await textarea.press(`${modifier}+a`);
 
     await page.locator(SEL.editor.toolbarItalic).click();
     await expect(textarea).toHaveValue(/\*hello\*/);
@@ -274,7 +275,8 @@ test.describe('Document Editor', () => {
     await textarea.clear();
     await textarea.focus();
 
-    await page.keyboard.press('Meta+b');
+    const mod = process.platform === 'darwin' ? 'Meta' : 'Control';
+    await page.keyboard.press(`${mod}+b`);
     await expect(textarea).toHaveValue(/\*\*.*\*\*/);
   });
 
