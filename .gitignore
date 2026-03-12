@@ -9,3 +9,4 @@ coverage/
 drizzle/meta/
 test-results/
 build.log
+.claude/worktrees/
