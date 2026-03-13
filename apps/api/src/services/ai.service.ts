@@ -64,16 +64,29 @@ export const aiService = {
       ],
     });
 
-    const text =
+    let text =
       response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip code fences
+    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+    // Try to extract JSON object from response
+    const jsonMatch = text.match(/\{[\s\S]*"score"\s*:[\s\S]*"suggestions"\s*:[\s\S]*\}/);
+    const jsonCandidate = jsonMatch ? jsonMatch[0] : text;
+
     try {
-      const parsed = JSON.parse(text) as { score: number; suggestions: string[] };
+      const parsed = JSON.parse(jsonCandidate) as { score: number; suggestions: string[] };
       return {
-        score: parsed.score,
-        suggestions: parsed.suggestions,
+        score: typeof parsed.score === 'number' ? parsed.score : 5,
+        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
       };
     } catch {
-      return { score: 5, suggestions: [text] };
+      // Extract score from text if possible, treat rest as suggestion
+      const scoreMatch = text.match(/(\d+)\s*\/\s*10/);
+      return {
+        score: scoreMatch ? parseInt(scoreMatch[1], 10) : 5,
+        suggestions: [text],
+      };
     }
   },
 

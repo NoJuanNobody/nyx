@@ -279,12 +279,14 @@ export function AIAdvisor({
     if (!content || content.length < 20) return;
     if (content === lastContentRef.current && stage === lastStageRef.current) return;
 
+    // Clear stale score immediately so the badge shows loading state
+    setQualityLoading(true);
+
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = setTimeout(async () => {
       lastContentRef.current = content;
       lastStageRef.current = stage;
-      setQualityLoading(true);
 
       try {
         const data = await analyzeSpecQuality(content, stage);
@@ -298,10 +300,10 @@ export function AIAdvisor({
           id,
           tier: 1,
           type: 'quality',
-          title: `Quality analysis — Score: ${data.score}/10`,
+          title: `Quality: ${data.score}/10`,
           body: suggestions.join('\n'),
           status: 'idle',
-          accentColor: 'bg-amber-400',
+          accentColor: data.score >= 7 ? 'bg-green-400' : data.score >= 4 ? 'bg-amber-400' : 'bg-red-400',
           ctas:
             suggestions.length > 0
               ? [
