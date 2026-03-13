@@ -139,8 +139,14 @@ export function DocumentEditor() {
     try {
       const result = await seedNextStage(content, docStage, next);
       const seededContent = `<!-- Seeded from: ${doc.id} -->\n\n${result.content}`;
+      // Use AI title, or extract from first markdown heading, or fall back to stage label
+      let seedTitle = result.title;
+      if (!seedTitle || seedTitle === 'Untitled Document') {
+        const heading = result.content.match(/^#\s+(.+)$/m);
+        seedTitle = heading ? heading[1].trim() : `${next.charAt(0).toUpperCase() + next.slice(1)} Document`;
+      }
       const newDoc = await createDocument({
-        title: result.title,
+        title: seedTitle,
         content: seededContent,
         teamId: doc.teamId,
         stage: next,
