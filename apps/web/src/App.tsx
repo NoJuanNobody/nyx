@@ -7,6 +7,7 @@ import { JSXPreviewPage } from './pages/JSXPreviewPage';
 import { Settings } from './pages/Settings';
 import { Landing } from './pages/Landing';
 import { Board } from './pages/Board';
+import { Repositories } from './pages/Repositories';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 import { useAuthStore } from './stores/auth.store';
@@ -38,6 +39,7 @@ export function App() {
             <Route path="/documents/:id/preview" element={<JSXPreviewPage />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/board" element={<Board />} />
+            <Route path="/repositories" element={<Repositories />} />
           </Route>
         </Route>
       </Routes>
