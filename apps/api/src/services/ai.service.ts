@@ -313,8 +313,10 @@ STRICT RULES:
     });
 
     let text = response.content[0].type === 'text' ? response.content[0].text : '';
-    // Strip code fences if model wraps output
-    text = text.replace(/^```(?:jsx?|javascript|tsx?)?\n?/, '').replace(/\n?```$/, '').trim();
+    // Strip code fences if model wraps output (global match for robustness)
+    text = text.replace(/```(?:jsx?|javascript|tsx?)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+    // Strip any import statements the model may have included
+    text = text.replace(/^\s*import\s+.*?(?:from\s+['"].*?['"]|['"].*?['"])\s*;?\s*$/gm, '');
     return text;
   },
 
@@ -332,7 +334,7 @@ STRICT RULES:
 
 STRICT RULES:
 1. Output ONLY the raw JSX/JavaScript code — no markdown, no code fences, no explanations
-2. Preserve the default export named "App": export default function App() { ... }
+2. The component MUST be a plain function named "App": function App() { ... } — do NOT use export default
 3. Use ONLY inline Tailwind CSS classes for styling
 4. Do NOT use any imports — React, ReactDOM, and Tailwind are available as globals
 5. Do NOT use TypeScript — plain JavaScript/JSX only

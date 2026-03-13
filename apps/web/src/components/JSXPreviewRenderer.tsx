@@ -4,10 +4,21 @@ interface JSXPreviewRendererProps {
   jsx: string;
 }
 
+function cleanJSX(jsx: string): string {
+  let code = jsx;
+  // Strip code fences if present
+  code = code.replace(/```(?:jsx?|javascript|tsx?)?\s*\n?/g, '').replace(/\n?\s*```/g, '');
+  // Strip import statements
+  code = code.replace(/^\s*import\s+.*?(?:from\s+['"].*?['"]|['"].*?['"])\s*;?\s*$/gm, '');
+  // Strip export default
+  code = code.replace(/^\s*export\s+default\s+/gm, '');
+  // Strip lone export statements
+  code = code.replace(/^\s*export\s+(?=function|const|class)/gm, '');
+  return code.trim();
+}
+
 function buildIframeHTML(jsx: string): string {
-  // Strip export default — Babel in non-module mode transforms it to CommonJS
-  // which references `exports` (undefined in browser), causing a ReferenceError.
-  const cleanedJsx = jsx.replace(/^\s*export\s+default\s+/m, '');
+  const cleanedJsx = cleanJSX(jsx);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -33,9 +44,11 @@ function buildIframeHTML(jsx: string): string {
   <div id="root"></div>
   <script type="text/babel">
     try {
+      // Destructure React hooks into scope so generated code can use useState() etc.
+      const { useState, useEffect, useRef, useCallback, useMemo, useReducer, useContext, createContext, Fragment } = React;
       ${cleanedJsx}
       const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(React.createElement(App));
+      root.render(React.createElement(typeof App !== 'undefined' ? App : () => React.createElement('div', null, 'No App component found')));
     } catch (err) {
       window.parent.postMessage({ type: 'jsx-preview-error', error: err && err.message ? err.message : String(err) }, '*');
     }
