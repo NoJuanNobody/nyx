@@ -11,15 +11,24 @@ vi.mock('../../middleware/permissions.js', () => ({
 
 // Mock github service
 const mockDeleteWebhook = vi.fn();
-vi.mock('../../services/github.service.js', () => ({
-  githubService: {
-    listRepos: vi.fn(),
-    exchangeCodeForToken: vi.fn(),
-    getAuthenticatedUser: vi.fn(),
-    createWebhook: vi.fn(),
-    deleteWebhook: (...args: unknown[]) => mockDeleteWebhook(...args),
-  },
-}));
+vi.mock('../../services/github.service.js', () => {
+  class GitHubTokenExpiredError extends Error {
+    constructor(method: string) {
+      super('GitHub token expired or revoked. Please reconnect your GitHub integration.');
+      this.name = 'GitHubTokenExpiredError';
+    }
+  }
+  return {
+    GitHubTokenExpiredError,
+    githubService: {
+      listRepos: vi.fn(),
+      exchangeCodeForToken: vi.fn(),
+      getAuthenticatedUser: vi.fn(),
+      createWebhook: vi.fn(),
+      deleteWebhook: (...args: unknown[]) => mockDeleteWebhook(...args),
+    },
+  };
+});
 
 // Mock jira service (imported by integrations route)
 vi.mock('../../services/jira.service.js', () => ({

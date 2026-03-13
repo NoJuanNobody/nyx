@@ -53,6 +53,10 @@ export function Repositories() {
     queryKey: ['synced-repos', githubIntegration?.id],
     queryFn: () => fetchSyncedRepos(githubIntegration!.id),
     enabled: !!githubIntegration?.id,
+    retry: (count, error) => {
+      if (error instanceof GitHubTokenExpiredError) return false;
+      return count < 3;
+    },
   });
 
   const disconnectMutation = useMutation({
@@ -104,6 +108,21 @@ export function Repositories() {
     );
   }
 
+  // GitHub token expired
+  if (reposError instanceof GitHubTokenExpiredError) {
+    return (
+      <>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-slate-900">Repositories</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            View and manage your synced GitHub repositories.
+          </p>
+        </div>
+        <GitHubReconnectBanner />
+      </>
+    );
+  }
+
   // Empty state — GitHub connected but no repos selected
   if (!isLoading && repos.length === 0) {
     return (
@@ -141,13 +160,6 @@ export function Repositories() {
           View and manage your synced GitHub repositories.
         </p>
       </div>
-
-      {/* GitHub token expired */}
-      {reposError instanceof GitHubTokenExpiredError && (
-        <div className="mb-6">
-          <GitHubReconnectBanner />
-        </div>
-      )}
 
       {isLoading ? (
         <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
