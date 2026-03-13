@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Modal } from './Modal';
-import { fetchIntegrations, createTicket } from '../lib/api';
+import { GitHubReconnectBanner } from './GitHubReconnectBanner';
+import { fetchIntegrations, createTicket, GitHubTokenExpiredError } from '../lib/api';
 import type { Ticket } from '../lib/api';
 
 interface CreateTicketModalProps {
@@ -28,6 +29,7 @@ export function CreateTicketModal({
   const [provider, setProvider] = useState<'github' | 'jira'>('github');
   const [createdTicket, setCreatedTicket] = useState<Ticket | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tokenExpired, setTokenExpired] = useState(false);
 
   // Pre-fill fields when modal opens
   useEffect(() => {
@@ -40,6 +42,7 @@ export function CreateTicketModal({
       );
       setCreatedTicket(null);
       setError(null);
+      setTokenExpired(false);
     }
   }, [open, documentTitle, documentContent]);
 
@@ -73,7 +76,12 @@ export function CreateTicketModal({
       }, 2500);
     },
     onError: (err: Error) => {
-      setError(err.message || 'Failed to create ticket');
+      if (err instanceof GitHubTokenExpiredError) {
+        setTokenExpired(true);
+        setError(null);
+      } else {
+        setError(err.message || 'Failed to create ticket');
+      }
     },
   });
 
@@ -166,6 +174,11 @@ export function CreateTicketModal({
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
             />
           </div>
+
+          {/* GitHub token expired */}
+          {tokenExpired && (
+            <GitHubReconnectBanner />
+          )}
 
           {/* Error */}
           {error && (

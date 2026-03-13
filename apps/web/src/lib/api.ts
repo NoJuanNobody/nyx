@@ -38,10 +38,21 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
+    // Detect GitHub token expiration
+    if (res.status === 401 && body.includes('github_token_expired')) {
+      throw new GitHubTokenExpiredError('Your GitHub connection has expired. Please reconnect.');
+    }
     throw new Error(`API ${res.status}: ${body || res.statusText}`);
   }
 
   return res.json() as Promise<T>;
+}
+
+export class GitHubTokenExpiredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GitHubTokenExpiredError';
+  }
 }
 
 // ── Documents ───────────────────────────────────────────────────────
