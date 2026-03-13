@@ -13,6 +13,7 @@ import { MarkdownEditor } from '../components/MarkdownEditor';
 import { DocDrawer, DocDrawerToggle, type DrawerPanel } from '../components/DocDrawer';
 import { MarkdownToolbar } from '../components/MarkdownToolbar';
 import { AIAdvisor } from '../components/AIAdvisor';
+import { CreateTicketModal } from '../components/CreateTicketModal';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
 
@@ -32,6 +33,7 @@ export function DocumentEditor() {
   const [splitPercent, setSplitPercent] = useState(50);
   const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
   const [viewingVersion, setViewingVersion] = useState<DocumentVersion | null>(null);
+  const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const splitContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -272,6 +274,14 @@ export function DocumentEditor() {
 
           <button
             type="button"
+            onClick={() => setTicketModalOpen(true)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            Create Ticket
+          </button>
+
+          <button
+            type="button"
             onClick={() => setVersionModalOpen(true)}
             className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
           >
@@ -505,6 +515,15 @@ export function DocumentEditor() {
           </button>
         </div>
       </Modal>
+
+      <CreateTicketModal
+        open={ticketModalOpen}
+        onClose={() => setTicketModalOpen(false)}
+        documentId={id!}
+        teamId={doc.teamId}
+        documentTitle={title}
+        documentContent={content}
+      />
     </div>
   );
 }
