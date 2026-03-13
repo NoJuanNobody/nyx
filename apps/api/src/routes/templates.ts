@@ -13,11 +13,20 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
       .from(documentTemplates)
       .orderBy(documentTemplates.sortOrder);
 
+    // Deduplicate by (stage, name) — safety net for databases with pre-existing duplicates
+    const seen = new Set<string>();
+    const deduped = rows.filter((t) => {
+      const key = `${t.stage}:${t.name}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
     if (stage) {
-      return rows.filter((t) => t.stage === stage);
+      return deduped.filter((t) => t.stage === stage);
     }
 
-    return rows;
+    return deduped;
   });
 
   // GET /api/templates/:id — single template
