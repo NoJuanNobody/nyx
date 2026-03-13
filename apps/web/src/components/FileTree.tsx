@@ -202,6 +202,7 @@ function Folder({
   renamingFolderPath,
   onFolderRenameSubmit,
   onFolderRenameCancel,
+  onDropDoc,
 }: {
   node: FolderNode;
   depth: number;
@@ -226,19 +227,52 @@ function Folder({
   onFolderRenameSubmit: (oldPath: string, newName: string) => void;
   onFolderRenameCancel: () => void;
   onDeleteFolder: (path: string) => void;
+  onDropDoc: (docId: string, targetPath: string) => void;
 }) {
   const isOpen = expandedFolders.has(node.path);
   const [showActions, setShowActions] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const isRenaming = renamingFolderPath === node.path;
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('application/syncdocs-doc-id')) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      setDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if leaving the folder element itself, not entering a child
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOver(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const docId = e.dataTransfer.getData('application/syncdocs-doc-id');
+    if (docId) {
+      onDropDoc(docId, node.path);
+    }
+  };
 
   return (
     <div>
       <div
-        className="group flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-slate-100/60 rounded-md transition-colors"
+        className={`group flex items-center gap-1 px-2 py-1 cursor-pointer rounded-md transition-colors ${
+          dragOver
+            ? 'bg-blue-100 ring-1 ring-blue-300'
+            : 'hover:bg-slate-100/60'
+        }`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onClick={() => !isRenaming && toggleFolder(node.path)}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         onContextMenu={(e) => {
           e.preventDefault();
           onContextMenu(e, node.path, 'folder');
@@ -347,6 +381,7 @@ function Folder({
                 onFolderRenameSubmit={onFolderRenameSubmit}
                 onFolderRenameCancel={onFolderRenameCancel}
                 onDeleteFolder={onDeleteFolder}
+                onDropDoc={onDropDoc}
               />
             ) : (
               <DocItem
@@ -382,18 +417,26 @@ function JSXPreviewItem({ docId, depth }: { docId: string; depth: number }) {
     <NavLink
       to={`/documents/${docId}/preview`}
       className={({ isActive }) =>
-        `flex items-center gap-2 rounded-md px-2 py-1 transition-colors ${
+        `group/preview flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-all duration-150 ${
           isActive
-            ? 'bg-violet-50 text-violet-700'
-            : 'text-slate-500 hover:bg-slate-100/60 hover:text-slate-700'
+            ? 'bg-gradient-to-r from-amber-50 to-orange-50 ring-1 ring-amber-200/60'
+            : 'hover:bg-slate-50'
         }`
       }
       style={{ paddingLeft: `${(depth + 2) * 12 + 8}px` }}
     >
-      <svg className="h-3.5 w-3.5 flex-shrink-0 text-violet-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42" />
-      </svg>
-      <span className="text-[11px] italic">JSX Preview</span>
+      <span
+        className={`inline-flex items-center justify-center h-4 w-4 rounded flex-shrink-0 transition-colors duration-150 ${
+          'bg-gradient-to-br from-amber-400 to-orange-500 group-hover/preview:from-amber-500 group-hover/preview:to-orange-600'
+        }`}
+      >
+        <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+        </svg>
+      </span>
+      <span className="text-[10px] font-semibold tracking-wide uppercase text-slate-400 group-hover/preview:text-amber-700 transition-colors duration-150">
+        Preview
+      </span>
     </NavLink>
   );
 }
@@ -422,6 +465,10 @@ function DocItem({
   onRenameSubmit: (docId: string, newTitle: string) => void;
   onRenameCancel: () => void;
 }) {
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('application/syncdocs-doc-id', doc.id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
   const statusDot: Record<string, string> = {
     draft: 'bg-amber-400',
     published: 'bg-green-400',
@@ -434,6 +481,8 @@ function DocItem({
     <>
     <div
       className="relative"
+      draggable={!isRenaming}
+      onDragStart={handleDragStart}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
@@ -667,6 +716,24 @@ export function FileTree() {
       queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
     },
   });
+
+  const moveMutation = useMutation({
+    mutationFn: ({ id, path }: { id: string; path: string }) =>
+      updateDocument(id, { path }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
+    },
+  });
+
+  const handleDropDoc = useCallback(
+    (docId: string, targetPath: string) => {
+      // Don't move if already in target folder
+      const doc = documents?.find((d) => d.id === docId);
+      if (!doc || (doc.path || '/') === targetPath) return;
+      moveMutation.mutate({ id: docId, path: targetPath });
+    },
+    [documents, moveMutation],
+  );
 
   const duplicateMutation = useMutation({
     mutationFn: (doc: Document) => {
@@ -1008,6 +1075,17 @@ export function FileTree() {
             handleContextMenu(e, '/', 'root');
           }
         }}
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes('application/syncdocs-doc-id')) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+          }
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const docId = e.dataTransfer.getData('application/syncdocs-doc-id');
+          if (docId) handleDropDoc(docId, '/');
+        }}
       >
         {isLoading && (
           <p className="px-4 py-3 text-xs text-slate-400">Loading...</p>
@@ -1052,6 +1130,7 @@ export function FileTree() {
             onFolderRenameSubmit={handleFolderRenameSubmit}
             onFolderRenameCancel={() => setRenamingFolderPath(null)}
             onDeleteFolder={handleDeleteFolder}
+            onDropDoc={handleDropDoc}
           />
         ))}
 

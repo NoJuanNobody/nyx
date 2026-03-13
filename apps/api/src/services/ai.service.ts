@@ -64,16 +64,29 @@ export const aiService = {
       ],
     });
 
-    const text =
+    let text =
       response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip code fences
+    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+    // Try to extract JSON object from response
+    const jsonMatch = text.match(/\{[\s\S]*"score"\s*:[\s\S]*"suggestions"\s*:[\s\S]*\}/);
+    const jsonCandidate = jsonMatch ? jsonMatch[0] : text;
+
     try {
-      const parsed = JSON.parse(text) as { score: number; suggestions: string[] };
+      const parsed = JSON.parse(jsonCandidate) as { score: number; suggestions: string[] };
       return {
-        score: parsed.score,
-        suggestions: parsed.suggestions,
+        score: typeof parsed.score === 'number' ? parsed.score : 5,
+        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
       };
     } catch {
-      return { score: 5, suggestions: [text] };
+      // Extract score from text if possible, treat rest as suggestion
+      const scoreMatch = text.match(/(\d+)\s*\/\s*10/);
+      return {
+        score: scoreMatch ? parseInt(scoreMatch[1], 10) : 5,
+        suggestions: [text],
+      };
     }
   },
 
@@ -300,8 +313,10 @@ STRICT RULES:
     });
 
     let text = response.content[0].type === 'text' ? response.content[0].text : '';
-    // Strip code fences if model wraps output
-    text = text.replace(/^```(?:jsx?|javascript|tsx?)?\n?/, '').replace(/\n?```$/, '').trim();
+    // Strip code fences if model wraps output (global match for robustness)
+    text = text.replace(/```(?:jsx?|javascript|tsx?)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+    // Strip any import statements the model may have included
+    text = text.replace(/^\s*import\s+.*?(?:from\s+['"].*?['"]|['"].*?['"])\s*;?\s*$/gm, '');
     return text;
   },
 
@@ -319,7 +334,7 @@ STRICT RULES:
 
 STRICT RULES:
 1. Output ONLY the raw JSX/JavaScript code — no markdown, no code fences, no explanations
-2. Preserve the default export named "App": export default function App() { ... }
+2. The component MUST be a plain function named "App": function App() { ... } — do NOT use export default
 3. Use ONLY inline Tailwind CSS classes for styling
 4. Do NOT use any imports — React, ReactDOM, and Tailwind are available as globals
 5. Do NOT use TypeScript — plain JavaScript/JSX only
@@ -391,16 +406,26 @@ STRICT RULES:
     let text =
       response.content[0].type === 'text' ? response.content[0].text : '';
 
-    text = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    // Strip code fences (```json ... ``` or ``` ... ```) anywhere in the text
+    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+    // Try to extract a JSON object from the text (AI may wrap it in extra prose)
+    const jsonMatch = text.match(/\{[\s\S]*"content"\s*:\s*"[\s\S]*\}/);
+    const jsonCandidate = jsonMatch ? jsonMatch[0] : text;
 
     try {
-      const parsed = JSON.parse(text) as { title: string; content: string };
+      const parsed = JSON.parse(jsonCandidate) as { title: string; content: string };
       return {
         title: parsed.title || 'Untitled Document',
         content: parsed.content || text,
       };
     } catch {
-      return { title: 'Untitled Document', content: text };
+      // Fallback: extract title from first markdown heading
+      const headingMatch = text.match(/^#\s+(.+)$/m);
+      return {
+        title: headingMatch ? headingMatch[1].trim() : 'Untitled Document',
+        content: text,
+      };
     }
   },
 };
