@@ -521,6 +521,26 @@ export function saveSelectedRepos(integrationId: string, repos: Array<{ owner: s
   });
 }
 
+export interface SyncedRepo {
+  owner: string;
+  name: string;
+  fullName: string;
+  syncStatus: 'active' | 'disconnected';
+  webhookId: number | null;
+  lastPushAt: string | null;
+  linkedDocCount: number;
+}
+
+export function fetchSyncedRepos(integrationId: string): Promise<{ repos: SyncedRepo[] }> {
+  return request<{ repos: SyncedRepo[] }>(`/integrations/${integrationId}/github/synced-repos`);
+}
+
+export function disconnectRepo(integrationId: string, repoFullName: string): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>(`/integrations/${integrationId}/github/repos/${encodeURIComponent(repoFullName)}`, {
+    method: 'DELETE',
+  });
+}
+
 // ── User Profile ────────────────────────────────────────────────────
 
 export function updateProfile(data: { name?: string; email?: string }): Promise<{ id: string; name: string; email: string }> {
