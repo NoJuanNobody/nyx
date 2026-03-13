@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Early Validation Dashboard Preview</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+function App() {
+  const validationData = [
+    {
+      id: 1,
+      statement: "Users need a faster way to complete daily tasks",
+      source: "User Interviews (n=15)",
+      confidence: "High",
+      evidence: ["8/15 users mentioned time constraints", "Average task completion: 12 minutes", "Competitor analysis shows 6-minute average"],
+      status: "Validated"
+    },
+    {
+      id: 2,
+      statement: "Mobile-first approach is critical for adoption",
+      source: "Analytics Data",
+      confidence: "Medium",
+      evidence: ["67% traffic from mobile devices", "Mobile session duration: 3.2 min vs desktop: 5.1 min", "App store research"],
+      status: "Needs More Data"
+    },
+    {
+      id: 3,
+      statement: "Price sensitivity threshold is $29/month",
+      source: "Survey Results (n=127)",
+      confidence: "High",
+      evidence: ["Van Westendorp pricing study", "Competitor pricing analysis", "42% willing to pay $29+"],
+      status: "Validated"
+    }
+  ];
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Validated": return "bg-green-100 text-green-800 border-green-200";
+      case "Needs More Data": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "Rejected": return "bg-red-100 text-red-800 border-red-200";
+      default: return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getConfidenceColor = (confidence) => {
+    switch (confidence) {
+      case "High": return "text-green-600";
+      case "Medium": return "text-yellow-600";
+      case "Low": return "text-red-600";
+      default: return "text-gray-600";
+    }
+  };
+
+  return React.createElement('div', { className: "max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen" }, [
+    React.createElement('div', { className: "bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6", key: "header" }, [
+      React.createElement('h1', { className: "text-2xl font-bold text-gray-900 mb-2", key: "title" }, "Early Validation Dashboard"),
+      React.createElement('p', { className: "text-gray-600", key: "subtitle" }, "Track validation statements and their supporting data sources")
+    ]),
+
+    React.createElement('div', { className: "space-y-6", key: "content" },
+      validationData.map((item) =>
+        React.createElement('div', { key: item.id, className: "bg-white rounded-lg shadow-sm border border-gray-200 p-6" }, [
+          React.createElement('div', { className: "flex items-start justify-between mb-4", key: "header" }, [
+            React.createElement('div', { className: "flex-1", key: "main" }, [
+              React.createElement('h3', { className: "text-lg font-semibold text-gray-900 mb-2", key: "statement" }, item.statement),
+              React.createElement('div', { className: "flex items-center space-x-4", key: "badges" }, [
+                React.createElement('span', {
+                  className: `px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(item.status)}`,
+                  key: "status"
+                }, item.status),
+                React.createElement('span', { className: "text-sm text-gray-500", key: "confidence" }, [
+                  "Confidence: ",
+                  React.createElement('span', {
+                    className: `font-medium ${getConfidenceColor(item.confidence)}`,
+                    key: "conf-value"
+                  }, item.confidence)
+                ])
+              ])
+            ])
+          ]),
+
+          React.createElement('div', { className: "border-t border-gray-100 pt-4", key: "details" }, [
+            React.createElement('div', { className: "grid md:grid-cols-2 gap-6", key: "grid" }, [
+              React.createElement('div', { key: "source" }, [
+                React.createElement('h4', { className: "text-sm font-medium text-gray-900 mb-3 flex items-center", key: "source-title" }, [
+                  React.createElement('svg', { className: "w-4 h-4 mr-2 text-blue-500", fill: "currentColor", viewBox: "0 0 20 20", key: "icon" },
+                    React.createElement('path', { fillRule: "evenodd", d: "M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z", clipRule: "evenodd" })
+                  ),
+                  "Data Source"
+                ]),
+                React.createElement('div', { className: "bg-blue-50 border border-blue-200 rounded-lg p-3", key: "source-box" },
+                  React.createElement('span', { className: "text-blue-800 font-medium", key: "source-text" }, item.source)
+                )
+              ]),
+
+              React.createElement('div', { key: "evidence" }, [
+                React.createElement('h4', { className: "text-sm font-medium text-gray-900 mb-3 flex items-center", key: "evidence-title" }, [
+                  React.createElement('svg', { className: "w-4 h-4 mr-2 text-green-500", fill: "currentColor", viewBox: "0 0 20 20", key: "icon" },
+                    React.createElement('path', { fillRule: "evenodd", d: "M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z", clipRule: "evenodd" })
+                  ),
+                  "Supporting Evidence"
+                ]),
+                React.createElement('ul', { className: "space-y-2", key: "evidence-list" },
+                  item.evidence.map((evidence, index) =>
+                    React.createElement('li', { key: index, className: "text-sm text-gray-700 flex items-start" }, [
+                      React.createElement('span', { className: "w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3 flex-shrink-0", key: "bullet" }),
+                      evidence
+                    ])
+                  )
+                )
+              ])
+            ])
+          ]),
+
+          React.createElement('div', { className: "mt-4 pt-4 border-t border-gray-100 flex items-center justify-between", key: "footer" }, [
+            React.createElement('div', { className: "flex items-center text-sm text-gray-500", key: "timestamp" }, [
+              React.createElement('svg', { className: "w-4 h-4 mr-1", fill: "currentColor", viewBox: "0 0 20 20", key: "clock" },
+                React.createElement('path', { fillRule: "evenodd", d: "M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z", clipRule: "evenodd" })
+              ),
+              "Last updated: 2 days ago"
+            ]),
+            React.createElement('button', { className: "text-sm text-blue-600 hover:text-blue-800 font-medium", key: "button" }, "View Details →")
+          ])
+        ])
+      )
+    ),
+
+    React.createElement('div', { className: "mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6", key: "methodology" }, [
+      React.createElement('h2', { className: "text-lg font-semibold text-gray-900 mb-4", key: "method-title" }, "Data Source Methodology"),
+      React.createElement('div', { className: "grid md:grid-cols-3 gap-6 text-sm", key: "method-grid" }, [
+        React.createElement('div', { className: "border border-gray-200 rounded-lg p-4", key: "interviews" }, [
+          React.createElement('h3', { className: "font-medium text-gray-900 mb-2", key: "title" }, "User Interviews"),
+          React.createElement('p', { className: "text-gray-600", key: "desc" }, "In-depth 30-minute sessions with target users to understand pain points and behaviors")
+        ]),
+        React.createElement('div', { className: "border border-gray-200 rounded-lg p-4", key: "surveys" }, [
+          React.createElement('h3', { className: "font-medium text-gray-900 mb-2", key: "title" }, "Survey Results"),
+          React.createElement('p', { className: "text-gray-600", key: "desc" }, "Quantitative data collection through online surveys with statistical significance")
+        ]),
+        React.createElement('div', { className: "border border-gray-200 rounded-lg p-4", key: "analytics" }, [
+          React.createElement('h3', { className: "font-medium text-gray-900 mb-2", key: "title" }, "Analytics Data"),
+          React.createElement('p', { className: "text-gray-600", key: "desc" }, "Historical user behavior data from existing platforms and competitor analysis")
+        ])
+      ])
+    ])
+  ]);
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App));
+</script>
+</body>
+</html>

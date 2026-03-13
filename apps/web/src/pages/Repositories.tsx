@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { fetchIntegrations, fetchSyncedRepos, disconnectRepo, type SyncedRepo } from '../lib/api';
+import { fetchIntegrations, fetchSyncedRepos, disconnectRepo, GitHubTokenExpiredError, type SyncedRepo } from '../lib/api';
+import { GitHubReconnectBanner } from '../components/GitHubReconnectBanner';
 import { useAuthStore } from '../stores/auth.store';
 
 function StatusBadge({ status }: { status: SyncedRepo['syncStatus'] }) {
@@ -48,10 +49,14 @@ export function Repositories() {
 
   const githubIntegration = rawIntegrations?.find((ri) => ri.type === 'github');
 
-  const { data: syncedData, isLoading: reposLoading } = useQuery({
+  const { data: syncedData, isLoading: reposLoading, error: reposError } = useQuery({
     queryKey: ['synced-repos', githubIntegration?.id],
     queryFn: () => fetchSyncedRepos(githubIntegration!.id),
     enabled: !!githubIntegration?.id,
+    retry: (count, error) => {
+      if (error instanceof GitHubTokenExpiredError) return false;
+      return count < 3;
+    },
   });
 
   const disconnectMutation = useMutation({
@@ -99,6 +104,21 @@ export function Repositories() {
             Go to Integrations
           </Link>
         </div>
+      </>
+    );
+  }
+
+  // GitHub token expired
+  if (reposError instanceof GitHubTokenExpiredError) {
+    return (
+      <>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-slate-900">Repositories</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            View and manage your synced GitHub repositories.
+          </p>
+        </div>
+        <GitHubReconnectBanner />
       </>
     );
   }

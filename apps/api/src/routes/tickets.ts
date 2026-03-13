@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { ticketService } from '../services/ticket.service.js';
 import { timelineService } from '../services/timeline.service.js';
+import { GitHubTokenExpiredError } from '../services/github.service.js';
 
 export const ticketRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/tickets?teamId=X&status=&provider= — list tickets for a team (Board view)
@@ -45,28 +46,36 @@ export const ticketRoutes: FastifyPluginAsync = async (app) => {
 
     const userId = request.user.id;
 
-    const ticket = await ticketService.createFromDocument(
-      documentId,
-      provider,
-      title,
-      body,
-      userId,
-    );
+    try {
+      const ticket = await ticketService.createFromDocument(
+        documentId,
+        provider,
+        title,
+        body,
+        userId,
+      );
 
-    // Fire-and-forget: record timeline event
-    setImmediate(async () => {
-      try {
-        await timelineService.create({
-          documentId,
-          type: 'ticket_created',
-          payload: { ticketId: ticket.id, provider, title, externalUrl: ticket.externalUrl },
-          actorId: userId,
-        });
-      } catch {}
-    });
+      // Fire-and-forget: record timeline event
+      setImmediate(async () => {
+        try {
+          await timelineService.create({
+            documentId,
+            type: 'ticket_created',
+            payload: { ticketId: ticket.id, provider, title, externalUrl: ticket.externalUrl },
+            actorId: userId,
+          });
+        } catch {}
+      });
 
-    reply.code(201);
-    return ticket;
+      reply.code(201);
+      return ticket;
+    } catch (err) {
+      if (err instanceof GitHubTokenExpiredError) {
+        reply.code(401);
+        return { error: 'github_token_expired', message: err.message };
+      }
+      throw err;
+    }
   });
 
   // POST /api/tickets/:id/sync — sync ticket status from external provider

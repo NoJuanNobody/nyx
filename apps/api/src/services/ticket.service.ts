@@ -3,7 +3,7 @@
 import { eq, and, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { tickets, integrations, documents } from '../db/schema.js';
-import { githubService } from './github.service.js';
+import { githubService, GitHubTokenExpiredError } from './github.service.js';
 import { jiraService } from './jira.service.js';
 import { auditService } from './audit.service.js';
 

@@ -3,7 +3,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
 import { db } from '../db/index.js';
 import { integrations, documents, timelineEvents } from '../db/schema.js';
-import { githubService } from '../services/github.service.js';
+import { githubService, GitHubTokenExpiredError } from '../services/github.service.js';
 import { jiraService } from '../services/jira.service.js';
 import { requireRole } from '../middleware/permissions.js';
 import { config } from '../lib/config.js';
@@ -168,6 +168,10 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       const repos = await githubService.listRepos(cfg.accessToken);
       return { repos };
     } catch (err) {
+      if (err instanceof GitHubTokenExpiredError) {
+        reply.code(401);
+        return { error: 'github_token_expired', message: err.message };
+      }
       const message = err instanceof Error ? err.message : 'Unknown error';
       reply.code(502);
       return { error: message };
@@ -469,6 +473,10 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
 
       return { ok: false, message: `Test not supported for type: ${integration.type}` };
     } catch (err) {
+      if (err instanceof GitHubTokenExpiredError) {
+        reply.code(401);
+        return { ok: false, error: 'github_token_expired', message: err.message };
+      }
       const message = err instanceof Error ? err.message : 'Unknown error';
       reply.code(502);
       return { ok: false, message };

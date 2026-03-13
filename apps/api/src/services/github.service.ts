@@ -63,6 +63,13 @@ export interface PushWebhookResult {
   changedFiles: string[];
 }
 
+export class GitHubTokenExpiredError extends Error {
+  constructor(method: string) {
+    super(`GitHub token expired or revoked. Please reconnect your GitHub integration.`);
+    this.name = 'GitHubTokenExpiredError';
+  }
+}
+
 // ── Service ───────────────────────────────────────────
 
 export const githubService = {
@@ -72,6 +79,9 @@ export const githubService = {
     });
 
     if (!res.ok) {
+      if (res.status === 401) {
+        throw new GitHubTokenExpiredError('listRepos');
+      }
       throw new Error(`GitHub listRepos failed: ${res.status} ${res.statusText}`);
     }
 
@@ -90,6 +100,9 @@ export const githubService = {
     );
 
     if (!res.ok) {
+      if (res.status === 401) {
+        throw new GitHubTokenExpiredError('getFileTree');
+      }
       throw new Error(`GitHub getFileTree failed: ${res.status} ${res.statusText}`);
     }
 
@@ -112,6 +125,9 @@ export const githubService = {
     });
 
     if (!res.ok) {
+      if (res.status === 401) {
+        throw new GitHubTokenExpiredError('getFileContent');
+      }
       throw new Error(`GitHub getFileContent failed: ${res.status} ${res.statusText}`);
     }
 
@@ -136,6 +152,9 @@ export const githubService = {
     });
 
     if (!res.ok) {
+      if (res.status === 401) {
+        throw new GitHubTokenExpiredError('createIssue');
+      }
       throw new Error(`GitHub createIssue failed: ${res.status} ${res.statusText}`);
     }
 
@@ -185,6 +204,9 @@ export const githubService = {
     });
 
     if (!res.ok) {
+      if (res.status === 401) {
+        throw new GitHubTokenExpiredError('getAuthenticatedUser');
+      }
       throw new Error(`GitHub getUser failed: ${res.status} ${res.statusText}`);
     }
 
@@ -215,6 +237,9 @@ export const githubService = {
     });
 
     if (!res.ok) {
+      if (res.status === 401) {
+        throw new GitHubTokenExpiredError('createWebhook');
+      }
       throw new Error(`GitHub createWebhook failed: ${res.status} ${res.statusText}`);
     }
 
@@ -233,6 +258,9 @@ export const githubService = {
     });
 
     if (!res.ok && res.status !== 404) {
+      if (res.status === 401) {
+        throw new GitHubTokenExpiredError('deleteWebhook');
+      }
       throw new Error(`GitHub deleteWebhook failed: ${res.status} ${res.statusText}`);
     }
   },
@@ -249,6 +277,9 @@ export const githubService = {
     );
 
     if (!res.ok) {
+      if (res.status === 401) {
+        throw new GitHubTokenExpiredError('listIssues');
+      }
       throw new Error(`GitHub listIssues failed: ${res.status} ${res.statusText}`);
     }
 
@@ -275,6 +306,9 @@ export const githubService = {
     });
 
     if (!res.ok) {
+      if (res.status === 401) {
+        throw new GitHubTokenExpiredError('attachImageToIssue');
+      }
       const body = await res.text();
       throw new Error(`GitHub API error ${res.status}: ${body}`);
     }
