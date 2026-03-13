@@ -391,16 +391,26 @@ STRICT RULES:
     let text =
       response.content[0].type === 'text' ? response.content[0].text : '';
 
-    text = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    // Strip code fences (```json ... ``` or ``` ... ```) anywhere in the text
+    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+    // Try to extract a JSON object from the text (AI may wrap it in extra prose)
+    const jsonMatch = text.match(/\{[\s\S]*"content"\s*:\s*"[\s\S]*\}/);
+    const jsonCandidate = jsonMatch ? jsonMatch[0] : text;
 
     try {
-      const parsed = JSON.parse(text) as { title: string; content: string };
+      const parsed = JSON.parse(jsonCandidate) as { title: string; content: string };
       return {
         title: parsed.title || 'Untitled Document',
         content: parsed.content || text,
       };
     } catch {
-      return { title: 'Untitled Document', content: text };
+      // Fallback: extract title from first markdown heading
+      const headingMatch = text.match(/^#\s+(.+)$/m);
+      return {
+        title: headingMatch ? headingMatch[1].trim() : 'Untitled Document',
+        content: text,
+      };
     }
   },
 };
