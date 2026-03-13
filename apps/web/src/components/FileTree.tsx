@@ -614,7 +614,10 @@ export function FileTree() {
     for (const t of templates ?? []) {
       const stageKey = t.stage as string | undefined;
       if (stageKey && stageKey in map) {
-        map[stageKey].push(t);
+        // Deduplicate by name within each stage (safety net for duplicate DB rows)
+        if (!map[stageKey].some((existing) => existing.name === t.name)) {
+          map[stageKey].push(t);
+        }
       }
     }
     return map;
