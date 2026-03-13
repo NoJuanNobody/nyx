@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, integer, jsonb, pgEnum, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, jsonb, pgEnum, boolean, uniqueIndex } from 'drizzle-orm/pg-core';
 
 export const userRoleEnum = pgEnum('user_role', ['owner', 'admin', 'developer', 'editor', 'viewer']);
 export const documentStatusEnum = pgEnum('document_status', ['draft', 'published', 'archived']);
@@ -104,7 +104,9 @@ export const documentTemplates = pgTable('document_templates', {
   content: text('content').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  uniqueIndex('document_templates_stage_name_idx').on(table.stage, table.name),
+]);
 
 export const documentVersions = pgTable('document_versions', {
   id: uuid('id').primaryKey().defaultRandom(),

@@ -417,6 +417,8 @@ async function seed() {
   console.log('[seed] API keys: 1');
 
   // ── Document Templates (20) — 4 per lifecycle stage ─────
+  // Clear existing templates first to avoid duplicates on re-run
+  await db.delete(documentTemplates);
   await db.insert(documentTemplates).values([
     // Conception
     { stage: 'conception', name: 'Problem Statement', description: 'Define the problem you are solving and for whom', content: '# Problem Statement\n\n## The Problem\n<!-- What specific problem are you solving? Who experiences it? -->\n\n## Current Solutions\n<!-- How do people solve this today? What\'s broken about existing approaches? -->\n\n## Target Users\n<!-- Who are the primary users? What are their characteristics? -->\n\n## Impact\n<!-- What happens if this problem remains unsolved? What\'s the cost? -->\n\n## Proposed Direction\n<!-- High-level idea for a solution (not detailed spec — just direction) -->\n', sortOrder: 0 },
