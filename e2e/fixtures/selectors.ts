@@ -122,6 +122,15 @@ export const SEL = {
     ticketCard: 'div.rounded-lg.border',
   },
 
+  // ── Repositories ────────────────────────────────────────
+  repositories: {
+    title: 'h1:has-text("Repositories")',
+    repoRow: 'ul li',
+    removeButton: 'button:has-text("Remove")',
+    confirmYes: 'button:has-text("Yes")',
+    confirmNo: 'button:has-text("No")',
+  },
+
   // ── Landing ──────────────────────────────────────────
   landing: {
     heroTitle: 'h1',
