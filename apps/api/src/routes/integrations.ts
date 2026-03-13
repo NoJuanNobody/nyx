@@ -1,8 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
 import { db } from '../db/index.js';
-import { integrations } from '../db/schema.js';
+import { integrations, documents, timelineEvents } from '../db/schema.js';
 import { githubService } from '../services/github.service.js';
 import { jiraService } from '../services/jira.service.js';
 import { requireRole } from '../middleware/permissions.js';
@@ -242,6 +242,136 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       .update(integrations)
       .set({
         config: { ...cfg, selectedRepos: repos, webhookSecret, webhookIds: updatedWebhookIds },
+        updatedAt: new Date(),
+      })
+      .where(eq(integrations.id, id));
+
+    return { ok: true };
+  });
+
+  // GET /api/integrations/:id/github/synced-repos — enriched synced repo data
+  app.get('/:id/github/synced-repos', { preHandler: [requireRole({ minimumRole: 'viewer', source: 'integration' })] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(eq(integrations.id, id));
+
+    if (!integration || integration.type !== 'github') {
+      reply.code(404);
+      return { error: 'GitHub integration not found' };
+    }
+
+    const cfg = integration.config as Record<string, unknown>;
+    const selectedRepos = (cfg.selectedRepos as Array<{ owner: string; name: string; fullName: string }>) ?? [];
+    const webhookIds = (cfg.webhookIds as Record<string, number>) ?? {};
+
+    if (selectedRepos.length === 0) {
+      return { repos: [] };
+    }
+
+    // Get all team documents for linked doc counting
+    const teamDocs = await db
+      .select({ id: documents.id, content: documents.content })
+      .from(documents)
+      .where(eq(documents.teamId, integration.teamId));
+
+    // Get all code_push timeline events for this team's documents
+    const teamDocIds = teamDocs.map(d => d.id);
+    let pushEvents: Array<{ documentId: string; payload: unknown; createdAt: Date }> = [];
+    if (teamDocIds.length > 0) {
+      pushEvents = await db
+        .select({
+          documentId: timelineEvents.documentId,
+          payload: timelineEvents.payload,
+          createdAt: timelineEvents.createdAt,
+        })
+        .from(timelineEvents)
+        .where(
+          and(
+            eq(timelineEvents.type, 'code_push'),
+            inArray(timelineEvents.documentId, teamDocIds),
+          )
+        );
+    }
+
+    const enrichedRepos = selectedRepos.map(repo => {
+      const hasWebhook = !!webhookIds[repo.fullName];
+
+      // Find the most recent push event for this repo
+      const repoPushEvents = pushEvents.filter(e => {
+        const payload = e.payload as Record<string, unknown>;
+        return payload?.repo === repo.fullName || payload?.repository === repo.fullName;
+      });
+      const lastPush = repoPushEvents.length > 0
+        ? repoPushEvents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+        : null;
+
+      // Count documents that mention this repo
+      const linkedDocCount = teamDocs.filter(d =>
+        d.content.includes(repo.fullName) || d.content.includes(repo.name)
+      ).length;
+
+      return {
+        owner: repo.owner,
+        name: repo.name,
+        fullName: repo.fullName,
+        syncStatus: hasWebhook ? 'active' : 'disconnected',
+        webhookId: webhookIds[repo.fullName] ?? null,
+        lastPushAt: lastPush?.createdAt ?? null,
+        linkedDocCount,
+      };
+    });
+
+    return { repos: enrichedRepos };
+  });
+
+  // DELETE /api/integrations/:id/github/repos/:repoName — disconnect a single repo
+  app.delete('/:id/github/repos/:repoName', { preHandler: [requireRole({ minimumRole: 'admin', source: 'integration' })] }, async (request, reply) => {
+    const { id, repoName } = request.params as { id: string; repoName: string };
+    // repoName is URL-encoded full_name like "owner%2Frepo"
+    const fullName = decodeURIComponent(repoName);
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(eq(integrations.id, id));
+
+    if (!integration || integration.type !== 'github') {
+      reply.code(404);
+      return { error: 'GitHub integration not found' };
+    }
+
+    const cfg = integration.config as Record<string, unknown>;
+    const accessToken = cfg.accessToken as string;
+    const selectedRepos = (cfg.selectedRepos as Array<{ owner: string; name: string; fullName: string }>) ?? [];
+    const webhookIds = (cfg.webhookIds as Record<string, number>) ?? {};
+
+    const repo = selectedRepos.find(r => r.fullName === fullName);
+    if (!repo) {
+      reply.code(404);
+      return { error: 'Repository not found in synced repos' };
+    }
+
+    // Delete webhook if exists
+    const hookId = webhookIds[fullName];
+    if (hookId && accessToken) {
+      try {
+        await githubService.deleteWebhook(accessToken, repo.owner, repo.name, hookId);
+      } catch (err) {
+        request.log.warn({ repo: fullName, err }, 'Failed to delete webhook during disconnect');
+      }
+    }
+
+    const updatedRepos = selectedRepos.filter(r => r.fullName !== fullName);
+    const updatedWebhookIds = { ...webhookIds };
+    delete updatedWebhookIds[fullName];
+
+    await db
+      .update(integrations)
+      .set({
+        config: { ...cfg, selectedRepos: updatedRepos, webhookIds: updatedWebhookIds },
         updatedAt: new Date(),
       })
       .where(eq(integrations.id, id));
