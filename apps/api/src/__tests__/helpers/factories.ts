@@ -115,6 +115,19 @@ export function makeChangeProposal(overrides?: Record<string, unknown>) {
   };
 }
 
+export function makeTemplate(overrides?: Record<string, unknown>) {
+  return {
+    id: randomUUID(),
+    stage: 'definition' as const,
+    name: 'Test Template',
+    description: 'A test template',
+    content: '# Template\n\nContent here',
+    sortOrder: 0,
+    createdAt: new Date(),
+    ...overrides,
+  };
+}
+
 export function makeInvitation(overrides?: Record<string, unknown>) {
   const future = new Date();
   future.setDate(future.getDate() + 7);
