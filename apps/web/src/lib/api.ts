@@ -480,6 +480,17 @@ export function syncAllTickets(teamId: string): Promise<{ synced: number }> {
   });
 }
 
+export function createTicket(documentId: string, data: { provider: 'github' | 'jira'; title: string; body: string }): Promise<Ticket> {
+  return request<Ticket>(`/documents/${encodeURIComponent(documentId)}/tickets`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function fetchDocumentTickets(documentId: string): Promise<Ticket[]> {
+  return request<Ticket[]>(`/documents/${encodeURIComponent(documentId)}/tickets`);
+}
+
 // ── Integrations (Settings) ─────────────────────────────────────────
 
 export function fetchIntegrations(teamId: string): Promise<Array<{ id: string; teamId: string; type: string; config: Record<string, unknown>; createdAt: string }>> {
