@@ -58,7 +58,7 @@ export const SEL = {
     // Layout tabs
     markdownTab: 'button:has-text("Markdown")',
     splitTab: 'button:has-text("Split")',
-    previewTab: 'button:has-text("Preview")',
+    previewTab: 'button:text-is("Preview")',
     // Preview pane
     previewPane: '.prose',
     // Toolbar buttons
