@@ -122,6 +122,19 @@ export const SEL = {
     ticketCard: 'div.rounded-lg.border',
   },
 
+  // ── Claude Insights ───────────────────────────────────
+  claudeInsight: {
+    panel: 'div.rounded.border.border-purple-100',
+    toggleButton: 'div.rounded.border.border-purple-100 > button',
+    title: 'div.rounded.border.border-purple-100 span.font-semibold',
+    summaryItems: 'div.rounded.border.border-purple-100 ul li',
+    viewCommentLink: 'a:has-text("View comment")',
+    refreshButton: 'button:has-text("Refresh")',
+    fetchButton: 'button:has-text("Fetch")',
+    noInsightLabel: 'text=No Claude insight',
+    filesSection: 'p:has-text("Files")',
+  },
+
   // ── Repositories ────────────────────────────────────────
   repositories: {
     title: 'h1:has-text("Repositories")',

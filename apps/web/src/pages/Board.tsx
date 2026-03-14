@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/auth.store';
 import { fetchTickets, syncAllTickets, type Ticket } from '../lib/api';
+import { ClaudeInsightCard } from '../components/ClaudeInsightCard';
 
 type ColumnStatus = 'open' | 'in_progress' | 'closed';
 
@@ -50,6 +51,9 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
           Open externally &rarr;
         </a>
       </div>
+      {ticket.provider === 'github' && (
+        <ClaudeInsightCard ticketId={ticket.id} insight={ticket.claudeInsights ?? null} />
+      )}
     </div>
   );
 }

@@ -111,6 +111,24 @@ const SEEDED_VERSIONS = [
   },
 ];
 
+export const SEEDED_INSIGHT = {
+  title: 'Implement auth endpoints',
+  summary: [
+    'Added JWT middleware to all protected routes',
+    'Created /api/auth/login and /api/auth/logout endpoints',
+    'Updated tests to cover auth flows',
+  ],
+  filesChanged: [
+    'apps/api/src/middleware/auth.ts',
+    'apps/api/src/routes/auth.ts',
+    'apps/api/src/__tests__/auth.test.ts',
+  ],
+  commentId: 1234567890,
+  commentUrl: 'https://github.com/syncdocs/app/issues/101#issuecomment-1234567890',
+  commentedAt: '2025-01-02T10:00:00Z',
+  fetchedAt: '2025-01-02T10:05:00Z',
+};
+
 const SEEDED_TICKETS = [
   {
     id: SEED.TKT_GH_OPEN_ID,
@@ -120,6 +138,7 @@ const SEEDED_TICKETS = [
     externalUrl: 'https://github.com/syncdocs/app/issues/101',
     title: 'Implement auth endpoints',
     status: 'open',
+    claudeInsights: SEEDED_INSIGHT,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
@@ -133,6 +152,7 @@ const SEEDED_TICKETS = [
     externalUrl: 'https://github.com/syncdocs/app/issues/102',
     title: 'Fix rate limiting',
     status: 'closed',
+    claudeInsights: null,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
@@ -146,6 +166,7 @@ const SEEDED_TICKETS = [
     externalUrl: 'https://syncdocs.atlassian.net/browse/SD-1',
     title: 'Review architecture',
     status: 'open',
+    claudeInsights: null,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
@@ -159,6 +180,7 @@ const SEEDED_TICKETS = [
     externalUrl: 'https://syncdocs.atlassian.net/browse/SD-2',
     title: 'Update deployment docs',
     status: 'in_progress',
+    claudeInsights: null,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
@@ -651,6 +673,33 @@ async function setupApiMocks(page: Page) {
     const url = route.request().url();
     const method = route.request().method();
     const pathname = new URL(url).pathname;
+
+    // Insights refresh: POST /api/tickets/:id/insights/refresh
+    if (/\/tickets\/[^/]+\/insights\/refresh/.test(pathname) && method === 'POST') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(SEEDED_INSIGHT),
+      });
+    }
+
+    // Insights get: GET /api/tickets/:id/insights
+    if (/\/tickets\/[^/]+\/insights$/.test(pathname) && method === 'GET') {
+      const ticketId = pathname.match(/\/tickets\/([^/]+)\/insights/)?.[1];
+      const ticket = SEEDED_TICKETS.find((t) => t.id === ticketId);
+      if (ticket?.claudeInsights) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(ticket.claudeInsights),
+        });
+      }
+      return route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'No Claude insight found for this ticket' }),
+      });
+    }
 
     // Tickets sync
     if (/\/tickets\/sync/.test(pathname)) {
