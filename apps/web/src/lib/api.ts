@@ -183,13 +183,45 @@ export function fetchTimeline(documentId: string): Promise<{ documentId: string;
 
 // ── Templates ──────────────────────────────────────────────────────
 
-export function fetchTemplates(stage?: DocumentStage): Promise<DocumentTemplate[]> {
-  const params = stage ? `?stage=${encodeURIComponent(stage)}` : '';
-  return request<DocumentTemplate[]>(`/templates${params}`);
+export function fetchTemplates(stage?: DocumentStage, teamId?: string): Promise<DocumentTemplate[]> {
+  const params = new URLSearchParams();
+  if (stage) params.set('stage', stage);
+  if (teamId) params.set('teamId', teamId);
+  const qs = params.toString();
+  return request<DocumentTemplate[]>(`/templates${qs ? `?${qs}` : ''}`);
 }
 
 export function fetchTemplate(id: string): Promise<DocumentTemplate> {
   return request<DocumentTemplate>(`/templates/${id}`);
+}
+
+export function createTemplate(data: {
+  name: string;
+  description: string;
+  content: string;
+  stage: DocumentStage;
+  teamId: string;
+}): Promise<DocumentTemplate> {
+  return request<DocumentTemplate>('/templates', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateTemplate(
+  id: string,
+  data: { name?: string; description?: string; content?: string; stage?: DocumentStage },
+): Promise<DocumentTemplate> {
+  return request<DocumentTemplate>(`/templates/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteTemplate(id: string): Promise<{ deleted: boolean }> {
+  return request<{ deleted: boolean }>(`/templates/${id}`, {
+    method: 'DELETE',
+  });
 }
 
 // ── AI ─────────────────────────────────────────────────────────────

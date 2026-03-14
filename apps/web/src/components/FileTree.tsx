@@ -1208,6 +1208,7 @@ export function FileTree() {
       {/* Template picker modal */}
       {showTemplatePicker && teamId && (
         <TemplatePicker
+          teamId={teamId}
           onClose={() => setShowTemplatePicker(false)}
           onCreate={(data) => {
             createMutation.mutate({ ...data, teamId, path: '/' });
