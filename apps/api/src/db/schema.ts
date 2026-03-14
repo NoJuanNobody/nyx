@@ -309,3 +309,19 @@ export const ticketSuggestions = pgTable('ticket_suggestions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ── Feedback Submissions ─────────────────────────────
+
+export const feedbackSubmissions = pgTable('feedback_submissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
+  rawMessage: text('raw_message').notNull(),
+  formattedTitle: text('formatted_title').notNull(),
+  formattedBody: text('formatted_body').notNull(),
+  category: text('category').notNull(),
+  githubIssueUrl: text('github_issue_url'),
+  githubIssueNumber: integer('github_issue_number'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
