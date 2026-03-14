@@ -312,6 +312,20 @@ export const ticketSuggestions = pgTable('ticket_suggestions', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── Slack Connections ─────────────────────────────────
+
+export const slackConnections = pgTable('slack_connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id),
+  slackTeamId: text('slack_team_id').notNull(),
+  slackBotToken: text('slack_bot_token').notNull(),
+  triggerEmoji: text('trigger_emoji').default('nyx'),
+  monitoredChannels: jsonb('monitored_channels').default([]),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ── Feedback Submissions ─────────────────────────────
 
 export const feedbackSubmissions = pgTable('feedback_submissions', {

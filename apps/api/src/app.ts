@@ -25,6 +25,7 @@ import { waitlistRoutes } from './routes/waitlist.js';
 import { templateRoutes } from './routes/templates.js';
 import { mockupRoutes, setMockupCluster } from './routes/mockups.js';
 import { feedbackRoutes } from './routes/feedback.js';
+import { slackRoutes } from './routes/slack.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -61,6 +62,7 @@ export function buildApp() {
   app.register(templateRoutes, { prefix: '/api/templates' });
   app.register(mockupRoutes, { prefix: '/api/mockups' });
   app.register(feedbackRoutes, { prefix: '/api/feedback' });
+  app.register(slackRoutes, { prefix: '/api/slack' });
 
   return app;
 }

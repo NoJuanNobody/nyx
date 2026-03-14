@@ -644,6 +644,41 @@ export function submitFeedback(data: {
   });
 }
 
+// ── Slack ────────────────────────────────────────────────────────────
+
+export interface SlackConnection {
+  id: string;
+  slackTeamId: string;
+  triggerEmoji: string | null;
+  monitoredChannels: string[];
+  createdAt: string;
+}
+
+export function getSlackInstallUrl(teamId: string): Promise<{ url: string }> {
+  return request<{ url: string }>(`/slack/install?teamId=${encodeURIComponent(teamId)}`);
+}
+
+export function getSlackConnection(teamId: string): Promise<{ connection: SlackConnection | null }> {
+  return request<{ connection: SlackConnection | null }>(`/slack/connection?teamId=${encodeURIComponent(teamId)}`);
+}
+
+export function updateSlackConnection(
+  teamId: string,
+  data: { triggerEmoji?: string; monitoredChannels?: string[] },
+): Promise<{ connection: SlackConnection | null }> {
+  return request<{ connection: SlackConnection | null }>(
+    `/slack/connection?teamId=${encodeURIComponent(teamId)}`,
+    { method: 'PATCH', body: JSON.stringify(data) },
+  );
+}
+
+export function disconnectSlack(teamId: string): Promise<{ disconnected: boolean }> {
+  return request<{ disconnected: boolean }>(
+    `/slack/connection?teamId=${encodeURIComponent(teamId)}`,
+    { method: 'DELETE' },
+  );
+}
+
 // ── Mockups ─────────────────────────────────────────────────────────
 
 export function renderMockupJsx(jsx: string): Promise<{ screenshot: string }> {
