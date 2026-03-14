@@ -15,6 +15,7 @@ import { MarkdownToolbar } from '../components/MarkdownToolbar';
 import { AIAdvisor } from '../components/AIAdvisor';
 import { CreateTicketModal } from '../components/CreateTicketModal';
 import { JSXPreviewPanel } from '../components/JSXPreviewPanel';
+import { SaveAsTemplateButton } from '../components/SaveAsTemplateButton';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
 
@@ -289,6 +290,8 @@ export function DocumentEditor() {
           >
             Create Ticket
           </button>
+
+          <SaveAsTemplateButton content={content} stage={docStage} teamId={doc.teamId} />
 
           <button
             type="button"
