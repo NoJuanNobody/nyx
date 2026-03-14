@@ -247,6 +247,44 @@ export function seedNextStage(
   });
 }
 
+export function seedFromStage(data: {
+  documentId: string;
+  fromStage: string;
+  toStage: string;
+  content: string;
+}): Promise<{ title: string; content: string }> {
+  return request<{ title: string; content: string }>('/ai/seed-from-stage', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function analyzeMissingSections(data: {
+  content: string;
+  stage?: string;
+}): Promise<{
+  missingSections: Array<{ name: string; description: string; priority: 'high' | 'medium' | 'low' }>;
+}> {
+  return request<{
+    missingSections: Array<{ name: string; description: string; priority: 'high' | 'medium' | 'low' }>;
+  }>('/ai/missing-sections', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function replyToNotification(data: {
+  notificationId: string;
+  message: string;
+  documentId: string;
+  content?: string;
+}): Promise<{ reply: string; suggestedActions: string[] }> {
+  return request<{ reply: string; suggestedActions: string[] }>('/ai/notification-reply', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export function generateDocument(
   prompt: string,
 ): Promise<{ title: string; content: string }> {

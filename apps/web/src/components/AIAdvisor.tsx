@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { analyzeSpecQuality, editDocumentAI } from '../lib/api';
-import { STAGE_MAP, type DocumentStage } from '../lib/stages';
+import {
+  analyzeSpecQuality,
+  editDocumentAI,
+  seedFromStage,
+  analyzeMissingSections,
+  replyToNotification,
+} from '../lib/api';
+import { STAGE_MAP, getNextStage, type DocumentStage } from '../lib/stages';
 
 // ── Notification types ───────────────────────────────────────────────
 
@@ -159,7 +165,9 @@ function NotificationCard({ notification, onDismiss, onReply, isReplying }: Noti
 export function AIAdvisor({
   content,
   stage,
+  documentId,
   onApplyEdit,
+  onStageChange,
 }: AIAdvisorProps) {
   const [notifications, setNotifications] = useState<AdvisorNotification[]>([]);
   const [expanded, setExpanded] = useState(false);
@@ -354,6 +362,185 @@ export function AIAdvisor({
     };
   }, [content, stage, dismissNotification, setNotifStatus, onApplyEdit]);
 
+  // ── Pre-fill offer notification (Tier 2) — offer to seed next stage ─
+  const lastPrefillStageRef = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!stage || !content || content.length < 50) return;
+    if (stage === lastPrefillStageRef.current) return;
+
+    lastPrefillStageRef.current = stage;
+    const nextStage = getNextStage(stage);
+    if (!nextStage) return;
+
+    const nextStageInfo = STAGE_MAP[nextStage];
+    const id = genId();
+
+    const prefillNotif: AdvisorNotification = {
+      id,
+      tier: 2,
+      type: 'prefill_offer',
+      title: `Ready to move to ${nextStageInfo.label}?`,
+      body: `Your ${STAGE_MAP[stage].label} document can seed a ${nextStageInfo.label} document.\n${nextStageInfo.description}`,
+      status: 'idle',
+      accentColor: nextStageInfo.dotColor,
+      replyEnabled: true,
+      ctas: [
+        {
+          label: 'Generate next stage',
+          variant: 'primary',
+          onClick: async () => {
+            setNotifStatus(id, 'loading');
+            try {
+              const result = await seedFromStage({
+                documentId: documentId || '',
+                fromStage: stage,
+                toStage: nextStage,
+                content,
+              });
+              onApplyEdit?.(result.content);
+              if (onStageChange) {
+                onStageChange(nextStage);
+              }
+              setNotifStatus(id, 'success', `${nextStageInfo.label} content generated — review in the editor`);
+            } catch {
+              setNotifStatus(id, 'idle');
+            }
+          },
+        },
+        {
+          label: 'Dismiss',
+          variant: 'ghost',
+          onClick: () => dismissNotification(id),
+        },
+      ],
+    };
+
+    setNotifications((prev) => {
+      const filtered = prev.filter((n) => n.type !== 'prefill_offer');
+      return [prefillNotif, ...filtered];
+    });
+  }, [stage, content, documentId, dismissNotification, setNotifStatus, onApplyEdit, onStageChange]);
+
+  // ── Missing sections alert (Tier 2) — check after quality runs ─────
+  const lastMissingSectionsContentRef = useRef('');
+
+  useEffect(() => {
+    if (!content || content.length < 50) return;
+    if (qualityLoading) return;
+    if (qualityScore === null) return;
+    if (content === lastMissingSectionsContentRef.current) return;
+
+    lastMissingSectionsContentRef.current = content;
+
+    const timer = setTimeout(async () => {
+      try {
+        const result = await analyzeMissingSections({ content, stage: stage || undefined });
+        const missing = result.missingSections;
+        if (missing.length === 0) {
+          // Clear any existing missing_sections notification
+          setNotifications((prev) => prev.filter((n) => n.type !== 'missing_sections'));
+          return;
+        }
+
+        const id = genId();
+        const highPriority = missing.filter((s) => s.priority === 'high');
+        const bodyLines = missing
+          .slice(0, 5)
+          .map((s) => `[${s.priority}] ${s.name}: ${s.description}`);
+
+        const missingNotif: AdvisorNotification = {
+          id,
+          tier: 2,
+          type: 'missing_sections',
+          title: `${missing.length} missing section${missing.length > 1 ? 's' : ''} detected`,
+          body: bodyLines.join('\n'),
+          status: 'idle',
+          accentColor: highPriority.length > 0 ? 'bg-red-400' : 'bg-amber-400',
+          replyEnabled: true,
+          ctas: [
+            {
+              label: 'Add missing sections',
+              variant: 'primary',
+              onClick: async () => {
+                setNotifStatus(id, 'loading');
+                try {
+                  const instruction = `Add the following missing sections to this document:\n${missing.map((s) => `- ${s.name}: ${s.description}`).join('\n')}`;
+                  const result = await editDocumentAI(content, instruction);
+                  onApplyEdit?.(result.content);
+                  setNotifStatus(id, 'success', 'Missing sections added — review the proposed changes');
+                } catch {
+                  setNotifStatus(id, 'idle');
+                }
+              },
+            },
+            {
+              label: 'Dismiss',
+              variant: 'ghost',
+              onClick: () => dismissNotification(id),
+            },
+          ],
+        };
+
+        setNotifications((prev) => {
+          const filtered = prev.filter((n) => n.type !== 'missing_sections');
+          return [missingNotif, ...filtered];
+        });
+      } catch {
+        // Silently ignore missing sections analysis failures
+      }
+    }, 5000); // slightly delayed after quality analysis
+
+    return () => clearTimeout(timer);
+  }, [content, stage, qualityScore, qualityLoading, dismissNotification, setNotifStatus, onApplyEdit]);
+
+  // ── Reply handler — send reply to notification-reply endpoint ───────
+  const handleSendReply = useCallback(async () => {
+    if (!replyToId || !replyText.trim()) return;
+
+    const notif = notifications.find((n) => n.id === replyToId);
+    if (!notif) return;
+
+    const currentReplyToId = replyToId;
+    setReplyToId(null);
+    setReplyText('');
+
+    try {
+      const result = await replyToNotification({
+        notificationId: currentReplyToId,
+        message: replyText,
+        documentId: documentId || '',
+        content: content.slice(0, 2000),
+      });
+
+      // Create a new notification with the AI reply
+      const replyNotifId = genId();
+      const replyNotif: AdvisorNotification = {
+        id: replyNotifId,
+        tier: 2,
+        type: 'ai_reply',
+        title: 'AI Advisor Reply',
+        body: result.reply + (result.suggestedActions.length > 0
+          ? '\n\nSuggested actions:\n' + result.suggestedActions.join('\n')
+          : ''),
+        status: 'idle',
+        accentColor: 'bg-blue-400',
+        replyEnabled: true,
+        ctas: [
+          {
+            label: 'Dismiss',
+            variant: 'ghost',
+            onClick: () => dismissNotification(replyNotifId),
+          },
+        ],
+      };
+
+      setNotifications((prev) => [replyNotif, ...prev]);
+    } catch {
+      // Silently ignore reply failures
+    }
+  }, [replyToId, replyText, notifications, documentId, content, dismissNotification]);
+
   // ── Render ─────────────────────────────────────────────────────────
 
   const notificationCount = notifications.length;
@@ -456,10 +643,7 @@ export function AIAdvisor({
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    setReplyToId(null);
-                    setReplyText('');
-                  }}
+                  onClick={handleSendReply}
                   className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
                   data-testid="ai-advisor-reply-send"
                 >

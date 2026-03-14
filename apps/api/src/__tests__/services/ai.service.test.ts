@@ -214,6 +214,56 @@ describe('AI Service', () => {
     expect(result.title).toBe('Implementation');
   });
 
+  it('analyzeMissingSections: returns parsed sections', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('{"missingSections": [{"name": "Security", "description": "Missing security analysis", "priority": "high"}]}'),
+    );
+
+    const result = await aiService.analyzeMissingSections('# My Spec');
+    expect(result.missingSections).toHaveLength(1);
+    expect(result.missingSections[0].name).toBe('Security');
+    expect(result.missingSections[0].priority).toBe('high');
+  });
+
+  it('analyzeMissingSections: returns empty array on parse failure', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('Unable to analyze this document'),
+    );
+
+    const result = await aiService.analyzeMissingSections('# My Spec');
+    expect(result.missingSections).toEqual([]);
+  });
+
+  it('analyzeMissingSections: uses stage context when provided', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('{"missingSections": []}'),
+    );
+
+    await aiService.analyzeMissingSections('# Spec', 'definition');
+    const callArgs = mockCreate.mock.calls[0][0];
+    expect(callArgs.system).toContain('definition');
+  });
+
+  it('notificationReply: returns parsed reply', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('{"reply": "You should add more detail to the API section.", "suggestedActions": ["Add API docs", "Include examples"]}'),
+    );
+
+    const result = await aiService.notificationReply('notif-1', 'What should I improve?', '# My Doc');
+    expect(result.reply).toBe('You should add more detail to the API section.');
+    expect(result.suggestedActions).toHaveLength(2);
+  });
+
+  it('notificationReply: returns fallback on parse failure', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('Consider adding more examples to your specification.'),
+    );
+
+    const result = await aiService.notificationReply('notif-1', 'Help me', '# Doc');
+    expect(result.reply).toBe('Consider adding more examples to your specification.');
+    expect(result.suggestedActions).toEqual([]);
+  });
+
   it('detectDrift: returns parsed JSON on valid response', async () => {
     mockCreate.mockResolvedValueOnce(
       makeResponse('{"hasDrift": true, "driftScore": 7, "details": "API mismatch", "suggestions": ["Update routes"]}'),

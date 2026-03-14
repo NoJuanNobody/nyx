@@ -103,6 +103,67 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
     return { jsx };
   });
 
+  // POST /api/ai/seed-from-stage — generate pre-filled content for the next lifecycle stage (document-based)
+  app.post('/seed-from-stage', async (request, reply) => {
+    const { documentId, fromStage, toStage } = request.body as {
+      documentId: string;
+      fromStage: string;
+      toStage: string;
+    };
+
+    if (!documentId || !fromStage || !toStage) {
+      reply.code(400);
+      return { error: 'documentId, fromStage, and toStage are required' };
+    }
+
+    // Fetch the document content via the existing seed-next-stage logic
+    // The caller passes documentId; we delegate content resolution to the frontend
+    // and accept content directly as an alternative
+    const content = (request.body as { content?: string }).content;
+    if (!content) {
+      reply.code(400);
+      return { error: 'content is required (document content for the current stage)' };
+    }
+
+    const result = await aiService.seedNextStage(content, fromStage, toStage);
+    return result;
+  });
+
+  // POST /api/ai/missing-sections — analyze content for missing sections
+  app.post('/missing-sections', async (request, reply) => {
+    const { content, stage } = request.body as { content: string; stage?: string };
+
+    if (!content) {
+      reply.code(400);
+      return { error: 'content is required' };
+    }
+
+    const result = await aiService.analyzeMissingSections(content, stage);
+    return result;
+  });
+
+  // POST /api/ai/notification-reply — process user reply to a notification
+  app.post('/notification-reply', async (request, reply) => {
+    const { notificationId, message, documentId, content } = request.body as {
+      notificationId: string;
+      message: string;
+      documentId: string;
+      content?: string;
+    };
+
+    if (!notificationId || !message || !documentId) {
+      reply.code(400);
+      return { error: 'notificationId, message, and documentId are required' };
+    }
+
+    const result = await aiService.notificationReply(
+      notificationId,
+      message,
+      content || '',
+    );
+    return result;
+  });
+
   // POST /api/ai/seed-next-stage — generate content for the next lifecycle stage
   app.post('/seed-next-stage', async (request, reply) => {
     const { content, fromStage, toStage } = request.body as {
