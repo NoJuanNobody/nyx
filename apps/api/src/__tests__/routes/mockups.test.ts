@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockDb } from '../helpers/setup.js';
 import Fastify from 'fastify';
-import { mockupRoutes, setMockupCluster } from '../../routes/mockups.js';
+import { mockupRoutes } from '../../routes/mockups.js';
 
 vi.mock('../../middleware/permissions.js', () => ({ requireRole: () => async () => {} }));
 vi.mock('../../services/mockup.service.js', () => ({
@@ -80,7 +80,7 @@ describe('Mockup Routes', () => {
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          then: (cb: Function) => cb([]),
+          then: (cb: (rows: unknown[]) => unknown) => cb([]),
         }),
       }),
     } as any);
