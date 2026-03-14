@@ -198,12 +198,16 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     }
 
     const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
+    // WebSocket upgrades cannot set custom headers in browsers; accept token via query param too.
+    const queryToken = typeof (request.query as Record<string, unknown>)?.token === 'string'
+      ? (request.query as Record<string, string>).token
+      : null;
+    if (!authHeader?.startsWith('Bearer ') && !queryToken) {
       reply.code(401).send({ error: 'Missing or invalid Authorization header' });
       return;
     }
 
-    const token = authHeader.slice(7);
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : queryToken!;
 
     // ── API key auth path (sd_ prefix) ──────────────────
     if (token.startsWith('sd_')) {

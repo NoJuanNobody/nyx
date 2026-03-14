@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useUser } from '@clerk/clerk-react';
 import type { Document, DocumentVersion } from '@syncdocs/shared';
 
 import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage } from '../lib/api';
@@ -16,6 +17,8 @@ import { AIAdvisor } from '../components/AIAdvisor';
 import { CreateTicketModal } from '../components/CreateTicketModal';
 import { JSXPreviewPanel } from '../components/JSXPreviewPanel';
 import { SaveAsTemplateButton } from '../components/SaveAsTemplateButton';
+import { PresenceIndicators } from '../components/PresenceIndicators';
+import { useCollaboration } from '../hooks/useCollaboration';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
 
@@ -23,6 +26,7 @@ export function DocumentEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user: clerkUser } = useUser();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -44,6 +48,14 @@ export function DocumentEditor() {
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialised = useRef(false);
 
+  // ── Real-time collaboration ─────────────────────────────────────────────
+  const { collaborators, connected, yjsContent, applyLocalEdit } = useCollaboration({
+    documentId: id,
+    userId: clerkUser?.id ?? 'dev-user',
+    userName: clerkUser?.fullName ?? clerkUser?.primaryEmailAddress?.emailAddress ?? 'Anonymous',
+    initialContent: content,
+  });
+
   const { data: doc, isLoading } = useQuery<Document>({
     queryKey: ['document', id],
     queryFn: () => fetchDocument(id!),
@@ -63,6 +75,15 @@ export function DocumentEditor() {
   useEffect(() => {
     initialised.current = false;
   }, [id]);
+
+  // Sync remote Yjs changes into local content state (triggers re-render + debounced REST save)
+  useEffect(() => {
+    if (yjsContent !== null && yjsContent !== content) {
+      setContent(yjsContent);
+      scheduleSave({ title, content: yjsContent });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [yjsContent]);
 
   // Read layout from query param (for FileTree JSX preview link)
   useEffect(() => {
@@ -116,12 +137,14 @@ export function DocumentEditor() {
 
   const handleContentChange = (newContent: string) => {
     setContent(newContent);
+    applyLocalEdit(newContent);
     scheduleSave({ title, content: newContent });
   };
 
   const handleApproveAIEdit = () => {
     if (aiProposedContent !== null) {
       setContent(aiProposedContent);
+      applyLocalEdit(aiProposedContent);
       scheduleSave({ title, content: aiProposedContent });
       setAiProposedContent(null);
     }
@@ -134,6 +157,7 @@ export function DocumentEditor() {
   const handleAIGenerate = (result: { title: string; content: string }) => {
     setTitle(result.title);
     setContent(result.content);
+    applyLocalEdit(result.content);
     scheduleSave({ title: result.title, content: result.content });
   };
 
@@ -270,6 +294,8 @@ export function DocumentEditor() {
 
           <span className={`text-xs font-medium ${saveColor}`}>{saveLabel}</span>
 
+          <PresenceIndicators collaborators={collaborators} connected={connected} />
+
           {/* Seed next stage button */}
           {docStage && docStage !== 'execution' && (
             <button
@@ -334,6 +360,7 @@ export function DocumentEditor() {
                     type="button"
                     onClick={() => {
                       setContent(viewingVersion.content);
+                      applyLocalEdit(viewingVersion.content);
                       scheduleSave({ title, content: viewingVersion.content });
                       setViewingVersion(null);
                     }}

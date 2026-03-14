@@ -31,6 +31,7 @@ import { sprintRoutes } from './routes/sprint.js';
 import { contextRoutes } from './routes/context.js';
 import { audioRoutes } from './routes/audio.js';
 import { slackRoutes } from './routes/slack.js';
+import { collaborationRoutes } from './routes/collaboration.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -73,6 +74,7 @@ export function buildApp() {
   app.register(contextRoutes, { prefix: '/api/intake' });
   app.register(audioRoutes, { prefix: '/api/intake' });
   app.register(slackRoutes, { prefix: '/api/slack' });
+  app.register(collaborationRoutes, { prefix: '/api/collaboration' });
 
   return app;
 }
