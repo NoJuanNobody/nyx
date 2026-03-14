@@ -312,6 +312,23 @@ export const ticketSuggestions = pgTable('ticket_suggestions', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── Intake Sessions ─────────────────────────────────
+
+export const intakeSessions = pgTable('intake_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id),
+  createdById: uuid('created_by_id')
+    .notNull()
+    .references(() => users.id),
+  rawInput: text('raw_input').notNull(),
+  structuredOutput: jsonb('structured_output'),
+  status: text('status').notNull().default('pending'),
+  documentId: uuid('document_id').references(() => documents.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ── Feedback Submissions ─────────────────────────────
 
 export const feedbackSubmissions = pgTable('feedback_submissions', {

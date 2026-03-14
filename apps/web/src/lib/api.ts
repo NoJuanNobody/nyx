@@ -644,6 +644,55 @@ export function submitFeedback(data: {
   });
 }
 
+// ── Intake (Chaos Ingestion) ─────────────────────────────────────────
+
+export interface IntakeSpec {
+  title: string;
+  userStory: string;
+  acceptanceCriteria: string[];
+  edgeCases: string[];
+  openQuestions: string[];
+  confidence: 'high' | 'medium' | 'low';
+  markdown: string;
+}
+
+export interface IntakeSession {
+  id: string;
+  teamId: string;
+  createdById: string;
+  rawInput: string;
+  structuredOutput: IntakeSpec | null;
+  status: string;
+  documentId: string | null;
+  createdAt: string;
+}
+
+export function processIntake(
+  data: { rawInput: string; teamId: string },
+): Promise<{ session: IntakeSession; spec: IntakeSpec }> {
+  return request<{ session: IntakeSession; spec: IntakeSpec }>('/intake/process', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function clarifyIntake(
+  data: { rawInput: string; questions: string[]; answers: string[]; teamId: string },
+): Promise<{ session: IntakeSession; spec: IntakeSpec }> {
+  return request<{ session: IntakeSession; spec: IntakeSpec }>('/intake/clarify', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function fetchIntakeHistory(
+  teamId: string,
+): Promise<{ sessions: IntakeSession[] }> {
+  return request<{ sessions: IntakeSession[] }>(
+    `/intake/history?teamId=${encodeURIComponent(teamId)}`,
+  );
+}
+
 // ── Mockups ─────────────────────────────────────────────────────────
 
 export function renderMockupJsx(jsx: string): Promise<{ screenshot: string }> {
