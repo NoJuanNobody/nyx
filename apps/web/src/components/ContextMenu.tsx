@@ -243,9 +243,11 @@ export function ContextMenu({
                   cancelSchedule();
                   setActiveSubmenu(null);
                 }
-                if (item.tooltip) {
+                if (item.tooltip && !hasSubmenu) {
                   const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
                   setTooltip({ text: item.tooltip, x: r.right + 8, y: r.top });
+                } else {
+                  setTooltip(null);
                 }
               }}
               onMouseLeave={() => {
@@ -289,8 +291,8 @@ export function ContextMenu({
               {item.icon && <span className="flex-shrink-0 text-slate-400">{item.icon}</span>}
 
               {/* Label */}
-              <span className="flex min-w-0 flex-1 flex-col gap-0">
-                <span className="flex items-center gap-1.5 truncate">
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="flex items-baseline gap-1.5">
                   {item.abbr && (
                     <span className="flex-shrink-0 rounded px-1 py-0.5 text-[9px] font-bold leading-none bg-slate-100 text-slate-500">
                       {item.abbr}
@@ -299,7 +301,7 @@ export function ContextMenu({
                   <span className="truncate">{item.label}</span>
                 </span>
                 {item.sublabel && (
-                  <span className="truncate text-[10px] text-slate-400">{item.sublabel}</span>
+                  <span className="truncate text-[10px] leading-tight text-slate-400">{item.sublabel}</span>
                 )}
               </span>
 
@@ -379,8 +381,8 @@ export function ContextMenu({
                   <span className={`h-2 w-2 flex-shrink-0 rounded-full ${item.dotColorClass}`} />
                 )}
 
-                <span className="flex min-w-0 flex-1 flex-col gap-0">
-                  <span className="flex items-center gap-1.5 truncate">
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="flex items-baseline gap-1.5">
                     {item.abbr && (
                       <span className="flex-shrink-0 rounded px-1 py-0.5 text-[9px] font-bold leading-none bg-slate-100 text-slate-500">
                         {item.abbr}
@@ -389,7 +391,7 @@ export function ContextMenu({
                     <span className="truncate">{item.label}</span>
                   </span>
                   {item.sublabel && (
-                    <span className="truncate text-[10px] text-slate-400">{item.sublabel}</span>
+                    <span className="truncate text-[10px] leading-tight text-slate-400">{item.sublabel}</span>
                   )}
                 </span>
               </button>
