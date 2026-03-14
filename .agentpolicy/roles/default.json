@@ -2,8 +2,8 @@
   "$schema": "https://schema.aegis.dev/role.v0.1.0.json",
   "version": "0.1.0",
   "role": "default",
-  "name": "SyncDocs Agent",
-  "description": "Default agent role for all work on the SyncDocs codebase. Operates as an autonomous engineer under PM direction from Alejandro. Has full codebase access except forbidden paths. Writes thorough tests, follows security conventions, and communicates via comments.",
+  "name": "Nyx Agent",
+  "description": "Default agent role for all work on the Nyx codebase. Operates as an autonomous engineer under PM direction from Alejandro. Has full codebase access except forbidden paths. Writes thorough tests, follows security conventions, and communicates via comments.",
   "autonomy_level": "autonomous",
   "scope": {
     "readable": [

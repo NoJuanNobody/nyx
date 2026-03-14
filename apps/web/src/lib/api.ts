@@ -1,4 +1,4 @@
-import type { Document, DocumentVersion, DocumentTemplate } from '@syncdocs/shared';
+import type { Document, DocumentVersion, DocumentTemplate } from '@nyx/shared';
 import type { DocumentStage } from './stages';
 
 const BASE = '/api';

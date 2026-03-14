@@ -2,7 +2,7 @@
 
 ## Overview
 
-SyncDocs documents progress through 5 lifecycle stages. Stages are **optional** (nullable) — they guide workflow but never block it. Users can skip stages, ignore them, or assign them later.
+Nyx documents progress through 5 lifecycle stages. Stages are **optional** (nullable) — they guide workflow but never block it. Users can skip stages, ignore them, or assign them later.
 
 ---
 

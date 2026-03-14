@@ -2,7 +2,7 @@
 
 ## Overview
 
-The SyncDocs AI agent has two distinct classes of action tools:
+The Nyx AI agent has two distinct classes of action tools:
 
 - **Document editing** (`update_document`) — improves the content of a spec in place
 - **Ticket creation** (`create_ticket`) — creates a GitHub issue or Jira ticket linked to a document

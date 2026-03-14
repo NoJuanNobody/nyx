@@ -2,7 +2,7 @@
   "$schema": "https://schema.aegis.dev/constitution.v0.1.0.json",
   "version": "0.1.0",
   "project": {
-    "name": "SyncDocs",
+    "name": "Nyx",
     "description": "Product versioning platform enabling teams to manage specs and context that any AI coding agent can consume. Turborepo monorepo with Fastify API, React web app, shared types/utilities package, and an agent-agnostic MCP server.",
     "language": "TypeScript",
     "framework": [
@@ -29,7 +29,7 @@
       },
       {
         "name": "packages/mcp-server",
-        "description": "Standalone MCP server providing agent-agnostic interface for AI coding tools (Cursor, Claude Code, Gemini, etc.) to consume SyncDocs context. Web search tool (Brave/Tavily) planned."
+        "description": "Standalone MCP server providing agent-agnostic interface for AI coding tools (Cursor, Claude Code, Gemini, etc.) to consume Nyx context. Web search tool (Brave/Tavily) planned."
       }
     ]
   },

@@ -57,7 +57,7 @@ describe('Auth Middleware', () => {
     const res = await app.inject({ method: 'GET', url: '/api/test' });
     const body = JSON.parse(res.body);
     expect(res.statusCode).toBe(200);
-    expect(body.user.email).toBe('dev@syncdocs.io');
+    expect(body.user.email).toBe('dev@nyx.io');
     expect(body.user.id).toBe('00000000-0000-0000-0000-000000000000');
   });
 

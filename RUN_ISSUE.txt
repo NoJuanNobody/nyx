@@ -1,4 +1,4 @@
-# SyncDocs docker/local run issue summary
+# Nyx docker/local run issue summary
 
 Symptoms
 - Postgres container boots and reports "database system is ready".
@@ -10,12 +10,12 @@ Root cause
 
 How to run locally with Docker
 1) Ensure `.env` matches Docker Compose defaults:
-   - `DATABASE_URL=postgresql://postgres:devpassword@db:5432/syncdocs_dev`
+   - `DATABASE_URL=postgresql://postgres:devpassword@db:5432/nyx_dev`
    - Keep `NODE_ENV=development`.
    - **Remove or comment out** `CLERK_SECRET_KEY` and `CLERK_PUBLISHABLE_KEY` to enable the dev bypass user.
 2) Recreate containers so the updated `.env` is picked up: `docker-compose up --build`.
 3) After startup, hit `http://localhost:3001/api/health` (or any `/api/*` route). In dev bypass mode responses should succeed without auth; without bypass you must send a valid Clerk JWT or an `sd_` API key.
-4) If you see DB errors, run migrations inside the API container: `pnpm --filter @syncdocs/api db:migrate` (the dev image does not auto-run migrations).
+4) If you see DB errors, run migrations inside the API container: `pnpm --filter @nyx/api db:migrate` (the dev image does not auto-run migrations).
 
 If you intend to test real auth
 - Keep `CLERK_SECRET_KEY`/`CLERK_PUBLISHABLE_KEY` set and send `Authorization: Bearer <clerk-jwt>` or an `sd_` API key that exists in `api_keys` (hashed) to avoid 401s.

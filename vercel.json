@@ -1,6 +1,6 @@
 {
   "framework": "vite",
-  "buildCommand": "pnpm --filter @syncdocs/shared build && pnpm --filter @syncdocs/web build",
+  "buildCommand": "pnpm --filter @nyx/shared build && pnpm --filter @nyx/web build",
   "outputDirectory": "apps/web/dist",
   "installCommand": "pnpm install",
   "rewrites": [

@@ -1,6 +1,6 @@
 /**
  * Authentication helper for the MCP server.
- * Uses API keys (sd_...) to authenticate against the SyncDocs API.
+ * Uses API keys (sd_...) to authenticate against the Nyx API.
  */
 
 export interface AuthConfig {
@@ -17,14 +17,14 @@ export function configure(config: AuthConfig) {
 export function getConfig(): AuthConfig {
   if (!authConfig) {
     throw new Error(
-      'MCP server not configured. Set SYNCDOCS_API_KEY and SYNCDOCS_API_URL environment variables.',
+      'MCP server not configured. Set NYX_API_KEY and NYX_API_URL environment variables.',
     );
   }
   return authConfig;
 }
 
 /**
- * Make an authenticated request to the SyncDocs API.
+ * Make an authenticated request to the Nyx API.
  */
 export async function apiRequest<T>(
   path: string,
@@ -44,7 +44,7 @@ export async function apiRequest<T>(
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`SyncDocs API error ${res.status}: ${body || res.statusText}`);
+    throw new Error(`Nyx API error ${res.status}: ${body || res.statusText}`);
   }
 
   return res.json() as Promise<T>;

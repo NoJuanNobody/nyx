@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { DocumentTemplate } from '@syncdocs/shared';
+import type { DocumentTemplate } from '@nyx/shared';
 import { fetchTemplates, createTemplate, deleteTemplate } from '../lib/api';
 import { STAGES, type DocumentStage } from '../lib/stages';
 

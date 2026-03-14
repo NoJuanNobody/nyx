@@ -58,7 +58,7 @@ const stages = [
     docs: ["Living Codebase", "Auto-Updated Docs", "Drift Alerts", "Change History", "Rollback Points"],
     who: "Engineer · AI Coding Agent",
     ai: "Watches commits, detects doc-code drift in real time, flags intent violations",
-    description: "Code is written — by humans or AI agents. SyncDocs watches for drift and keeps the full stack in sync.",
+    description: "Code is written — by humans or AI agents. Nyx watches for drift and keeps the full stack in sync.",
     output: "Codebase that never diverges silently from its original intent",
   },
 ];
@@ -70,7 +70,7 @@ const connectors = [
   "Specs generate code via AI agents",
 ];
 
-export default function SyncDocsLifecycle() {
+export default function NyxLifecycle() {
   const [active, setActive] = useState(0);
   const [animated, setAnimated] = useState(false);
 
