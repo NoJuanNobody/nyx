@@ -284,10 +284,15 @@ export const aiService = {
   async generateJSXPreview(
     prompt: string,
     context?: string,
+    allStates?: boolean,
   ): Promise<string> {
     const ai = requireClient();
 
     const contextBlock = context ? `\n\nAdditional context from the spec:\n${context}` : '';
+
+    const statesBlock = allStates
+      ? '\n\nIMPORTANT: Render ALL meaningful component states in a single vertically-scrollable layout. Use labeled sections with a small heading/badge for each state: Loading, Empty, Error, Populated (default), and Disabled/Read-only where applicable. Each section should be visually distinct but share the same component design.'
+      : '';
 
     const response = await ai.messages.create({
       model: MODEL,
@@ -307,7 +312,7 @@ STRICT RULES:
       messages: [
         {
           role: 'user',
-          content: `Generate a React component for: ${prompt}${contextBlock}`,
+          content: `Generate a React component for: ${prompt}${contextBlock}${statesBlock}`,
         },
       ],
     });

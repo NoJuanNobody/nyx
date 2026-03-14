@@ -240,10 +240,11 @@ export function editDocumentAI(
 export function generateJSXPreview(
   prompt: string,
   context?: string,
+  allStates?: boolean,
 ): Promise<{ jsx: string }> {
   return request<{ jsx: string }>('/ai/jsx-preview', {
     method: 'POST',
-    body: JSON.stringify({ prompt, context }),
+    body: JSON.stringify({ prompt, context, allStates }),
   });
 }
 
@@ -608,5 +609,14 @@ export function submitFeedback(data: {
   return request<FeedbackSubmitResult>('/feedback/submit', {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+// ── Mockups ─────────────────────────────────────────────────────────
+
+export function renderMockupJsx(jsx: string): Promise<{ screenshot: string }> {
+  return request<{ screenshot: string }>('/mockups/render-jsx', {
+    method: 'POST',
+    body: JSON.stringify({ jsx }),
   });
 }

@@ -58,7 +58,7 @@ export const SEL = {
     // Layout tabs
     markdownTab: 'button:has-text("Markdown")',
     splitTab: 'button:has-text("Split")',
-    previewTab: 'button:has-text("Preview")',
+    previewTab: 'button:text-is("Preview")',
     // Preview pane
     previewPane: '.prose',
     // Toolbar buttons
@@ -129,6 +129,15 @@ export const SEL = {
     removeButton: 'button:has-text("Remove")',
     confirmYes: 'button:has-text("Yes")',
     confirmNo: 'button:has-text("No")',
+  },
+
+  // ── JSX Preview ───────────────────────────────────────
+  jsxPreview: {
+    tab: 'button:has-text("JSX Preview")',
+    allStatesToggle: 'button:has-text("All States")',
+    promptInput: 'textarea[placeholder*="Describe a UI"]',
+    generateButton: 'button[title="Generate"]',
+    previewPane: '.flex.min-h-0.flex-1 > div:last-child',
   },
 
   // ── Feedback ──────────────────────────────────────────

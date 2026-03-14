@@ -14,6 +14,8 @@ function cleanJSX(jsx: string): string {
   code = code.replace(/^\s*export\s+default\s+/gm, '');
   // Strip lone export statements
   code = code.replace(/^\s*export\s+(?=function|const|class)/gm, '');
+  // Strip TypeScript interface/type declarations that Babel may choke on
+  code = code.replace(/^\s*(?:interface|type)\s+\w+[\s\S]*?^\}/gm, '');
   return code.trim();
 }
 
@@ -42,7 +44,7 @@ function buildIframeHTML(jsx: string): string {
 </head>
 <body>
   <div id="root"></div>
-  <script type="text/babel">
+  <script type="text/babel" data-presets="react,typescript">
     try {
       // Destructure React hooks into scope so generated code can use useState() etc.
       const { useState, useEffect, useRef, useCallback, useMemo, useReducer, useContext, createContext, Fragment } = React;

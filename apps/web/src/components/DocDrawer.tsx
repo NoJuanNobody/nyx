@@ -28,6 +28,7 @@ interface DocDrawerProps {
   onSwitchToHistory?: (versionId: string) => void;
   aiChat?: AIChatProps;
   jsxPreviewContext?: string;
+  onMockupReady?: (jsx: string | null) => void;
 }
 
 const PANELS: { key: DrawerPanel; label: string; icon: JSX.Element }[] = [
@@ -87,7 +88,7 @@ const PANELS: { key: DrawerPanel; label: string; icon: JSX.Element }[] = [
   },
 ];
 
-export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVersion, activeVersionId, onSwitchToHistory, aiChat, jsxPreviewContext }: DocDrawerProps) {
+export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVersion, activeVersionId, onSwitchToHistory, aiChat, jsxPreviewContext, onMockupReady }: DocDrawerProps) {
   const isOpen = activePanel !== null;
   const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -151,7 +152,7 @@ export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVe
                 teamId={teamId}
               />
             )}
-            {activePanel === 'jsx-preview' && <JSXPreviewPanel specContext={jsxPreviewContext} />}
+            {activePanel === 'jsx-preview' && <JSXPreviewPanel specContext={jsxPreviewContext} onMockupReady={onMockupReady} />}
           </div>
         </div>
       )}
