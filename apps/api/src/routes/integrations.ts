@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { eq, and, inArray } from 'drizzle-orm';
 import { randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
 import { db } from '../db/index.js';
-import { integrations, documents, timelineEvents } from '../db/schema.js';
+import { integrations, documents, timelineEvents, teams, teamMembers } from '../db/schema.js';
 import { githubService, GitHubTokenExpiredError } from '../services/github.service.js';
 import { jiraService } from '../services/jira.service.js';
 import { requireRole } from '../middleware/permissions.js';
@@ -32,11 +32,29 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
 
   // GET /api/integrations/github/connect — initiate GitHub OAuth
   app.get('/github/connect', async (request, reply) => {
-    const { teamId } = request.query as { teamId?: string };
+    let { teamId } = request.query as { teamId?: string };
 
+    // Auto-create team if not provided
     if (!teamId) {
-      reply.code(400);
-      return { error: 'teamId query parameter is required' };
+      const userId = request.user.id;
+      
+      // Check if user has any teams
+      let userTeams = await db
+        .select({ id: teams.id })
+        .from(teamMembers)
+        .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+        .where(eq(teamMembers.userId, userId))
+        .limit(1);
+
+      if (userTeams.length === 0) {
+        // Create a default team
+        const slug = `personal-${userId.slice(0, 8)}`;
+        const [team] = await db.insert(teams).values({ name: 'My Workspace', slug }).returning();
+        await db.insert(teamMembers).values({ teamId: team.id, userId, role: 'owner' });
+        teamId = team.id;
+      } else {
+        teamId = userTeams[0].id;
+      }
     }
 
     if (!config.GITHUB_CLIENT_ID || !config.GITHUB_CLIENT_SECRET) {

@@ -42,7 +42,7 @@ const DEV_USER: AuthUser = {
  * verifying a real JWT.
  */
 function isDevBypass(): boolean {
-  return config.NODE_ENV === 'development' && !config.CLERK_SECRET_KEY;
+  return config.NODE_ENV === 'development' && (!config.CLERK_SECRET_KEY || config.DEV_AUTH_BYPASS === 'true');
 }
 
 /**

@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactElement } from 'react';
+import { useState, useCallback, useEffect, type ReactElement } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchTeams, fetchApiKeys, createApiKey, revokeApiKey, type ApiKey,
@@ -88,8 +88,8 @@ const TABS: { key: SettingsTab; label: string; icon: ReactElement }[] = [
 
 function GitHubIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z" />
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path fillRule="evenodd" clipRule="evenodd" d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z" />
     </svg>
   );
 }
@@ -127,9 +127,11 @@ const PROVIDER_COLORS: Record<string, { bg: string; text: string; ring: string; 
 function TeamPanel() {
   const queryClient = useQueryClient();
   const currentTeamId = useAuthStore((s) => s.currentTeamId);
+  const setCurrentTeamId = useAuthStore((s) => s.setCurrentTeamId);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<TeamMember['role']>('editor');
   const [inviteSent, setInviteSent] = useState(false);
+  const [creatingTeam, setCreatingTeam] = useState(false);
 
   const { data: membersData, isLoading: membersLoading } = useQuery({
     queryKey: ['team-members', currentTeamId],
@@ -184,10 +186,36 @@ function TeamPanel() {
     },
   });
 
-  const handleInvite = useCallback(() => {
-    if (!inviteEmail.trim() || !currentTeamId) return;
+  const handleInvite = useCallback(async () => {
+    if (!inviteEmail.trim()) return;
+    
+    // If no team exists, create one first
+    if (!currentTeamId) {
+      setCreatingTeam(true);
+      try {
+        // Trigger team creation by fetching teams (backend auto-creates)
+        const teams = await fetchTeams();
+        if (teams.length > 0) {
+          setCurrentTeamId(teams[0].id);
+          // Wait a bit for state to update
+          setTimeout(() => {
+            inviteMutation.mutate({ email: inviteEmail.trim(), role: inviteRole });
+            setCreatingTeam(false);
+          }, 100);
+        } else {
+          alert('Failed to create team. Please refresh the page and try again.');
+          setCreatingTeam(false);
+        }
+      } catch (error) {
+        console.error('Failed to create team:', error);
+        alert('Error creating team. Please try again.');
+        setCreatingTeam(false);
+      }
+      return;
+    }
+    
     inviteMutation.mutate({ email: inviteEmail.trim(), role: inviteRole });
-  }, [inviteEmail, inviteRole, currentTeamId, inviteMutation]);
+  }, [inviteEmail, inviteRole, currentTeamId, inviteMutation, setCurrentTeamId]);
 
   const handleRoleChange = useCallback((memberId: string, newRole: TeamMember['role']) => {
     roleMutation.mutate({ userId: memberId, role: newRole });
@@ -228,10 +256,10 @@ function TeamPanel() {
           <button
             type="button"
             onClick={handleInvite}
-            disabled={!inviteEmail.trim()}
+            disabled={!inviteEmail.trim() || creatingTeam}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-40 transition-colors"
           >
-            Invite
+            {creatingTeam ? 'Creating workspace...' : 'Invite'}
           </button>
         </div>
         {inviteSent && (
@@ -353,8 +381,17 @@ function TeamPanel() {
 function IntegrationsPanel() {
   const queryClient = useQueryClient();
   const currentTeamId = useAuthStore((s) => s.currentTeamId);
+  const teams = useAuthStore((s) => s.teams);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [repoPickerFor, setRepoPickerFor] = useState<string | null>(null);
+  const [connectError, setConnectError] = useState<string | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
+
+  // Debug: Log team state on mount and when it changes
+  useEffect(() => {
+    console.log('[IntegrationsPanel] currentTeamId:', currentTeamId);
+    console.log('[IntegrationsPanel] teams:', teams);
+  }, [currentTeamId, teams]);
 
   const { data: rawIntegrations } = useQuery({
     queryKey: ['integrations', currentTeamId],
@@ -384,7 +421,15 @@ function IntegrationsPanel() {
   });
 
   const handleConnect = useCallback((provider: string) => {
-    if (provider === 'github' && currentTeamId) {
+    setConnectError(null);
+    
+    if (provider === 'github') {
+      if (!currentTeamId) {
+        console.error('[GitHub Connect] currentTeamId is missing:', currentTeamId);
+        setConnectError('No team selected. Please refresh the page and try again.');
+        return;
+      }
+      console.log('[GitHub Connect] Redirecting with teamId:', currentTeamId);
       setConnecting(provider);
       window.location.href = `/api/integrations/github/connect?teamId=${currentTeamId}`;
       return;
@@ -400,6 +445,83 @@ function IntegrationsPanel() {
 
   return (
     <div className="space-y-4">
+      {/* Debug panel - only show if no team is loaded */}
+      {!currentTeamId && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start gap-3">
+            <svg className="h-5 w-5 flex-shrink-0 text-red-500 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-red-800">No Team Found</h3>
+              <p className="mt-1 text-sm text-red-700">
+                {teams.length === 0
+                  ? 'You need a team to use integrations. Click below to create your workspace.'
+                  : 'Team information is loading. Please wait or refresh the page.'}
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors"
+                >
+                  Refresh Page
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDebug(!showDebug)}
+                  className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 transition-colors"
+                >
+                  {showDebug ? 'Hide' : 'Show'} Debug Info
+                </button>
+              </div>
+              {showDebug && (
+                <div className="mt-3 rounded bg-red-100 p-3 font-mono text-xs text-red-900 overflow-auto max-h-60">
+                  <div><strong>currentTeamId:</strong> {currentTeamId || 'null'}</div>
+                  <div className="mt-1"><strong>teams.length:</strong> {teams.length}</div>
+                  {teams.length > 0 && (
+                    <div className="mt-1"><strong>teams:</strong> {JSON.stringify(teams, null, 2)}</div>
+                  )}
+                  <div className="mt-2 pt-2 border-t border-red-200">
+                    <strong>What to do:</strong>
+                    <ol className="mt-1 list-decimal list-inside space-y-1 text-[11px]">
+                      <li>Open browser console (F12) and look for errors</li>
+                      <li>Check Network tab for failed /api/teams request</li>
+                      <li>Try logging out and logging back in</li>
+                      <li>Contact support if issue persists</li>
+                    </ol>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error banner */}
+      {connectError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start gap-3">
+            <svg className="h-5 w-5 flex-shrink-0 text-red-500 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-red-800">Connection Error</h3>
+              <p className="mt-1 text-sm text-red-700">{connectError}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setConnectError(null)}
+              className="text-red-400 hover:text-red-600 transition-colors"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {integrations.map((integration) => {
         const Icon = PROVIDER_ICON[integration.provider];
         const colors = PROVIDER_COLORS[integration.provider];
@@ -465,8 +587,9 @@ function IntegrationsPanel() {
                   <button
                     type="button"
                     onClick={() => handleConnect(integration.provider)}
-                    disabled={isConnecting}
-                    className={`rounded-md px-3 py-1.5 text-xs font-medium shadow-sm transition-colors disabled:opacity-60 ${colors.btn}`}
+                    disabled={isConnecting || !currentTeamId}
+                    title={!currentTeamId ? 'Please wait for team to load or refresh the page' : undefined}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${colors.btn}`}
                   >
                     {isConnecting ? (
                       <span className="flex items-center gap-1.5">
@@ -476,6 +599,8 @@ function IntegrationsPanel() {
                         </svg>
                         Connecting...
                       </span>
+                    ) : !currentTeamId ? (
+                      'Loading...'
                     ) : (
                       'Connect'
                     )}
