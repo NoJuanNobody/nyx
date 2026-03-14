@@ -251,7 +251,9 @@ describe('Custom Template CRUD', () => {
 
       mockDb.select.mockReturnValue({
         from: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockResolvedValue(templates),
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockResolvedValue(templates),
+          }),
         }),
       } as any);
 

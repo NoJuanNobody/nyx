@@ -25,7 +25,9 @@ describe('Template Routes', () => {
 
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
-        orderBy: vi.fn().mockResolvedValue(templates),
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockResolvedValue(templates),
+        }),
       }),
     } as any);
 
@@ -52,7 +54,9 @@ describe('Template Routes', () => {
 
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
-        orderBy: vi.fn().mockResolvedValue(allTemplates),
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockResolvedValue(allTemplates),
+        }),
       }),
     } as any);
 
@@ -79,7 +83,9 @@ describe('Template Routes', () => {
 
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
-        orderBy: vi.fn().mockResolvedValue(templates),
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockResolvedValue(templates),
+        }),
       }),
     } as any);
 
