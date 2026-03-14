@@ -802,6 +802,32 @@ export function deferSprintTicket(data: {
   ticketKey: string;
 }): Promise<{ deferred: boolean }> {
   return request<{ deferred: boolean }>('/sprint/defer', {
+// ── Context Matching ─────────────────────────────────────
+
+export interface ContextMatch {
+  documentId: string;
+  title: string;
+  relevance: 'high' | 'medium' | 'low';
+  relationship: 'confirms' | 'contradicts' | 'expands';
+  summary: string;
+}
+
+export interface ContextSignal {
+  type: 'recurring_pattern' | 'contradiction' | 'scope_creep';
+  description: string;
+  relatedDocIds: string[];
+}
+
+export interface ContextMatchResult {
+  matches: ContextMatch[];
+  signals: ContextSignal[];
+}
+
+export function findContextMatches(data: {
+  rawInput: string;
+  teamId: string;
+}): Promise<ContextMatchResult> {
+  return request<ContextMatchResult>('/intake/context', {
     method: 'POST',
     body: JSON.stringify(data),
   });

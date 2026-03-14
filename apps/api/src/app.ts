@@ -28,6 +28,7 @@ import { mockupRoutes, setMockupCluster } from './routes/mockups.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { intakeRoutes } from './routes/intake.js';
 import { sprintRoutes } from './routes/sprint.js';
+import { contextRoutes } from './routes/context.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -67,6 +68,7 @@ export function buildApp() {
   app.register(feedbackRoutes, { prefix: '/api/feedback' });
   app.register(intakeRoutes, { prefix: '/api/intake' });
   app.register(sprintRoutes, { prefix: '/api' });
+  app.register(contextRoutes, { prefix: '/api/intake' });
 
   return app;
 }
