@@ -131,6 +131,20 @@ export const SEL = {
     confirmNo: 'button:has-text("No")',
   },
 
+  // ── Feedback ──────────────────────────────────────────
+  feedback: {
+    sidebarButton: 'button[data-testid="feedback-button"]',
+    input: '[data-testid="feedback-input"]',
+    formatButton: '[data-testid="feedback-format-btn"]',
+    titleInput: '[data-testid="feedback-title"]',
+    bodyInput: '[data-testid="feedback-body"]',
+    submitButton: '[data-testid="feedback-submit-btn"]',
+    githubLink: '[data-testid="feedback-github-link"]',
+    successMessage: 'text=Thank you for your feedback',
+    formattingSpinner: 'text=Formatting your feedback',
+    submittingSpinner: 'text=Submitting your feedback',
+  },
+
   // ── Landing ──────────────────────────────────────────
   landing: {
     heroTitle: 'h1',
