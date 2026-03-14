@@ -41,7 +41,7 @@ const envSchema = z.object({
 // Inject localhost fallback only in development
 const envWithDefaults = {
   ...process.env,
-  DATABASE_URL: process.env.DATABASE_URL || (isDevelopment ? 'postgresql://postgres:postgres@localhost:5432/syncdocs' : undefined),
+  DATABASE_URL: process.env.DATABASE_URL || (isDevelopment ? 'postgresql://postgres:postgres@localhost:5432/nyx' : undefined),
 };
 
 export const config = envSchema.parse(envWithDefaults);

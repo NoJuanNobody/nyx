@@ -26,7 +26,7 @@ interface AuthState {
 }
 
 function loadTeamId(): string | null {
-  return localStorage.getItem('syncdocs:currentTeamId');
+  return localStorage.getItem('nyx:currentTeamId');
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -36,12 +36,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
   setUser: (user) => set({ user }),
   setCurrentTeamId: (id) => {
-    localStorage.setItem('syncdocs:currentTeamId', id);
+    localStorage.setItem('nyx:currentTeamId', id);
     set({ currentTeamId: id });
   },
   setTeams: (teams) => set({ teams }),
   clear: () => {
-    localStorage.removeItem('syncdocs:currentTeamId');
+    localStorage.removeItem('nyx:currentTeamId');
     set({ user: null, currentTeamId: null, teams: [], isLoading: false });
   },
 }));

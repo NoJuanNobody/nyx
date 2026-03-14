@@ -121,7 +121,7 @@ export const jiraService = {
     fileBuffer: Buffer,
     filename: string,
   ): Promise<void> {
-    const boundary = '----SyncDocsFormBoundary' + Date.now();
+    const boundary = '----NyxFormBoundary' + Date.now();
     const body = Buffer.concat([
       Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`),
       fileBuffer,

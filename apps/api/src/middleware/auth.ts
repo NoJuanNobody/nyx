@@ -28,7 +28,7 @@ declare module 'fastify' {
 const DEV_USER: AuthUser = {
   id: '00000000-0000-0000-0000-000000000000',
   clerkId: null,
-  email: 'dev@syncdocs.io',
+  email: 'dev@nyx.io',
   name: 'Dev User',
   avatarUrl: null,
   role: 'owner',

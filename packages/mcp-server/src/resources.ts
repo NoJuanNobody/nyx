@@ -1,7 +1,7 @@
 import { apiRequest } from './auth.js';
 
 /**
- * MCP resource definitions — expose SyncDocs documents as browsable resources.
+ * MCP resource definitions — expose Nyx documents as browsable resources.
  */
 
 export interface ResourceTemplate {
@@ -13,19 +13,19 @@ export interface ResourceTemplate {
 
 export const RESOURCE_TEMPLATES: ResourceTemplate[] = [
   {
-    uriTemplate: 'syncdocs://docs',
+    uriTemplate: 'nyx://docs',
     name: 'All Documents',
-    description: 'List all documents in SyncDocs',
+    description: 'List all documents in Nyx',
     mimeType: 'application/json',
   },
   {
-    uriTemplate: 'syncdocs://docs/{id}',
+    uriTemplate: 'nyx://docs/{id}',
     name: 'Document Content',
     description: 'Read a specific document by ID',
     mimeType: 'text/markdown',
   },
   {
-    uriTemplate: 'syncdocs://docs/{id}/versions',
+    uriTemplate: 'nyx://docs/{id}/versions',
     name: 'Document Versions',
     description: 'List version history for a document',
     mimeType: 'application/json',
@@ -58,8 +58,8 @@ interface DocVersion {
  * Resolve a resource URI to its content.
  */
 export async function resolveResource(uri: string): Promise<{ content: string; mimeType: string }> {
-  // syncdocs://docs
-  if (uri === 'syncdocs://docs') {
+  // nyx://docs
+  if (uri === 'nyx://docs') {
     // List all docs — we need a teamId; for MCP we use a broad listing
     const docs = await apiRequest<DocSummary[]>('/api/documents');
     return {
@@ -68,8 +68,8 @@ export async function resolveResource(uri: string): Promise<{ content: string; m
     };
   }
 
-  // syncdocs://docs/{id}/versions
-  const versionsMatch = uri.match(/^syncdocs:\/\/docs\/([^/]+)\/versions$/);
+  // nyx://docs/{id}/versions
+  const versionsMatch = uri.match(/^nyx:\/\/docs\/([^/]+)\/versions$/);
   if (versionsMatch) {
     const docId = versionsMatch[1];
     const versions = await apiRequest<DocVersion[]>(`/api/documents/${docId}/versions`);
@@ -79,8 +79,8 @@ export async function resolveResource(uri: string): Promise<{ content: string; m
     };
   }
 
-  // syncdocs://docs/{id}
-  const docMatch = uri.match(/^syncdocs:\/\/docs\/([^/]+)$/);
+  // nyx://docs/{id}
+  const docMatch = uri.match(/^nyx:\/\/docs\/([^/]+)$/);
   if (docMatch) {
     const docId = docMatch[1];
     const doc = await apiRequest<DocFull>(`/api/documents/${docId}`);

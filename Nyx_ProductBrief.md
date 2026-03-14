@@ -1,6 +1,6 @@
 # PRODUCT BRIEF
 
-## SyncDocs
+## Nyx
 
 ### The Product Versioning Platform
 
@@ -13,9 +13,9 @@ Version: 1.0 | February 2026
 
 ## 1. Executive Summary
 
-SyncDocs is a product versioning platform that unifies technical documentation, code, and team workflow into a single source of truth. In AI-assisted development, the document has become the starting point — developers write specs and AI tools generate code from them. Yet no tool keeps those specs in sync with the code as it evolves, or allows non-technical stakeholders to initiate changes that flow automatically through to the codebase.
+Nyx is a product versioning platform that unifies technical documentation, code, and team workflow into a single source of truth. In AI-assisted development, the document has become the starting point — developers write specs and AI tools generate code from them. Yet no tool keeps those specs in sync with the code as it evolves, or allows non-technical stakeholders to initiate changes that flow automatically through to the codebase.
 
-SyncDocs solves both problems. It helps teams write better AI-ready technical specs, watches for drift between documentation and code, and provides a git-like version history across the entire product surface — docs, tickets, and code simultaneously.
+Nyx solves both problems. It helps teams write better AI-ready technical specs, watches for drift between documentation and code, and provides a git-like version history across the entire product surface — docs, tickets, and code simultaneously.
 
 ## 2. The Problem
 
@@ -33,16 +33,16 @@ Git solved version control for code in the 1990s. Nothing has solved it cleanly 
 
 ## 3. The Solution
 
-SyncDocs provides a two-way bridge between intent (documentation) and implementation (code), with a collaboration layer that connects both technical and non-technical team members.
+Nyx provides a two-way bridge between intent (documentation) and implementation (code), with a collaboration layer that connects both technical and non-technical team members.
 
 | Core Capability | What It Does |
 | --- | --- |
 | **AI-Ready Spec Editor** | Helps users write structured technical documents optimized for AI code generation. Provides templates, prompts, and real-time feedback on spec quality. Supports branch-based collaboration — multiple users can edit their own draft branches of a document simultaneously, then merge changes through the approval flow. |
 | **Live Sync Engine** | Monitors the codebase via GitHub integration and surfaces drift between documentation and code. Flags when a spec no longer reflects the implementation. |
-| **Non-Dev Change Flow** | Non-technical users can edit documentation. SyncDocs AI analyzes accumulated changes and suggests how to group them into tickets — splitting large changes or combining related small ones. A human reviews and adjusts the grouping before tickets are pushed to GitHub Issues, Jira, or other integrated platforms. Full traceability from edit to ticket to code change. |
+| **Non-Dev Change Flow** | Non-technical users can edit documentation. Nyx AI analyzes accumulated changes and suggests how to group them into tickets — splitting large changes or combining related small ones. A human reviews and adjusts the grouping before tickets are pushed to GitHub Issues, Jira, or other integrated platforms. Full traceability from edit to ticket to code change. |
 | **Product Version Control** | Full git-like history across docs, tickets, and code. Includes diff view, unified timeline, named product snapshots, full rollback (including cross-platform actions in GitHub and Jira), doc branching with approval flows, and blame/attribution tracing changes from stakeholder edit through ticket to code. |
 | **Coding Agent Integrations** | Dedicated integrations with Cursor, Copilot, and Claude Code so that specs and documentation flow directly into the developer's AI coding workflow — no copy-pasting or context-switching required. |
-| **Agile / Kanban Board** | Aggregates and syncs ticket status from external project management tools — GitHub Projects, Jira boards, and others — into a unified view. SyncDocs does not replace these tools; it provides a single dashboard so teams can see the full picture across all integrated platforms. |
+| **Agile / Kanban Board** | Aggregates and syncs ticket status from external project management tools — GitHub Projects, Jira boards, and others — into a unified view. Nyx does not replace these tools; it provides a single dashboard so teams can see the full picture across all integrated platforms. |
 | **Onboarding & Portability** | Scans and imports an existing codebase to bootstrap documentation for teams already in flight. Full documentation export in standard formats (Markdown, PDF) ensures teams are never locked in. |
 
 ## 4. Target Users
@@ -53,7 +53,7 @@ Teams using AI-assisted development tools like Cursor, Copilot, or Claude Code w
 
 ### Secondary: Product Managers and non-technical stakeholders
 
-PMs, designers, and clients who need to communicate requirements without going through a ticket-writing intermediary. SyncDocs gives them a structured way to initiate changes that developers can trust.
+PMs, designers, and clients who need to communicate requirements without going through a ticket-writing intermediary. Nyx gives them a structured way to initiate changes that developers can trust.
 
 ### Tertiary: Freelancers and solo developers
 
@@ -61,15 +61,15 @@ Independent developers managing multiple client projects who need lightweight do
 
 ## 5. Competitive Landscape
 
-| Competitor | Key Weakness vs. SyncDocs |
+| Competitor | Key Weakness vs. Nyx |
 | --- | --- |
 | **Mintlify** | One-time doc generation; no ongoing sync with code changes; no stakeholder workflow. |
 | **Swimm** | Developer-only; no non-tech stakeholder flow; no full version history. |
-| **Confluence + Jira** | No code sync; expensive; complex setup; not AI-native. SyncDocs integrates with these tools rather than replacing them — pushing tickets to Jira and linking docs in Confluence — turning a potential competitor into a complementary integration. |
+| **Confluence + Jira** | No code sync; expensive; complex setup; not AI-native. Nyx integrates with these tools rather than replacing them — pushing tickets to Jira and linking docs in Confluence — turning a potential competitor into a complementary integration. |
 | **GitBook** | Documentation platform only; no code integration or ticket workflow. |
 | **Raw ChatGPT / Claude** | Free but no persistence, versioning, team collaboration, or code sync. |
 
-Key differentiator: SyncDocs is the only tool that closes the full loop — from non-dev intent through documentation, ticketing, AI code generation, and version history — in a single platform.
+Key differentiator: Nyx is the only tool that closes the full loop — from non-dev intent through documentation, ticketing, AI code generation, and version history — in a single platform.
 
 ## 6. MVP Scope
 
@@ -77,7 +77,7 @@ The MVP validates the core hypothesis: teams will pay for a tool that keeps docu
 
 - Structured document editor with markdown support and AI-assisted spec writing
 - GitHub integration that watches a connected repo and detects doc-code drift
-- Ticket creation from document changes via GitHub Issues or Jira integration, with two-way status syncing back into SyncDocs
+- Ticket creation from document changes via GitHub Issues or Jira integration, with two-way status syncing back into Nyx
 - Product version control with the following capabilities:
   - **Diff view:** Side-by-side comparison of any two document versions with highlighted changes
   - **Unified timeline:** Single chronological stream showing doc edits, ticket activity, and linked code commits
@@ -113,17 +113,17 @@ Estimated build time for solo developer: 4–6 months to shippable MVP.
 | | |
 | --- | --- |
 | **Model** | SaaS — monthly subscription per team |
-| **Free Tier** | 1 project, 1 user, limited history — for solo devs and evaluation. AI features included (SyncDocs-managed). |
+| **Free Tier** | 1 project, 1 user, limited history — for solo devs and evaluation. AI features included (Nyx-managed). |
 | **Starter — $29/mo** | Up to 5 users, 5 projects, full version history. AI features included with usage cap. |
 | **Team — $99/mo** | Up to 20 users, unlimited projects, non-dev seats, priority support. BYOK option available — teams can connect their own Anthropic API key for unlimited AI usage. |
 | **Enterprise** | Custom pricing, SSO, SLA, dedicated support. BYOK included. |
 
 ### AI Cost Strategy — BYOK (Bring Your Own Key)
 
-SyncDocs uses a hybrid approach to manage AI costs:
+Nyx uses a hybrid approach to manage AI costs:
 
-- **Default (SyncDocs-managed):** Free and Starter tiers include AI features out of the box with a usage cap. No setup friction — it just works. AI costs are baked into the subscription price.
-- **BYOK option (Team & Enterprise):** Teams can connect their own Anthropic API key. Their AI usage (drift detection, spec analysis, ticket generation) bills directly to their Anthropic account. This eliminates SyncDocs' biggest variable cost at scale and gives larger teams cost control and compliance flexibility.
+- **Default (Nyx-managed):** Free and Starter tiers include AI features out of the box with a usage cap. No setup friction — it just works. AI costs are baked into the subscription price.
+- **BYOK option (Team & Enterprise):** Teams can connect their own Anthropic API key. Their AI usage (drift detection, spec analysis, ticket generation) bills directly to their Anthropic account. This eliminates Nyx' biggest variable cost at scale and gives larger teams cost control and compliance flexibility.
 
 Revenue target: 100 paying teams at Starter tier = $2,900 MRR within 12 months of launch.
 

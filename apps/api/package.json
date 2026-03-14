@@ -1,5 +1,5 @@
 {
-  "name": "@syncdocs/api",
+  "name": "@nyx/api",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -22,7 +22,7 @@
     "@fastify/cookie": "^11",
     "@fastify/cors": "^11",
     "@fastify/multipart": "^9.4.0",
-    "@syncdocs/shared": "workspace:*",
+    "@nyx/shared": "workspace:*",
     "dotenv": "^16",
     "drizzle-orm": "^0.38",
     "fastify": "^5",

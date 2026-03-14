@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Document } from '@syncdocs/shared';
+import type { Document } from '@nyx/shared';
 import { fetchDocuments, createDocument, fetchTeams } from '../lib/api';
 
 const statusColors: Record<string, string> = {

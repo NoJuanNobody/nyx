@@ -5,12 +5,12 @@ import { configure } from './auth.js';
 import { createMcpServer } from './server.js';
 
 // Read configuration from environment
-const apiKey = process.env.SYNCDOCS_API_KEY;
-const baseUrl = process.env.SYNCDOCS_API_URL ?? 'http://localhost:3001';
+const apiKey = process.env.NYX_API_KEY;
+const baseUrl = process.env.NYX_API_URL ?? 'http://localhost:3001';
 
 if (!apiKey) {
-  console.error('Error: SYNCDOCS_API_KEY environment variable is required.');
-  console.error('Create an API key in SyncDocs Settings > API Keys.');
+  console.error('Error: NYX_API_KEY environment variable is required.');
+  console.error('Create an API key in Nyx Settings > API Keys.');
   process.exit(1);
 }
 

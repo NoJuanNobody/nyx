@@ -59,7 +59,7 @@ export const slackRoutes: FastifyPluginAsync = async (app) => {
     const channelId = params.get('channel_id') ?? '';
     const responseUrl = params.get('response_url') ?? '';
 
-    // Find linked SyncDocs team
+    // Find linked Nyx team
     const connections = await db
       .select()
       .from(slackConnections)
@@ -68,7 +68,7 @@ export const slackRoutes: FastifyPluginAsync = async (app) => {
     if (connections.length === 0) {
       return {
         response_type: 'ephemeral',
-        text: 'This Slack workspace is not connected to a SyncDocs team. Visit SyncDocs Settings to connect.',
+        text: 'This Slack workspace is not connected to a Nyx team. Visit Nyx Settings to connect.',
       };
     }
 
@@ -83,7 +83,7 @@ export const slackRoutes: FastifyPluginAsync = async (app) => {
         try {
           await slackService.sendSlackResponse(responseUrl, {
             response_type: 'in_channel',
-            text: `SyncDocs processed your input:\n> ${result.summary}`,
+            text: `Nyx processed your input:\n> ${result.summary}`,
           });
         } catch {
           // Best-effort response

@@ -6,7 +6,7 @@
  * will never duplicate or overwrite existing templates.
  *
  * Usage:
- *   DATABASE_URL=<url> pnpm --filter @syncdocs/api db:seed-templates
+ *   DATABASE_URL=<url> pnpm --filter @nyx/api db:seed-templates
  */
 import 'dotenv/config';
 import { db } from './index.js';

@@ -26,7 +26,7 @@ describe('webSearchTool handler', () => {
     });
 
     const { executeTool } = await import('../tools.js');
-    const result = await executeTool('syncdocs_web_search', { query: 'test' });
+    const result = await executeTool('nyx_web_search', { query: 'test' });
 
     expect(result).toHaveProperty('results');
     expect((result as { results: unknown[] }).results).toHaveLength(1);
@@ -37,7 +37,7 @@ describe('webSearchTool handler', () => {
     (performWebSearch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Search failed'));
 
     const { executeTool } = await import('../tools.js');
-    await expect(executeTool('syncdocs_web_search', { query: 'test' })).rejects.toThrow(
+    await expect(executeTool('nyx_web_search', { query: 'test' })).rejects.toThrow(
       'Search failed',
     );
   });

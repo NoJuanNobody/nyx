@@ -11,18 +11,18 @@ test.describe('Repositories', () => {
         body: JSON.stringify({
           repos: [
             {
-              owner: 'syncdocs',
+              owner: 'nyx',
               name: 'app',
-              fullName: 'syncdocs/app',
+              fullName: 'nyx/app',
               syncStatus: 'active',
               webhookId: 12345,
               lastPushAt: '2025-01-15T10:30:00Z',
               linkedDocCount: 2,
             },
             {
-              owner: 'syncdocs',
+              owner: 'nyx',
               name: 'docs',
-              fullName: 'syncdocs/docs',
+              fullName: 'nyx/docs',
               syncStatus: 'disconnected',
               webhookId: null,
               lastPushAt: null,
@@ -38,8 +38,8 @@ test.describe('Repositories', () => {
   });
 
   test('77.1 — page shows synced repositories', async ({ authenticatedPage: page }) => {
-    await expect(page.locator('text=syncdocs/app')).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('text=syncdocs/docs')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('text=nyx/app')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('text=nyx/docs')).toBeVisible({ timeout: 5_000 });
   });
 
   test('77.2 — shows sync status badges', async ({ authenticatedPage: page }) => {
@@ -66,7 +66,7 @@ test.describe('Repositories', () => {
   });
 
   test('77.6 — repo name links to GitHub', async ({ authenticatedPage: page }) => {
-    const repoLink = page.locator('a[href="https://github.com/syncdocs/app"]');
+    const repoLink = page.locator('a[href="https://github.com/nyx/app"]');
     await expect(repoLink).toBeVisible({ timeout: 5_000 });
   });
 });

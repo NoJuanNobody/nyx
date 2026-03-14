@@ -12,7 +12,7 @@ describe('UI Store', () => {
     useUIStore.getState().setTheme('dark');
 
     expect(useUIStore.getState().theme).toBe('dark');
-    expect(localStorage.setItem).toHaveBeenCalledWith('syncdocs:theme', 'dark');
+    expect(localStorage.setItem).toHaveBeenCalledWith('nyx:theme', 'dark');
     expect(document.documentElement.classList.contains('dark')).toBe(true);
   });
 
@@ -21,7 +21,7 @@ describe('UI Store', () => {
     useUIStore.getState().setTheme('system');
 
     expect(useUIStore.getState().theme).toBe('system');
-    expect(localStorage.setItem).toHaveBeenCalledWith('syncdocs:theme', 'system');
+    expect(localStorage.setItem).toHaveBeenCalledWith('nyx:theme', 'system');
   });
 
   it('toggleSidebar inverts sidebarOpen state', () => {

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { DocumentVersion } from '@syncdocs/shared';
+import type { DocumentVersion } from '@nyx/shared';
 import { VersionHistory } from './VersionHistory';
 import { Timeline } from './Timeline';
 import { ChangeProposals } from './ChangeProposals';

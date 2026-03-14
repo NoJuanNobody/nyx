@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SyncDocs is a product versioning platform that unifies technical documentation, code, and team workflow. It keeps specs in sync with code as it evolves and lets non-technical stakeholders initiate changes that flow through to the codebase.
+Nyx is a product versioning platform that unifies technical documentation, code, and team workflow. It keeps specs in sync with code as it evolves and lets non-technical stakeholders initiate changes that flow through to the codebase.
 
-The product brief is at `SyncDocs_ProductBrief.md` — read it for full context on features, target users, competitive landscape, and business model.
+The product brief is at `Nyx_ProductBrief.md` — read it for full context on features, target users, competitive landscape, and business model.
 
 ## Project Status
 
@@ -66,7 +66,7 @@ pnpm dev
 
 ## Architecture Principles
 
-- SyncDocs integrates with external tools (GitHub Issues, Jira, Confluence) rather than replacing them
+- Nyx integrates with external tools (GitHub Issues, Jira, Confluence) rather than replacing them
 - Coding agent integrations (Cursor, Copilot, Claude Code) are first-class — specs should flow directly into AI coding workflows
 - Non-technical users initiate changes through documentation; those changes are pushed as tickets to developer tools
 - No vendor lock-in — full documentation export is always available

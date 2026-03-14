@@ -12,7 +12,7 @@ function applyTheme(theme: Theme) {
 }
 
 function loadTheme(): Theme {
-  return (localStorage.getItem('syncdocs:theme') as Theme) ?? 'system';
+  return (localStorage.getItem('nyx:theme') as Theme) ?? 'system';
 }
 
 interface UIState {
@@ -33,7 +33,7 @@ export const useUIStore = create<UIState>((set) => ({
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   theme: initialTheme,
   setTheme: (theme) => {
-    localStorage.setItem('syncdocs:theme', theme);
+    localStorage.setItem('nyx:theme', theme);
     applyTheme(theme);
     set({ theme });
   },
