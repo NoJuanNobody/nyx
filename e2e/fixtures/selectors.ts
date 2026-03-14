@@ -85,6 +85,7 @@ export const SEL = {
     timelineTab: 'button[title="Timeline"]',
     proposalsTab: 'button[title="Proposals"]',
     auditTab: 'button[title="Audit"]',
+    impactTab: 'button[title="Impact"]',
     aiTab: 'button[title="AI"]',
     aiEditTab: 'button[title="AI Edit"]',
     agentTab: 'button[title="Agent"]',

@@ -479,6 +479,34 @@ export function fetchAuditTrace(eventId: string): Promise<{ eventId: string; cha
   );
 }
 
+// ── Impact Graph ─────────────────────────────────────────────────────
+
+export interface ImpactNode {
+  id: string;
+  type: string;
+  label: string;
+  actorName: string;
+  timestamp: string;
+  intent: string;
+  driftFlag: boolean;
+  metadata: Record<string, unknown>;
+}
+
+export interface ImpactEdge {
+  from: string;
+  to: string;
+}
+
+export interface ImpactGraphResult {
+  documentId: string;
+  nodes: ImpactNode[];
+  edges: ImpactEdge[];
+}
+
+export function fetchImpactGraph(documentId: string): Promise<ImpactGraphResult> {
+  return request<ImpactGraphResult>(`/documents/${documentId}/impact-graph`);
+}
+
 // ── Trace ───────────────────────────────────────────────────────────
 
 export interface TraceNode {
