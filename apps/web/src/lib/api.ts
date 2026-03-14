@@ -577,3 +577,36 @@ export function deleteAccount(): Promise<void> {
     method: 'DELETE',
   });
 }
+
+// ── Feedback ────────────────────────────────────────────────────────
+
+export interface FormattedFeedback {
+  title: string;
+  body: string;
+  category: string;
+}
+
+export interface FeedbackSubmitResult {
+  id: string;
+  githubIssueUrl: string | null;
+  remaining: number;
+}
+
+export function formatFeedback(message: string): Promise<FormattedFeedback> {
+  return request<FormattedFeedback>('/feedback/format', {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
+}
+
+export function submitFeedback(data: {
+  rawMessage: string;
+  title: string;
+  body: string;
+  category: string;
+}): Promise<FeedbackSubmitResult> {
+  return request<FeedbackSubmitResult>('/feedback/submit', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
