@@ -64,7 +64,7 @@ export function Dashboard() {
             ◎
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-slate-900">How SyncDocs Works</h3>
+            <h3 className="text-sm font-semibold text-slate-900">How It Works</h3>
             <p className="text-xs text-slate-500 mt-0.5">Explore the 5-phase product lifecycle — from idea to living codebase</p>
           </div>
           <svg className="h-4 w-4 text-slate-400 group-hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
