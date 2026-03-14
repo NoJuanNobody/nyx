@@ -11,6 +11,7 @@ import { Repositories } from './pages/Repositories';
 import { LifecycleExplorerPage } from './pages/LifecycleExplorerPage';
 import { IntakePage } from './pages/IntakePage';
 import { SprintPage } from './pages/SprintPage';
+import { TracePage } from './pages/TracePage';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 import { useAuthStore } from './stores/auth.store';
@@ -40,6 +41,7 @@ export function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/documents/:id" element={<DocumentEditor />} />
             <Route path="/documents/:id/preview" element={<JSXPreviewPage />} />
+            <Route path="/documents/:id/trace" element={<TracePage />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/board" element={<Board />} />
             <Route path="/repositories" element={<Repositories />} />
