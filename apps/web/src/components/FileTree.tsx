@@ -899,7 +899,10 @@ export function FileTree() {
       ];
 
       return {
-        label: `${stage.label} — ${stage.subtitle}`,
+        label: stage.label,
+        abbr: stage.abbreviation,
+        sublabel: stage.subtitle,
+        tooltip: stage.description,
         dotColorClass: stage.dotColor,
         submenu,
       };
