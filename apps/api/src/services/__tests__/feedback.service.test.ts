@@ -1,46 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock the Anthropic SDK
-vi.mock('@anthropic-ai/sdk', () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
-      messages: {
-        create: vi.fn(),
-      },
-    })),
-  };
-});
-
-// Mock the database
-vi.mock('../../db/index.js', () => ({
-  db: {
-    select: vi.fn().mockReturnThis(),
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockResolvedValue([{ count: 0 }]),
-    insert: vi.fn().mockReturnThis(),
-    values: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue([{
-      id: 'test-id',
-      userId: 'user-1',
-      rawMessage: 'test',
-      formattedTitle: 'Test',
-      formattedBody: 'Test body',
-      category: 'feature-request',
-      githubIssueUrl: null,
-      githubIssueNumber: null,
-      createdAt: new Date().toISOString(),
-    }]),
-  },
-}));
-
-// Mock config
-vi.mock('../../lib/config.js', () => ({
-  config: {
-    ANTHROPIC_API_KEY: 'test-key',
-    GITHUB_FEEDBACK_PAT: 'test-pat',
-  },
-}));
-
 // Mock fetch for GitHub API
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
@@ -48,11 +7,11 @@ vi.stubGlobal('fetch', mockFetch);
 describe('feedbackService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
   describe('formatFeedback', () => {
     it('should format raw feedback into structured issue', async () => {
-      const { default: Anthropic } = await import('@anthropic-ai/sdk');
       const mockCreate = vi.fn().mockResolvedValue({
         content: [{
           type: 'text',
@@ -64,18 +23,12 @@ describe('feedbackService', () => {
         }],
       });
 
-      (Anthropic as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => ({
-        messages: { create: mockCreate },
-      }));
-
-      // Re-import to get fresh module with new mock
-      vi.resetModules();
-      vi.mock('@anthropic-ai/sdk', () => ({
+      vi.doMock('@anthropic-ai/sdk', () => ({
         default: vi.fn().mockImplementation(() => ({
           messages: { create: mockCreate },
         })),
       }));
-      vi.mock('../../db/index.js', () => ({
+      vi.doMock('../../db/index.js', () => ({
         db: {
           select: vi.fn().mockReturnThis(),
           from: vi.fn().mockReturnThis(),
@@ -85,7 +38,7 @@ describe('feedbackService', () => {
           returning: vi.fn().mockResolvedValue([{ id: 'test-id' }]),
         },
       }));
-      vi.mock('../../lib/config.js', () => ({
+      vi.doMock('../../lib/config.js', () => ({
         config: {
           ANTHROPIC_API_KEY: 'test-key',
           GITHUB_FEEDBACK_PAT: 'test-pat',
@@ -107,13 +60,12 @@ describe('feedbackService', () => {
         content: [{ type: 'text', text: 'not json' }],
       });
 
-      vi.resetModules();
-      vi.mock('@anthropic-ai/sdk', () => ({
+      vi.doMock('@anthropic-ai/sdk', () => ({
         default: vi.fn().mockImplementation(() => ({
           messages: { create: mockCreate },
         })),
       }));
-      vi.mock('../../db/index.js', () => ({
+      vi.doMock('../../db/index.js', () => ({
         db: {
           select: vi.fn().mockReturnThis(),
           from: vi.fn().mockReturnThis(),
@@ -123,7 +75,7 @@ describe('feedbackService', () => {
           returning: vi.fn().mockResolvedValue([{ id: 'test-id' }]),
         },
       }));
-      vi.mock('../../lib/config.js', () => ({
+      vi.doMock('../../lib/config.js', () => ({
         config: {
           ANTHROPIC_API_KEY: 'test-key',
           GITHUB_FEEDBACK_PAT: 'test-pat',
@@ -141,13 +93,12 @@ describe('feedbackService', () => {
 
   describe('submitToGitHub', () => {
     it('should create a GitHub issue with feedback label', async () => {
-      vi.resetModules();
-      vi.mock('@anthropic-ai/sdk', () => ({
+      vi.doMock('@anthropic-ai/sdk', () => ({
         default: vi.fn().mockImplementation(() => ({
           messages: { create: vi.fn() },
         })),
       }));
-      vi.mock('../../db/index.js', () => ({
+      vi.doMock('../../db/index.js', () => ({
         db: {
           select: vi.fn().mockReturnThis(),
           from: vi.fn().mockReturnThis(),
@@ -157,7 +108,7 @@ describe('feedbackService', () => {
           returning: vi.fn().mockResolvedValue([{ id: 'test-id' }]),
         },
       }));
-      vi.mock('../../lib/config.js', () => ({
+      vi.doMock('../../lib/config.js', () => ({
         config: {
           ANTHROPIC_API_KEY: 'test-key',
           GITHUB_FEEDBACK_PAT: 'test-pat',
@@ -194,13 +145,12 @@ describe('feedbackService', () => {
     });
 
     it('should throw on GitHub API error', async () => {
-      vi.resetModules();
-      vi.mock('@anthropic-ai/sdk', () => ({
+      vi.doMock('@anthropic-ai/sdk', () => ({
         default: vi.fn().mockImplementation(() => ({
           messages: { create: vi.fn() },
         })),
       }));
-      vi.mock('../../db/index.js', () => ({
+      vi.doMock('../../db/index.js', () => ({
         db: {
           select: vi.fn().mockReturnThis(),
           from: vi.fn().mockReturnThis(),
@@ -210,7 +160,7 @@ describe('feedbackService', () => {
           returning: vi.fn().mockResolvedValue([{ id: 'test-id' }]),
         },
       }));
-      vi.mock('../../lib/config.js', () => ({
+      vi.doMock('../../lib/config.js', () => ({
         config: {
           ANTHROPIC_API_KEY: 'test-key',
           GITHUB_FEEDBACK_PAT: 'test-pat',
