@@ -44,7 +44,7 @@ test.describe('Tickets', () => {
 
     // Verify the seeded ticket is visible on the board
     await expect(
-      page.locator('text=Implement auth endpoints'),
+      page.locator('text=Implement auth endpoints').first(),
     ).toBeVisible({ timeout: 10_000 });
   });
 });

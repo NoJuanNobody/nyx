@@ -13,7 +13,7 @@ test.describe('Board', () => {
   test('31.2: Ticket card shows title', async ({ authenticatedPage: page }) => {
     await page.goto('/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('31.3: Provider badge visible', async ({ authenticatedPage: page }) => {
@@ -21,7 +21,7 @@ test.describe('Board', () => {
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     // Wait for ticket cards to render
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
     // Provider badges are small <span> elements with font-bold class inside ticket cards.
     // We look for the badge text inside the ticket card area (the grid), not in the filter header.
@@ -35,7 +35,7 @@ test.describe('Board', () => {
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     // Wait for ticket cards to render
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
     // Ticket cards should have an external link with target="_blank"
     const externalLink = page.locator('a[target="_blank"]').first();
@@ -46,12 +46,12 @@ test.describe('Board', () => {
   test('31.5: Provider filter — GitHub only', async ({ authenticatedPage: page }) => {
     await page.goto('/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
     await page.locator(SEL.board.providerFilter).selectOption({ value: 'github' });
 
     // GitHub tickets remain visible
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 5_000 });
     // Jira tickets hidden
     await expect(page.locator('text=Review architecture')).not.toBeVisible({ timeout: 5_000 });
   });
@@ -59,14 +59,14 @@ test.describe('Board', () => {
   test('31.6: Provider filter — All restores full list', async ({ authenticatedPage: page }) => {
     await page.goto('/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
     // Filter to GitHub first, then back to All
     await page.locator(SEL.board.providerFilter).selectOption({ value: 'github' });
     await expect(page.locator('text=Review architecture')).not.toBeVisible({ timeout: 5_000 });
 
     await page.locator(SEL.board.providerFilter).selectOption({ value: '' });
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 5_000 });
     await expect(page.locator('text=Review architecture')).toBeVisible({ timeout: 5_000 });
   });
 
@@ -86,7 +86,7 @@ test.describe('Board', () => {
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     // Wait for tickets to load
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
     // Column headers should display count numbers
     // Look for any numeric content near column headers

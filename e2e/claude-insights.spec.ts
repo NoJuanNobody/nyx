@@ -11,7 +11,7 @@ test.describe('Claude Action Insights — board display', () => {
   }) => {
     await page.goto('/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
     // The GitHub open ticket has a seeded insight — its panel should be visible
     await expect(page.locator(SEL.claudeInsight.panel).first()).toBeVisible({ timeout: 5_000 });
@@ -20,7 +20,7 @@ test.describe('Claude Action Insights — board display', () => {
   test('50.2: Insight panel shows the parsed title', async ({ authenticatedPage: page }) => {
     await page.goto('/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
     await expect(page.locator(SEL.claudeInsight.title).first()).toContainText(
       'Implement auth endpoints',
@@ -289,11 +289,11 @@ test.describe('Claude Action Insights — provider filter interaction', () => {
   }) => {
     await page.goto('/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
     await page.locator(SEL.board.providerFilter).selectOption({ value: 'github' });
 
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 5_000 });
     await expect(page.locator(SEL.claudeInsight.panel).first()).toBeVisible({ timeout: 5_000 });
   });
 
@@ -302,7 +302,7 @@ test.describe('Claude Action Insights — provider filter interaction', () => {
   }) => {
     await page.goto('/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
     await page.locator(SEL.board.providerFilter).selectOption({ value: 'jira' });
 
@@ -330,7 +330,7 @@ test.describe('Claude Action Insights — error handling', () => {
     await page.locator(SEL.claudeInsight.refreshButton).first().click();
 
     // Board should remain stable — ticket titles still visible
-    await expect(page.locator('text=Implement auth endpoints')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 5_000 });
     // The panel should still be rendered
     await expect(page.locator(SEL.claudeInsight.panel).first()).toBeVisible({ timeout: 3_000 });
   });
