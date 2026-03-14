@@ -802,6 +802,11 @@ export function deferSprintTicket(data: {
   ticketKey: string;
 }): Promise<{ deferred: boolean }> {
   return request<{ deferred: boolean }>('/sprint/defer', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 // ── Context Matching ─────────────────────────────────────
 
 export interface ContextMatch {
