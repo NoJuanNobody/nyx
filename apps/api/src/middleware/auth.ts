@@ -171,6 +171,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
 
   // Paths that are browser redirects (OAuth flows) and cannot carry Bearer tokens
   const AUTH_EXEMPT_PATHS = [
+    '/health',
     '/api/integrations/github/connect',
     '/api/integrations/github/callback',
     '/api/waitlist',
