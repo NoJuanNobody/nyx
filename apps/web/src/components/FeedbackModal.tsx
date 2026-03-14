@@ -158,7 +158,7 @@ export function FeedbackModal({ open, onClose }: FeedbackModalProps) {
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <p className="text-xs text-slate-400">
-            This will be submitted as a GitHub issue visible to the SyncDocs team.
+            This will be submitted as a GitHub issue visible to the Nyx team.
           </p>
           <div className="flex justify-between">
             <button
@@ -205,7 +205,7 @@ export function FeedbackModal({ open, onClose }: FeedbackModalProps) {
             </svg>
           </div>
           <p className="text-sm font-medium text-slate-900 mb-1">Thank you for your feedback!</p>
-          <p className="text-xs text-slate-500 mb-2">Your feedback has been submitted to the SyncDocs team.</p>
+          <p className="text-xs text-slate-500 mb-2">Your feedback has been submitted to the Nyx team.</p>
           {githubUrl && (
             <a
               href={githubUrl}

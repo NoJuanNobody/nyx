@@ -11,7 +11,7 @@ import { RESOURCE_TEMPLATES, resolveResource } from './resources.js';
 
 export function createMcpServer(): Server {
   const server = new Server(
-    { name: 'syncdocs', version: '0.1.0' },
+    { name: 'nyx', version: '0.1.0' },
     { capabilities: { tools: {}, resources: {} } },
   );
 

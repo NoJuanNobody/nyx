@@ -12,7 +12,7 @@ const FEATURES = [
   {
     icon: "⟳",
     title: "Always In Sync",
-    desc: "SyncDocs watches your codebase for drift. The moment your implementation diverges from your spec, you know — before it becomes a problem.",
+    desc: "Nyx watches your codebase for drift. The moment your implementation diverges from your spec, you know — before it becomes a problem.",
     color: "#4EC9B0",
   },
   {
@@ -24,7 +24,7 @@ const FEATURES = [
   {
     icon: "◈",
     title: "Non-Dev to Ticket",
-    desc: "Stakeholders edit documentation. SyncDocs converts those changes into tickets automatically — no translation tax, no lost intent.",
+    desc: "Stakeholders edit documentation. Nyx converts those changes into tickets automatically — no translation tax, no lost intent.",
     color: "#C084FC",
   },
   {
@@ -42,7 +42,7 @@ const FEATURES = [
   {
     icon: "◧",
     title: "AI-Ready Specs",
-    desc: "Write specs that actually produce great AI-generated code. SyncDocs scores and improves your specs before they reach an AI coding agent.",
+    desc: "Write specs that actually produce great AI-generated code. Nyx scores and improves your specs before they reach an AI coding agent.",
     color: "#4EC9B0",
   },
 ];
@@ -70,7 +70,7 @@ function FadeIn({ children, delay = 0, style = {} }) {
   );
 }
 
-export default function SyncDocsLanding() {
+export default function NyxLanding() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [activeStage, setActiveStage] = useState(0);
@@ -180,7 +180,7 @@ export default function SyncDocsLanding() {
           lineHeight: 1.7, margin: "0 0 48px",
           fontFamily: "'JetBrains Mono', monospace", fontWeight: 400,
         }}>
-          SyncDocs unifies your product lifecycle — concept, PRD, architecture, specs, and code — in one platform that keeps everything in sync, forever.
+          Nyx unifies your product lifecycle — concept, PRD, architecture, specs, and code — in one platform that keeps everything in sync, forever.
         </p>
 
         {/* CTA */}
@@ -283,7 +283,7 @@ export default function SyncDocsLanding() {
             <div style={{
               fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
               color: "#475569", textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 14,
-            }}>What SyncDocs Does</div>
+            }}>What Nyx Does</div>
             <h2 style={{ fontSize: "clamp(26px, 3.5vw, 40px)", fontWeight: 800, letterSpacing: "-0.025em", lineHeight: 1.15 }}>
               One platform. The entire journey.
             </h2>
@@ -345,7 +345,7 @@ export default function SyncDocsLanding() {
             textAlign: "center", marginTop: 32,
             fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: "#475569",
           }}>
-            SyncDocs is being built to solve exactly this. We're in private beta —{" "}
+            Nyx is being built to solve exactly this. We're in private beta —{" "}
             <span style={{ color: STAGES[1].color }}>join the waitlist to shape the product.</span>
           </div>
         </FadeIn>
@@ -533,7 +533,7 @@ export default function SyncDocsLanding() {
           Sync<span style={{ color: stage.color, transition: "color 0.5s" }}>Docs</span>
         </div>
         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#1E293B" }}>
-          © 2026 SyncDocs · Built by Alejandro Londono
+          © 2026 Nyx · Built by Alejandro Londono
         </div>
       </footer>
     </div>

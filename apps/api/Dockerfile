@@ -16,8 +16,8 @@ COPY --from=deps /app/ ./
 COPY tsconfig.base.json ./
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
-RUN pnpm --filter "@syncdocs/shared" build
-RUN pnpm --filter "@syncdocs/api" build
+RUN pnpm --filter "@nyx/shared" build
+RUN pnpm --filter "@nyx/api" build
 
 # ── Production runner ─────────────────────────────────────────────────
 FROM node:20-alpine AS runner

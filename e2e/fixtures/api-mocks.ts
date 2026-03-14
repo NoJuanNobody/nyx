@@ -41,18 +41,18 @@ export function mockDriftResponse() {
 
 export function mockGitHubRepos() {
   return [
-    { id: 1, full_name: 'syncdocs/app', name: 'app', owner: { login: 'syncdocs' }, private: false, default_branch: 'main' },
-    { id: 2, full_name: 'syncdocs/docs', name: 'docs', owner: { login: 'syncdocs' }, private: false, default_branch: 'main' },
-    { id: 3, full_name: 'syncdocs/sdk', name: 'sdk', owner: { login: 'syncdocs' }, private: true, default_branch: 'main' },
-    { id: 4, full_name: 'syncdocs/cli', name: 'cli', owner: { login: 'syncdocs' }, private: false, default_branch: 'main' },
-    { id: 5, full_name: 'syncdocs/infra', name: 'infra', owner: { login: 'syncdocs' }, private: true, default_branch: 'main' },
+    { id: 1, full_name: 'nyx/app', name: 'app', owner: { login: 'nyx' }, private: false, default_branch: 'main' },
+    { id: 2, full_name: 'nyx/docs', name: 'docs', owner: { login: 'nyx' }, private: false, default_branch: 'main' },
+    { id: 3, full_name: 'nyx/sdk', name: 'sdk', owner: { login: 'nyx' }, private: true, default_branch: 'main' },
+    { id: 4, full_name: 'nyx/cli', name: 'cli', owner: { login: 'nyx' }, private: false, default_branch: 'main' },
+    { id: 5, full_name: 'nyx/infra', name: 'infra', owner: { login: 'nyx' }, private: true, default_branch: 'main' },
   ];
 }
 
 export function mockGitHubIssue(overrides?: Partial<{ number: number; html_url: string; title: string }>) {
   return {
     number: overrides?.number ?? 999,
-    html_url: overrides?.html_url ?? 'https://github.com/syncdocs/app/issues/999',
+    html_url: overrides?.html_url ?? 'https://github.com/nyx/app/issues/999',
     title: overrides?.title ?? 'Test ticket from E2E',
     state: 'open',
   };

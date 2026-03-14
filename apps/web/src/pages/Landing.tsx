@@ -9,12 +9,12 @@ const STAGES = [
 ];
 
 const FEATURES = [
-  { icon: '⟳', title: 'Always In Sync', desc: 'SyncDocs watches your codebase for drift. The moment your implementation diverges from your spec, you know — before it becomes a problem.', color: '#4EC9B0' },
+  { icon: '⟳', title: 'Always In Sync', desc: 'Nyx watches your codebase for drift. The moment your implementation diverges from your spec, you know — before it becomes a problem.', color: '#4EC9B0' },
   { icon: '✦', title: 'AI at Every Stage', desc: 'Claude assists from concept to code. Stress-test ideas, score PRD completeness, generate AI-ready specs, and detect intent violations in real time.', color: '#E8C547' },
-  { icon: '◈', title: 'Non-Dev to Ticket', desc: 'Stakeholders edit documentation. SyncDocs converts those changes into tickets automatically — no translation tax, no lost intent.', color: '#C084FC' },
+  { icon: '◈', title: 'Non-Dev to Ticket', desc: 'Stakeholders edit documentation. Nyx converts those changes into tickets automatically — no translation tax, no lost intent.', color: '#C084FC' },
   { icon: '⊕', title: 'Full Version History', desc: 'Git for your entire product — docs, decisions, tickets, and code. Roll back to any state. Understand why anything is the way it is.', color: '#7B9FE0' },
   { icon: '⬡', title: 'AI Agent Map', desc: 'Visualize the relationships between every artifact in your product. See how a stakeholder request traces through to a line of code.', color: '#F87171' },
-  { icon: '◧', title: 'AI-Ready Specs', desc: 'Write specs that actually produce great AI-generated code. SyncDocs scores and improves your specs before they reach an AI coding agent.', color: '#4EC9B0' },
+  { icon: '◧', title: 'AI-Ready Specs', desc: 'Write specs that actually produce great AI-generated code. Nyx scores and improves your specs before they reach an AI coding agent.', color: '#4EC9B0' },
 ];
 
 function useInView(ref: React.RefObject<HTMLDivElement | null>) {
@@ -158,7 +158,7 @@ export function Landing() {
           lineHeight: 1.7, margin: '0 0 48px',
           fontFamily: "'JetBrains Mono', monospace", fontWeight: 400,
         }}>
-          SyncDocs unifies your product lifecycle — concept, PRD, architecture, specs, and code — in one platform that keeps everything in sync, forever.
+          Nyx unifies your product lifecycle — concept, PRD, architecture, specs, and code — in one platform that keeps everything in sync, forever.
         </p>
 
         {/* CTA */}
@@ -268,7 +268,7 @@ export function Landing() {
             <div style={{
               fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
               color: '#475569', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 14,
-            }}>What SyncDocs Does</div>
+            }}>What Nyx Does</div>
             <h2 style={{ fontSize: 'clamp(26px, 3.5vw, 40px)', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.15 }}>
               One platform. The entire journey.
             </h2>
@@ -338,7 +338,7 @@ export function Landing() {
           Sync<span style={{ color: stage.color, transition: 'color 0.5s' }}>Docs</span>
         </div>
         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#1E293B' }}>
-          2026 SyncDocs
+          2026 Nyx
         </div>
       </footer>
     </div>

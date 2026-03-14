@@ -56,8 +56,8 @@ test.describe('Integrations', () => {
     // Modal is a fixed overlay containing the repo picker content (no role="dialog")
     const modal = page.locator('.fixed.inset-0 > div.rounded-xl, .fixed.inset-0 > div.max-w-lg').first();
     await expect(modal).toBeVisible({ timeout: 5_000 });
-    await expect(modal.locator('text=syncdocs/app')).toBeVisible({ timeout: 5_000 });
-    await expect(modal.locator('text=syncdocs/docs')).toBeVisible();
+    await expect(modal.locator('text=nyx/app')).toBeVisible({ timeout: 5_000 });
+    await expect(modal.locator('text=nyx/docs')).toBeVisible();
   });
 
   // ── 44.3: Search repos in picker ───────────────────────────────
@@ -68,16 +68,16 @@ test.describe('Integrations', () => {
     await expect(modal).toBeVisible({ timeout: 5_000 });
 
     // Wait for repos to load before filtering
-    await expect(modal.locator('text=syncdocs/app')).toBeVisible({ timeout: 5_000 });
+    await expect(modal.locator('text=nyx/app')).toBeVisible({ timeout: 5_000 });
 
     // Type in the search input to filter repos
     const searchInput = modal.locator('input[type="text"], input[type="search"], input[placeholder*="earch"]').first();
     await searchInput.fill('sdk');
 
     // Only the matching repo should be visible
-    await expect(modal.locator('text=syncdocs/sdk')).toBeVisible({ timeout: 5_000 });
+    await expect(modal.locator('text=nyx/sdk')).toBeVisible({ timeout: 5_000 });
     // Non-matching repos should be filtered out
-    await expect(modal.locator('text=syncdocs/app')).toBeHidden({ timeout: 3_000 });
+    await expect(modal.locator('text=nyx/app')).toBeHidden({ timeout: 3_000 });
   });
 
   // ── 44.4: Select/deselect repo checkbox ─────────────────────────

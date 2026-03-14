@@ -3,7 +3,7 @@ import { performWebSearch } from './search/search.service.js';
 
 /**
  * MCP tool definitions and handlers.
- * Each tool calls the SyncDocs REST API via authenticated requests.
+ * Each tool calls the Nyx REST API via authenticated requests.
  */
 
 export interface ToolDefinition {
@@ -18,8 +18,8 @@ export interface ToolDefinition {
 
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
-    name: 'syncdocs_search_docs',
-    description: 'Search/list documents in SyncDocs. Returns document IDs, titles, paths, and status.',
+    name: 'nyx_search_docs',
+    description: 'Search/list documents in Nyx. Returns document IDs, titles, paths, and status.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -29,8 +29,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
-    name: 'syncdocs_read_doc',
-    description: 'Read a specific document from SyncDocs by ID. Returns full content, title, and metadata.',
+    name: 'nyx_read_doc',
+    description: 'Read a specific document from Nyx by ID. Returns full content, title, and metadata.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -40,7 +40,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
-    name: 'syncdocs_check_quality',
+    name: 'nyx_check_quality',
     description: 'Run AI quality analysis on spec content. Returns a quality score (1-10) and improvement suggestions.',
     inputSchema: {
       type: 'object',
@@ -51,7 +51,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
-    name: 'syncdocs_detect_drift',
+    name: 'nyx_detect_drift',
     description: 'Detect drift between a specification and code. Returns drift score and details.',
     inputSchema: {
       type: 'object',
@@ -63,8 +63,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
-    name: 'syncdocs_create_doc',
-    description: 'Create a new document in SyncDocs.',
+    name: 'nyx_create_doc',
+    description: 'Create a new document in Nyx.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -77,8 +77,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
-    name: 'syncdocs_update_doc',
-    description: 'Update an existing document in SyncDocs.',
+    name: 'nyx_update_doc',
+    description: 'Update an existing document in Nyx.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -90,8 +90,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
-    name: 'syncdocs_create_ticket',
-    description: 'Create a ticket (GitHub issue or Jira) linked to a SyncDocs document.',
+    name: 'nyx_create_ticket',
+    description: 'Create a ticket (GitHub issue or Jira) linked to a Nyx document.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -104,8 +104,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
-    name: 'syncdocs_get_timeline',
-    description: 'Get the timeline of events for a SyncDocs document.',
+    name: 'nyx_get_timeline',
+    description: 'Get the timeline of events for a Nyx document.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -115,7 +115,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
-    name: 'syncdocs_web_search',
+    name: 'nyx_web_search',
     description:
       'Search the web for information relevant to documentation. Returns search results with titles, URLs, and snippets. Useful for finding API references, library documentation, changelogs, and technical articles.',
     inputSchema: {
@@ -138,26 +138,26 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
 ];
 
 /**
- * Execute a tool call by routing to the appropriate SyncDocs API endpoint.
+ * Execute a tool call by routing to the appropriate Nyx API endpoint.
  */
 export async function executeTool(
   name: string,
   args: Record<string, unknown>,
 ): Promise<unknown> {
   switch (name) {
-    case 'syncdocs_search_docs': {
+    case 'nyx_search_docs': {
       return apiRequest(`/api/documents?teamId=${args.team_id}`);
     }
-    case 'syncdocs_read_doc': {
+    case 'nyx_read_doc': {
       return apiRequest(`/api/documents/${args.document_id}`);
     }
-    case 'syncdocs_check_quality': {
+    case 'nyx_check_quality': {
       return apiRequest('/api/ai/analyze', {
         method: 'POST',
         body: JSON.stringify({ content: args.content }),
       });
     }
-    case 'syncdocs_detect_drift': {
+    case 'nyx_detect_drift': {
       return apiRequest('/api/ai/detect-drift', {
         method: 'POST',
         body: JSON.stringify({
@@ -166,7 +166,7 @@ export async function executeTool(
         }),
       });
     }
-    case 'syncdocs_create_doc': {
+    case 'nyx_create_doc': {
       return apiRequest('/api/documents', {
         method: 'POST',
         body: JSON.stringify({
@@ -177,7 +177,7 @@ export async function executeTool(
         }),
       });
     }
-    case 'syncdocs_update_doc': {
+    case 'nyx_update_doc': {
       const body: Record<string, unknown> = {};
       if (args.title) body.title = args.title;
       if (args.content) body.content = args.content;
@@ -186,7 +186,7 @@ export async function executeTool(
         body: JSON.stringify(body),
       });
     }
-    case 'syncdocs_create_ticket': {
+    case 'nyx_create_ticket': {
       return apiRequest(`/api/documents/${args.document_id}/tickets`, {
         method: 'POST',
         body: JSON.stringify({
@@ -196,10 +196,10 @@ export async function executeTool(
         }),
       });
     }
-    case 'syncdocs_get_timeline': {
+    case 'nyx_get_timeline': {
       return apiRequest(`/api/documents/${args.document_id}/timeline`);
     }
-    case 'syncdocs_web_search': {
+    case 'nyx_web_search': {
       const query = args.query as string;
       const searchType = (args.search_type as string) ?? 'general';
       const maxResults = Math.min(Math.max((args.max_results as number) ?? 5, 1), 10);

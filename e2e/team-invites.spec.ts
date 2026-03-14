@@ -12,7 +12,7 @@ test.describe.serial('Team Invites', () => {
   test('39.1 — invite existing user by email', async ({ authenticatedPage: page }) => {
     const emailInput = page.locator(SEL.settings.inviteEmailInput);
     await expect(emailInput).toBeVisible({ timeout: 5_000 });
-    await emailInput.fill('alice@syncdocs.io');
+    await emailInput.fill('alice@nyx.io');
 
     // The invite role select is the first <select> inside the main panel (not the sidebar)
     // It's rendered before the member list role dropdowns in DOM order

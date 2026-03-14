@@ -1,11 +1,11 @@
 {
-  "name": "@syncdocs/mcp-server",
+  "name": "@nyx/mcp-server",
   "version": "0.1.0",
   "type": "module",
-  "description": "MCP server for SyncDocs — exposes documents and AI features to coding agents",
+  "description": "MCP server for Nyx — exposes documents and AI features to coding agents",
   "main": "dist/index.js",
   "bin": {
-    "syncdocs-mcp": "dist/index.js"
+    "nyx-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",

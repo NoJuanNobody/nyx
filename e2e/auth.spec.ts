@@ -2,9 +2,9 @@ import { test, expect, SEED } from './fixtures/test-base';
 import { SEL } from './fixtures/selectors';
 
 test.describe('Authentication & Dev Bypass', () => {
-  test('1.1 — landing page renders with SyncDocs branding', async ({ page }) => {
+  test('1.1 — landing page renders with Nyx branding', async ({ page }) => {
     await page.goto('/landing');
-    await expect(page.locator('text=SyncDocs').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=Nyx').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('1.2 — dev bypass grants access to /dashboard', async ({ authenticatedPage: page }) => {

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Document, DocumentTemplate } from '@syncdocs/shared';
+import type { Document, DocumentTemplate } from '@nyx/shared';
 import {
   fetchDocuments,
   fetchArchivedDocuments,
@@ -24,7 +24,7 @@ import {
 
 // ── Folder persistence (localStorage) ─────────────────
 
-const FOLDERS_KEY = 'syncdocs:folders';
+const FOLDERS_KEY = 'nyx:folders';
 
 function loadFolders(): string[] {
   try {
@@ -235,7 +235,7 @@ function Folder({
   const isRenaming = renamingFolderPath === node.path;
 
   const handleDragOver = (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes('application/syncdocs-doc-id')) {
+    if (e.dataTransfer.types.includes('application/nyx-doc-id')) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       setDragOver(true);
@@ -252,7 +252,7 @@ function Folder({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const docId = e.dataTransfer.getData('application/syncdocs-doc-id');
+    const docId = e.dataTransfer.getData('application/nyx-doc-id');
     if (docId) {
       onDropDoc(docId, node.path);
     }
@@ -466,7 +466,7 @@ function DocItem({
   onRenameCancel: () => void;
 }) {
   const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('application/syncdocs-doc-id', doc.id);
+    e.dataTransfer.setData('application/nyx-doc-id', doc.id);
     e.dataTransfer.effectAllowed = 'move';
   };
   const statusDot: Record<string, string> = {
@@ -1074,14 +1074,14 @@ export function FileTree() {
           }
         }}
         onDragOver={(e) => {
-          if (e.dataTransfer.types.includes('application/syncdocs-doc-id')) {
+          if (e.dataTransfer.types.includes('application/nyx-doc-id')) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
           }
         }}
         onDrop={(e) => {
           e.preventDefault();
-          const docId = e.dataTransfer.getData('application/syncdocs-doc-id');
+          const docId = e.dataTransfer.getData('application/nyx-doc-id');
           if (docId) handleDropDoc(docId, '/');
         }}
       >

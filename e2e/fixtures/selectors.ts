@@ -6,7 +6,7 @@
 export const SEL = {
   // ── Sidebar ──────────────────────────────────────────
   sidebar: {
-    logo: 'a:has-text("SyncDocs")',
+    logo: 'a:has-text("Nyx")',
     boardLink: 'a:has-text("Board")',
     settingsLink: 'a:has-text("Settings")',
     teamSwitcher: 'aside select',

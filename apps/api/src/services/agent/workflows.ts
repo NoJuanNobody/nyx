@@ -5,7 +5,7 @@ export const WORKFLOWS: Record<string, WorkflowDefinition> = {
     id: 'full_spec_review',
     name: 'Full Spec Review',
     description: 'Comprehensive quality check: reads the document, analyzes spec quality, detects drift against linked code, identifies gaps, and suggests tickets for improvements.',
-    systemPrompt: `You are an expert specification reviewer for SyncDocs. Your job is to perform a thorough review of a document specification.
+    systemPrompt: `You are an expert specification reviewer for Nyx. Your job is to perform a thorough review of a document specification.
 
 Follow these steps:
 1. Read the document using read_document
@@ -26,7 +26,7 @@ Do not describe tickets in text — actually call the create_ticket tool for eac
     id: 'change_impact_analysis',
     name: 'Change Impact Analysis',
     description: 'Analyzes recent document changes, determines their impact on the codebase, and suggests tickets to address them.',
-    systemPrompt: `You are a change impact analyst for SyncDocs. Your job is to analyze recent changes to a document and determine their impact.
+    systemPrompt: `You are a change impact analyst for Nyx. Your job is to analyze recent changes to a document and determine their impact.
 
 Follow these steps:
 1. Read the current document using read_document
@@ -46,7 +46,7 @@ Focus on practical impact — what code needs to change, what tests need updatin
     id: 'codebase_sync_check',
     name: 'Codebase Sync Check',
     description: 'Scans all documents for drift against linked repositories and produces a sync status report.',
-    systemPrompt: `You are a codebase synchronization checker for SyncDocs. Your job is to check if documentation is in sync with the codebase.
+    systemPrompt: `You are a codebase synchronization checker for Nyx. Your job is to check if documentation is in sync with the codebase.
 
 Follow these steps:
 1. List all documents using list_documents
@@ -67,7 +67,7 @@ Be thorough but concise in your report.`,
     id: 'doc_generation',
     name: 'Doc Generation',
     description: 'Scans the codebase and generates or updates documentation to fill gaps.',
-    systemPrompt: `You are a documentation generator for SyncDocs. Your job is to analyze a codebase and generate comprehensive documentation.
+    systemPrompt: `You are a documentation generator for Nyx. Your job is to analyze a codebase and generate comprehensive documentation.
 
 Follow these steps:
 1. Get the file tree from the linked repository using get_github_files
