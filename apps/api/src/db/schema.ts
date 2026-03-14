@@ -103,9 +103,11 @@ export const documentTemplates = pgTable('document_templates', {
   description: text('description').notNull(),
   content: text('content').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
+  teamId: uuid('team_id').references(() => teams.id),
+  createdById: uuid('created_by_id').references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
-  uniqueIndex('document_templates_stage_name_idx').on(table.stage, table.name),
+  uniqueIndex('document_templates_stage_name_team_idx').on(table.stage, table.name, table.teamId),
 ]);
 
 export const documentVersions = pgTable('document_versions', {

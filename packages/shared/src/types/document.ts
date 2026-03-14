@@ -57,6 +57,8 @@ export const DocumentTemplateSchema = z.object({
   description: z.string(),
   content: z.string(),
   sortOrder: z.number().int(),
+  teamId: z.string().uuid().nullable().optional(),
+  createdById: z.string().uuid().nullable().optional(),
   createdAt: z.string().datetime(),
 });
 
