@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Modal } from './Modal';
 import { GitHubReconnectBanner } from './GitHubReconnectBanner';
-import { fetchIntegrations, createTicket, GitHubTokenExpiredError } from '../lib/api';
+import { fetchIntegrations, createTicket, renderMockupJsx, GitHubTokenExpiredError } from '../lib/api';
 import type { Ticket } from '../lib/api';
 
 interface CreateTicketModalProps {
@@ -41,7 +41,7 @@ export function CreateTicketModal({
         ? documentContent.slice(0, 500) + '...'
         : documentContent;
       if (mockupJsx) {
-        initialBody += `\n\n## Visual Mockup\n\`\`\`jsx\n${mockupJsx}\n\`\`\``;
+        initialBody += '\n\n---\n_A UI mockup will be attached as an image after ticket creation._';
       }
       setBody(initialBody);
       setCreatedTicket(null);
@@ -69,10 +69,31 @@ export function CreateTicketModal({
 
   const mutation = useMutation({
     mutationFn: () => createTicket(documentId, { provider, title, body }),
-    onSuccess: (ticket) => {
+    onSuccess: async (ticket) => {
       queryClient.invalidateQueries({ queryKey: ['tickets', documentId] });
       setCreatedTicket(ticket);
       setError(null);
+
+      // Render and attach mockup image if available (fire-and-forget)
+      if (mockupJsx) {
+        try {
+          const { screenshot } = await renderMockupJsx(mockupJsx);
+          // Attach as image comment via mockups/attach endpoint
+          await fetch('/api/mockups/attach-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              screenshot,
+              provider,
+              issueId: ticket.externalId,
+              teamId,
+            }),
+          });
+        } catch {
+          // Non-critical — ticket was already created
+        }
+      }
+
       // Auto-close after showing success
       setTimeout(() => {
         setCreatedTicket(null);

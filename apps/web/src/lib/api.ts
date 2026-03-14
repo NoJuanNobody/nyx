@@ -611,3 +611,12 @@ export function submitFeedback(data: {
     body: JSON.stringify(data),
   });
 }
+
+// ── Mockups ─────────────────────────────────────────────────────────
+
+export function renderMockupJsx(jsx: string): Promise<{ screenshot: string }> {
+  return request<{ screenshot: string }>('/mockups/render-jsx', {
+    method: 'POST',
+    body: JSON.stringify({ jsx }),
+  });
+}
