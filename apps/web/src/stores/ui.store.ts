@@ -12,13 +12,15 @@ function applyTheme(theme: Theme) {
 }
 
 function loadTheme(): Theme {
-  return (localStorage.getItem('syncdocs:theme') as Theme) ?? 'system';
+  return (localStorage.getItem('syncdocs:theme') as Theme) ?? 'dark';
 }
 
 interface UIState {
   sidebarOpen: boolean;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
+  sidebarCollapsed: boolean;
+  toggleSidebarCollapsed: () => void;
   theme: Theme;
   setTheme: (theme: Theme) => void;
 }
@@ -31,6 +33,8 @@ export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: false,
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  sidebarCollapsed: false,
+  toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
   theme: initialTheme,
   setTheme: (theme) => {
     localStorage.setItem('syncdocs:theme', theme);

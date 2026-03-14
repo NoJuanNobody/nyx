@@ -66,6 +66,11 @@
 .dark .text-violet-700  { color: oklch(81.1% 0.111 293.571); }
 .dark .text-rose-600    { color: oklch(74.4% 0.177 18.067); }
 
+/* Syne font for headings — matches landing page premium typography */
+h1, h2, h3 {
+  font-family: 'Syne', sans-serif;
+}
+
 /* Prose dark mode — ensure typography plugin text is readable */
 .dark .prose {
   --tw-prose-body: oklch(86.9% 0.022 252.894);
