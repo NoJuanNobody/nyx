@@ -40,7 +40,7 @@ describe('GET /api/documents/:docId/audit-trail', () => {
     const mockEvents = [
       { id: 'evt-1', action: 'document.created', timestamp: '2026-01-01T00:00:00Z' },
     ];
-    vi.mocked(auditService.getTrailForDocument).mockResolvedValue(mockEvents);
+    vi.mocked(auditService.getTrailForDocument).mockResolvedValue(mockEvents as any);
 
     const app = await buildApp();
     const res = await app.inject({
@@ -59,7 +59,7 @@ describe('GET /api/audit-trail/:eventId/trace', () => {
       { id: 'evt-1', action: 'document.created' },
       { id: 'evt-2', action: 'document.updated' },
     ];
-    vi.mocked(auditService.getTraceChain).mockResolvedValue(mockChain);
+    vi.mocked(auditService.getTraceChain).mockResolvedValue(mockChain as any);
 
     const app = await buildApp();
     const res = await app.inject({
@@ -77,7 +77,7 @@ describe('GET /api/teams/:teamId/activity', () => {
     const mockEvents = [
       { id: 'evt-1', action: 'member.added', timestamp: '2026-01-01T00:00:00Z' },
     ];
-    vi.mocked(auditService.getTeamActivity).mockResolvedValue(mockEvents);
+    vi.mocked(auditService.getTeamActivity).mockResolvedValue(mockEvents as any);
 
     const app = await buildApp();
     const res = await app.inject({

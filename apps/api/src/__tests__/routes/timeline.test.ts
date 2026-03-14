@@ -34,7 +34,7 @@ describe('GET /api/documents/:documentId/timeline', () => {
     const mockEvents = [
       { id: 'evt-1', type: 'created', timestamp: '2026-01-01T00:00:00Z' },
     ];
-    vi.mocked(timelineService.getByDocument).mockResolvedValue(mockEvents);
+    vi.mocked(timelineService.getByDocument).mockResolvedValue(mockEvents as any);
 
     const app = await buildApp();
     const res = await app.inject({
