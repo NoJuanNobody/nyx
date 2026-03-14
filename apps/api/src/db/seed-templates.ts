@@ -57,9 +57,9 @@ async function seedTemplates() {
 
   const result = await db.insert(documentTemplates)
     .values(TEMPLATES)
-    .onConflictDoNothing();
+    .onConflictDoNothing() as unknown as { rowCount: number };
 
-  const inserted = result.rowCount ?? 0;
+  const inserted = result?.rowCount ?? 0;
   const skipped = TEMPLATES.length - inserted;
 
   console.log(`[seed-templates] Done. ${inserted} inserted, ${skipped} already existed.`);
