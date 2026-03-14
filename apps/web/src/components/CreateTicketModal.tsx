@@ -12,6 +12,7 @@ interface CreateTicketModalProps {
   teamId: string;
   documentTitle: string;
   documentContent: string;
+  mockupJsx?: string | null;
 }
 
 export function CreateTicketModal({
@@ -21,6 +22,7 @@ export function CreateTicketModal({
   teamId,
   documentTitle,
   documentContent,
+  mockupJsx,
 }: CreateTicketModalProps) {
   const queryClient = useQueryClient();
 
@@ -35,16 +37,18 @@ export function CreateTicketModal({
   useEffect(() => {
     if (open) {
       setTitle(documentTitle);
-      setBody(
-        documentContent.length > 500
-          ? documentContent.slice(0, 500) + '...'
-          : documentContent,
-      );
+      let initialBody = documentContent.length > 500
+        ? documentContent.slice(0, 500) + '...'
+        : documentContent;
+      if (mockupJsx) {
+        initialBody += `\n\n## Visual Mockup\n\`\`\`jsx\n${mockupJsx}\n\`\`\``;
+      }
+      setBody(initialBody);
       setCreatedTicket(null);
       setError(null);
       setTokenExpired(false);
     }
-  }, [open, documentTitle, documentContent]);
+  }, [open, documentTitle, documentContent, mockupJsx]);
 
   const { data: integrations, isLoading: integrationsLoading } = useQuery({
     queryKey: ['integrations', teamId],

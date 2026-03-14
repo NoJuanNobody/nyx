@@ -12,9 +12,10 @@ interface RefinementMessage {
 
 interface JSXPreviewPanelProps {
   specContext?: string;
+  onMockupReady?: (jsx: string | null) => void;
 }
 
-export function JSXPreviewPanel({ specContext }: JSXPreviewPanelProps) {
+export function JSXPreviewPanel({ specContext, onMockupReady }: JSXPreviewPanelProps) {
   const [prompt, setPrompt] = useState('');
   const [currentJSX, setCurrentJSX] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
@@ -22,12 +23,17 @@ export function JSXPreviewPanel({ specContext }: JSXPreviewPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [chatHistory, setChatHistory] = useState<RefinementMessage[]>([]);
   const [copied, setCopied] = useState(false);
+  const [allStates, setAllStates] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory]);
+
+  useEffect(() => {
+    onMockupReady?.(currentJSX);
+  }, [currentJSX, onMockupReady]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -50,7 +56,7 @@ export function JSXPreviewPanel({ specContext }: JSXPreviewPanelProps) {
     setChatHistory((prev) => [...prev, userMsg]);
 
     try {
-      const result = await generateJSXPreview(trimmed, specContext);
+      const result = await generateJSXPreview(trimmed, specContext, allStates);
       setCurrentJSX(result.jsx);
       setViewMode('preview');
       const assistantMsg: RefinementMessage = {
@@ -69,7 +75,7 @@ export function JSXPreviewPanel({ specContext }: JSXPreviewPanelProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [prompt, isLoading, specContext]);
+  }, [prompt, isLoading, specContext, allStates]);
 
   const handleRefine = useCallback(async () => {
     const trimmed = prompt.trim();
@@ -165,6 +171,19 @@ export function JSXPreviewPanel({ specContext }: JSXPreviewPanelProps) {
               </button>
             ))}
           </div>
+          {/* All States toggle */}
+          <button
+            type="button"
+            onClick={() => setAllStates((v) => !v)}
+            className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition-all ${
+              allStates
+                ? 'bg-violet-100 text-violet-700 ring-1 ring-violet-300'
+                : 'text-slate-400 hover:text-slate-600'
+            }`}
+            title="Generate all component states"
+          >
+            All States
+          </button>
           {/* Actions */}
           <div className="flex items-center gap-1">
             <button

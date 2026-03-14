@@ -240,10 +240,11 @@ export function editDocumentAI(
 export function generateJSXPreview(
   prompt: string,
   context?: string,
+  allStates?: boolean,
 ): Promise<{ jsx: string }> {
   return request<{ jsx: string }>('/ai/jsx-preview', {
     method: 'POST',
-    body: JSON.stringify({ prompt, context }),
+    body: JSON.stringify({ prompt, context, allStates }),
   });
 }
 

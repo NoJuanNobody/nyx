@@ -415,7 +415,7 @@ function Folder({
 function JSXPreviewItem({ docId, depth }: { docId: string; depth: number }) {
   return (
     <NavLink
-      to={`/documents/${docId}/preview`}
+      to={`/documents/${docId}?layout=jsx-preview`}
       className={({ isActive }) =>
         `group/preview flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-all duration-150 ${
           isActive
