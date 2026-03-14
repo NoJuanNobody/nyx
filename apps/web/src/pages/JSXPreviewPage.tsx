@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import type { Document } from '@syncdocs/shared';
+import type { Document } from '@nyx/shared';
 import { fetchDocument } from '../lib/api';
 import { JSXPreviewPanel } from '../components/JSXPreviewPanel';
 

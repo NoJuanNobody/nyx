@@ -12,7 +12,7 @@ function applyTheme(theme: Theme) {
 }
 
 function loadTheme(): Theme {
-  return (localStorage.getItem('syncdocs:theme') as Theme) ?? 'dark';
+  return (localStorage.getItem('nyx:theme') as Theme) ?? 'dark';
 }
 
 interface UIState {
@@ -37,7 +37,7 @@ export const useUIStore = create<UIState>((set) => ({
   toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
   theme: initialTheme,
   setTheme: (theme) => {
-    localStorage.setItem('syncdocs:theme', theme);
+    localStorage.setItem('nyx:theme', theme);
     applyTheme(theme);
     set({ theme });
   },

@@ -1,6 +1,6 @@
 # In-App Feedback Feature
 
-The feedback feature lets users submit bug reports, feature requests, and general feedback directly from the SyncDocs app. AI formats the raw input into a structured GitHub issue, and the user can preview and edit before submitting.
+The feedback feature lets users submit bug reports, feature requests, and general feedback directly from the Nyx app. AI formats the raw input into a structured GitHub issue, and the user can preview and edit before submitting.
 
 ## How It Works
 
@@ -14,11 +14,11 @@ The feedback feature lets users submit bug reports, feature requests, and genera
 
 ### 1. Create a GitHub Personal Access Token
 
-The feedback feature uses a dedicated GitHub PAT (not the user's OAuth token) to create issues on the SyncDocs repo.
+The feedback feature uses a dedicated GitHub PAT (not the user's OAuth token) to create issues on the Nyx repo.
 
 1. Go to [github.com/settings/tokens/new](https://github.com/settings/tokens/new)
 2. Select **Tokens (classic)**
-3. Name: `syncdocs-feedback`
+3. Name: `nyx-feedback`
 4. Expiration: your choice
 5. Scope: check **`repo`** (required for creating issues on private repos)
 6. Click **Generate token** and copy the `ghp_...` value
@@ -38,7 +38,7 @@ GITHUB_FEEDBACK_PAT=ghp_your_token_here
 The feature requires the `feedback_submissions` table. Push it with:
 
 ```bash
-pnpm --filter @syncdocs/api exec drizzle-kit push --force
+pnpm --filter @nyx/api exec drizzle-kit push --force
 ```
 
 ### 4. Ensure the `feedback` label exists
@@ -135,7 +135,7 @@ The category is applied as a GitHub label alongside `feedback`.
 | Problem | Cause | Fix |
 | --- | --- | --- |
 | `GitHub API error 403: Resource not accessible` | Fine-grained PAT or missing `repo` scope | Use a classic token with `repo` scope |
-| `relation "feedback_submissions" does not exist` | Schema not pushed to DB | Run `pnpm --filter @syncdocs/api exec drizzle-kit push --force` |
+| `relation "feedback_submissions" does not exist` | Schema not pushed to DB | Run `pnpm --filter @nyx/api exec drizzle-kit push --force` |
 | `GITHUB_FEEDBACK_PAT is not configured` | Missing env var | Add `GITHUB_FEEDBACK_PAT=ghp_...` to `.env` |
 | Feedback saved but no GitHub issue | PAT error caught silently | Check API server logs for the error |
 | `Rate limit exceeded` | More than 5 submissions in 24 hours | Wait or adjust `MAX_PER_DAY` in `feedback.service.ts` |

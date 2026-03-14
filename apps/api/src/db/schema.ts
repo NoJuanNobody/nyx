@@ -182,6 +182,7 @@ export const tickets = pgTable('tickets', {
   externalUrl: text('external_url').notNull(),
   title: text('title').notNull(),
   status: ticketStatusEnum('status').notNull().default('open'),
+  claudeInsights: jsonb('claude_insights'),
   createdById: uuid('created_by_id')
     .notNull()
     .references(() => users.id),

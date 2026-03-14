@@ -1,4 +1,4 @@
-# SyncDocs — Exhaustive Playwright E2E Test Plan
+# Nyx — Exhaustive Playwright E2E Test Plan
 
 Cross-referenced against every completed item in `TODO.md`. Each test validates the user-facing behavior described in the TODO status column.
 
@@ -28,7 +28,7 @@ Cross-referenced against every completed item in `TODO.md`. Each test validates 
 | 2.2 | Dev user appears in team members | Navigate to `/settings`, click Team tab | Dev user listed as owner |
 
 **Data required:**
-- Seeded dev user: `dev@syncdocs.io` (id `00000000-0000-0000-0000-000000000000`) — already in seed
+- Seeded dev user: `dev@nyx.io` (id `00000000-0000-0000-0000-000000000000`) — already in seed
 - Seeded team: `Default Team` (id `00000000-0000-0000-0000-000000000001`) — already in seed
 - team_member linking dev user → Default Team as `owner` — already in seed
 
@@ -44,8 +44,8 @@ Cross-referenced against every completed item in `TODO.md`. Each test validates 
 **Data required:**
 - 3 users with different roles on the same team:
   - Dev user as `owner` (already seeded)
-  - `alice@syncdocs.io` ("Alice Admin") as `admin` on Default Team
-  - `bob@syncdocs.io` ("Bob Viewer") as `viewer` on Default Team
+  - `alice@nyx.io` ("Alice Admin") as `admin` on Default Team
+  - `bob@nyx.io` ("Bob Viewer") as `viewer` on Default Team
 - At least 1 removable team member (Alice or Bob) for test 4.3
 - **Note:** Dev bypass always injects the owner DEV_USER. Testing different roles requires either: (a) Playwright route interception to mock `/api/auth/me`, (b) a dev-only role-switch endpoint, or (c) direct DB role changes before each test.
 
@@ -198,7 +198,7 @@ Cross-referenced against every completed item in `TODO.md`. Each test validates 
 
 **Data required:**
 - 2+ team_members on the team (dev user as owner + at least 1 other user as admin/developer)
-- The extra user (`alice@syncdocs.io`) must exist in the `users` table so the member list shows name/email
+- The extra user (`alice@nyx.io`) must exist in the `users` table so the member list shows name/email
 - 1 pending `team_invitations` row (for invite list display)
 - Test 20.2 can create an invite in-test, but 20.3–20.4 need an existing member to modify/remove
 
@@ -408,10 +408,10 @@ Cross-referenced against every completed item in `TODO.md`. Each test validates 
 **Data required:**
 - 2 documents belonging to the dev user's team (tickets reference documents)
 - 4 `tickets` rows across different statuses and providers:
-  - `{ documentId: doc1, provider: 'github', externalId: '101', status: 'open', title: 'Implement auth endpoints', externalUrl: 'https://github.com/syncdocs/app/issues/101' }`
-  - `{ documentId: doc1, provider: 'github', externalId: '102', status: 'closed', title: 'Fix rate limiting', externalUrl: 'https://github.com/syncdocs/app/issues/102' }`
-  - `{ documentId: doc2, provider: 'jira', externalId: 'SD-1', status: 'open', title: 'Review architecture', externalUrl: 'https://syncdocs.atlassian.net/browse/SD-1' }`
-  - `{ documentId: doc2, provider: 'jira', externalId: 'SD-2', status: 'in_progress', title: 'Update deployment docs', externalUrl: 'https://syncdocs.atlassian.net/browse/SD-2' }`
+  - `{ documentId: doc1, provider: 'github', externalId: '101', status: 'open', title: 'Implement auth endpoints', externalUrl: 'https://github.com/nyx/app/issues/101' }`
+  - `{ documentId: doc1, provider: 'github', externalId: '102', status: 'closed', title: 'Fix rate limiting', externalUrl: 'https://github.com/nyx/app/issues/102' }`
+  - `{ documentId: doc2, provider: 'jira', externalId: 'SD-1', status: 'open', title: 'Review architecture', externalUrl: 'https://nyx.atlassian.net/browse/SD-1' }`
+  - `{ documentId: doc2, provider: 'jira', externalId: 'SD-2', status: 'in_progress', title: 'Update deployment docs', externalUrl: 'https://nyx.atlassian.net/browse/SD-2' }`
 - Test 31.7 (Sync All) needs either: Playwright route interception to mock GitHub/Jira status APIs, or just verifying the loading state appears and completes
 
 ### TODO #32 — Agent Integrations (PARTIAL)
@@ -457,7 +457,7 @@ Cross-referenced against every completed item in `TODO.md`. Each test validates 
 
 **Data required:**
 - 1 user in the `users` table who is NOT a member of the dev user's team (for test 39.1 — "invite existing user")
-  - e.g., `charlie@syncdocs.io` ("Charlie External") — exists in users but no team_member row on Default Team
+  - e.g., `charlie@nyx.io` ("Charlie External") — exists in users but no team_member row on Default Team
 - Dev user must be `admin` or `owner` on the team (already is `owner`)
 - Tests 39.2–39.4 create invitations in-test, no pre-seeded invitations needed
 - Test 39.5 requires test 39.1 to run first (Charlie is now a member, re-inviting returns 409)
@@ -476,7 +476,7 @@ Cross-referenced against every completed item in `TODO.md`. Each test validates 
 **Data required:**
 - 1 pre-seeded GitHub `integrations` row with a valid `accessToken` (repo picker calls `GET /user/repos` via GitHub API)
 - Playwright route interception recommended to mock `GET https://api.github.com/user/repos` returning 5+ fake repos — avoids needing a real token
-- If mocking: return repos like `[{ id: 1, name: 'frontend', full_name: 'syncdocs/frontend', private: false, html_url: '...', default_branch: 'main' }, ...]`
+- If mocking: return repos like `[{ id: 1, name: 'frontend', full_name: 'nyx/frontend', private: false, html_url: '...', default_branch: 'main' }, ...]`
 
 ---
 
@@ -487,7 +487,7 @@ Cross-referenced against every completed item in `TODO.md`. Each test validates 
 
 | # | Test | Steps | Expected |
 |---|------|-------|----------|
-| N.1 | Sidebar logo links to dashboard | Click SyncDocs logo in sidebar | Navigates to `/dashboard` |
+| N.1 | Sidebar logo links to dashboard | Click Nyx logo in sidebar | Navigates to `/dashboard` |
 | N.2 | Board link in sidebar bottom | Click Board link | Navigates to `/board`, active state shown |
 | N.3 | Settings link in sidebar bottom | Click Settings link | Navigates to `/settings`, active state shown |
 | N.4 | Mobile hamburger menu | Resize to mobile width | Hamburger button appears, sidebar slides out |
@@ -601,10 +601,10 @@ The current seed (`apps/api/src/db/seed.ts`) only creates 1 user, 1 team, 1 memb
 
 | ID | Email | Name | Purpose |
 |---|---|---|---|
-| `00000000-...-000000000000` | `dev@syncdocs.io` | Dev User | Already seeded — primary test user (owner) |
-| New UUID | `alice@syncdocs.io` | Alice Admin | admin role member for permission + settings tests |
-| New UUID | `bob@syncdocs.io` | Bob Viewer | viewer role member for permission tests |
-| New UUID | `charlie@syncdocs.io` | Charlie External | Exists in users but NOT a team member — for invite flow test 39.1 |
+| `00000000-...-000000000000` | `dev@nyx.io` | Dev User | Already seeded — primary test user (owner) |
+| New UUID | `alice@nyx.io` | Alice Admin | admin role member for permission + settings tests |
+| New UUID | `bob@nyx.io` | Bob Viewer | viewer role member for permission tests |
+| New UUID | `charlie@nyx.io` | Charlie External | Exists in users but NOT a team member — for invite flow test 39.1 |
 
 ### Teams (2 total — 1 existing + 1 new)
 
@@ -645,17 +645,17 @@ The current seed (`apps/api/src/db/seed.ts`) only creates 1 user, 1 team, 1 memb
 
 | Team | Type | Config (JSONB) |
 |---|---|---|
-| Default | `github` | `{ accessToken: "ghp_test_token", selectedRepos: [{ owner: "syncdocs", name: "app", fullName: "syncdocs/app" }], webhookSecret: "wh-seed-secret", login: "syncdocs-bot", avatar_url: "https://github.com/identicons/syncdocs.png" }` |
-| Default | `jira` | `{ baseUrl: "https://syncdocs.atlassian.net", email: "admin@syncdocs.io", apiToken: "jira-test-token", projectKey: "SD" }` |
+| Default | `github` | `{ accessToken: "ghp_test_token", selectedRepos: [{ owner: "nyx", name: "app", fullName: "nyx/app" }], webhookSecret: "wh-seed-secret", login: "nyx-bot", avatar_url: "https://github.com/identicons/nyx.png" }` |
+| Default | `jira` | `{ baseUrl: "https://nyx.atlassian.net", email: "admin@nyx.io", apiToken: "jira-test-token", projectKey: "SD" }` |
 
 ### Tickets (4 — all new)
 
 | Document | Provider | External ID | Status | Title | External URL |
 |---|---|---|---|---|---|
-| API Specification | `github` | `101` | `open` | Implement auth endpoints | `https://github.com/syncdocs/app/issues/101` |
-| API Specification | `github` | `102` | `closed` | Fix rate limiting | `https://github.com/syncdocs/app/issues/102` |
-| Architecture Overview | `jira` | `SD-1` | `open` | Review architecture | `https://syncdocs.atlassian.net/browse/SD-1` |
-| Architecture Overview | `jira` | `SD-2` | `in_progress` | Update deployment docs | `https://syncdocs.atlassian.net/browse/SD-2` |
+| API Specification | `github` | `101` | `open` | Implement auth endpoints | `https://github.com/nyx/app/issues/101` |
+| API Specification | `github` | `102` | `closed` | Fix rate limiting | `https://github.com/nyx/app/issues/102` |
+| Architecture Overview | `jira` | `SD-1` | `open` | Review architecture | `https://nyx.atlassian.net/browse/SD-1` |
+| Architecture Overview | `jira` | `SD-2` | `in_progress` | Update deployment docs | `https://nyx.atlassian.net/browse/SD-2` |
 
 ### Audit Trail Events (3 — all new)
 
@@ -676,7 +676,7 @@ The current seed (`apps/api/src/db/seed.ts`) only creates 1 user, 1 team, 1 memb
 
 | Team | Email | Role | Status | Expires |
 |---|---|---|---|---|
-| Default | `pending@syncdocs.io` | `developer` | `pending` | now + 7 days |
+| Default | `pending@nyx.io` | `developer` | `pending` | now + 7 days |
 
 ### API Keys (1 — new)
 
@@ -692,7 +692,7 @@ The current seed (`apps/api/src/db/seed.ts`) only creates 1 user, 1 team, 1 memb
 
 ```env
 # Already needed for dev server
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/syncdocs
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/nyx
 
 # Required for AI-dependent tests (~30 tests)
 ANTHROPIC_API_KEY=sk-ant-...

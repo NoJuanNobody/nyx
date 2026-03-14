@@ -1,16 +1,16 @@
-# SyncDocs
+# Nyx
 
 **The product versioning platform — unified documentation, code, and team workflow, always in sync.**
 
-SyncDocs keeps technical specs in sync with code as it evolves and lets non-technical stakeholders initiate changes that flow automatically through to the codebase.
+Nyx keeps technical specs in sync with code as it evolves and lets non-technical stakeholders initiate changes that flow automatically through to the codebase.
 
 ---
 
-## What is SyncDocs?
+## What is Nyx?
 
 In AI-assisted development, the spec is the starting point — developers write documents and AI tools generate code from them. But as code evolves, the original spec becomes stale almost immediately. There is no feedback loop.
 
-SyncDocs solves this by providing a two-way bridge between intent (documentation) and implementation (code), with a collaboration layer that connects technical and non-technical team members.
+Nyx solves this by providing a two-way bridge between intent (documentation) and implementation (code), with a collaboration layer that connects technical and non-technical team members.
 
 ---
 
@@ -38,7 +38,7 @@ SyncDocs solves this by providing a two-way bridge between intent (documentation
 | AI | Anthropic Claude API |
 | Auth | Clerk |
 | Integrations | GitHub API + Webhooks, Jira REST API, Confluence REST API |
-| Agent Integration | MCP server (`@syncdocs/mcp-server`) |
+| Agent Integration | MCP server (`@nyx/mcp-server`) |
 | Monorepo | pnpm workspaces + Turborepo |
 
 ---
@@ -93,7 +93,7 @@ Edit `.env` with your values:
 
 ```env
 # Database (required)
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/syncdocs
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/nyx
 
 # Server
 PORT=3001
@@ -116,7 +116,7 @@ GITHUB_WEBHOOK_SECRET=
 WEBHOOK_BASE_URL=https://your-tunnel-url.ngrok.io
 ```
 
-> **Note:** `DATABASE_URL` defaults to `postgresql://postgres:postgres@localhost:5432/syncdocs` in development if not set.
+> **Note:** `DATABASE_URL` defaults to `postgresql://postgres:postgres@localhost:5432/nyx` in development if not set.
 
 ### 4. Set up the database
 
@@ -224,11 +224,11 @@ pnpm build
 
 ## MCP Server (Claude Code Integration)
 
-SyncDocs ships an MCP server that exposes your documents and AI features directly into Claude Code.
+Nyx ships an MCP server that exposes your documents and AI features directly into Claude Code.
 
 ```bash
 # Build the MCP server
-pnpm --filter @syncdocs/mcp-server build
+pnpm --filter @nyx/mcp-server build
 ```
 
 Add it to your Claude Code MCP config:
@@ -236,7 +236,7 @@ Add it to your Claude Code MCP config:
 ```json
 {
   "mcpServers": {
-    "syncdocs": {
+    "nyx": {
       "command": "node",
       "args": ["/path/to/syncdocs/packages/mcp-server/dist/index.js"]
     }
@@ -266,7 +266,7 @@ Set the same environment variables from the [setup section](#3-configure-environ
 
 ## Contributing
 
-This project is in active development. See the [product brief](./SyncDocs_ProductBrief.md) for the full vision and roadmap.
+This project is in active development. See the [product brief](./Nyx_ProductBrief.md) for the full vision and roadmap.
 
 ---
 

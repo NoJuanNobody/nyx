@@ -51,7 +51,7 @@ importers:
       '@fastify/multipart':
         specifier: ^9.4.0
         version: 9.4.0
-      '@syncdocs/shared':
+      '@nyx/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       dotenv:
@@ -106,7 +106,7 @@ importers:
       '@clerk/clerk-react':
         specifier: ^5.61.3
         version: 5.61.3(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@syncdocs/shared':
+      '@nyx/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@tailwindcss/typography':

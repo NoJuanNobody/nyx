@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { ticketService } from '../services/ticket.service.js';
 import { timelineService } from '../services/timeline.service.js';
 import { GitHubTokenExpiredError } from '../services/github.service.js';
+import { claudeInsightsService } from '../services/claude-insights.service.js';
 
 export const ticketRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/tickets?teamId=X&status=&provider= — list tickets for a team (Board view)
@@ -88,6 +89,40 @@ export const ticketRoutes: FastifyPluginAsync = async (app) => {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       reply.code(404);
+      return { error: message };
+    }
+  });
+
+  // GET /api/tickets/:id/insights — get stored Claude Action insight for a ticket
+  app.get('/tickets/:id/insights', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      const insight = await claudeInsightsService.getForTicket(id);
+      if (!insight) {
+        reply.code(404);
+        return { error: 'No Claude insight found for this ticket' };
+      }
+      return insight;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(404);
+      return { error: message };
+    }
+  });
+
+  // POST /api/tickets/:id/insights/refresh — re-fetch Claude Action insight from GitHub
+  app.post('/tickets/:id/insights/refresh', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      const insight = await claudeInsightsService.refreshForTicket(id);
+      if (!insight) {
+        reply.code(404);
+        return { error: 'No Claude comment found for this ticket' };
+      }
+      return insight;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(500);
       return { error: message };
     }
   });

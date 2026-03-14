@@ -35,8 +35,8 @@ export const SEED = {
   TKT_JIRA_INPROG_ID: '00000000-0000-0000-0000-000000000403',
 
   // Emails (for assertions)
-  DEV_EMAIL: 'dev@syncdocs.io',
-  ALICE_EMAIL: 'alice@syncdocs.io',
-  BOB_EMAIL: 'bob@syncdocs.io',
-  PENDING_INVITE_EMAIL: 'pending@syncdocs.io',
+  DEV_EMAIL: 'dev@nyx.io',
+  ALICE_EMAIL: 'alice@nyx.io',
+  BOB_EMAIL: 'bob@nyx.io',
+  PENDING_INVITE_EMAIL: 'pending@nyx.io',
 } as const;

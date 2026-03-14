@@ -117,7 +117,7 @@ export function SlackIntegration() {
             )}
           </div>
           <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">
-            Route team messages through SyncDocs intake via /nyx command, emoji reactions, or
+            Route team messages through Nyx intake via /nyx command, emoji reactions, or
             channel monitoring.
           </p>
           {isConnected && (
@@ -182,7 +182,7 @@ export function SlackIntegration() {
           <div>
             <h4 className="text-xs font-semibold text-slate-700">Trigger Emoji</h4>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              React with this emoji on any message to route it through SyncDocs intake.
+              React with this emoji on any message to route it through Nyx intake.
             </p>
             <div className="mt-2 flex items-center gap-2">
               {editingEmoji ? (

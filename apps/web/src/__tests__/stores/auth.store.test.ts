@@ -29,7 +29,7 @@ describe('Auth Store', () => {
     useAuthStore.getState().setCurrentTeamId('team-42');
 
     expect(useAuthStore.getState().currentTeamId).toBe('team-42');
-    expect(localStorage.setItem).toHaveBeenCalledWith('syncdocs:currentTeamId', 'team-42');
+    expect(localStorage.setItem).toHaveBeenCalledWith('nyx:currentTeamId', 'team-42');
   });
 
   it('initial load reads currentTeamId from localStorage', () => {

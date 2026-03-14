@@ -1,4 +1,4 @@
-import type { Document, DocumentVersion, DocumentTemplate } from '@syncdocs/shared';
+import type { Document, DocumentVersion, DocumentTemplate } from '@nyx/shared';
 import type { DocumentStage } from './stages';
 
 const BASE = '/api';
@@ -573,6 +573,7 @@ export interface Ticket {
   createdAt: string;
   updatedAt: string;
   documentTitle?: string;
+  claudeInsights?: ClaudeInsight | null;
 }
 
 export function fetchTickets(teamId: string, filters?: { status?: string; provider?: string }): Promise<Ticket[]> {
@@ -598,6 +599,29 @@ export function createTicket(documentId: string, data: { provider: 'github' | 'j
 
 export function fetchDocumentTickets(documentId: string): Promise<Ticket[]> {
   return request<Ticket[]>(`/documents/${encodeURIComponent(documentId)}/tickets`);
+}
+
+// ── Claude Action Insights ───────────────────────────────────────────
+
+export interface ClaudeInsight {
+  title: string;
+  summary: string[];
+  filesChanged: string[];
+  commentId: number;
+  commentUrl: string;
+  commentedAt: string;
+  fetchedAt: string;
+}
+
+export function fetchTicketInsight(ticketId: string): Promise<ClaudeInsight> {
+  return request<ClaudeInsight>(`/tickets/${encodeURIComponent(ticketId)}/insights`);
+}
+
+export function refreshTicketInsight(ticketId: string): Promise<ClaudeInsight> {
+  return request<ClaudeInsight>(`/tickets/${encodeURIComponent(ticketId)}/insights/refresh`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
 }
 
 // ── Integrations (Settings) ─────────────────────────────────────────

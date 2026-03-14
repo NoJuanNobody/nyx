@@ -6,7 +6,7 @@
 export const SEL = {
   // ── Sidebar ──────────────────────────────────────────
   sidebar: {
-    logo: 'a:has-text("SyncDocs")',
+    logo: 'a:has-text("Nyx")',
     boardLink: 'a:has-text("Board")',
     settingsLink: 'a:has-text("Settings")',
     teamSwitcher: 'aside select',
@@ -120,6 +120,19 @@ export const SEL = {
     columnInProgress: 'text=In Progress',
     columnClosed: 'text=Closed',
     ticketCard: 'div.rounded-lg.border',
+  },
+
+  // ── Claude Insights ───────────────────────────────────
+  claudeInsight: {
+    panel: 'div.rounded.border.border-purple-100',
+    toggleButton: 'div.rounded.border.border-purple-100 > button',
+    title: 'div.rounded.border.border-purple-100 span.font-semibold',
+    summaryItems: 'div.rounded.border.border-purple-100 ul li',
+    viewCommentLink: 'a:has-text("View comment")',
+    refreshButton: 'button:has-text("Refresh")',
+    fetchButton: 'button:has-text("Fetch")',
+    noInsightLabel: 'text=No Claude insight',
+    filesSection: 'p:has-text("Files")',
   },
 
   // ── Repositories ────────────────────────────────────────

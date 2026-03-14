@@ -1,6 +1,6 @@
 import { useState, useMemo, type ReactElement } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { DocumentVersion } from '@syncdocs/shared';
+import type { DocumentVersion } from '@nyx/shared';
 import { fetchVersions, fetchBranches, type DocumentBranch } from '../lib/api';
 
 interface VersionHistoryProps {

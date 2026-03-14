@@ -8,6 +8,7 @@ import { aiService } from '../services/ai.service.js';
 import { githubService } from '../services/github.service.js';
 import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
+import { claudeInsightsService } from '../services/claude-insights.service.js';
 
 function verifyGitHubSignature(payload: string, signature: string, secret: string): boolean {
   const expected = 'sha256=' + createHmac('sha256', secret).update(payload).digest('hex');
@@ -154,6 +155,44 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return { ok: true, ...result };
+    }
+
+    if (event === 'issue_comment') {
+      const body = request.body as {
+        action?: string;
+        comment?: {
+          id: number;
+          html_url: string;
+          body: string;
+          created_at: string;
+          user: { login: string; type: string };
+        };
+        issue?: { number: number };
+        repository?: { owner?: { login?: string }; name?: string };
+      };
+
+      // Only process newly created comments
+      if (body.action === 'created' && body.comment && body.issue && body.repository) {
+        const owner = body.repository.owner?.login ?? '';
+        const repo = body.repository.name ?? '';
+        const issueNumber = body.issue.number;
+
+        // Fire-and-forget: update Claude insight for matching tickets
+        setImmediate(async () => {
+          try {
+            await claudeInsightsService.handleIssueCommentWebhook(
+              owner,
+              repo,
+              issueNumber,
+              body.comment!,
+            );
+          } catch {
+            // Best-effort
+          }
+        });
+      }
+
+      return { ok: true, event };
     }
 
     // For non-push events, acknowledge but take no action
