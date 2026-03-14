@@ -106,13 +106,6 @@ export const STAGES: StageInfo[] = [
   },
 ];
 
-export const CONNECTORS: string[] = [
-  'Concept brief seeds the PRD',
-  'PRD requirements drive architecture',
-  'Architecture shapes implementation specs',
-  'Specs generate code via AI agents',
-];
-
 export const STAGE_MAP = Object.fromEntries(STAGES.map((s) => [s.id, s])) as Record<DocumentStage, StageInfo>;
 
 export const STAGE_ORDER: DocumentStage[] = ['conception', 'definition', 'architecture', 'implementation', 'execution'];
