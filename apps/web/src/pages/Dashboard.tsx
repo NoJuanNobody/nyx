@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchTeams, createDocument } from '../lib/api';
 import { DashboardAIPrompt } from '../components/DashboardAIPrompt';
@@ -55,6 +55,22 @@ export function Dashboard() {
       </div>
 
       <div className="space-y-8">
+        <Link
+          to="/lifecycle"
+          className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white p-4 transition-all hover:border-blue-200 hover:shadow-md"
+          data-testid="lifecycle-card"
+        >
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-lg group-hover:bg-blue-100 transition-colors">
+            ◎
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-semibold text-slate-900">How SyncDocs Works</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Explore the 5-phase product lifecycle — from idea to living codebase</p>
+          </div>
+          <svg className="h-4 w-4 text-slate-400 group-hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+        </Link>
         {teamId && <DashboardAIPrompt teamId={teamId} />}
         {teamId && <PhaseSuggestions teamId={teamId} />}
         <RecentDocuments />

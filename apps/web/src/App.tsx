@@ -8,6 +8,7 @@ import { Settings } from './pages/Settings';
 import { Landing } from './pages/Landing';
 import { Board } from './pages/Board';
 import { Repositories } from './pages/Repositories';
+import { LifecycleExplorerPage } from './pages/LifecycleExplorerPage';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 import { useAuthStore } from './stores/auth.store';
@@ -40,6 +41,7 @@ export function App() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/board" element={<Board />} />
             <Route path="/repositories" element={<Repositories />} />
+            <Route path="/lifecycle" element={<LifecycleExplorerPage />} />
           </Route>
         </Route>
       </Routes>
