@@ -12,6 +12,8 @@ const mockAiService = vi.hoisted(() => ({
   generateJSXPreview: vi.fn(),
   refineJSXPreview: vi.fn(),
   seedNextStage: vi.fn(),
+  analyzeMissingSections: vi.fn(),
+  notificationReply: vi.fn(),
 }));
 vi.mock('../../services/ai.service.js', () => ({ aiService: mockAiService }));
 vi.mock('../../middleware/permissions.js', () => ({ requireRole: () => async () => {} }));
@@ -86,5 +88,76 @@ describe('AI Routes', () => {
     const app = await buildApp();
     const res = await app.inject({ method: 'POST', url: '/api/ai/seed-next-stage', payload: { content: '# Current', fromStage: 'definition', toStage: 'design' } });
     expect(res.statusCode).toBe(200);
+  });
+
+  it('POST /api/ai/seed-from-stage returns seeded content', async () => {
+    mockAiService.seedNextStage.mockResolvedValueOnce({ title: 'PRD', content: '# PRD Content' });
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/seed-from-stage',
+      payload: { documentId: 'doc-1', fromStage: 'conception', toStage: 'definition', content: '# Concept' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).title).toBe('PRD');
+  });
+
+  it('POST /api/ai/seed-from-stage returns 400 when content missing', async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/seed-from-stage',
+      payload: { documentId: 'doc-1', fromStage: 'conception', toStage: 'definition' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /api/ai/missing-sections returns missing sections', async () => {
+    mockAiService.analyzeMissingSections.mockResolvedValueOnce({
+      missingSections: [{ name: 'Security', description: 'No security section', priority: 'high' }],
+    });
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/missing-sections',
+      payload: { content: '# My Spec', stage: 'definition' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).missingSections).toHaveLength(1);
+  });
+
+  it('POST /api/ai/missing-sections returns 400 without content', async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/missing-sections',
+      payload: {},
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /api/ai/notification-reply returns AI reply', async () => {
+    mockAiService.notificationReply.mockResolvedValueOnce({
+      reply: 'Here is my follow-up',
+      suggestedActions: ['Add more detail'],
+    });
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/notification-reply',
+      payload: { notificationId: 'notif-1', message: 'What should I improve?', documentId: 'doc-1' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).reply).toBe('Here is my follow-up');
+  });
+
+  it('POST /api/ai/notification-reply returns 400 without required fields', async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/notification-reply',
+      payload: { notificationId: 'notif-1' },
+    });
+    expect(res.statusCode).toBe(400);
   });
 });

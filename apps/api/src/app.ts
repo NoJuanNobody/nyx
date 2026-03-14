@@ -18,6 +18,7 @@ import { branchRoutes } from './routes/branches.js';
 import { suggestionRoutes } from './routes/suggestions.js';
 import { changeProposalRoutes } from './routes/change-proposals.js';
 import { auditRoutes } from './routes/audit.js';
+import { traceRoutes } from './routes/trace.js';
 import { agentRoutes } from './routes/agent.js';
 import { apiKeyRoutes } from './routes/api-keys.js';
 import { userRoutes } from './routes/users.js';
@@ -25,6 +26,11 @@ import { waitlistRoutes } from './routes/waitlist.js';
 import { templateRoutes } from './routes/templates.js';
 import { mockupRoutes, setMockupCluster } from './routes/mockups.js';
 import { feedbackRoutes } from './routes/feedback.js';
+import { intakeRoutes } from './routes/intake.js';
+import { sprintRoutes } from './routes/sprint.js';
+import { contextRoutes } from './routes/context.js';
+import { audioRoutes } from './routes/audio.js';
+import { slackRoutes } from './routes/slack.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -54,6 +60,7 @@ export function buildApp() {
   app.register(suggestionRoutes, { prefix: '/api' });
   app.register(changeProposalRoutes, { prefix: '/api' });
   app.register(auditRoutes, { prefix: '/api' });
+  app.register(traceRoutes, { prefix: '/api' });
   app.register(agentRoutes, { prefix: '/api/agent' });
   app.register(apiKeyRoutes, { prefix: '/api/api-keys' });
   app.register(userRoutes, { prefix: '/api/users' });
@@ -61,6 +68,11 @@ export function buildApp() {
   app.register(templateRoutes, { prefix: '/api/templates' });
   app.register(mockupRoutes, { prefix: '/api/mockups' });
   app.register(feedbackRoutes, { prefix: '/api/feedback' });
+  app.register(intakeRoutes, { prefix: '/api/intake' });
+  app.register(sprintRoutes, { prefix: '/api' });
+  app.register(contextRoutes, { prefix: '/api/intake' });
+  app.register(audioRoutes, { prefix: '/api/intake' });
+  app.register(slackRoutes, { prefix: '/api/slack' });
 
   return app;
 }

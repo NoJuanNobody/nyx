@@ -9,6 +9,7 @@ import {
 } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
 import { RepoPickerModal } from '../components/RepoPickerModal';
+import { SlackIntegration } from '../components/SlackIntegration';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -611,6 +612,9 @@ function IntegrationsPanel() {
           </div>
         );
       })}
+
+      {/* Slack integration */}
+      <SlackIntegration />
 
       {/* Repo picker modal */}
       {repoPickerFor && (

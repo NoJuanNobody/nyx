@@ -384,6 +384,86 @@ STRICT RULES:
     return text;
   },
 
+  async analyzeMissingSections(
+    content: string,
+    stage?: string | null,
+  ): Promise<{
+    missingSections: Array<{ name: string; description: string; priority: 'high' | 'medium' | 'low' }>;
+  }> {
+    const ai = requireClient();
+
+    const stageContext = stage && STAGE_QUALITY_PROMPTS[stage]
+      ? `\n\nThis is a "${stage}" stage document. ${STAGE_QUALITY_PROMPTS[stage]}`
+      : '';
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 1024,
+      system:
+        `You are a technical specification completeness analyzer. Given a document, identify any important sections that are missing. Respond ONLY with valid JSON in this exact format: {"missingSections": [{"name": "<section name>", "description": "<why this section matters>", "priority": "high" | "medium" | "low"}]}${stageContext}`,
+      messages: [
+        {
+          role: 'user',
+          content: `Analyze this document for missing sections:\n\n${content}`,
+        },
+      ],
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip code fences
+    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+    try {
+      const parsed = JSON.parse(text) as {
+        missingSections: Array<{ name: string; description: string; priority: 'high' | 'medium' | 'low' }>;
+      };
+      return {
+        missingSections: Array.isArray(parsed.missingSections) ? parsed.missingSections : [],
+      };
+    } catch {
+      return { missingSections: [] };
+    }
+  },
+
+  async notificationReply(
+    notificationId: string,
+    message: string,
+    documentContent: string,
+  ): Promise<{ reply: string; suggestedActions: string[] }> {
+    const ai = requireClient();
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 1024,
+      system:
+        'You are an AI advisor assistant for a documentation platform. A user is replying to a notification about their document. Provide a helpful follow-up response. Respond ONLY with valid JSON in this exact format: {"reply": "<your response>", "suggestedActions": ["action1", "action2"]}',
+      messages: [
+        {
+          role: 'user',
+          content: `Notification ID: ${notificationId}\n\nUser message: ${message}\n\nDocument context:\n${documentContent.slice(0, 2000)}`,
+        },
+      ],
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip code fences
+    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+    try {
+      const parsed = JSON.parse(text) as { reply: string; suggestedActions: string[] };
+      return {
+        reply: parsed.reply || text,
+        suggestedActions: Array.isArray(parsed.suggestedActions) ? parsed.suggestedActions : [],
+      };
+    } catch {
+      return { reply: text, suggestedActions: [] };
+    }
+  },
+
   async seedNextStage(
     content: string,
     fromStage: string,

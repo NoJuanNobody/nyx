@@ -247,6 +247,44 @@ export function seedNextStage(
   });
 }
 
+export function seedFromStage(data: {
+  documentId: string;
+  fromStage: string;
+  toStage: string;
+  content: string;
+}): Promise<{ title: string; content: string }> {
+  return request<{ title: string; content: string }>('/ai/seed-from-stage', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function analyzeMissingSections(data: {
+  content: string;
+  stage?: string;
+}): Promise<{
+  missingSections: Array<{ name: string; description: string; priority: 'high' | 'medium' | 'low' }>;
+}> {
+  return request<{
+    missingSections: Array<{ name: string; description: string; priority: 'high' | 'medium' | 'low' }>;
+  }>('/ai/missing-sections', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function replyToNotification(data: {
+  notificationId: string;
+  message: string;
+  documentId: string;
+  content?: string;
+}): Promise<{ reply: string; suggestedActions: string[] }> {
+  return request<{ reply: string; suggestedActions: string[] }>('/ai/notification-reply', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export function generateDocument(
   prompt: string,
 ): Promise<{ title: string; content: string }> {
@@ -439,6 +477,33 @@ export function fetchAuditTrace(eventId: string): Promise<{ eventId: string; cha
   return request<{ eventId: string; chain: AuditEvent[] }>(
     `/audit-trail/${eventId}/trace`,
   );
+}
+
+// ── Trace ───────────────────────────────────────────────────────────
+
+export interface TraceNode {
+  id: string;
+  type: string;
+  label: string;
+  actorName: string;
+  timestamp: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface TraceEdge {
+  from: string;
+  to: string;
+}
+
+export interface TraceResult {
+  documentId: string;
+  nodes: TraceNode[];
+  edges: TraceEdge[];
+  summary: string;
+}
+
+export function fetchDocumentTrace(documentId: string): Promise<TraceResult> {
+  return request<TraceResult>(`/documents/${documentId}/trace`);
 }
 
 // ── Team Members ────────────────────────────────────────────────────
@@ -644,11 +709,216 @@ export function submitFeedback(data: {
   });
 }
 
+// ── Intake (Chaos Ingestion) ─────────────────────────────────────────
+
+export interface IntakeSpec {
+  title: string;
+  userStory: string;
+  acceptanceCriteria: string[];
+  edgeCases: string[];
+  openQuestions: string[];
+  confidence: 'high' | 'medium' | 'low';
+  markdown: string;
+}
+
+export interface IntakeSession {
+  id: string;
+  teamId: string;
+  createdById: string;
+  rawInput: string;
+  structuredOutput: IntakeSpec | null;
+  status: string;
+  documentId: string | null;
+  createdAt: string;
+}
+
+export function processIntake(
+  data: { rawInput: string; teamId: string },
+): Promise<{ session: IntakeSession; spec: IntakeSpec }> {
+  return request<{ session: IntakeSession; spec: IntakeSpec }>('/intake/process', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function clarifyIntake(
+  data: { rawInput: string; questions: string[]; answers: string[]; teamId: string },
+): Promise<{ session: IntakeSession; spec: IntakeSpec }> {
+  return request<{ session: IntakeSession; spec: IntakeSpec }>('/intake/clarify', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function fetchIntakeHistory(
+  teamId: string,
+): Promise<{ sessions: IntakeSession[] }> {
+  return request<{ sessions: IntakeSession[] }>(
+    `/intake/history?teamId=${encodeURIComponent(teamId)}`,
+  );
+}
+
+// ── Sprint Gatekeeper ────────────────────────────────────────────────
+
+export interface SprintTicket {
+  id: string;
+  title: string;
+  points: number;
+  status: string;
+}
+
+export interface SprintCapacityData {
+  sprintName: string;
+  totalPoints: number;
+  usedPoints: number;
+  capacityPercent: number;
+  tickets: SprintTicket[];
+}
+
+export interface SprintCheckResult {
+  capacity: SprintCapacityData;
+  overThreshold: boolean;
+  suggestions: string[];
+}
+
+export function getSprintCapacity(teamId: string): Promise<SprintCapacityData> {
+  return request<SprintCapacityData>(
+    `/sprint/capacity?teamId=${encodeURIComponent(teamId)}`,
+  );
+}
+
+export function checkSprintCapacity(data: {
+  teamId: string;
+  newTicketPoints?: number;
+}): Promise<SprintCheckResult> {
+  return request<SprintCheckResult>('/sprint/check', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deferSprintTicket(data: {
+  teamId: string;
+  ticketKey: string;
+}): Promise<{ deferred: boolean }> {
+  return request<{ deferred: boolean }>('/sprint/defer', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// ── Context Matching ─────────────────────────────────────
+
+export interface ContextMatch {
+  documentId: string;
+  title: string;
+  relevance: 'high' | 'medium' | 'low';
+  relationship: 'confirms' | 'contradicts' | 'expands';
+  summary: string;
+}
+
+export interface ContextSignal {
+  type: 'recurring_pattern' | 'contradiction' | 'scope_creep';
+  description: string;
+  relatedDocIds: string[];
+}
+
+export interface ContextMatchResult {
+  matches: ContextMatch[];
+  signals: ContextSignal[];
+}
+
+export function findContextMatches(data: {
+  rawInput: string;
+  teamId: string;
+}): Promise<ContextMatchResult> {
+  return request<ContextMatchResult>('/intake/context', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// ── Slack ────────────────────────────────────────────────────────────
+
+export interface SlackConnection {
+  id: string;
+  slackTeamId: string;
+  triggerEmoji: string | null;
+  monitoredChannels: string[];
+  createdAt: string;
+}
+
+export function getSlackInstallUrl(teamId: string): Promise<{ url: string }> {
+  return request<{ url: string }>(`/slack/install?teamId=${encodeURIComponent(teamId)}`);
+}
+
+export function getSlackConnection(teamId: string): Promise<{ connection: SlackConnection | null }> {
+  return request<{ connection: SlackConnection | null }>(`/slack/connection?teamId=${encodeURIComponent(teamId)}`);
+}
+
+export function updateSlackConnection(
+  teamId: string,
+  data: { triggerEmoji?: string; monitoredChannels?: string[] },
+): Promise<{ connection: SlackConnection | null }> {
+  return request<{ connection: SlackConnection | null }>(
+    `/slack/connection?teamId=${encodeURIComponent(teamId)}`,
+    { method: 'PATCH', body: JSON.stringify(data) },
+  );
+}
+
+export function disconnectSlack(teamId: string): Promise<{ disconnected: boolean }> {
+  return request<{ disconnected: boolean }>(
+    `/slack/connection?teamId=${encodeURIComponent(teamId)}`,
+    { method: 'DELETE' },
+  );
+}
+
 // ── Mockups ─────────────────────────────────────────────────────────
 
 export function renderMockupJsx(jsx: string): Promise<{ screenshot: string }> {
   return request<{ screenshot: string }>('/mockups/render-jsx', {
     method: 'POST',
     body: JSON.stringify({ jsx }),
+  });
+}
+
+// ── Intake (Audio / Transcript) ──────────────────────────────────────
+
+export interface IntakeResult {
+  transcript: string;
+  structured: { title: string; content: string };
+}
+
+export async function uploadAudioForIntake(file: File): Promise<IntakeResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const headers: Record<string, string> = {};
+  const token = await resolveToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  // Do NOT set Content-Type — browser sets multipart boundary automatically
+
+  const res = await fetch(`${BASE}/intake/audio`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`API ${res.status}: ${body || res.statusText}`);
+  }
+
+  return res.json() as Promise<IntakeResult>;
+}
+
+export function processTranscriptForIntake(
+  transcript: string,
+): Promise<IntakeResult> {
+  return request<IntakeResult>('/intake/transcript', {
+    method: 'POST',
+    body: JSON.stringify({ transcript }),
   });
 }
