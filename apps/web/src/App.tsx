@@ -10,6 +10,7 @@ import { Board } from './pages/Board';
 import { Repositories } from './pages/Repositories';
 import { LifecycleExplorerPage } from './pages/LifecycleExplorerPage';
 import { IntakePage } from './pages/IntakePage';
+import { SprintPage } from './pages/SprintPage';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 import { useAuthStore } from './stores/auth.store';
@@ -44,6 +45,7 @@ export function App() {
             <Route path="/repositories" element={<Repositories />} />
             <Route path="/lifecycle" element={<LifecycleExplorerPage />} />
             <Route path="/intake" element={<IntakePage />} />
+            <Route path="/sprint" element={<SprintPage />} />
           </Route>
         </Route>
       </Routes>
