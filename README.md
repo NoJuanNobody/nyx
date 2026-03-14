@@ -258,6 +258,12 @@ Set the same environment variables from the [setup section](#3-configure-environ
 
 ---
 
+## Feature Guides
+
+- [In-App Feedback](./docs/feedback-feature.md) — setup and usage for the user feedback submission feature
+
+---
+
 ## Contributing
 
 This project is in active development. See the [product brief](./SyncDocs_ProductBrief.md) for the full vision and roadmap.
