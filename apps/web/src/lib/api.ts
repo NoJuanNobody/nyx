@@ -644,6 +644,55 @@ export function submitFeedback(data: {
   });
 }
 
+// ── Sprint Gatekeeper ────────────────────────────────────────────────
+
+export interface SprintTicket {
+  id: string;
+  title: string;
+  points: number;
+  status: string;
+}
+
+export interface SprintCapacityData {
+  sprintName: string;
+  totalPoints: number;
+  usedPoints: number;
+  capacityPercent: number;
+  tickets: SprintTicket[];
+}
+
+export interface SprintCheckResult {
+  capacity: SprintCapacityData;
+  overThreshold: boolean;
+  suggestions: string[];
+}
+
+export function getSprintCapacity(teamId: string): Promise<SprintCapacityData> {
+  return request<SprintCapacityData>(
+    `/sprint/capacity?teamId=${encodeURIComponent(teamId)}`,
+  );
+}
+
+export function checkSprintCapacity(data: {
+  teamId: string;
+  newTicketPoints?: number;
+}): Promise<SprintCheckResult> {
+  return request<SprintCheckResult>('/sprint/check', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deferSprintTicket(data: {
+  teamId: string;
+  ticketKey: string;
+}): Promise<{ deferred: boolean }> {
+  return request<{ deferred: boolean }>('/sprint/defer', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 // ── Mockups ─────────────────────────────────────────────────────────
 
 export function renderMockupJsx(jsx: string): Promise<{ screenshot: string }> {
