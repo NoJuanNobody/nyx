@@ -565,8 +565,6 @@ function DocItem({
         </div>
       )}
     </div>
-    {/* JSX Preview virtual child file */}
-    <JSXPreviewItem docId={doc.id} depth={depth} />
     </>
   );
 }
