@@ -12,6 +12,10 @@ export interface StageInfo {
   hex: string;         // hex color for custom styling
   who: string;
   description: string;
+  icon: string;        // unicode symbol
+  ai: string;          // one-line Claude AI role description
+  output: string;      // what the phase produces
+  docs: string[];      // document type names
 }
 
 export const STAGES: StageInfo[] = [
@@ -24,9 +28,13 @@ export const STAGES: StageInfo[] = [
     textColor: 'text-amber-700',
     dotColor: 'bg-amber-400',
     borderColor: 'border-amber-300',
-    hex: '#F59E0B',
+    hex: '#E8C547',
     who: 'Product Managers, Founders',
     description: 'Capture the initial idea, problem space, and vision',
+    icon: '◎',
+    ai: 'Stress-tests your idea, identifies blind spots, suggests missing angles',
+    output: 'Validated concept brief ready for product definition',
+    docs: ['Problem Statement', 'Value Proposition', 'Market Opportunity', 'Rough Concept Notes'],
   },
   {
     id: 'definition',
@@ -37,9 +45,13 @@ export const STAGES: StageInfo[] = [
     textColor: 'text-teal-700',
     dotColor: 'bg-teal-400',
     borderColor: 'border-teal-300',
-    hex: '#14B8A6',
+    hex: '#4EC9B0',
     who: 'Product Managers, Designers',
     description: 'Translate the idea into a complete product specification',
+    icon: '◈',
+    ai: 'Flags ambiguous requirements, generates user stories from PRD, scores completeness',
+    output: 'Structured PRD that engineering can trust',
+    docs: ['Product Requirements Doc (PRD)', 'User Stories', 'Personas', 'Feature List', 'Competitive Analysis'],
   },
   {
     id: 'architecture',
@@ -50,9 +62,13 @@ export const STAGES: StageInfo[] = [
     textColor: 'text-indigo-700',
     dotColor: 'bg-indigo-400',
     borderColor: 'border-indigo-300',
-    hex: '#6366F1',
+    hex: '#7B9FE0',
     who: 'Tech Leads, Senior Engineers',
     description: 'Design the system that implements the specification',
+    icon: '◫',
+    ai: 'Reviews architecture for gaps, suggests patterns, links decisions back to PRD intent',
+    output: 'Architecture docs linked to every PRD requirement they serve',
+    docs: ['System Architecture Doc', 'Data Models', 'API Contracts', 'Component Hierarchy', 'Tech Stack Decisions'],
   },
   {
     id: 'implementation',
@@ -63,9 +79,13 @@ export const STAGES: StageInfo[] = [
     textColor: 'text-violet-700',
     dotColor: 'bg-violet-400',
     borderColor: 'border-violet-300',
-    hex: '#8B5CF6',
+    hex: '#C084FC',
     who: 'Engineers, QA',
     description: 'Create developer-ready specifications for AI coding agents',
+    icon: '◧',
+    ai: 'Scores spec quality for AI code generation, auto-generates tickets, suggests edge cases',
+    output: 'Implementation-ready specs optimized for Claude Code & Copilot',
+    docs: ['AI-Ready Feature Specs', 'Ticket Breakdowns', 'Acceptance Criteria', 'Edge Cases', 'Test Plans'],
   },
   {
     id: 'execution',
@@ -76,10 +96,21 @@ export const STAGES: StageInfo[] = [
     textColor: 'text-emerald-700',
     dotColor: 'bg-emerald-400',
     borderColor: 'border-emerald-300',
-    hex: '#10B981',
+    hex: '#F87171',
     who: 'Engineers, DevOps',
     description: 'Track the living codebase and keep docs in sync',
+    icon: '◉',
+    ai: 'Watches commits, detects doc-code drift in real time, flags intent violations',
+    output: 'Codebase that never diverges silently from its original intent',
+    docs: ['Living Codebase', 'Auto-Updated Docs', 'Drift Alerts', 'Change History', 'Rollback Points'],
   },
+];
+
+export const CONNECTORS: string[] = [
+  'Concept brief seeds the PRD',
+  'PRD requirements drive architecture',
+  'Architecture shapes implementation specs',
+  'Specs generate code via AI agents',
 ];
 
 export const STAGE_MAP = Object.fromEntries(STAGES.map((s) => [s.id, s])) as Record<DocumentStage, StageInfo>;
@@ -91,6 +122,13 @@ export function getNextStage(current: DocumentStage): DocumentStage | null {
   if (idx === -1 || idx >= STAGE_ORDER.length - 1) return null;
   return STAGE_ORDER[idx + 1];
 }
+
+export const CONNECTORS: string[] = [
+  'Concept brief seeds the PRD',
+  'PRD requirements drive architecture',
+  'Architecture shapes implementation specs',
+  'Specs generate code via AI agents',
+];
 
 // Stage-specific AI suggestion prompts for the chat panel
 export const STAGE_SUGGESTIONS: Record<DocumentStage, string[]> = {
