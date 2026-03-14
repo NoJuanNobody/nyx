@@ -103,15 +103,15 @@ export const transcriptionService = {
           role: 'user',
           content: [
             {
-              type: 'input_audio',
+              type: 'input_audio' as any,
               source: {
                 type: 'base64',
                 media_type: mediaType,
                 data: base64Data,
               },
-            },
+            } as any,
             {
-              type: 'text',
+              type: 'text' as const,
               text: 'Please transcribe this audio recording accurately.',
             },
           ],

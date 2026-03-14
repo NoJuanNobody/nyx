@@ -315,9 +315,6 @@ export const ticketSuggestions = pgTable('ticket_suggestions', {
 // ── Intake Sessions ─────────────────────────────────
 
 export const intakeSessions = pgTable('intake_sessions', {
-// ── Slack Connections ─────────────────────────────────
-
-export const slackConnections = pgTable('slack_connections', {
   id: uuid('id').primaryKey().defaultRandom(),
   teamId: uuid('team_id')
     .notNull()
@@ -329,6 +326,16 @@ export const slackConnections = pgTable('slack_connections', {
   structuredOutput: jsonb('structured_output'),
   status: text('status').notNull().default('pending'),
   documentId: uuid('document_id').references(() => documents.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Slack Connections ─────────────────────────────────
+
+export const slackConnections = pgTable('slack_connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id),
   slackTeamId: text('slack_team_id').notNull(),
   slackBotToken: text('slack_bot_token').notNull(),
   triggerEmoji: text('trigger_emoji').default('nyx'),

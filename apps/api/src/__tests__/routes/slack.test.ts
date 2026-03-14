@@ -43,7 +43,7 @@ function slackSign(timestamp: string, body: string): string {
 
 async function buildSlackApp() {
   const app = Fastify({ logger: false });
-  app.decorateRequest('user', null as unknown);
+  app.decorateRequest('user', null as any);
   app.register(slackRoutes, { prefix: '/api/slack' });
   await app.ready();
   return app;
