@@ -441,6 +441,33 @@ export function fetchAuditTrace(eventId: string): Promise<{ eventId: string; cha
   );
 }
 
+// ── Trace ───────────────────────────────────────────────────────────
+
+export interface TraceNode {
+  id: string;
+  type: string;
+  label: string;
+  actorName: string;
+  timestamp: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface TraceEdge {
+  from: string;
+  to: string;
+}
+
+export interface TraceResult {
+  documentId: string;
+  nodes: TraceNode[];
+  edges: TraceEdge[];
+  summary: string;
+}
+
+export function fetchDocumentTrace(documentId: string): Promise<TraceResult> {
+  return request<TraceResult>(`/documents/${documentId}/trace`);
+}
+
 // ── Team Members ────────────────────────────────────────────────────
 
 export function fetchTeamMembers(teamId: string): Promise<{ teamId: string; members: Array<{ id: string; userId: string; role: string; joinedAt: string; userName: string; userEmail: string }> }> {

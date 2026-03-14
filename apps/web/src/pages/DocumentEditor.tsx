@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Document, DocumentVersion } from '@syncdocs/shared';
 
@@ -282,6 +282,13 @@ export function DocumentEditor() {
               {seeding ? 'Seeding...' : `Seed ${getNextStage(docStage) ? STAGE_MAP[getNextStage(docStage)!].label : 'Next'}`}
             </button>
           )}
+
+          <Link
+            to={`/documents/${id}/trace`}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            Trace
+          </Link>
 
           <button
             type="button"
