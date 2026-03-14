@@ -45,7 +45,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
     // Determine system prompt and tools
     const workflow = workflowId ? getWorkflow(workflowId) : undefined;
     const systemPrompt = workflow?.systemPrompt ??
-      'You are a helpful AI assistant for SyncDocs, a documentation platform. Use the available tools to help the user with their request. Be thorough and provide clear, actionable results.';
+      'You are a helpful AI assistant for SyncDocs, a documentation platform. Use the available tools to help the user with their request. Be thorough and provide clear, actionable results.\n\nIMPORTANT: Use `update_document` only when the user wants to improve or edit document content. Use `create_ticket` when the user wants to track action items, bugs, or tasks — do not describe tickets in text, call the tool instead. Never substitute one for the other.';
     const toolNames = workflow?.tools;
 
     // Build user prompt with document context

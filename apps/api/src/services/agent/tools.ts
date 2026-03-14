@@ -31,7 +31,7 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
 
   update_document: {
     name: 'update_document',
-    description: 'Update a document\'s title or content.',
+    description: 'Update a document\'s title or content. Use this only to improve documentation text. Do not use this when the goal is to track action items — use create_ticket instead.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -96,7 +96,7 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
 
   create_ticket: {
     name: 'create_ticket',
-    description: 'Create a ticket (GitHub issue or Jira) linked to a document.',
+    description: 'Create a ticket (GitHub issue or Jira) linked to a document. Call this for each discrete actionable item found during a review or impact analysis. Do not summarize tickets in text — call this tool instead.',
     input_schema: {
       type: 'object' as const,
       properties: {

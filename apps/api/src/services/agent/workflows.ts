@@ -12,12 +12,12 @@ Follow these steps:
 2. Analyze the spec quality using analyze_spec_quality
 3. If possible, get linked code files using get_github_files and detect drift using detect_drift
 4. Check the audit trail for recent changes using search_audit_trail
-5. Synthesize your findings into a clear report with:
-   - Quality score and key improvement areas
-   - Drift analysis (if code was available)
-   - Recommended tickets to create for any issues found
+5. For each actionable issue found:
+   - Call \`create_ticket\` with a clear title and description.
+   - Do not use \`update_document\` — ticket creation is the only write action in this workflow.
+   Finish with a summary report listing the tickets you created, along with quality scores and drift analysis.
 
-Be specific and actionable in your recommendations.`,
+Do not describe tickets in text — actually call the create_ticket tool for each one.`,
     tools: ['read_document', 'analyze_spec_quality', 'detect_drift', 'get_github_files', 'search_audit_trail', 'create_ticket'],
     defaultPrompt: 'Please perform a full spec review of this document.',
   },
@@ -33,9 +33,11 @@ Follow these steps:
 2. Review the audit trail using search_audit_trail to understand recent changes
 3. If code is linked, get relevant files using get_github_files
 4. Analyze which code areas are affected by the document changes
-5. Suggest specific tickets for implementing the changes
+5. For each code area that needs to change:
+   - Call \`create_ticket\` with the specific change required, affected files, and risk level.
+   - Do not modify document content — ticket creation is the only write action in this workflow.
 
-Focus on practical impact — what code needs to change, what tests need updating, and what risks exist.`,
+Focus on practical impact — what code needs to change, what tests need updating, and what risks exist. Do not describe tickets in text — actually call the create_ticket tool for each one.`,
     tools: ['read_document', 'search_audit_trail', 'get_github_files', 'detect_drift', 'create_ticket'],
     defaultPrompt: 'Analyze the impact of recent changes to this document.',
   },
