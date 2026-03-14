@@ -17,27 +17,28 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@syncdocs/shared": "workspace:*",
-    "fastify": "^5",
-    "@fastify/cors": "^11",
-    "@fastify/cookie": "^11",
-    "dotenv": "^16",
-    "zod": "^3",
-    "drizzle-orm": "^0.38",
-    "postgres": "^3",
     "@anthropic-ai/sdk": "^0.39",
     "@clerk/backend": "^1",
+    "@fastify/cookie": "^11",
+    "@fastify/cors": "^11",
+    "@fastify/multipart": "^9.4.0",
+    "@syncdocs/shared": "workspace:*",
+    "dotenv": "^16",
+    "drizzle-orm": "^0.38",
+    "fastify": "^5",
     "pdfkit": "^0.16",
+    "postgres": "^3",
     "puppeteer": "^24",
-    "puppeteer-cluster": "^0.24"
+    "puppeteer-cluster": "^0.24",
+    "zod": "^3"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.30",
-    "tsx": "^4",
     "@types/node": "^22",
     "@types/pdfkit": "^0.13",
-    "vitest": "^3",
     "@vitest/coverage-v8": "^3",
-    "typescript": "^5.7"
+    "drizzle-kit": "^0.30",
+    "tsx": "^4",
+    "typescript": "^5.7",
+    "vitest": "^3"
   }
 }

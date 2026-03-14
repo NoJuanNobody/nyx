@@ -29,6 +29,7 @@ import { feedbackRoutes } from './routes/feedback.js';
 import { intakeRoutes } from './routes/intake.js';
 import { sprintRoutes } from './routes/sprint.js';
 import { contextRoutes } from './routes/context.js';
+import { audioRoutes } from './routes/audio.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -69,6 +70,7 @@ export function buildApp() {
   app.register(intakeRoutes, { prefix: '/api/intake' });
   app.register(sprintRoutes, { prefix: '/api' });
   app.register(contextRoutes, { prefix: '/api/intake' });
+  app.register(audioRoutes, { prefix: '/api/intake' });
 
   return app;
 }

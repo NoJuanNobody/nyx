@@ -841,3 +841,44 @@ export function renderMockupJsx(jsx: string): Promise<{ screenshot: string }> {
     body: JSON.stringify({ jsx }),
   });
 }
+
+// ── Intake (Audio / Transcript) ──────────────────────────────────────
+
+export interface IntakeResult {
+  transcript: string;
+  structured: { title: string; content: string };
+}
+
+export async function uploadAudioForIntake(file: File): Promise<IntakeResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const headers: Record<string, string> = {};
+  const token = await resolveToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  // Do NOT set Content-Type — browser sets multipart boundary automatically
+
+  const res = await fetch(`${BASE}/intake/audio`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`API ${res.status}: ${body || res.statusText}`);
+  }
+
+  return res.json() as Promise<IntakeResult>;
+}
+
+export function processTranscriptForIntake(
+  transcript: string,
+): Promise<IntakeResult> {
+  return request<IntakeResult>('/intake/transcript', {
+    method: 'POST',
+    body: JSON.stringify({ transcript }),
+  });
+}
