@@ -79,11 +79,171 @@ describe('AI Service', () => {
   });
 
   it('requireClient throws when ANTHROPIC_API_KEY not configured', () => {
-    // The service guards all methods with requireClient().
-    // Since our config mock provides a key, the client is created.
-    // We verify the guard pattern exists by confirming the service works
-    // (if the guard were missing, tests above would fail differently).
     expect(aiService).toBeDefined();
     expect(typeof aiService.analyzeSpecQuality).toBe('function');
+  });
+
+  it('generateDocument: returns parsed JSON on valid response', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('{"title": "My Doc", "content": "# Hello World"}'),
+    );
+
+    const result = await aiService.generateDocument('Create a doc about hello world');
+    expect(result.title).toBe('My Doc');
+    expect(result.content).toBe('# Hello World');
+  });
+
+  it('generateDocument: returns fallback on parse failure', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('# Some raw markdown content'),
+    );
+
+    const result = await aiService.generateDocument('Create a doc');
+    expect(result.title).toBe('Untitled Document');
+    expect(result.content).toBe('# Some raw markdown content');
+  });
+
+  it('editDocument: includes history in messages when provided', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('# Edited with history context'),
+    );
+
+    const result = await aiService.editDocument(
+      '# Old Content',
+      'Add history',
+      [{ role: 'user', content: 'previous message' }, { role: 'assistant', content: 'previous response' }],
+    );
+    expect(result).toBe('# Edited with history context');
+    // Verify history was included in the call
+    const callArgs = mockCreate.mock.calls[0][0];
+    expect(callArgs.messages.length).toBe(3); // 2 history + 1 current
+  });
+
+  it('generateJSXPreview: returns JSX with code fences stripped', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('```jsx\nfunction App() { return <div>Hello</div>; }\n```'),
+    );
+
+    const result = await aiService.generateJSXPreview('A hello component');
+    expect(result).toContain('function App()');
+    expect(result).not.toContain('```');
+  });
+
+  it('generateJSXPreview: strips import statements', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('import React from "react";\nfunction App() { return <div/>; }'),
+    );
+
+    const result = await aiService.generateJSXPreview('A component');
+    expect(result).not.toContain('import');
+    expect(result).toContain('function App()');
+  });
+
+  it('refineJSXPreview: returns refined component', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('function App() { return <div style={{color: "blue"}}>Updated</div>; }'),
+    );
+
+    const result = await aiService.refineJSXPreview('<div>Old</div>', 'Make it blue');
+    expect(result).toContain('blue');
+  });
+
+  it('analyzeChangesForTickets: returns parsed ticket suggestions', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('{"title": "API Changes", "description": "Updated API endpoints", "suggestedTickets": [{"title": "Update endpoints", "description": "Fix the routes", "priority": "high", "labels": ["api"]}]}'),
+    );
+
+    const result = await aiService.analyzeChangesForTickets(
+      [{ version: 1, message: 'Initial', content: '# V1' }],
+      'My Document',
+    );
+    expect(result.title).toBe('API Changes');
+    expect(result.suggestedTickets).toHaveLength(1);
+  });
+
+  it('analyzeChangesForTickets: returns fallback on parse failure', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('Some unstructured analysis text'),
+    );
+
+    const result = await aiService.analyzeChangesForTickets(
+      [{ version: 1, message: null, content: '# V1' }],
+      'My Document',
+    );
+    expect(result.title).toBe('Changes to My Document');
+    expect(result.suggestedTickets).toHaveLength(1);
+  });
+
+  it('bootstrapDocsFromCode: returns generated documentation', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('# Project Overview\n\nThis is a Node.js project.'),
+    );
+
+    const result = await aiService.bootstrapDocsFromCode([
+      { path: 'src/index.ts', content: 'console.log("hello")' },
+    ]);
+    expect(result).toContain('Project Overview');
+  });
+
+  it('seedNextStage: returns parsed JSON on valid response', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('{"title": "PRD", "content": "# Product Requirements"}'),
+    );
+
+    const result = await aiService.seedNextStage('# Conception doc', 'conception', 'definition');
+    expect(result.title).toBe('PRD');
+    expect(result.content).toBe('# Product Requirements');
+  });
+
+  it('seedNextStage: returns fallback on parse failure', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('# Architecture Document\n\nDesign details here'),
+    );
+
+    const result = await aiService.seedNextStage('# PRD content', 'definition', 'architecture');
+    expect(result.title).toBe('Architecture Document');
+    expect(result.content).toContain('Design details here');
+  });
+
+  it('seedNextStage: strips code fences from response', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('```json\n{"title": "Implementation", "content": "# Impl Plan"}\n```'),
+    );
+
+    const result = await aiService.seedNextStage('# Arch doc', 'architecture', 'implementation');
+    expect(result.title).toBe('Implementation');
+  });
+
+  it('detectDrift: returns parsed JSON on valid response', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('{"hasDrift": true, "driftScore": 7, "details": "API mismatch", "suggestions": ["Update routes"]}'),
+    );
+
+    const result = await aiService.detectDrift('spec', 'code');
+    expect(result.hasDrift).toBe(true);
+    expect(result.driftScore).toBe(7);
+    expect(result.suggestions).toHaveLength(1);
+  });
+
+  it('generateTicketFromDiff: returns parsed JSON on valid response', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('{"title": "Fix auth", "description": "Update auth flow", "labels": ["auth", "bug"]}'),
+    );
+
+    const result = await aiService.generateTicketFromDiff('diff content', 'auth context');
+    expect(result.title).toBe('Fix auth');
+    expect(result.labels).toContain('auth');
+  });
+
+  it('analyzeSpecQuality: uses stage-specific criteria', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('{"score": 9, "suggestions": []}'),
+    );
+
+    const result = await aiService.analyzeSpecQuality('# Spec', 'definition');
+    expect(result.score).toBe(9);
+    // Verify stage prompt was included
+    const callArgs = mockCreate.mock.calls[0][0];
+    expect(callArgs.system).toContain('definition');
   });
 });
