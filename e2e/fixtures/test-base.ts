@@ -288,6 +288,46 @@ const SEEDED_AUDIT_EVENTS = [
   },
 ];
 
+const SEEDED_IMPACT_GRAPH = {
+  documentId: SEED.DOC_API_SPEC_ID,
+  nodes: [
+    {
+      id: '00000000-0000-0000-0000-000000000500',
+      type: 'doc_edit',
+      label: 'Document edited',
+      actorName: 'Dev User',
+      timestamp: '2025-01-01T00:00:00.000Z',
+      metadata: { fields: ['content'] },
+      intent: 'Updated content to keep documentation current',
+      driftFlag: false,
+    },
+    {
+      id: '00000000-0000-0000-0000-000000000501',
+      type: 'ticket_created',
+      label: 'Ticket created: Implement auth endpoints',
+      actorName: 'Dev User',
+      timestamp: '2025-01-01T01:00:00.000Z',
+      metadata: { provider: 'github', title: 'Implement auth endpoints' },
+      intent: 'Created ticket to track: Implement auth endpoints',
+      driftFlag: true,
+    },
+    {
+      id: '00000000-0000-0000-0000-000000000502',
+      type: 'doc_edit',
+      label: 'Document edited',
+      actorName: 'Dev User',
+      timestamp: '2025-01-01T02:00:00.000Z',
+      metadata: { fields: ['title'] },
+      intent: 'Updated title to keep documentation current',
+      driftFlag: false,
+    },
+  ],
+  edges: [
+    { from: '00000000-0000-0000-0000-000000000500', to: '00000000-0000-0000-0000-000000000501' },
+    { from: '00000000-0000-0000-0000-000000000501', to: '00000000-0000-0000-0000-000000000502' },
+  ],
+};
+
 // ── Helper to install all API mocks on a page ───────────────────────
 
 let _newDocCounter = 0;
@@ -451,6 +491,15 @@ async function setupApiMocks(page: Page) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ documentId: SEED.DOC_API_SPEC_ID, events: SEEDED_AUDIT_EVENTS }),
+      });
+    }
+
+    // --- Sub-resource routes: /api/documents/:id/impact-graph ---
+    if (/\/documents\/[^/]+\/impact-graph/.test(pathname)) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(SEEDED_IMPACT_GRAPH),
       });
     }
 

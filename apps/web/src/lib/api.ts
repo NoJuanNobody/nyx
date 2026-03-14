@@ -506,6 +506,34 @@ export function fetchDocumentTrace(documentId: string): Promise<TraceResult> {
   return request<TraceResult>(`/documents/${documentId}/trace`);
 }
 
+// ── Impact Graph ─────────────────────────────────────────────────────
+
+export interface ImpactNode {
+  id: string;
+  type: string;
+  label: string;
+  actorName: string;
+  timestamp: string;
+  metadata: Record<string, unknown>;
+  intent: string | null;
+  driftFlag: boolean;
+}
+
+export interface ImpactEdge {
+  from: string;
+  to: string;
+}
+
+export interface ImpactGraphResult {
+  documentId: string;
+  nodes: ImpactNode[];
+  edges: ImpactEdge[];
+}
+
+export function fetchImpactGraph(documentId: string): Promise<ImpactGraphResult> {
+  return request<ImpactGraphResult>(`/documents/${documentId}/impact-graph`);
+}
+
 // ── Team Members ────────────────────────────────────────────────────
 
 export function fetchTeamMembers(teamId: string): Promise<{ teamId: string; members: Array<{ id: string; userId: string; role: string; joinedAt: string; userName: string; userEmail: string }> }> {
