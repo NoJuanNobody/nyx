@@ -79,14 +79,14 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /api/ai/jsx-preview — generate a self-contained JSX component from a prompt
   app.post('/jsx-preview', async (request, reply) => {
-    const { prompt, context } = request.body as { prompt: string; context?: string };
+    const { prompt, context, allStates } = request.body as { prompt: string; context?: string; allStates?: boolean };
 
     if (!prompt) {
       reply.code(400);
       return { error: 'prompt is required' };
     }
 
-    const jsx = await aiService.generateJSXPreview(prompt, context);
+    const jsx = await aiService.generateJSXPreview(prompt, context, allStates);
     return { jsx };
   });
 
