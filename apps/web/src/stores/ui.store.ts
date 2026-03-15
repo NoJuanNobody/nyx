@@ -12,7 +12,7 @@ function applyTheme(theme: Theme) {
 }
 
 function loadTheme(): Theme {
-  return (localStorage.getItem('nyx:theme') as Theme) ?? 'dark';
+  return (localStorage.getItem('nyx:theme') as Theme) ?? 'system';
 }
 
 interface UIState {
