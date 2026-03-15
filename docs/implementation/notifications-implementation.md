@@ -71,7 +71,7 @@ export const emailDeliveryLog = pgTable('email_delivery_log', {
 ### 1.2 Push Schema to Database
 
 ```bash
-pnpm --filter @syncdocs/api exec drizzle-kit push --force
+pnpm --filter @nyx/api exec drizzle-kit push --force
 ```
 
 ### 1.3 Acceptance Criteria
@@ -243,7 +243,7 @@ For each integration: call `fastify.notifications.create(...)` after the primary
 ### 5.1 Install Dependencies
 
 ```bash
-pnpm --filter @syncdocs/api add resend @react-email/components
+pnpm --filter @nyx/api add resend @react-email/components
 ```
 
 ### 5.2 Email Service
@@ -259,7 +259,7 @@ export class EmailService {
   async send(to: string, subject: string, template: string, props: Record<string, unknown>) {
     const html = await renderTemplate(template, props);
     const result = await resend.emails.send({
-      from: process.env.EMAIL_FROM ?? 'notifications@syncdocs.io',
+      from: process.env.EMAIL_FROM ?? 'notifications@nyx.io',
       to,
       subject,
       html,
@@ -286,7 +286,7 @@ For `daily` and `weekly` email modes, buffer notifications in the `email_deliver
 
 ```bash
 # Cron-style: run daily at 8 AM UTC
-pnpm --filter @syncdocs/api run send-digest
+pnpm --filter @nyx/api run send-digest
 ```
 
 The digest script:
@@ -299,7 +299,7 @@ The digest script:
 
 ```env
 RESEND_API_KEY=re_...
-EMAIL_FROM=notifications@syncdocs.io
+EMAIL_FROM=notifications@nyx.io
 ```
 
 ---

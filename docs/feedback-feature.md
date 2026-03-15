@@ -46,7 +46,7 @@ pnpm --filter @nyx/api exec drizzle-kit push --force
 The label should already exist on the repo. If not, create it:
 
 ```bash
-gh label create feedback --repo NoJuanNobody/syncdocs --description "User-submitted feedback" --color "0E8A16"
+gh label create feedback --repo NoJuanNobody/nyx --description "User-submitted feedback" --color "0E8A16"
 ```
 
 ### 5. Restart the dev server
@@ -95,7 +95,7 @@ Submits the formatted feedback as a GitHub issue and saves it to the database.
 ```json
 {
   "id": "uuid",
-  "githubIssueUrl": "https://github.com/NoJuanNobody/syncdocs/issues/85",
+  "githubIssueUrl": "https://github.com/NoJuanNobody/nyx/issues/85",
   "remaining": 4
 }
 ```

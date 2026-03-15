@@ -62,7 +62,7 @@ Worktree branches:
 
 Test command: pnpm run test:unit
 Target branch: main
-SyncDocs project: syncdocs/core
+SyncDocs project: nyx/core
 ```
 
 Wait for explicit user approval (yes/proceed/go) before continuing.
