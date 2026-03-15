@@ -430,8 +430,6 @@ export const subscriptions = pgTable('subscriptions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
-<<<<<<< HEAD
-=======
 
 // ── Community Marketplace ─────────────────────────────
 
@@ -509,4 +507,3 @@ export const projectShowcases = pgTable('project_showcases', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
->>>>>>> worktree-agent-a69a9f66
