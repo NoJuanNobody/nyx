@@ -12,6 +12,8 @@ export const auditEventTypeEnum = pgEnum('audit_event_type', [
   'agent_workflow',
 ]);
 export const agentSessionStatusEnum = pgEnum('agent_session_status', ['running', 'completed', 'failed', 'cancelled']);
+export const notificationEmailModeEnum = pgEnum('notification_email_mode', ['instant', 'daily', 'weekly', 'off']);
+export const emailDeliveryStatusEnum = pgEnum('email_delivery_status', ['queued', 'sent', 'failed', 'bounced']);
 export const documentStageEnum = pgEnum('document_stage', [
   'conception', 'definition', 'architecture', 'implementation', 'execution',
 ]);
@@ -342,6 +344,54 @@ export const slackConnections = pgTable('slack_connections', {
   slackBotToken: text('slack_bot_token').notNull(),
   triggerEmoji: text('trigger_emoji').default('nyx'),
   monitoredChannels: jsonb('monitored_channels').default([]),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Feedback Submissions ─────────────────────────────
+
+// ── Notifications ─────────────────────────────────────
+
+export const notifications = pgTable('notifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id, { onDelete: 'cascade' }),
+  eventType: text('event_type').notNull(),
+  title: text('title').notNull(),
+  body: text('body'),
+  metadata: jsonb('metadata'),
+  entityId: text('entity_id'),
+  readAt: timestamp('read_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const notificationPreferences = pgTable('notification_preferences', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  eventType: text('event_type').notNull(),
+  inApp: boolean('in_app').notNull().default(true),
+  emailEnabled: boolean('email_enabled').notNull().default(true),
+  emailMode: notificationEmailModeEnum('email_mode').notNull().default('daily'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  userEventUniq: uniqueIndex('notif_pref_user_event_uniq').on(t.userId, t.eventType),
+}));
+
+export const emailDeliveryLog = pgTable('email_delivery_log', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  notificationId: uuid('notification_id').references(() => notifications.id),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  providerId: text('provider_id'),
+  status: emailDeliveryStatusEnum('status').notNull().default('queued'),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+  error: text('error'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
