@@ -559,6 +559,27 @@ export function cancelInvitation(teamId: string, invitationId: string): Promise<
   });
 }
 
+export async function getInvitation(token: string): Promise<{
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  expiresAt: string;
+  teamName: string;
+  error?: string;
+}> {
+  const res = await fetch(`${BASE}/invitations/${token}`);
+  if (!res.ok) throw new Error('Invitation not found');
+  return res.json();
+}
+
+export async function acceptInvitation(token: string): Promise<{ teamId: string; role: string; alreadyMember?: boolean }> {
+  return request<{ teamId: string; role: string; alreadyMember?: boolean }>(`/invitations/${token}/accept`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
 // ── Tickets (Board) ─────────────────────────────────────────────────
 
 export interface Ticket {
