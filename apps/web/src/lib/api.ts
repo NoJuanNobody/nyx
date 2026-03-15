@@ -1005,6 +1005,41 @@ export function processTranscriptForIntake(
   });
 }
 
+// ── Subscriptions ───────────────────────────────────────────────────
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: number | null;
+  interval: string | null;
+  features: string[];
+}
+
+export interface Subscription {
+  id: string;
+  teamId: string;
+  plan: string;
+  status: string;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+}
+
+export function fetchPlans(): Promise<SubscriptionPlan[]> {
+  return request<SubscriptionPlan[]>('/subscriptions/plans');
+}
+
+export function fetchCurrentSubscription(teamId: string): Promise<Subscription | null> {
+  return request<Subscription | null>(`/subscriptions/current?teamId=${teamId}`);
+}
+
+export function createCheckoutSession(data: { plan: string; teamId: string; successUrl: string; cancelUrl: string }): Promise<{ url: string }> {
+  return request<{ url: string }>('/subscriptions/checkout', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function createPortalSession(data: { teamId: string; returnUrl: string }): Promise<{ url: string }> {
+  return request<{ url: string }>('/subscriptions/portal', { method: 'POST', body: JSON.stringify(data) });
+}
+
 // ── Notifications ────────────────────────────────────────────────────
 
 export function fetchNotifications(params?: { read?: boolean; eventType?: string; limit?: number; cursor?: string }) {

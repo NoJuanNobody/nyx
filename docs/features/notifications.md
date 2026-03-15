@@ -83,7 +83,7 @@ Filters persist for the session via local state (not URL params, to avoid pollut
 Configuration:
 ```env
 RESEND_API_KEY=re_...
-EMAIL_FROM=notifications@syncdocs.io
+EMAIL_FROM=notifications@nyx.io
 ```
 
 ### 3.2 Email Templates
@@ -202,7 +202,7 @@ For the MVP, use **polling** (30-second interval) from the frontend:
 For events where sub-second delivery matters (`drift.detected`, `approval.requested`), plan for **WebSocket push** via a dedicated connection managed by the API server. This is tracked as a separate workstream in issue #43.
 
 WebSocket upgrade path:
-1. Client connects to `wss://api.syncdocs.io/ws` with a JWT auth token
+1. Client connects to `wss://api.nyx.io/ws` with a JWT auth token
 2. Server pushes a `notification` event on the socket when a new notification is created
 3. Client increments badge count and prepends the notification to the list without a full refetch
 

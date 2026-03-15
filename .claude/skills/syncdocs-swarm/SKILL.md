@@ -38,7 +38,7 @@ Collect these before planning:
 
 - **Tickets**: Auto-fetched from GitHub using the `ready to code` label by default. If you want to target specific tickets instead, provide issue numbers or descriptions directly.
 - **Target branch**: Default is `main`. Ask if unclear.
-- **SyncDocs project slug**: The SyncDocs project identifier for the PR (e.g. `syncdocs/core`). Check `package.json` or ask the user.
+- **SyncDocs project slug**: The SyncDocs project identifier for the PR (e.g. `nyx/core`). Check `package.json` or ask the user.
 - **PR title prefix**: Optional. Default: `[Swarm]`.
 - **Test command**: Command to validate each worktree (e.g. `npm test`, `pnpm run test:unit`). Auto-detect from `package.json` if possible.
 

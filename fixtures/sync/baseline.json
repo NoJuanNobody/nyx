@@ -1,0 +1,24 @@
+{
+  "document": {
+    "id": "doc_a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "title": "Authentication Flow",
+    "content": "# Authentication Flow\n\n## Overview\n\nThis document describes the authentication flow for the Nyx platform.\n\n## Steps\n\n1. User navigates to the login page.\n2. User enters credentials or selects an OAuth provider.\n3. Clerk handles session creation and token issuance.\n4. The frontend stores the session token and redirects to the dashboard.\n\n## Token Refresh\n\nSession tokens are short-lived (60 minutes). Clerk automatically refreshes tokens using a secure HTTP-only cookie.\n\n## Logout\n\nCalling `clerk.signOut()` invalidates the session on both client and server.\n",
+    "version": 3,
+    "createdAt": "2026-01-10T14:30:00.000Z",
+    "updatedAt": "2026-02-20T09:15:00.000Z",
+    "lastSyncedAt": "2026-02-20T09:15:00.000Z",
+    "createdBy": "user_01HQXYZ",
+    "format": "markdown"
+  },
+  "linkedRepo": {
+    "owner": "nyx-platform",
+    "repo": "nyx",
+    "branch": "main",
+    "sha": "a3f8c9d2e1b0475689012345abcdef6789012345",
+    "filePath": "docs/authentication-flow.md",
+    "provider": "github"
+  },
+  "syncStatus": "in_sync",
+  "conflicts": [],
+  "lastCheckedAt": "2026-02-20T09:15:00.000Z"
+}

@@ -79,7 +79,7 @@ test.describe('Claude Action Insights — board display', () => {
     await expect(link).toBeVisible({ timeout: 3_000 });
     await expect(link).toHaveAttribute(
       'href',
-      'https://github.com/syncdocs/app/issues/101#issuecomment-1234567890',
+      'https://github.com/nyx/app/issues/101#issuecomment-1234567890',
     );
     await expect(link).toHaveAttribute('target', '_blank');
   });
@@ -196,7 +196,7 @@ test.describe('Claude Action Insights — refresh flow', () => {
           summary: ['Refreshed content'],
           filesChanged: [],
           commentId: 9999,
-          commentUrl: 'https://github.com/syncdocs/app/issues/101#issuecomment-9999',
+          commentUrl: 'https://github.com/nyx/app/issues/101#issuecomment-9999',
           commentedAt: new Date().toISOString(),
           fetchedAt: new Date().toISOString(),
         }),
