@@ -91,9 +91,13 @@ test.describe.serial('Team Invites', () => {
       page.locator('text=/[Ss]uccess|[Ii]nvit|[Aa]dded|[Cc]reated/').first(),
     ).toBeVisible({ timeout: 5_000 });
 
+    // Wait for email input to be cleared after success, then fill again
+    await expect(emailInput).toHaveValue('', { timeout: 5_000 });
+
     // Second invite — same email
     await emailInput.fill('duplicate@test.com');
     await page.locator(SEL.settings.inviteRoleSelect).selectOption('viewer');
+    await expect(page.locator(SEL.settings.inviteButton)).toBeEnabled({ timeout: 5_000 });
     await page.locator(SEL.settings.inviteButton).click();
 
     // Should show an error about duplicate
