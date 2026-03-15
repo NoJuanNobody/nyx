@@ -178,6 +178,17 @@ export const SEL = {
     error: '[data-testid="invite-error"]',
   },
 
+  // ── Notifications ──────────────────────────────────────
+  notifications: {
+    bell: '[data-testid="notification-bell"]',
+    badge: '[data-testid="notification-badge"]',
+    panel: '[data-testid="notification-panel"]',
+    item: '[data-testid="notification-item"]',
+    markAllRead: '[data-testid="mark-all-read"]',
+    filterAll: '[data-testid="filter-all"]',
+    filterUnread: '[data-testid="filter-unread"]',
+  },
+
   // ── Landing ──────────────────────────────────────────
   landing: {
     heroTitle: 'h1',

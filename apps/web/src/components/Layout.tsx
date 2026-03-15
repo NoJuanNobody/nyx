@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
+import { NotificationBell } from './NotificationBell';
 import { useUIStore } from '../stores/ui.store';
 
 export function Layout() {
@@ -10,12 +11,12 @@ export function Layout() {
       <Sidebar />
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Mobile-only top bar */}
-        <div className="flex items-center gap-2 px-4 py-2 lg:hidden">
+        {/* Top bar */}
+        <div className="flex items-center gap-2 px-4 py-2">
           <button
             type="button"
             onClick={toggleSidebar}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 lg:hidden"
             aria-label="Toggle sidebar"
           >
             <svg
@@ -32,7 +33,9 @@ export function Layout() {
               />
             </svg>
           </button>
-          <span className="text-sm font-semibold text-slate-900">Nyx</span>
+          <span className="text-sm font-semibold text-slate-900 lg:hidden">Nyx</span>
+          <div className="flex-1" />
+          <NotificationBell />
         </div>
 
         {/* Main content */}

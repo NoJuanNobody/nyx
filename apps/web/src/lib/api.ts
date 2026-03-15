@@ -1004,3 +1004,26 @@ export function processTranscriptForIntake(
     body: JSON.stringify({ transcript }),
   });
 }
+
+// ── Notifications ────────────────────────────────────────────────────
+
+export function fetchNotifications(params?: { read?: boolean; eventType?: string; limit?: number; cursor?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.read !== undefined) qs.set('read', String(params.read));
+  if (params?.eventType) qs.set('event_type', params.eventType);
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.cursor) qs.set('cursor', params.cursor);
+  return request<{ items: any[]; nextCursor: string | null; unreadCount: number }>(`/notifications?${qs}`);
+}
+
+export function fetchUnreadCount() {
+  return request<{ count: number }>('/notifications/unread-count');
+}
+
+export function markNotificationRead(id: string) {
+  return request<void>(`/notifications/${id}/read`, { method: 'PATCH' });
+}
+
+export function markAllNotificationsRead() {
+  return request<void>('/notifications/read-all', { method: 'PATCH' });
+}
