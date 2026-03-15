@@ -1,8 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { randomUUID } from 'node:crypto';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { teams, teamMembers, users, teamInvitations } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
+import { sendEmail, buildInviteEmail } from '../services/email.js';
 
 export const teamRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/teams — list teams for the current user
@@ -129,6 +131,8 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiry
 
+    const token = randomUUID();
+
     const [invitation] = await db
       .insert(teamInvitations)
       .values({
@@ -136,9 +140,17 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
         email,
         role: memberRole,
         invitedById: request.user.id,
+        token,
         expiresAt,
       })
       .returning();
+
+    // Send invite email (fire-and-forget)
+    const [team] = await db.select().from(teams).where(eq(teams.id, id)).limit(1);
+    if (team) {
+      const { subject, html } = buildInviteEmail(team.name, request.user.name, token);
+      sendEmail({ to: email, subject, html }).catch(() => {});
+    }
 
     reply.code(201);
     return { ...invitation, type: 'invited' };

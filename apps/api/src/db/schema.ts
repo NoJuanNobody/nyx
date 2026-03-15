@@ -64,6 +64,7 @@ export const teamInvitations = pgTable('team_invitations', {
   invitedById: uuid('invited_by_id')
     .notNull()
     .references(() => users.id),
+  token: text('token').notNull().unique(),
   status: invitationStatusEnum('status').notNull().default('pending'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),

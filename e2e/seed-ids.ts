@@ -34,6 +34,9 @@ export const SEED = {
   TKT_JIRA_OPEN_ID: '00000000-0000-0000-0000-000000000402',
   TKT_JIRA_INPROG_ID: '00000000-0000-0000-0000-000000000403',
 
+  // Invitation tokens
+  INVITE_TOKEN_PENDING: 'e2e-invite-token-0001',
+
   // Emails (for assertions)
   DEV_EMAIL: 'dev@nyx.io',
   ALICE_EMAIL: 'alice@nyx.io',

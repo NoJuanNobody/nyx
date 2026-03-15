@@ -397,6 +397,7 @@ async function seed() {
     email: 'pending@nyx.io',
     role: 'developer',
     invitedById: ID.DEV_USER,
+    token: 'e2e-invite-token-0001',
     status: 'pending',
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
   }).onConflictDoNothing();
