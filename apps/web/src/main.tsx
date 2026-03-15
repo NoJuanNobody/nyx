@@ -6,7 +6,8 @@ import { App } from './App';
 import './index.css';
 
 const queryClient = new QueryClient();
-const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
+const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined
+  || 'pk_test_d2VsY29tZS1qYXZlbGluLTg5LmNsZXJrLmFjY291bnRzLmRldiQ';
 
 function Providers({ children }: { children: React.ReactNode }) {
   if (clerkKey) {
