@@ -430,3 +430,80 @@ export const subscriptions = pgTable('subscriptions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ── Community Marketplace ─────────────────────────────
+
+export const listingTypeEnum = pgEnum('listing_type', ['template', 'workflow', 'prompt']);
+export const listingPriceTypeEnum = pgEnum('listing_price_type', ['free', 'paid']);
+export const featureRequestStatusEnum = pgEnum('feature_request_status', ['submitted', 'under_review', 'planned', 'in_progress', 'shipped', 'declined']);
+
+export const marketplaceListings = pgTable('marketplace_listings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  type: listingTypeEnum('type').notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  content: text('content').notNull(),
+  priceType: listingPriceTypeEnum('price_type').notNull().default('free'),
+  priceAmountCents: integer('price_amount_cents'),
+  category: text('category'),
+  tags: jsonb('tags').notNull().default([]),
+  stage: documentStageEnum('stage'),
+  downloadCount: integer('download_count').notNull().default(0),
+  authorId: uuid('author_id').notNull().references(() => users.id),
+  teamId: uuid('team_id').references(() => teams.id),
+  published: boolean('published').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const marketplaceReviews = pgTable('marketplace_reviews', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  listingId: uuid('listing_id').notNull().references(() => marketplaceListings.id),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  rating: integer('rating').notNull(),
+  comment: text('comment'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const featureRequests = pgTable('feature_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  status: featureRequestStatusEnum('status').notNull().default('submitted'),
+  authorId: uuid('author_id').notNull().references(() => users.id),
+  upvoteCount: integer('upvote_count').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const featureRequestUpvotes = pgTable('feature_request_upvotes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  featureRequestId: uuid('feature_request_id').notNull().references(() => featureRequests.id),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('fr_upvote_user_request_idx').on(t.featureRequestId, t.userId),
+]);
+
+export const featureRequestComments = pgTable('feature_request_comments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  featureRequestId: uuid('feature_request_id').notNull().references(() => featureRequests.id),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const projectShowcases = pgTable('project_showcases', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  techStack: jsonb('tech_stack').notNull().default([]),
+  teamSize: integer('team_size'),
+  nuxFeatures: jsonb('nyx_features').notNull().default([]),
+  url: text('url'),
+  imageUrl: text('image_url'),
+  authorId: uuid('author_id').notNull().references(() => users.id),
+  published: boolean('published').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
