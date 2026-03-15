@@ -15,7 +15,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   PORT: z.coerce.number().default(3001),
   HOST: z.string().default('0.0.0.0'),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test', 'staging']).default('development'),
   DEV_AUTH_BYPASS: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   GITHUB_CLIENT_ID: z.string().optional(),
