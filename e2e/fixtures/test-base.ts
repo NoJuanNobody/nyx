@@ -310,6 +310,49 @@ const SEEDED_AUDIT_EVENTS = [
   },
 ];
 
+const SEEDED_IMPACT_GRAPH = {
+  documentId: SEED.DOC_API_SPEC_ID,
+  nodes: [
+    {
+      id: '00000000-0000-0000-0000-000000000500',
+      eventType: 'doc_edit',
+      actorName: 'Dev User',
+      intent: 'Edited fields: content',
+      driftFlag: false,
+      commitSha: null,
+      ticketId: null,
+      metadata: { fields: ['content'] },
+      createdAt: '2025-01-01T00:00:00Z',
+    },
+    {
+      id: '00000000-0000-0000-0000-000000000501',
+      eventType: 'ticket_created',
+      actorName: 'Dev User',
+      intent: 'Created ticket: Implement auth endpoints',
+      driftFlag: true,
+      commitSha: null,
+      ticketId: SEED.TKT_GH_OPEN_ID,
+      metadata: { provider: 'github', title: 'Implement auth endpoints' },
+      createdAt: '2025-01-01T01:00:00Z',
+    },
+    {
+      id: '00000000-0000-0000-0000-000000000502',
+      eventType: 'code_commit',
+      actorName: 'Dev User',
+      intent: 'fix: implement auth',
+      driftFlag: false,
+      commitSha: 'abc1234',
+      ticketId: null,
+      metadata: { message: 'fix: implement auth' },
+      createdAt: '2025-01-01T02:00:00Z',
+    },
+  ],
+  edges: [
+    { source: '00000000-0000-0000-0000-000000000500', target: '00000000-0000-0000-0000-000000000501' },
+    { source: '00000000-0000-0000-0000-000000000501', target: '00000000-0000-0000-0000-000000000502' },
+  ],
+};
+
 // ── Helper to install all API mocks on a page ───────────────────────
 
 let _newDocCounter = 0;
@@ -473,6 +516,15 @@ async function setupApiMocks(page: Page) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ documentId: SEED.DOC_API_SPEC_ID, events: SEEDED_AUDIT_EVENTS }),
+      });
+    }
+
+    // --- Sub-resource routes: /api/documents/:id/impact-graph ---
+    if (/\/documents\/[^/]+\/impact-graph/.test(pathname)) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(SEEDED_IMPACT_GRAPH),
       });
     }
 

@@ -19,6 +19,7 @@ vi.mock('../routes/branches.js', () => ({ branchRoutes: async () => {} }));
 vi.mock('../routes/suggestions.js', () => ({ suggestionRoutes: async () => {} }));
 vi.mock('../routes/change-proposals.js', () => ({ changeProposalRoutes: async () => {} }));
 vi.mock('../routes/audit.js', () => ({ auditRoutes: async () => {} }));
+vi.mock('../routes/impact-graph.js', () => ({ impactGraphRoutes: async () => {} }));
 vi.mock('../routes/agent.js', () => ({ agentRoutes: async () => {} }));
 vi.mock('../routes/api-keys.js', () => ({ apiKeyRoutes: async () => {} }));
 vi.mock('../routes/users.js', () => ({ userRoutes: async () => {} }));

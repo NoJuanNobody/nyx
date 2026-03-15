@@ -31,6 +31,7 @@ import { sprintRoutes } from './routes/sprint.js';
 import { contextRoutes } from './routes/context.js';
 import { audioRoutes } from './routes/audio.js';
 import { slackRoutes } from './routes/slack.js';
+import { impactGraphRoutes } from './routes/impact-graph.js';
 import { invitationRoutes } from './routes/invitations.js';
 import { authMiddleware } from './middleware/auth.js';
 
@@ -74,6 +75,7 @@ export function buildApp() {
   app.register(contextRoutes, { prefix: '/api/intake' });
   app.register(audioRoutes, { prefix: '/api/intake' });
   app.register(slackRoutes, { prefix: '/api/slack' });
+  app.register(impactGraphRoutes, { prefix: '/api' });
   app.register(invitationRoutes, { prefix: '/api/invitations' });
 
   return app;

@@ -6,8 +6,9 @@ import { ChangeProposals } from './ChangeProposals';
 import { AuditTrail } from './AuditTrail';
 import { UnifiedAIPanel } from './UnifiedAIPanel';
 import { JSXPreviewPanel } from './JSXPreviewPanel';
+import { ImpactMap } from './ImpactMap';
 
-export type DrawerPanel = 'history' | 'timeline' | 'proposals' | 'audit' | 'ai' | 'jsx-preview';
+export type DrawerPanel = 'history' | 'timeline' | 'proposals' | 'audit' | 'ai' | 'jsx-preview' | 'impact';
 
 interface AIChatProps {
   content: string;
@@ -86,6 +87,15 @@ const PANELS: { key: DrawerPanel; label: string; icon: JSX.Element }[] = [
       </svg>
     ),
   },
+  {
+    key: 'impact',
+    label: 'Impact',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+      </svg>
+    ),
+  },
 ];
 
 export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVersion, activeVersionId, onSwitchToHistory, aiChat, jsxPreviewContext, onMockupReady }: DocDrawerProps) {
@@ -153,6 +163,7 @@ export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVe
               />
             )}
             {activePanel === 'jsx-preview' && <JSXPreviewPanel specContext={jsxPreviewContext} onMockupReady={onMockupReady} />}
+            {activePanel === 'impact' && <ImpactMap documentId={documentId} />}
           </div>
         </div>
       )}
