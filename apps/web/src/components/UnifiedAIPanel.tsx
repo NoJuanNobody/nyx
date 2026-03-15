@@ -23,12 +23,12 @@ type UnifiedMessageBase =
 
 type UnifiedMessage = UnifiedMessageBase & { id: number };
 
-const statusColors: Record<SessionStatus, string> = {
-  idle: 'bg-slate-100 text-slate-600',
-  running: 'bg-blue-100 text-blue-700',
-  completed: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
-  cancelled: 'bg-amber-100 text-amber-700',
+const statusText: Record<SessionStatus, string> = {
+  idle: '',
+  running: 'On it...',
+  completed: 'Done',
+  failed: 'Something went wrong',
+  cancelled: 'Stopped',
 };
 
 export interface UnifiedAIPanelProps {
@@ -354,7 +354,7 @@ export function UnifiedAIPanel({
               <AIIcon className="h-5 w-5 text-white" />
             </div>
             <p className="text-center text-xs font-medium text-slate-500">
-              {isNewDocument && !content.trim() ? 'Describe the document you want to create' : 'Ask AI to edit this document'}
+              {isNewDocument && !content.trim() ? 'Describe the document you want to create' : 'Ask Nyx to help with this document'}
             </p>
             <div className="mt-3 w-full space-y-1.5">
               {suggestions.map((s) => (
@@ -397,7 +397,7 @@ export function UnifiedAIPanel({
                       <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600">
                         <AIIcon className="h-2.5 w-2.5 text-white" />
                       </span>
-                      <span className="text-[10px] font-semibold text-slate-400">AI</span>
+                      <span className="text-[10px] font-semibold text-slate-400">Nyx</span>
                       <span className="text-[9px] text-slate-300">
                         {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
@@ -549,6 +549,27 @@ export function UnifiedAIPanel({
               </div>
             )}
 
+            {/* Post-session follow-up suggestion chips */}
+            {status === 'completed' && selectedWorkflow !== QUICK_EDIT_VALUE && (() => {
+              const wf = workflows?.find((w) => w.id === selectedWorkflow);
+              const chips = wf?.postSessionSuggestions;
+              if (!chips?.length) return null;
+              return (
+                <div className="mt-2 flex flex-wrap gap-1.5 px-1">
+                  {chips.map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => setPrompt(chip)}
+                      className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] text-slate-500 transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
+
             <div ref={chatEndRef} />
           </div>
         )}
@@ -580,12 +601,19 @@ export function UnifiedAIPanel({
       {status !== 'idle' && (
         <div className="flex-shrink-0 border-t border-slate-200 px-3 py-1.5">
           <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[status]}`}>
-              {status === 'running' && <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />}
-              {status}
+            {status === 'running' && (
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
+            )}
+            <span className={`text-[10px] ${
+              status === 'running' ? 'text-blue-600' :
+              status === 'completed' ? 'text-slate-400' :
+              status === 'failed' ? 'text-red-500' :
+              'text-amber-600'
+            }`}>
+              {statusText[status]}
             </span>
-            {tokenUsage && (
-              <span className="text-[10px] text-slate-400">{tokenUsage.inputTokens + tokenUsage.outputTokens} tokens</span>
+            {status === 'completed' && tokenUsage && (
+              <span className="text-[10px] text-slate-400">— {tokenUsage.inputTokens + tokenUsage.outputTokens} tokens used</span>
             )}
           </div>
         </div>
@@ -611,7 +639,7 @@ export function UnifiedAIPanel({
                   ? 'Approve or reject changes first...'
                   : isNewDocument && !content.trim()
                     ? 'Describe your document...'
-                    : 'Ask AI...'
+                    : 'Ask Nyx...'
               }
               rows={1}
               className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 pr-8 text-xs leading-relaxed text-slate-700 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-300 focus:ring-1 focus:ring-blue-100 disabled:bg-slate-50 disabled:opacity-60"

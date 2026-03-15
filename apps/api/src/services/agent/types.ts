@@ -46,6 +46,7 @@ export interface WorkflowDefinition {
   systemPrompt: string;
   tools: string[];
   defaultPrompt?: string;
+  postSessionSuggestions?: string[];
 }
 
 // ── Tool definition (Anthropic SDK shape) ───────────────

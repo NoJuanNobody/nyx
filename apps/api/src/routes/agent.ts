@@ -18,6 +18,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       name: w.name,
       description: w.description,
       defaultPrompt: w.defaultPrompt,
+      postSessionSuggestions: w.postSessionSuggestions,
     }));
   });
 
