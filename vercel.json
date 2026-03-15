@@ -4,7 +4,7 @@
   "outputDirectory": "apps/web/dist",
   "installCommand": "pnpm install",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://api-staging-99ae.up.railway.app/api/$1" },
+    { "source": "/api/(.*)", "destination": "https://nyx-staging.up.railway.app/api/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
