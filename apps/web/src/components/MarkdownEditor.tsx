@@ -1,9 +1,12 @@
-import { useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useRef, useCallback, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
+import type { DocumentTemplate } from '@nyx/shared';
+import { SlashCommandPalette } from './SlashCommandPalette';
 
 interface MarkdownEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  teamId?: string;
 }
 
 /**
@@ -12,12 +15,134 @@ interface MarkdownEditorProps {
  * Both scroll in sync so the colors align with the typed text.
  */
 export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProps>(
-  function MarkdownEditor({ value, onChange, placeholder }, ref) {
+  function MarkdownEditor({ value, onChange, placeholder, teamId }, ref) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
 
   // Expose the internal textarea ref to the parent via forwardRef
   useImperativeHandle(ref, () => textareaRef.current!, []);
+
+  // ── Slash command palette state ──────────────────────────────
+  const [showPalette, setShowPalette] = useState(false);
+  const [palettePosition, setPalettePosition] = useState({ top: 0, left: 0 });
+  const [slashFilter, setSlashFilter] = useState('');
+  // Track the line where "/" was typed so we can replace it on selection
+  const slashLineStart = useRef<number>(-1);
+  const slashLineEnd = useRef<number>(-1);
+
+  /**
+   * Determine whether the cursor is on a line that starts with "/" and
+   * compute the palette position + filter text.
+   */
+  const checkForSlashCommand = useCallback(
+    (textarea: HTMLTextAreaElement) => {
+      const { selectionStart, value: text } = textarea;
+
+      // Find the start and end of the current line
+      let lineStart = text.lastIndexOf('\n', selectionStart - 1) + 1;
+      let lineEnd = text.indexOf('\n', selectionStart);
+      if (lineEnd === -1) lineEnd = text.length;
+
+      const currentLine = text.slice(lineStart, lineEnd);
+
+      // Check if the line starts with "/"
+      if (currentLine.startsWith('/')) {
+        const filterText = currentLine.slice(1); // everything after "/"
+
+        slashLineStart.current = lineStart;
+        slashLineEnd.current = lineEnd;
+        setSlashFilter(filterText);
+
+        // Calculate position for the palette
+        // Use textarea's bounding rect + estimated line position
+        const rect = textarea.getBoundingClientRect();
+        const style = window.getComputedStyle(textarea);
+        const lineHeight = parseFloat(style.lineHeight) || 22;
+        const paddingTop = parseFloat(style.paddingTop) || 16;
+        const paddingLeft = parseFloat(style.paddingLeft) || 16;
+
+        // Count lines before current line to determine vertical offset
+        const textBeforeCursor = text.slice(0, lineStart);
+        const linesAbove = textBeforeCursor.split('\n').length - 1;
+
+        // Account for scrollTop
+        const scrollTop = textarea.scrollTop;
+        const top = paddingTop + (linesAbove + 1) * lineHeight - scrollTop;
+        const left = paddingLeft;
+
+        // Clamp position to stay within the container
+        const containerRect = textarea.parentElement?.getBoundingClientRect();
+        const maxTop = containerRect
+          ? containerRect.height - 270 // ~max palette height
+          : rect.height - 270;
+
+        setPalettePosition({
+          top: Math.min(Math.max(top, 0), Math.max(maxTop, 0)),
+          left: Math.max(left, 0),
+        });
+
+        setShowPalette(true);
+      } else {
+        setShowPalette(false);
+      }
+    },
+    [],
+  );
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newValue = e.target.value;
+      onChange(newValue);
+
+      // Defer the slash check to after React has updated the textarea value
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          checkForSlashCommand(textareaRef.current);
+        }
+      });
+    },
+    [onChange, checkForSlashCommand],
+  );
+
+  // Also check on cursor movement (click, arrow keys)
+  const handleSelect = useCallback(() => {
+    if (textareaRef.current) {
+      checkForSlashCommand(textareaRef.current);
+    }
+  }, [checkForSlashCommand]);
+
+  const handleTemplateSelect = useCallback(
+    (template: DocumentTemplate) => {
+      const start = slashLineStart.current;
+      const end = slashLineEnd.current;
+
+      if (start === -1 || end === -1) return;
+
+      // Replace the slash line with the template content
+      const before = value.slice(0, start);
+      const after = value.slice(end);
+      const newValue = before + template.content + after;
+
+      onChange(newValue);
+      setShowPalette(false);
+
+      // Set cursor to end of inserted content
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          const cursorPos = start + template.content.length;
+          textareaRef.current.selectionStart = cursorPos;
+          textareaRef.current.selectionEnd = cursorPos;
+          textareaRef.current.focus();
+        }
+      });
+    },
+    [value, onChange],
+  );
+
+  const handlePaletteClose = useCallback(() => {
+    setShowPalette(false);
+    textareaRef.current?.focus();
+  }, []);
 
   // Sync scroll positions
   const handleScroll = useCallback(() => {
@@ -52,13 +177,26 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
       <textarea
         ref={textareaRef}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={handleChange}
         onScroll={handleScroll}
+        onSelect={handleSelect}
+        onKeyUp={handleSelect}
         placeholder={placeholder}
         spellCheck={false}
         className="absolute inset-0 w-full h-full resize-none bg-transparent p-4 font-mono text-sm leading-relaxed text-transparent outline-none placeholder:text-slate-400 selection:bg-blue-200/60 dark:selection:bg-blue-500/30"
         style={{ caretColor: 'var(--color-slate-800, #1e293b)', WebkitTextFillColor: 'transparent' }}
       />
+
+      {/* Slash command palette */}
+      {showPalette && (
+        <SlashCommandPalette
+          position={palettePosition}
+          filter={slashFilter}
+          teamId={teamId}
+          onSelect={handleTemplateSelect}
+          onClose={handlePaletteClose}
+        />
+      )}
     </div>
   );
 });
