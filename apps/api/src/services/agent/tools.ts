@@ -96,7 +96,7 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
 
   create_ticket: {
     name: 'create_ticket',
-    description: 'Create a ticket (GitHub issue or Jira) linked to a document. Call this for each discrete actionable item found during a review or impact analysis. Do not summarize tickets in text — call this tool instead.',
+    description: 'Create a ticket (GitHub issue or Jira) linked to a document. Each ticket MUST include acceptance criteria, affected file paths, and a scope estimate [S/M/L] in the title. Call this for each discrete actionable item found during review or analysis. Do not summarize tickets in text — call this tool instead.',
     input_schema: {
       type: 'object' as const,
       properties: {

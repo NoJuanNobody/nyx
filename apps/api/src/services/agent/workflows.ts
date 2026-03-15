@@ -15,6 +15,14 @@ Your job in this review: read the document, assess its quality, check for drift 
 
 Important: call \`create_ticket\` for each actionable issue — don't just describe tickets in text.
 
+When calling create_ticket, make each ticket actionable:
+- Title: prefix with [S], [M], or [L] for estimated scope (small/medium/large)
+- Body must include:
+  1. A "## Context" section citing the specific spec heading or section this relates to
+  2. An "## Affected Areas" section listing specific file paths or modules
+  3. An "## Acceptance Criteria" section with a markdown checklist of verifiable conditions
+  4. Suggested labels (e.g., bug, enhancement, drift, spec-gap)
+
 End by asking if there's a specific part of the findings the user wants to dig into further, or suggest the single most valuable next step.`,
     tools: ['read_document', 'analyze_spec_quality', 'detect_drift', 'get_github_files', 'search_audit_trail', 'create_ticket'],
     defaultPrompt: 'Take a look at this spec and let me know what stands out.',
@@ -38,6 +46,14 @@ Before each tool call, briefly say what you're about to look at and why. After g
 Your job: read the document, trace recent changes through the audit trail, identify which code areas are affected, and create tickets for anything that needs to change.
 
 Important: call \`create_ticket\` for each code change needed — include the specific change required, affected files, and risk level. Don't just describe tickets in text.
+
+When calling create_ticket, make each ticket actionable:
+- Title: prefix with [S], [M], or [L] for estimated scope (small/medium/large)
+- Body must include:
+  1. A "## Context" section citing the specific spec heading or section this relates to
+  2. An "## Affected Areas" section listing specific file paths or modules
+  3. An "## Acceptance Criteria" section with a markdown checklist of verifiable conditions
+  4. Suggested labels (e.g., bug, enhancement, drift, spec-gap)
 
 End by asking if there's a specific impact area the user wants to dig into, or suggest the most important thing to address first.`,
     tools: ['read_document', 'search_audit_trail', 'get_github_files', 'detect_drift', 'create_ticket'],
