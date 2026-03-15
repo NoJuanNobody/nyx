@@ -35,6 +35,9 @@ import { impactGraphRoutes } from './routes/impact-graph.js';
 import { invitationRoutes } from './routes/invitations.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { subscriptionRoutes } from './routes/subscriptions.js';
+import { marketplaceRoutes } from './routes/marketplace.js';
+import { featureRequestRoutes } from './routes/feature-requests.js';
+import { projectShowcaseRoutes } from './routes/project-showcases.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -81,6 +84,9 @@ export function buildApp() {
   app.register(invitationRoutes, { prefix: '/api/invitations' });
   app.register(notificationRoutes, { prefix: '/api/notifications' });
   app.register(subscriptionRoutes, { prefix: '/api/subscriptions' });
+  app.register(marketplaceRoutes, { prefix: '/api/marketplace' });
+  app.register(featureRequestRoutes, { prefix: '/api/feature-requests' });
+  app.register(projectShowcaseRoutes, { prefix: '/api/project-showcases' });
 
   return app;
 }
