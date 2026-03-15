@@ -41,7 +41,7 @@ function ThemeToggle() {
   );
 }
 
-function UserSection() {
+function UserSection({ collapsed }: { collapsed: boolean }) {
   const { user, teams, currentTeamId, setCurrentTeamId, clear } = useAuthStore();
   const navigate = useNavigate();
 
@@ -68,6 +68,33 @@ function UserSection() {
     .join('')
     .toUpperCase()
     .slice(0, 2);
+
+  if (collapsed) {
+    return (
+      <div className="border-t border-slate-200 px-2 py-3 flex flex-col items-center gap-2">
+        {user.imageUrl ? (
+          <img src={user.imageUrl} alt="" className="h-7 w-7 rounded-full" title={user.name} />
+        ) : (
+          <div
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-[10px] font-bold text-white"
+            title={user.name}
+          >
+            {initials}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={handleLogout}
+          title="Sign out"
+          className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="border-t border-slate-200 px-3 py-3 space-y-2">
@@ -114,9 +141,64 @@ function UserSection() {
   );
 }
 
+const primaryNavItems = [
+  {
+    to: '/lifecycle',
+    label: 'Lifecycle',
+    icon: (
+      <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/intake',
+    label: 'Intake',
+    icon: (
+      <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/sprint',
+    label: 'Sprint',
+    icon: (
+      <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/board',
+    label: 'Board',
+    icon: (
+      <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125Z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/repositories',
+    label: 'Repos',
+    icon: (
+      <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+      </svg>
+    ),
+  },
+];
+
 export function Sidebar() {
-  const { sidebarOpen, setSidebarOpen } = useUIStore();
+  const { sidebarOpen, setSidebarOpen, sidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+
+  const navLinkClass = (isActive: boolean, collapsed: boolean) =>
+    `flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors ${collapsed ? 'justify-center px-2' : ''} ${
+      isActive
+        ? 'bg-blue-50 text-blue-700'
+        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+    }`;
 
   return (
     <>
@@ -130,128 +212,87 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-200 lg:static lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 bg-white transition-all duration-200 lg:static lg:translate-x-0 ${
+          sidebarCollapsed ? 'w-16' : 'w-64'
+        } ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        {/* Logo — links to dashboard */}
-        <NavLink
-          to="/dashboard"
-          onClick={() => setSidebarOpen(false)}
-          className="flex h-14 items-center gap-2 border-b border-slate-200 px-5 hover:bg-slate-50 transition-colors"
-        >
-          <svg
-            className="h-6 w-6 text-blue-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
+        {/* Logo + collapse toggle */}
+        <div className="flex h-14 items-center border-b border-slate-200">
+          <NavLink
+            to="/dashboard"
+            onClick={() => setSidebarOpen(false)}
+            className={`flex flex-1 items-center gap-2 h-full hover:bg-slate-50 transition-colors ${sidebarCollapsed ? 'justify-center px-2' : 'px-5'}`}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
-            />
-          </svg>
-          <span className="text-base font-semibold text-slate-900">Nyx</span>
-        </NavLink>
-
-        {/* File tree — full height */}
-        <div className="flex-1 overflow-hidden">
-          <FileTree />
+            <svg
+              className="h-6 w-6 shrink-0 text-blue-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+              />
+            </svg>
+            {!sidebarCollapsed && <span className="text-base font-semibold text-slate-900">Nyx</span>}
+          </NavLink>
+          {/* Collapse toggle — desktop only */}
+          <button
+            type="button"
+            onClick={toggleSidebarCollapsed}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="hidden lg:flex h-full items-center px-2 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
+          >
+            <svg
+              className={`h-4 w-4 transition-transform duration-200 ${sidebarCollapsed ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </button>
         </div>
 
-        {/* User section */}
-        <UserSection />
+        {/* File tree — full height (hidden when collapsed) */}
+        {!sidebarCollapsed && (
+          <div className="flex-1 overflow-hidden">
+            <FileTree />
+          </div>
+        )}
+        {sidebarCollapsed && <div className="flex-1" />}
 
-        {/* Bottom: Board + Settings */}
+        {/* User section */}
+        <UserSection collapsed={sidebarCollapsed} />
+
+        {/* Primary nav */}
         <div className="border-t border-slate-200">
-          <NavLink
-            to="/lifecycle"
-            onClick={() => setSidebarOpen(false)}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-5 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-              }`
-            }
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-            </svg>
-            Lifecycle
-          </NavLink>
-          <NavLink
-            to="/intake"
-            onClick={() => setSidebarOpen(false)}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-5 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-              }`
-            }
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
-            </svg>
-            Intake
-          </NavLink>
-          <NavLink
-            to="/sprint"
-            onClick={() => setSidebarOpen(false)}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-5 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-              }`
-            }
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-            </svg>
-            Sprint
-          </NavLink>
-          <NavLink
-            to="/board"
-            onClick={() => setSidebarOpen(false)}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-5 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-              }`
-            }
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125Z" />
-            </svg>
-            Board
-          </NavLink>
-          <NavLink
-            to="/repositories"
-            onClick={() => setSidebarOpen(false)}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-5 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-              }`
-            }
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
-            </svg>
-            Repos
-          </NavLink>
-          <div className="flex items-center">
+          {primaryNavItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={() => setSidebarOpen(false)}
+              title={sidebarCollapsed ? item.label : undefined}
+              className={({ isActive }) => navLinkClass(isActive, sidebarCollapsed)}
+            >
+              {item.icon}
+              {!sidebarCollapsed && item.label}
+            </NavLink>
+          ))}
+        </div>
+
+        {/* Utility nav — Settings + Feedback */}
+        <div className="border-t border-slate-200 pt-1 pb-1">
+          <div className={`flex items-center ${sidebarCollapsed ? 'flex-col gap-1 py-1' : ''}`}>
             <NavLink
               to="/settings"
               onClick={() => setSidebarOpen(false)}
+              title={sidebarCollapsed ? 'Settings' : undefined}
               className={({ isActive }) =>
-                `flex flex-1 items-center gap-3 px-5 py-2.5 text-sm font-medium transition-colors ${
+                `flex flex-1 items-center gap-3 px-4 py-2 text-sm font-medium transition-colors ${sidebarCollapsed ? 'justify-center px-2 flex-none w-full' : ''} ${
                   isActive
                     ? 'bg-blue-50 text-blue-700'
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
@@ -259,7 +300,7 @@ export function Sidebar() {
               }
             >
               <svg
-                className="h-4 w-4"
+                className="h-4 w-4 shrink-0"
                 fill="none"
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}
@@ -276,22 +317,25 @@ export function Sidebar() {
                   d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
                 />
               </svg>
-              Settings
+              {!sidebarCollapsed && 'Settings'}
             </NavLink>
-            <div className="pr-3">
-              <ThemeToggle />
-            </div>
+            {!sidebarCollapsed && (
+              <div className="pr-3">
+                <ThemeToggle />
+              </div>
+            )}
           </div>
           <button
             type="button"
             onClick={() => setFeedbackOpen(true)}
-            className="flex w-full items-center gap-3 px-5 py-2.5 text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+            title={sidebarCollapsed ? 'Send Feedback' : undefined}
+            className={`flex w-full items-center gap-3 px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors ${sidebarCollapsed ? 'justify-center px-2' : ''}`}
             data-testid="feedback-button"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
             </svg>
-            Send Feedback
+            {!sidebarCollapsed && 'Send Feedback'}
           </button>
         </div>
       </aside>

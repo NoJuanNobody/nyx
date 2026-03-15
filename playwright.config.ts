@@ -25,6 +25,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
     env: {
+      ...process.env,
       CLERK_SECRET_KEY: '',
       CLERK_PUBLISHABLE_KEY: '',
       VITE_CLERK_PUBLISHABLE_KEY: '',
