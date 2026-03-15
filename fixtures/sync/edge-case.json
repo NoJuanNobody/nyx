@@ -1,0 +1,157 @@
+[
+  {
+    "scenario": "empty_document_synced_to_non_empty_repo",
+    "description": "An empty local document is linked to a repo file that contains content. This tests how the sync engine handles bootstrapping content from the remote.",
+    "document": {
+      "id": "doc_edge-0001-empty-local",
+      "title": "Untitled Document",
+      "content": "",
+      "version": 1,
+      "createdAt": "2026-03-10T08:00:00.000Z",
+      "updatedAt": "2026-03-10T08:00:00.000Z",
+      "lastSyncedAt": null,
+      "createdBy": "user_01HQXYZ",
+      "format": "markdown"
+    },
+    "linkedRepo": {
+      "owner": "nyx-platform",
+      "repo": "nyx",
+      "branch": "main",
+      "sha": "c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0",
+      "filePath": "docs/getting-started.md",
+      "provider": "github",
+      "remoteContent": "# Getting Started\n\nWelcome to Nyx. Follow the steps below to set up your workspace.\n\n## Installation\n\n```bash\npnpm install\npnpm dev\n```\n"
+    },
+    "syncStatus": "remote_ahead",
+    "conflicts": []
+  },
+  {
+    "scenario": "special_characters_in_content",
+    "description": "Document content includes Unicode characters, emojis, RTL text, and special markdown edge cases. Tests encoding resilience.",
+    "document": {
+      "id": "doc_edge-0002-unicode",
+      "title": "Internationalization Notes \u2014 i18n",
+      "content": "# Internationalization \ud83c\udf10\n\n## Supported Languages\n\n- English (en)\n- Espa\u00f1ol (es)\n- \u65e5\u672c\u8a9e (ja)\n- \u0627\u0644\u0639\u0631\u0628\u064a\u0629 (ar) \u2014 RTL support\n- \u4e2d\u6587 (zh-Hans)\n\n## Special Characters Test\n\n- Curly quotes: \u201cHello\u201d \u2018world\u2019\n- Em dash: \u2014\n- Ellipsis: \u2026\n- Arrows: \u2190 \u2191 \u2192 \u2193\n- Math: \u2200x \u2208 S, \u2203y : x \u2260 y\n- Zero-width joiner: \ud83d\udc68\u200d\ud83d\udcbb (technologist)\n- Null byte test: should not appear \\u0000 in output\n- Backslash: C:\\\\Users\\\\docs\n",
+      "version": 2,
+      "createdAt": "2026-02-15T10:00:00.000Z",
+      "updatedAt": "2026-03-05T16:30:00.000Z",
+      "lastSyncedAt": "2026-03-05T16:30:00.000Z",
+      "createdBy": "user_02INTL",
+      "format": "markdown"
+    },
+    "linkedRepo": {
+      "owner": "nyx-platform",
+      "repo": "nyx",
+      "branch": "main",
+      "sha": "d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1",
+      "filePath": "docs/i18n-notes.md",
+      "provider": "github"
+    },
+    "syncStatus": "in_sync",
+    "conflicts": []
+  },
+  {
+    "scenario": "very_large_document",
+    "description": "A document whose content field exceeds 10,000 characters. Used to test performance and memory handling during sync diffing. The content field below is a placeholder; in real tests, generate a string of 10,000+ characters programmatically.",
+    "document": {
+      "id": "doc_edge-0003-large",
+      "title": "Platform Architecture Reference",
+      "content": "[LARGE_CONTENT_PLACEHOLDER: This field represents a document containing over 10,000 characters. In test setup, replace this value with a programmatically generated string. Suggested approach: repeat a realistic paragraph block 50+ times, or load from a separate fixture file. Target size: 12,000 characters. The content should simulate a real architecture document with headings, code blocks, tables, and cross-references. Example structure repeated to fill space: '## Section N\\n\\nThis section describes component N of the Nyx platform architecture. The component handles request routing, validation, and transformation before forwarding to downstream services. It exposes a REST API on port 3000 and communicates with the database via Drizzle ORM connection pooling.\\n\\n```js\\nconst server = fastify();\\nserver.register(routes);\\nawait server.listen({ port: 3000 });\\n```\\n\\n| Property | Value |\\n|----------|-------|\\n| Latency p99 | 45ms |\\n| Throughput | 2000 rps |\\n| Availability | 99.95% |\\n\\n' -- repeat this block until total content exceeds 10,000 characters.]",
+      "version": 47,
+      "createdAt": "2026-01-05T09:00:00.000Z",
+      "updatedAt": "2026-03-12T14:20:00.000Z",
+      "lastSyncedAt": "2026-03-12T14:00:00.000Z",
+      "createdBy": "user_03ARCH",
+      "format": "markdown",
+      "contentSizeBytes": 12847
+    },
+    "linkedRepo": {
+      "owner": "nyx-platform",
+      "repo": "nyx",
+      "branch": "main",
+      "sha": "e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2",
+      "filePath": "docs/architecture.md",
+      "provider": "github"
+    },
+    "syncStatus": "local_ahead",
+    "conflicts": []
+  },
+  {
+    "scenario": "deleted_archived_repo",
+    "description": "Document is linked to a GitHub repository that has been deleted or archived. The sync engine should detect this and surface an appropriate status rather than crashing.",
+    "document": {
+      "id": "doc_edge-0004-deleted-repo",
+      "title": "Legacy API Documentation",
+      "content": "# Legacy API\n\nThis API was deprecated in v2.0 and the repository has been archived.\n\n## Endpoints\n\n- `GET /api/v1/users` - List users\n- `POST /api/v1/users` - Create user\n",
+      "version": 8,
+      "createdAt": "2025-06-01T12:00:00.000Z",
+      "updatedAt": "2025-11-15T10:00:00.000Z",
+      "lastSyncedAt": "2025-11-15T10:00:00.000Z",
+      "createdBy": "user_04LEGACY",
+      "format": "markdown"
+    },
+    "linkedRepo": {
+      "owner": "nyx-platform",
+      "repo": "nyx-legacy-api",
+      "branch": "main",
+      "sha": "f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3",
+      "filePath": "docs/api.md",
+      "provider": "github",
+      "repoStatus": "archived",
+      "archivedAt": "2025-12-01T00:00:00.000Z"
+    },
+    "syncStatus": "error",
+    "syncError": {
+      "code": "REPO_ARCHIVED",
+      "message": "The linked repository nyx-platform/nyx-legacy-api has been archived and is read-only.",
+      "detectedAt": "2026-01-05T08:00:00.000Z"
+    },
+    "conflicts": []
+  },
+  {
+    "scenario": "concurrent_edits_multiple_users",
+    "description": "Two users edit the same document simultaneously. Tests conflict detection when the local document has unsaved changes from multiple collaborators before sync runs.",
+    "document": {
+      "id": "doc_edge-0005-concurrent",
+      "title": "API Rate Limiting Policy",
+      "content": "# API Rate Limiting Policy\n\n## Limits\n\n- Free tier: 100 requests/minute\n- Pro tier: 1000 requests/minute\n- Enterprise: custom\n\n## Headers\n\n- `X-RateLimit-Limit`\n- `X-RateLimit-Remaining`\n- `X-RateLimit-Reset`\n",
+      "version": 12,
+      "createdAt": "2026-02-01T10:00:00.000Z",
+      "updatedAt": "2026-03-14T15:30:00.000Z",
+      "lastSyncedAt": "2026-03-14T14:00:00.000Z",
+      "createdBy": "user_05PM",
+      "format": "markdown",
+      "pendingEdits": [
+        {
+          "userId": "user_05PM",
+          "editedAt": "2026-03-14T15:20:00.000Z",
+          "field": "content.sections.limits",
+          "newValue": "- Free tier: 60 requests/minute\n- Pro tier: 2000 requests/minute\n- Enterprise: custom"
+        },
+        {
+          "userId": "user_06DEV",
+          "editedAt": "2026-03-14T15:25:00.000Z",
+          "field": "content.sections.headers",
+          "newValue": "- `X-RateLimit-Limit`\n- `X-RateLimit-Remaining`\n- `X-RateLimit-Reset`\n- `Retry-After`"
+        }
+      ]
+    },
+    "linkedRepo": {
+      "owner": "nyx-platform",
+      "repo": "nyx",
+      "branch": "main",
+      "sha": "a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4",
+      "filePath": "docs/rate-limiting.md",
+      "provider": "github"
+    },
+    "syncStatus": "local_ahead",
+    "conflicts": [],
+    "warnings": [
+      {
+        "code": "CONCURRENT_EDITS",
+        "message": "2 users have pending unsaved edits on this document. Syncing now may overwrite in-progress changes.",
+        "activeEditors": ["user_05PM", "user_06DEV"]
+      }
+    ]
+  }
+]

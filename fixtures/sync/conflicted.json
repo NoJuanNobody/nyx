@@ -1,0 +1,47 @@
+{
+  "document": {
+    "id": "doc_a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "title": "Authentication Flow (Updated)",
+    "content": "# Authentication Flow (Updated)\n\n## Overview\n\nThis document describes the updated authentication flow for the Nyx platform, now using Clerk v5.\n\n## Steps\n\n1. User navigates to the login page.\n2. User enters credentials or selects an OAuth provider (Google, GitHub, or SAML SSO).\n3. Clerk handles session creation and token issuance.\n4. The frontend stores the session token and redirects to the dashboard.\n5. Multi-factor authentication is prompted if enabled for the organization.\n\n## Token Refresh\n\nSession tokens are short-lived (30 minutes). Clerk automatically refreshes tokens using a secure HTTP-only cookie.\n\n## Logout\n\nCalling `clerk.signOut()` invalidates the session on both client and server.\n",
+    "version": 5,
+    "createdAt": "2026-01-10T14:30:00.000Z",
+    "updatedAt": "2026-03-01T11:45:00.000Z",
+    "lastSyncedAt": "2026-02-20T09:15:00.000Z",
+    "createdBy": "user_01HQXYZ",
+    "format": "markdown"
+  },
+  "linkedRepo": {
+    "owner": "nyx-platform",
+    "repo": "nyx",
+    "branch": "main",
+    "sha": "b7e2d4f6a1c839502345678901abcdef23456789",
+    "filePath": "docs/authentication-flow.md",
+    "provider": "github",
+    "remoteContent": "# Authentication Flow\n\n## Overview\n\nThis document describes the authentication flow for the Nyx platform, migrated to Clerk v5 with PKCE support.\n\n## Steps\n\n1. User navigates to the login page.\n2. User enters credentials or selects an OAuth provider (Google or GitHub).\n3. Clerk handles session creation and token issuance via PKCE.\n4. The frontend stores the session token and redirects to the dashboard.\n\n## Token Refresh\n\nSession tokens are short-lived (45 minutes). Clerk automatically refreshes tokens using a secure HTTP-only cookie with SameSite=Strict.\n\n## Logout\n\nCalling `clerk.signOut()` invalidates the session on both client and server. The refresh token is also revoked server-side.\n"
+  },
+  "syncStatus": "conflicted",
+  "conflicts": [
+    {
+      "path": "document.title",
+      "localValue": "Authentication Flow (Updated)",
+      "remoteValue": "Authentication Flow",
+      "detectedAt": "2026-03-01T12:00:00.000Z",
+      "description": "Title was changed locally to include '(Updated)' suffix, while the remote title remained unchanged."
+    },
+    {
+      "path": "document.content.sections.steps",
+      "localValue": "1. User navigates to the login page.\n2. User enters credentials or selects an OAuth provider (Google, GitHub, or SAML SSO).\n3. Clerk handles session creation and token issuance.\n4. The frontend stores the session token and redirects to the dashboard.\n5. Multi-factor authentication is prompted if enabled for the organization.",
+      "remoteValue": "1. User navigates to the login page.\n2. User enters credentials or selects an OAuth provider (Google or GitHub).\n3. Clerk handles session creation and token issuance via PKCE.\n4. The frontend stores the session token and redirects to the dashboard.",
+      "detectedAt": "2026-03-01T12:00:00.000Z",
+      "description": "Steps section diverged: local added SAML SSO and MFA step; remote added PKCE to token issuance and kept fewer OAuth providers."
+    },
+    {
+      "path": "document.content.sections.token_refresh",
+      "localValue": "Session tokens are short-lived (30 minutes). Clerk automatically refreshes tokens using a secure HTTP-only cookie.",
+      "remoteValue": "Session tokens are short-lived (45 minutes). Clerk automatically refreshes tokens using a secure HTTP-only cookie with SameSite=Strict.",
+      "detectedAt": "2026-03-01T12:00:00.000Z",
+      "description": "Token lifetime changed to 30 min locally vs 45 min remotely; remote also added SameSite=Strict attribute."
+    }
+  ],
+  "lastCheckedAt": "2026-03-01T12:00:00.000Z"
+}
