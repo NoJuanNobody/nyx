@@ -1,8 +1,13 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { eq } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { documents } from '../db/schema.js';
 import { ticketService } from '../services/ticket.service.js';
 import { timelineService } from '../services/timeline.service.js';
 import { GitHubTokenExpiredError } from '../services/github.service.js';
 import { claudeInsightsService } from '../services/claude-insights.service.js';
+import { notificationService } from '../services/notification.service.js';
+import { NotificationEvents } from '../services/notification-events.js';
 
 export const ticketRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/tickets?teamId=X&status=&provider= — list tickets for a team (Board view)
@@ -67,6 +72,24 @@ export const ticketRoutes: FastifyPluginAsync = async (app) => {
           });
         } catch {}
       });
+
+      // Fire-and-forget: notify document owner
+      const [doc] = await db
+        .select({ teamId: documents.teamId, createdById: documents.createdById })
+        .from(documents)
+        .where(eq(documents.id, documentId));
+
+      if (doc) {
+        notificationService.create({
+          userId: doc.createdById,
+          teamId: doc.teamId,
+          eventType: NotificationEvents.TICKET_CREATED,
+          title: `Ticket created: ${title}`,
+          body: `A new ${provider} ticket was created from your document.`,
+          metadata: { ticketId: ticket.id, provider },
+          entityId: ticket.id,
+        }).catch(() => {});
+      }
 
       reply.code(201);
       return ticket;

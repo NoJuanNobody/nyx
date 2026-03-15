@@ -5,6 +5,8 @@ import { db } from '../db/index.js';
 import { teams, teamMembers, users, teamInvitations } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
 import { sendEmail, buildInviteEmail } from '../services/email.js';
+import { notificationService } from '../services/notification.service.js';
+import { NotificationEvents } from '../services/notification-events.js';
 
 export const teamRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/teams — list teams for the current user
@@ -122,6 +124,19 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
         .insert(teamMembers)
         .values({ teamId: id, userId: existingUser.id, role: memberRole })
         .returning();
+
+      // Notify the added user
+      const [teamForNotif] = await db.select().from(teams).where(eq(teams.id, id)).limit(1);
+      if (teamForNotif) {
+        notificationService.create({
+          userId: existingUser.id,
+          teamId: id,
+          eventType: NotificationEvents.TEAM_INVITE,
+          title: `You've been added to ${teamForNotif.name}`,
+          metadata: { memberId: member.id, email },
+          entityId: member.id,
+        }).catch(() => {});
+      }
 
       reply.code(201);
       return { ...member, type: 'added' };
