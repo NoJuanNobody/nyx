@@ -40,6 +40,10 @@ export interface UnifiedAIPanelProps {
   stage?: string | null;
   documentId?: string;
   teamId: string;
+  /** Called before starting an AI edit. Returns false if an edit is already in progress. */
+  onAIEditStart?: () => boolean;
+  /** Called when an AI edit ends on error or cancel. Approval/rejection releases via DocumentEditor. */
+  onAIEditEnd?: () => void;
 }
 
 const QUICK_EDIT_VALUE = 'quick';
@@ -61,6 +65,8 @@ export function UnifiedAIPanel({
   stage,
   documentId,
   teamId,
+  onAIEditStart,
+  onAIEditEnd,
 }: UnifiedAIPanelProps) {
   const [prompt, setPrompt] = useState('');
   const [selectedWorkflow, setSelectedWorkflow] = useState<string>(QUICK_EDIT_VALUE);
@@ -167,7 +173,7 @@ export function UnifiedAIPanel({
     setStatus('running');
     setTokenUsage(null);
 
-    // Generate new document (always fast path)
+    // Generate new document (always fast path — no lock needed, no existing content)
     if (isNewDocument && !content.trim()) {
       try {
         const result = await generateDocument(trimmed);
@@ -186,6 +192,17 @@ export function UnifiedAIPanel({
         });
         setStatus('failed');
       }
+      return;
+    }
+
+    // Acquire AI edit lock before any edit that modifies existing content
+    if ((onAIEditStart?.() ?? true) === false) {
+      appendMessage({
+        kind: 'assistant',
+        content: 'An AI edit is already in progress — review or dismiss the pending changes first.',
+        timestamp: new Date(),
+      });
+      setStatus('idle');
       return;
     }
 
@@ -208,7 +225,11 @@ export function UnifiedAIPanel({
         onProposedEdit(result.content);
         setStatus('completed');
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (err instanceof Error && err.name === 'AbortError') {
+          onAIEditEnd?.();
+          return;
+        }
+        onAIEditEnd?.();
         appendMessage({
           kind: 'assistant',
           content: `Something went wrong. ${err instanceof Error ? err.message : 'Please try again.'}`,
@@ -240,6 +261,7 @@ export function UnifiedAIPanel({
       onEvent: handleAgentEvent,
       onError: (err) => {
         commitStreamingContent();
+        onAIEditEnd?.();
         appendMessage({
           kind: 'assistant',
           content: `Error: ${err.message}`,
@@ -265,13 +287,16 @@ export function UnifiedAIPanel({
     commitStreamingContent,
     onGenerate,
     onProposedEdit,
+    onAIEditStart,
+    onAIEditEnd,
   ]);
 
   const cancelSession = useCallback(() => {
     abortRef.current?.();
     commitStreamingContent();
+    onAIEditEnd?.();
     setStatus('cancelled');
-  }, [commitStreamingContent]);
+  }, [commitStreamingContent, onAIEditEnd]);
 
   const toggleToolCall = (sequence: number) => {
     setMessages((prev) =>

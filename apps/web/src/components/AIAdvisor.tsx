@@ -40,6 +40,10 @@ export interface AIAdvisorProps {
   onApplyEdit?: (content: string) => void;
   onStageChange?: (stage: DocumentStage) => void;
   onOpenAIChat?: (context?: Record<string, unknown>) => void;
+  /** Called before starting an AI edit. Returns false if an edit is already in progress. */
+  onAIEditStart?: () => boolean;
+  /** Called when an AI edit ends (on error or cancel). Approval/rejection releases via DocumentEditor. */
+  onAIEditEnd?: () => void;
 }
 
 // ── ID generator ─────────────────────────────────────────────────────
@@ -168,6 +172,8 @@ export function AIAdvisor({
   documentId,
   onApplyEdit,
   onStageChange,
+  onAIEditStart,
+  onAIEditEnd,
 }: AIAdvisorProps) {
   const [notifications, setNotifications] = useState<AdvisorNotification[]>([]);
   const [expanded, setExpanded] = useState(false);
@@ -319,6 +325,7 @@ export function AIAdvisor({
                     label: 'Fix these',
                     variant: 'primary',
                     onClick: async () => {
+                      if ((onAIEditStart?.() ?? true) === false) return;
                       setNotifStatus(id, 'loading');
                       try {
                         const instruction = `Fix the following quality issues in this document:\n${suggestions.join('\n')}`;
@@ -326,6 +333,7 @@ export function AIAdvisor({
                         onApplyEdit?.(result.content);
                         setNotifStatus(id, 'success', 'Fixes applied — review the proposed changes in the editor');
                       } catch {
+                        onAIEditEnd?.();
                         setNotifStatus(id, 'idle');
                       }
                     },
@@ -360,7 +368,7 @@ export function AIAdvisor({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [content, stage, dismissNotification, setNotifStatus, onApplyEdit]);
+  }, [content, stage, dismissNotification, setNotifStatus, onApplyEdit, onAIEditStart, onAIEditEnd]);
 
   // ── Pre-fill offer notification (Tier 2) — offer to seed next stage ─
   const lastPrefillStageRef = useRef<string | null | undefined>(undefined);
@@ -390,6 +398,7 @@ export function AIAdvisor({
           label: 'Generate next stage',
           variant: 'primary',
           onClick: async () => {
+            if ((onAIEditStart?.() ?? true) === false) return;
             setNotifStatus(id, 'loading');
             try {
               const result = await seedFromStage({
@@ -404,6 +413,7 @@ export function AIAdvisor({
               }
               setNotifStatus(id, 'success', `${nextStageInfo.label} content generated — review in the editor`);
             } catch {
+              onAIEditEnd?.();
               setNotifStatus(id, 'idle');
             }
           },
@@ -420,7 +430,7 @@ export function AIAdvisor({
       const filtered = prev.filter((n) => n.type !== 'prefill_offer');
       return [prefillNotif, ...filtered];
     });
-  }, [stage, content, documentId, dismissNotification, setNotifStatus, onApplyEdit, onStageChange]);
+  }, [stage, content, documentId, dismissNotification, setNotifStatus, onApplyEdit, onStageChange, onAIEditStart, onAIEditEnd]);
 
   // ── Missing sections alert (Tier 2) — check after quality runs ─────
   const lastMissingSectionsContentRef = useRef('');
@@ -463,6 +473,7 @@ export function AIAdvisor({
               label: 'Add missing sections',
               variant: 'primary',
               onClick: async () => {
+                if ((onAIEditStart?.() ?? true) === false) return;
                 setNotifStatus(id, 'loading');
                 try {
                   const instruction = `Add the following missing sections to this document:\n${missing.map((s) => `- ${s.name}: ${s.description}`).join('\n')}`;
@@ -470,6 +481,7 @@ export function AIAdvisor({
                   onApplyEdit?.(result.content);
                   setNotifStatus(id, 'success', 'Missing sections added — review the proposed changes');
                 } catch {
+                  onAIEditEnd?.();
                   setNotifStatus(id, 'idle');
                 }
               },
@@ -492,7 +504,7 @@ export function AIAdvisor({
     }, 5000); // slightly delayed after quality analysis
 
     return () => clearTimeout(timer);
-  }, [content, stage, qualityScore, qualityLoading, dismissNotification, setNotifStatus, onApplyEdit]);
+  }, [content, stage, qualityScore, qualityLoading, dismissNotification, setNotifStatus, onApplyEdit, onAIEditStart, onAIEditEnd]);
 
   // ── Reply handler — send reply to notification-reply endpoint ───────
   const handleSendReply = useCallback(async () => {

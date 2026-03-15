@@ -17,6 +17,8 @@ interface AIChatProps {
   onGenerate: (result: { title: string; content: string }) => void;
   isReviewMode: boolean;
   stage?: string | null;
+  onAIEditStart?: () => boolean;
+  onAIEditEnd?: () => void;
 }
 
 interface DocDrawerProps {
@@ -160,6 +162,8 @@ export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVe
                 stage={aiChat.stage}
                 documentId={documentId}
                 teamId={teamId}
+                onAIEditStart={aiChat.onAIEditStart}
+                onAIEditEnd={aiChat.onAIEditEnd}
               />
             )}
             {activePanel === 'jsx-preview' && <JSXPreviewPanel specContext={jsxPreviewContext} onMockupReady={onMockupReady} />}

@@ -5,6 +5,7 @@ import type { Document, DocumentVersion } from '@nyx/shared';
 
 import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage } from '../lib/api';
 import { STAGE_MAP, STAGES, STAGE_ORDER, getNextStage, type DocumentStage } from '../lib/stages';
+import { useAIEditLock } from '../hooks/useAIEditLock';
 
 import { Modal } from '../components/Modal';
 import { AIEditReview } from '../components/AIEditReview';
@@ -43,6 +44,8 @@ export function DocumentEditor() {
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialised = useRef(false);
+
+  const { isLocked: aiEditLocked, acquireLock: acquireAIEditLock, releaseLock: releaseAIEditLock } = useAIEditLock(id);
 
   const { data: doc, isLoading } = useQuery<Document>({
     queryKey: ['document', id],
@@ -124,11 +127,13 @@ export function DocumentEditor() {
       setContent(aiProposedContent);
       scheduleSave({ title, content: aiProposedContent });
       setAiProposedContent(null);
+      releaseAIEditLock();
     }
   };
 
   const handleRejectAIEdit = () => {
     setAiProposedContent(null);
+    releaseAIEditLock();
   };
 
   const handleAIGenerate = (result: { title: string; content: string }) => {
@@ -269,6 +274,13 @@ export function DocumentEditor() {
           </div>
 
           <span className={`text-xs font-medium ${saveColor}`}>{saveLabel}</span>
+
+          {aiEditLocked && (
+            <span className="flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-violet-500" />
+              AI editing…
+            </span>
+          )}
 
           {/* Seed next stage button */}
           {docStage && docStage !== 'execution' && (
@@ -538,6 +550,8 @@ export function DocumentEditor() {
                 onGenerate: handleAIGenerate,
                 isReviewMode: aiProposedContent !== null,
                 stage: docStage,
+                onAIEditStart: acquireAIEditLock,
+                onAIEditEnd: releaseAIEditLock,
               }}
             />
           )}
@@ -550,6 +564,8 @@ export function DocumentEditor() {
           documentId={id}
           onApplyEdit={setAiProposedContent}
           onStageChange={handleStageChange}
+          onAIEditStart={acquireAIEditLock}
+          onAIEditEnd={releaseAIEditLock}
         />
       </div>
 
