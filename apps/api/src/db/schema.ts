@@ -410,3 +410,23 @@ export const feedbackSubmissions = pgTable('feedback_submissions', {
   githubIssueNumber: integer('github_issue_number'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ── Subscriptions ─────────────────────────────────────
+
+export const subscriptionPlanEnum = pgEnum('subscription_plan', ['free', 'pro', 'team', 'enterprise']);
+export const subscriptionStatusEnum = pgEnum('subscription_status', ['active', 'past_due', 'canceled', 'trialing', 'incomplete']);
+
+export const subscriptions = pgTable('subscriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').notNull().references(() => teams.id),
+  plan: subscriptionPlanEnum('plan').notNull().default('free'),
+  status: subscriptionStatusEnum('status').notNull().default('active'),
+  stripeCustomerId: text('stripe_customer_id'),
+  stripeSubscriptionId: text('stripe_subscription_id'),
+  stripePriceId: text('stripe_price_id'),
+  currentPeriodStart: timestamp('current_period_start', { withTimezone: true }),
+  currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
