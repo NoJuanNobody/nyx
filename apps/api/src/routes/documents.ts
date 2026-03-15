@@ -86,6 +86,12 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
     };
     const userId = request.user.id;
 
+    if (!teamId) {
+      request.log.error({ userId }, 'POST /documents — missing teamId in request body');
+      reply.code(400);
+      return { error: 'teamId is required to create a document' };
+    }
+
     let docTitle = title;
     let docContent = content ?? '';
     let docStage = stage ?? null;
@@ -101,23 +107,31 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
         if (!content) docContent = template.content;
         if (title === 'Untitled Document') docTitle = template.name;
         if (!stage) docStage = template.stage;
+      } else {
+        request.log.warn({ templateId, userId }, 'POST /documents — templateId not found, ignoring');
       }
     }
 
-    const [doc] = await db
-      .insert(documents)
-      .values({
-        title: docTitle,
-        content: docContent,
-        path: path ?? '/',
-        stage: docStage,
-        teamId,
-        createdById: userId,
-      })
-      .returning();
+    try {
+      const [doc] = await db
+        .insert(documents)
+        .values({
+          title: docTitle,
+          content: docContent,
+          path: path ?? '/',
+          stage: docStage,
+          teamId,
+          createdById: userId,
+        })
+        .returning();
 
-    reply.code(201);
-    return doc;
+      reply.code(201);
+      return doc;
+    } catch (err) {
+      request.log.error({ err, teamId, userId }, 'POST /documents — failed to insert document');
+      reply.code(500);
+      return { error: 'Failed to create document. Check that the team exists and you have permission.' };
+    }
   });
 
   // PUT /api/documents/:id — update a document

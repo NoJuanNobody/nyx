@@ -9,6 +9,9 @@ function mockRequest(overrides: Partial<FastifyRequest> = {}): FastifyRequest {
     params: {},
     query: {},
     body: {},
+    url: '/test',
+    method: 'GET',
+    log: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
     ...overrides,
   } as unknown as FastifyRequest;
 }
