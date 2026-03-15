@@ -7,7 +7,7 @@ import './index.css';
 
 const queryClient = new QueryClient();
 const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined
-  || 'pk_test_d2VsY29tZS1qYXZlbGluLTg5LmNsZXJrLmFjY291bnRzLmRldiQ';
+  || 'pk_test_bm92ZWwta2lkLTU3LmNsZXJrLmFjY291bnRzLmRldiQ';
 
 function Providers({ children }: { children: React.ReactNode }) {
   if (clerkKey) {
