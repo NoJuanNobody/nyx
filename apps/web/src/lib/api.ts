@@ -1027,3 +1027,23 @@ export function markNotificationRead(id: string) {
 export function markAllNotificationsRead() {
   return request<void>('/notifications/read-all', { method: 'PATCH' });
 }
+
+// ── Notification Preferences ─────────────────────────────────────────
+
+export interface NotificationPreference {
+  eventType: string;
+  inApp: boolean;
+  emailEnabled: boolean;
+  emailMode: 'instant' | 'daily' | 'weekly' | 'off';
+}
+
+export function fetchNotificationPreferences(): Promise<NotificationPreference[]> {
+  return request<NotificationPreference[]>('/notifications/preferences');
+}
+
+export function updateNotificationPreference(eventType: string, data: Partial<NotificationPreference>): Promise<void> {
+  return request<void>(`/notifications/preferences/${encodeURIComponent(eventType)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
