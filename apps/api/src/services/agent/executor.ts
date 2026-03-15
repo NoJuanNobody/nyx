@@ -97,26 +97,42 @@ export async function executeTool(
 
       if (!integration) throw new Error('No GitHub integration configured for this team');
 
-      const ghConfig = integration.config as { accessToken: string; owner: string; repo: string };
-      if (!ghConfig.accessToken || !ghConfig.owner || !ghConfig.repo) {
-        throw new Error('GitHub integration is missing required configuration');
+      const ghConfig = integration.config as {
+        accessToken: string;
+        owner?: string;
+        repo?: string;
+        selectedRepos?: Array<{ owner: string; name: string; fullName: string }>;
+      };
+      const owner = ghConfig.selectedRepos?.[0]?.owner ?? ghConfig.owner ?? '';
+      const repo = ghConfig.selectedRepos?.[0]?.name ?? ghConfig.repo ?? '';
+      if (!ghConfig.accessToken || !owner || !repo) {
+        throw new Error('GitHub integration is missing required configuration (no access token or no repository selected)');
       }
 
       if (filePath) {
-        const content = await githubService.getFileContent(ghConfig.accessToken, ghConfig.owner, ghConfig.repo, filePath);
+        const content = await githubService.getFileContent(ghConfig.accessToken, owner, repo, filePath);
         return { path: filePath, content };
       }
-      const tree = await githubService.getFileTree(ghConfig.accessToken, ghConfig.owner, ghConfig.repo);
+      const tree = await githubService.getFileTree(ghConfig.accessToken, owner, repo);
       return tree;
     }
 
     case 'create_ticket': {
       assertCanWrite(ctx);
+      const docId = input.document_id as string;
+      const provider = input.provider as string;
+      const title = input.title as string;
+      const body = input.body as string;
+      if (!docId) throw new Error('create_ticket requires document_id');
+      if (!provider || !['github', 'jira'].includes(provider)) {
+        throw new Error("create_ticket requires provider to be 'github' or 'jira'");
+      }
+      if (!title) throw new Error('create_ticket requires a title');
       const ticket = await ticketService.createFromDocument(
-        input.document_id as string,
-        input.provider as 'github' | 'jira',
-        input.title as string,
-        input.body as string,
+        docId,
+        provider as 'github' | 'jira',
+        title,
+        body || '',
         ctx.userId,
       );
       return { id: ticket.id, title: ticket.title, externalUrl: ticket.externalUrl };

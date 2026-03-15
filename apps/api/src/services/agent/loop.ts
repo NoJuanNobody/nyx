@@ -104,6 +104,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
         } catch (err) {
           error = err instanceof Error ? err.message : String(err);
           output = { error };
+          console.error(`[agent] Tool "${block.name}" failed (session=${context.sessionId}):`, error);
         }
 
         const durationMs = Date.now() - start;
