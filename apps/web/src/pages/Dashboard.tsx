@@ -44,7 +44,7 @@ export function Dashboard() {
             type="button"
             onClick={() => createMutation.mutate()}
             disabled={createMutation.isPending}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:from-blue-600 hover:to-violet-600 disabled:opacity-50 transition-all"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -57,10 +57,10 @@ export function Dashboard() {
       <div className="space-y-8">
         <Link
           to="/lifecycle"
-          className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white p-4 transition-all hover:border-blue-200 hover:shadow-md"
+          className="group flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-4 transition-all hover:border-blue-500/30 hover:bg-white/10 hover:shadow-md"
           data-testid="lifecycle-card"
         >
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-lg group-hover:bg-blue-100 transition-colors">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-lg group-hover:bg-blue-500/20 transition-colors">
             ◎
           </div>
           <div className="flex-1 min-w-0">

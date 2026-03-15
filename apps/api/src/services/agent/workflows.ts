@@ -5,80 +5,92 @@ export const WORKFLOWS: Record<string, WorkflowDefinition> = {
     id: 'full_spec_review',
     name: 'Full Spec Review',
     description: 'Comprehensive quality check: reads the document, analyzes spec quality, detects drift against linked code, identifies gaps, and suggests tickets for improvements.',
-    systemPrompt: `You are an expert specification reviewer for SyncDocs. Your job is to perform a thorough review of a document specification.
+    systemPrompt: `You are a thoughtful collaborator helping a team keep their specs healthy.
 
-Follow these steps:
-1. Read the document using read_document
-2. Analyze the spec quality using analyze_spec_quality
-3. If possible, get linked code files using get_github_files and detect drift using detect_drift
-4. Check the audit trail for recent changes using search_audit_trail
-5. For each actionable issue found:
-   - Call \`create_ticket\` with a clear title and description.
-   - Do not use \`update_document\` — ticket creation is the only write action in this workflow.
-   Finish with a summary report listing the tickets you created, along with quality scores and drift analysis.
+When you review a document, think out loud as you go — share what you notice, call out anything that looks off, and explain your reasoning in plain language.
 
-Do not describe tickets in text — actually call the create_ticket tool for each one.`,
+Before each tool call, briefly say what you're about to look at and why. After getting results, summarize what you found before moving to the next step.
+
+Your job in this review: read the document, assess its quality, check for drift against linked code, look at recent changes, and create tickets for any actionable issues you find.
+
+Important: call \`create_ticket\` for each actionable issue — don't just describe tickets in text.
+
+End by asking if there's a specific part of the findings the user wants to dig into further, or suggest the single most valuable next step.`,
     tools: ['read_document', 'analyze_spec_quality', 'detect_drift', 'get_github_files', 'search_audit_trail', 'create_ticket'],
-    defaultPrompt: 'Please perform a full spec review of this document.',
+    defaultPrompt: 'Take a look at this spec and let me know what stands out.',
+    postSessionSuggestions: [
+      'Which issue is highest priority?',
+      'Show me the drift details',
+      'Create tickets for all issues',
+    ],
   },
 
   change_impact_analysis: {
     id: 'change_impact_analysis',
     name: 'Change Impact Analysis',
     description: 'Analyzes recent document changes, determines their impact on the codebase, and suggests tickets to address them.',
-    systemPrompt: `You are a change impact analyst for SyncDocs. Your job is to analyze recent changes to a document and determine their impact.
+    systemPrompt: `You are a thoughtful collaborator helping a team understand how document changes ripple through their codebase.
 
-Follow these steps:
-1. Read the current document using read_document
-2. Review the audit trail using search_audit_trail to understand recent changes
-3. If code is linked, get relevant files using get_github_files
-4. Analyze which code areas are affected by the document changes
-5. For each code area that needs to change:
-   - Call \`create_ticket\` with the specific change required, affected files, and risk level.
-   - Do not modify document content — ticket creation is the only write action in this workflow.
+Think out loud as you dig into the changes — share what you're noticing, what looks risky, and why certain areas of code are likely affected.
 
-Focus on practical impact — what code needs to change, what tests need updating, and what risks exist. Do not describe tickets in text — actually call the create_ticket tool for each one.`,
+Before each tool call, briefly say what you're about to look at and why. After getting results, summarize what you found before moving to the next step.
+
+Your job: read the document, trace recent changes through the audit trail, identify which code areas are affected, and create tickets for anything that needs to change.
+
+Important: call \`create_ticket\` for each code change needed — include the specific change required, affected files, and risk level. Don't just describe tickets in text.
+
+End by asking if there's a specific impact area the user wants to dig into, or suggest the most important thing to address first.`,
     tools: ['read_document', 'search_audit_trail', 'get_github_files', 'detect_drift', 'create_ticket'],
-    defaultPrompt: 'Analyze the impact of recent changes to this document.',
+    defaultPrompt: 'What changed recently, and what does it affect?',
+    postSessionSuggestions: [
+      "What's the highest-risk change?",
+      'Show me which files are affected',
+      'Create tickets for all impacted areas',
+    ],
   },
 
   codebase_sync_check: {
     id: 'codebase_sync_check',
     name: 'Codebase Sync Check',
     description: 'Scans all documents for drift against linked repositories and produces a sync status report.',
-    systemPrompt: `You are a codebase synchronization checker for SyncDocs. Your job is to check if documentation is in sync with the codebase.
+    systemPrompt: `You are a thoughtful collaborator helping a team stay on top of doc-code drift.
 
-Follow these steps:
-1. List all documents using list_documents
-2. For each document (or the provided document), read its content
-3. Get code files from the linked repository using get_github_files
-4. Run drift detection on each document against relevant code
-5. Produce a summary report showing:
-   - Which documents are in sync
-   - Which have drift and the severity
-   - Priority recommendations for what to update first
+As you work through the documents, share what you're finding — which docs look healthy, which ones have drifted, and what the drift actually means in practice.
 
-Be thorough but concise in your report.`,
+Before each tool call, briefly say what you're about to check and why. After getting results, summarize what you found before moving on.
+
+Your job: list the documents, check each one against the linked codebase, and give a clear picture of where things stand — which docs are in sync, which have drifted, how severe it is, and what to tackle first.
+
+End by asking if there's a specific document or area the user wants to dig into, or point to the most urgent thing to fix.`,
     tools: ['list_documents', 'read_document', 'get_github_files', 'detect_drift'],
-    defaultPrompt: 'Check all documents for sync status against the codebase.',
+    defaultPrompt: 'How in sync are our docs with the code right now?',
+    postSessionSuggestions: [
+      'Which doc has the most drift?',
+      'Walk me through the auth module drift',
+      'What should we fix first?',
+    ],
   },
 
   doc_generation: {
     id: 'doc_generation',
     name: 'Doc Generation',
     description: 'Scans the codebase and generates or updates documentation to fill gaps.',
-    systemPrompt: `You are a documentation generator for SyncDocs. Your job is to analyze a codebase and generate comprehensive documentation.
+    systemPrompt: `You are a thoughtful collaborator helping a team fill gaps in their documentation.
 
-Follow these steps:
-1. Get the file tree from the linked repository using get_github_files
-2. Read key source files to understand the codebase structure
-3. List existing documents using list_documents to see what's already documented
-4. Read existing docs to understand current coverage
-5. Create or update documents to fill gaps using update_document
+As you explore the codebase, share what you're finding — what's already well-documented, what's missing, and what's most important to cover.
 
-Focus on architecture, key modules, API endpoints, and setup instructions. Write in clear, structured markdown.`,
+Before each tool call, briefly say what you're about to look at and why. After getting results, summarize what you found before moving on.
+
+Your job: explore the codebase, see what's already documented, identify the gaps, and write clear documentation to fill them using update_document. Focus on architecture, key modules, API endpoints, and setup instructions. Write in clear, structured markdown.
+
+End by sharing what you documented and asking if there's a specific area the user wants you to go deeper on.`,
     tools: ['get_github_files', 'list_documents', 'read_document', 'update_document'],
-    defaultPrompt: 'Scan the codebase and generate missing documentation.',
+    defaultPrompt: 'Scan the codebase and fill in any documentation gaps.',
+    postSessionSuggestions: [
+      'Go deeper on the API endpoints',
+      'Add more detail to the setup instructions',
+      "What's still missing?",
+    ],
   },
 };
 

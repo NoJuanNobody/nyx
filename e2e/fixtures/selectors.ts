@@ -6,7 +6,7 @@
 export const SEL = {
   // ── Sidebar ──────────────────────────────────────────
   sidebar: {
-    logo: 'a:has-text("SyncDocs")',
+    logo: 'a:has-text("Nyx")',
     boardLink: 'a:has-text("Board")',
     settingsLink: 'a:has-text("Settings")',
     teamSwitcher: 'aside select',
@@ -123,6 +123,19 @@ export const SEL = {
     ticketCard: 'div.rounded-lg.border',
   },
 
+  // ── Claude Insights ───────────────────────────────────
+  claudeInsight: {
+    panel: 'div.rounded.border.border-purple-100',
+    toggleButton: 'div.rounded.border.border-purple-100 > button',
+    title: 'div.rounded.border.border-purple-100 span.font-semibold',
+    summaryItems: 'div.rounded.border.border-purple-100 ul li',
+    viewCommentLink: 'a:has-text("View comment")',
+    refreshButton: 'button:has-text("Refresh")',
+    fetchButton: 'button:has-text("Fetch")',
+    noInsightLabel: 'text=No Claude insight',
+    filesSection: 'p:has-text("Files")',
+  },
+
   // ── Repositories ────────────────────────────────────────
   repositories: {
     title: 'h1:has-text("Repositories")',
@@ -153,6 +166,16 @@ export const SEL = {
     successMessage: 'text=Thank you for your feedback',
     formattingSpinner: 'text=Formatting your feedback',
     submittingSpinner: 'text=Submitting your feedback',
+  },
+
+  // ── Invite Accept ──────────────────────────────────────
+  invite: {
+    teamName: '[data-testid="invite-team-name"]',
+    role: '[data-testid="invite-role"]',
+    acceptButton: '[data-testid="invite-accept-button"]',
+    signUpButton: '[data-testid="invite-signup-button"]',
+    status: '[data-testid="invite-status"]',
+    error: '[data-testid="invite-error"]',
   },
 
   // ── Landing ──────────────────────────────────────────

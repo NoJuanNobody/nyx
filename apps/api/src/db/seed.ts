@@ -127,7 +127,7 @@ const ARCHITECTURE_CONTENT = `# Architecture Overview
 
 ## System Design
 
-SyncDocs uses a monorepo architecture with three main packages:
+Nyx uses a monorepo architecture with three main packages:
 
 - **apps/api** — Fastify backend with PostgreSQL
 - **apps/web** — React frontend with Vite
@@ -170,9 +170,9 @@ async function seed() {
 
   // ── Users (3) ──────────────────────────────────────────
   await db.insert(users).values([
-    { id: ID.DEV_USER, email: 'dev@syncdocs.io', name: 'Dev User' },
-    { id: ID.ALICE, email: 'alice@syncdocs.io', name: 'Alice Admin' },
-    { id: ID.BOB, email: 'bob@syncdocs.io', name: 'Bob Viewer' },
+    { id: ID.DEV_USER, email: 'dev@nyx.io', name: 'Dev User' },
+    { id: ID.ALICE, email: 'alice@nyx.io', name: 'Alice Admin' },
+    { id: ID.BOB, email: 'bob@nyx.io', name: 'Bob Viewer' },
   ]).onConflictDoNothing();
   console.log('[seed] Users: dev, alice, bob');
 
@@ -222,7 +222,7 @@ async function seed() {
     {
       id: ID.DOC_QUICKSTART,
       title: 'Quick Start',
-      content: '# Quick Start\n\nGet up and running with SyncDocs in 5 minutes.',
+      content: '# Quick Start\n\nGet up and running with Nyx in 5 minutes.',
       path: '/',
       status: 'draft',
       teamId: ID.DEFAULT_TEAM,
@@ -277,7 +277,7 @@ async function seed() {
       type: 'github',
       config: {
         accessToken: 'ghp_test_token_for_e2e_seeding',
-        selectedRepos: [{ owner: 'syncdocs', name: 'app', fullName: 'syncdocs/app' }],
+        selectedRepos: [{ owner: 'nyx', name: 'app', fullName: 'nyx/app' }],
         webhookSecret: 'wh-secret-123',
       },
     },
@@ -286,8 +286,8 @@ async function seed() {
       teamId: ID.DEFAULT_TEAM,
       type: 'jira',
       config: {
-        baseUrl: 'https://syncdocs.atlassian.net',
-        email: 'admin@syncdocs.io',
+        baseUrl: 'https://nyx.atlassian.net',
+        email: 'admin@nyx.io',
         apiToken: 'jira-token-for-e2e',
         projectKey: 'SD',
       },
@@ -302,7 +302,7 @@ async function seed() {
       documentId: ID.DOC_API_SPEC,
       provider: 'github',
       externalId: '101',
-      externalUrl: 'https://github.com/syncdocs/app/issues/101',
+      externalUrl: 'https://github.com/nyx/app/issues/101',
       title: 'Implement auth endpoints',
       status: 'open',
       createdById: ID.DEV_USER,
@@ -312,7 +312,7 @@ async function seed() {
       documentId: ID.DOC_API_SPEC,
       provider: 'github',
       externalId: '102',
-      externalUrl: 'https://github.com/syncdocs/app/issues/102',
+      externalUrl: 'https://github.com/nyx/app/issues/102',
       title: 'Fix rate limiting',
       status: 'closed',
       createdById: ID.DEV_USER,
@@ -322,7 +322,7 @@ async function seed() {
       documentId: ID.DOC_ARCHITECTURE,
       provider: 'jira',
       externalId: 'SD-1',
-      externalUrl: 'https://syncdocs.atlassian.net/browse/SD-1',
+      externalUrl: 'https://nyx.atlassian.net/browse/SD-1',
       title: 'Review architecture',
       status: 'open',
       createdById: ID.DEV_USER,
@@ -332,7 +332,7 @@ async function seed() {
       documentId: ID.DOC_ARCHITECTURE,
       provider: 'jira',
       externalId: 'SD-2',
-      externalUrl: 'https://syncdocs.atlassian.net/browse/SD-2',
+      externalUrl: 'https://nyx.atlassian.net/browse/SD-2',
       title: 'Update deployment docs',
       status: 'in_progress',
       createdById: ID.DEV_USER,
@@ -394,9 +394,10 @@ async function seed() {
   await db.insert(teamInvitations).values({
     id: ID.INVITATION_PENDING,
     teamId: ID.DEFAULT_TEAM,
-    email: 'pending@syncdocs.io',
+    email: 'pending@nyx.io',
     role: 'developer',
     invitedById: ID.DEV_USER,
+    token: 'e2e-invite-token-0001',
     status: 'pending',
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
   }).onConflictDoNothing();

@@ -14,6 +14,7 @@ import { SprintPage } from './pages/SprintPage';
 import { TracePage } from './pages/TracePage';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
+import { AcceptInvite } from './pages/AcceptInvite';
 import { useAuthStore } from './stores/auth.store';
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -34,6 +35,7 @@ export function App() {
       <Routes>
         <Route path="/sign-in/*" element={<SignIn />} />
         <Route path="/sign-up/*" element={<SignUp />} />
+        <Route path="/invite/:token" element={<AcceptInvite />} />
         <Route path="/landing" element={<Landing />} />
         <Route element={<AuthGuard />}>
           <Route element={<Layout />}>

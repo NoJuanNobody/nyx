@@ -28,6 +28,8 @@ const envSchema = z.object({
   SLACK_CLIENT_ID: z.string().optional(),
   SLACK_CLIENT_SECRET: z.string().optional(),
   SLACK_SIGNING_SECRET: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  APP_URL: z.string().url().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production' && !data.GITHUB_WEBHOOK_SECRET) {
     ctx.addIssue({
@@ -41,7 +43,7 @@ const envSchema = z.object({
 // Inject localhost fallback only in development
 const envWithDefaults = {
   ...process.env,
-  DATABASE_URL: process.env.DATABASE_URL || (isDevelopment ? 'postgresql://postgres:postgres@localhost:5432/syncdocs' : undefined),
+  DATABASE_URL: process.env.DATABASE_URL || (isDevelopment ? 'postgresql://postgres:postgres@localhost:5432/nyx' : undefined),
 };
 
 export const config = envSchema.parse(envWithDefaults);

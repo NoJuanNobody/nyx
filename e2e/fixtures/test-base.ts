@@ -41,7 +41,7 @@ const SEEDED_DOCUMENTS = [
   {
     id: SEED.DOC_ARCHITECTURE_ID,
     title: 'Architecture Overview',
-    content: '# Architecture Overview\n\n## System Design\n\nSyncDocs uses a monorepo architecture.',
+    content: '# Architecture Overview\n\n## System Design\n\nNyx uses a monorepo architecture.',
     path: '/',
     status: 'published',
     teamId: SEED.DEFAULT_TEAM_ID,
@@ -52,7 +52,7 @@ const SEEDED_DOCUMENTS = [
   {
     id: SEED.DOC_QUICKSTART_ID,
     title: 'Quick Start',
-    content: '# Quick Start\n\nGet up and running with SyncDocs in 5 minutes.',
+    content: '# Quick Start\n\nGet up and running with Nyx in 5 minutes.',
     path: '/',
     status: 'draft',
     teamId: SEED.DEFAULT_TEAM_ID,
@@ -111,15 +111,34 @@ const SEEDED_VERSIONS = [
   },
 ];
 
+export const SEEDED_INSIGHT = {
+  title: 'Implement auth endpoints',
+  summary: [
+    'Added JWT middleware to all protected routes',
+    'Created /api/auth/login and /api/auth/logout endpoints',
+    'Updated tests to cover auth flows',
+  ],
+  filesChanged: [
+    'apps/api/src/middleware/auth.ts',
+    'apps/api/src/routes/auth.ts',
+    'apps/api/src/__tests__/auth.test.ts',
+  ],
+  commentId: 1234567890,
+  commentUrl: 'https://github.com/syncdocs/app/issues/101#issuecomment-1234567890',
+  commentedAt: '2025-01-02T10:00:00Z',
+  fetchedAt: '2025-01-02T10:05:00Z',
+};
+
 const SEEDED_TICKETS = [
   {
     id: SEED.TKT_GH_OPEN_ID,
     documentId: SEED.DOC_API_SPEC_ID,
     provider: 'github',
     externalId: '101',
-    externalUrl: 'https://github.com/syncdocs/app/issues/101',
+    externalUrl: 'https://github.com/nyx/app/issues/101',
     title: 'Implement auth endpoints',
     status: 'open',
+    claudeInsights: SEEDED_INSIGHT,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
@@ -130,9 +149,10 @@ const SEEDED_TICKETS = [
     documentId: SEED.DOC_API_SPEC_ID,
     provider: 'github',
     externalId: '102',
-    externalUrl: 'https://github.com/syncdocs/app/issues/102',
+    externalUrl: 'https://github.com/nyx/app/issues/102',
     title: 'Fix rate limiting',
     status: 'closed',
+    claudeInsights: null,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
@@ -143,9 +163,10 @@ const SEEDED_TICKETS = [
     documentId: SEED.DOC_ARCHITECTURE_ID,
     provider: 'jira',
     externalId: 'SD-1',
-    externalUrl: 'https://syncdocs.atlassian.net/browse/SD-1',
+    externalUrl: 'https://nyx.atlassian.net/browse/SD-1',
     title: 'Review architecture',
     status: 'open',
+    claudeInsights: null,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
@@ -156,9 +177,10 @@ const SEEDED_TICKETS = [
     documentId: SEED.DOC_ARCHITECTURE_ID,
     provider: 'jira',
     externalId: 'SD-2',
-    externalUrl: 'https://syncdocs.atlassian.net/browse/SD-2',
+    externalUrl: 'https://nyx.atlassian.net/browse/SD-2',
     title: 'Update deployment docs',
     status: 'in_progress',
+    claudeInsights: null,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
@@ -192,7 +214,7 @@ const SEEDED_INTEGRATIONS = [
     type: 'github',
     config: {
       accessToken: 'ghp_test_token_for_e2e_seeding',
-      selectedRepos: [{ owner: 'syncdocs', name: 'app', fullName: 'syncdocs/app' }],
+      selectedRepos: [{ owner: 'nyx', name: 'app', fullName: 'nyx/app' }],
       webhookSecret: 'wh-secret-123',
     },
     createdAt: '2025-01-01T00:00:00Z',
@@ -202,8 +224,8 @@ const SEEDED_INTEGRATIONS = [
     teamId: SEED.DEFAULT_TEAM_ID,
     type: 'jira',
     config: {
-      baseUrl: 'https://syncdocs.atlassian.net',
-      email: 'admin@syncdocs.io',
+      baseUrl: 'https://nyx.atlassian.net',
+      email: 'admin@nyx.io',
       apiToken: 'jira-token-for-e2e',
       projectKey: 'SD',
     },
@@ -704,6 +726,33 @@ async function setupApiMocks(page: Page) {
     const method = route.request().method();
     const pathname = new URL(url).pathname;
 
+    // Insights refresh: POST /api/tickets/:id/insights/refresh
+    if (/\/tickets\/[^/]+\/insights\/refresh/.test(pathname) && method === 'POST') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(SEEDED_INSIGHT),
+      });
+    }
+
+    // Insights get: GET /api/tickets/:id/insights
+    if (/\/tickets\/[^/]+\/insights$/.test(pathname) && method === 'GET') {
+      const ticketId = pathname.match(/\/tickets\/([^/]+)\/insights/)?.[1];
+      const ticket = SEEDED_TICKETS.find((t) => t.id === ticketId);
+      if (ticket?.claudeInsights) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(ticket.claudeInsights),
+        });
+      }
+      return route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'No Claude insight found for this ticket' }),
+      });
+    }
+
     // Tickets sync
     if (/\/tickets\/sync/.test(pathname)) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ synced: 4 }) });
@@ -906,8 +955,8 @@ async function setupApiMocks(page: Page) {
   });
 }
 
-/** Shared fixtures for SyncDocs E2E tests. */
-type SyncDocsFixtures = {
+/** Shared fixtures for Nyx E2E tests. */
+type NyxFixtures = {
   /** A page already authenticated via dev bypass and on /dashboard. */
   authenticatedPage: Page;
   /** Helper to intercept all AI API routes with canned responses. */
@@ -916,12 +965,12 @@ type SyncDocsFixtures = {
   mockGitHub: (page: Page) => Promise<void>;
 };
 
-export const test = base.extend<SyncDocsFixtures>({
+export const test = base.extend<NyxFixtures>({
   authenticatedPage: async ({ page }, use) => {
     await setupApiMocks(page);
     await page.goto('/dashboard');
     // Wait for the sidebar logo to confirm auth loaded
-    await page.waitForSelector('a:has-text("SyncDocs")', { timeout: 15_000 });
+    await page.waitForSelector('a:has-text("Nyx")', { timeout: 15_000 });
     // Wait for the user section to load (confirms auth/me resolved)
     await page.waitForSelector('aside >> text=Dev User', { timeout: 10_000 }).catch(() => {});
     // Wait for team switcher to confirm teams are loaded (select only renders when teams.length > 1)
@@ -930,7 +979,7 @@ export const test = base.extend<SyncDocsFixtures>({
   },
 
   mockAI: async ({}, use) => {
-    const setup = async (page: Page, overrides?: Parameters<SyncDocsFixtures['mockAI']>[1]) => {
+    const setup = async (page: Page, overrides?: Parameters<NyxFixtures['mockAI']>[1]) => {
       // Override the AI handler registered in setupApiMocks with a single handler
       await page.route('**/api/ai/**', (route) => {
         const pathname = new URL(route.request().url()).pathname;

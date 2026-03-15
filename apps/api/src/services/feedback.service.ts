@@ -32,7 +32,7 @@ export const feedbackService = {
     const response = await ai.messages.create({
       model: MODEL,
       max_tokens: 1024,
-      system: `You are a product feedback formatter for SyncDocs, a documentation versioning platform. Given raw user feedback, create a well-structured GitHub issue. Respond ONLY with valid JSON in this exact format: {"title": "<concise descriptive title>", "body": "<structured markdown body with sections: Description, Current Behavior (if applicable), Suggested Improvement, Impact>", "category": "<one of: bug, feature-request, ux-improvement, documentation, other>"}
+      system: `You are a product feedback formatter for Nyx, a documentation versioning platform. Given raw user feedback, create a well-structured GitHub issue. Respond ONLY with valid JSON in this exact format: {"title": "<concise descriptive title>", "body": "<structured markdown body with sections: Description, Current Behavior (if applicable), Suggested Improvement, Impact>", "category": "<one of: bug, feature-request, ux-improvement, documentation, other>"}
 
 Rules:
 - Keep the title under 80 characters
@@ -100,7 +100,7 @@ Rules:
       throw new Error('GITHUB_FEEDBACK_PAT is not configured. Feedback submission requires a GitHub PAT.');
     }
 
-    const fullBody = `${body}\n\n---\n_Submitted by: ${userName} (${userEmail})_\n_Category: ${category}_\n_Submitted via SyncDocs feedback_`;
+    const fullBody = `${body}\n\n---\n_Submitted by: ${userName} (${userEmail})_\n_Category: ${category}_\n_Submitted via Nyx feedback_`;
 
     const res = await fetch(`${GITHUB_API}/repos/NoJuanNobody/syncdocs/issues`, {
       method: 'POST',

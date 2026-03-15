@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Document, DocumentVersion } from '@syncdocs/shared';
+import type { Document, DocumentVersion } from '@nyx/shared';
 
 import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage } from '../lib/api';
 import { STAGE_MAP, STAGES, STAGE_ORDER, getNextStage, type DocumentStage } from '../lib/stages';

@@ -1,4 +1,4 @@
-# SyncDocs — How to Get API Keys for Local Development
+# Nyx — How to Get API Keys for Local Development
 
 This guide walks you through obtaining the API keys referenced in `.env.example`.
 
@@ -13,7 +13,7 @@ Clerk handles user authentication. You need your own free dev instance.
 ### Steps
 
 1. Go to [clerk.com](https://clerk.com) and sign up for a free account.
-2. Create a new **Application** (name it something like "SyncDocs Dev").
+2. Create a new **Application** (name it something like "Nyx Dev").
 3. In your Clerk dashboard, go to **API Keys** (left sidebar).
 4. Copy the **Publishable key** (`pk_test_...`) and **Secret key** (`sk_test_...`).
 5. In your `.env` file, set:
@@ -38,7 +38,7 @@ The Anthropic API key powers AI-assisted spec writing and drift detection.
 
 1. Go to [console.anthropic.com](https://console.anthropic.com) and create an account.
 2. Navigate to **API Keys** in the left sidebar.
-3. Click **Create Key**, give it a name (e.g., "SyncDocs Dev").
+3. Click **Create Key**, give it a name (e.g., "Nyx Dev").
 4. Copy the key (`sk-ant-...`) and set it in your `.env`:
    ```
    ANTHROPIC_API_KEY=sk-ant-your_key_here
@@ -59,7 +59,7 @@ GitHub integration is used for OAuth login, webhook-driven drift detection, and 
 1. Go to [github.com/settings/developers](https://github.com/settings/developers).
 2. Click **OAuth Apps → New OAuth App**.
 3. Fill in:
-   - **Application name:** SyncDocs Dev
+   - **Application name:** Nyx Dev
    - **Homepage URL:** `http://localhost:5173`
    - **Authorization callback URL:** `http://localhost:3001/api/auth/github/callback`
 4. Click **Register application**.
@@ -92,7 +92,7 @@ GITHUB_WEBHOOK_SECRET=your_generated_hex_string
 No external account needed. The default in `.env.example` works if you have Postgres running locally:
 
 ```
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/syncdocs
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/nyx
 ```
 
 If you'd rather use Docker:
@@ -101,7 +101,7 @@ If you'd rather use Docker:
 docker compose up -d
 ```
 
-and use `DATABASE_URL=postgresql://postgres:devpassword@localhost:5432/syncdocs_dev`.
+and use `DATABASE_URL=postgresql://postgres:devpassword@localhost:5432/nyx_dev`.
 
 ---
 

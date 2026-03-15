@@ -6,6 +6,9 @@ export type ContextMenuSeparator = { type: 'separator' };
 
 export type ContextMenuLeafItem = {
   label: string;
+  abbr?: string;
+  sublabel?: string;
+  tooltip?: string;
   icon?: React.ReactNode;
   dotColorClass?: string;
   danger?: boolean;
@@ -16,6 +19,9 @@ export type ContextMenuLeafItem = {
 
 export type ContextMenuSubmenuItem = {
   label: string;
+  abbr?: string;
+  sublabel?: string;
+  tooltip?: string;
   icon?: React.ReactNode;
   dotColorClass?: string;
   danger?: boolean;
@@ -59,6 +65,7 @@ export function ContextMenu({
   } | null>(null);
 
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
 
   // Clamp main menu position to viewport
   const clampedX = Math.min(x, Math.max(0, window.innerWidth - MENU_WIDTH - 8));
@@ -140,6 +147,22 @@ export function ContextMenu({
           e.preventDefault();
           onClose();
           break;
+        default: {
+          // Type-to-jump: single printable character
+          if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            const ch = e.key.toLowerCase();
+            const match = selectableIndices.find((idx) => {
+              const item = items[idx];
+              if (!item || 'type' in item) return false;
+              return item.label.toLowerCase().startsWith(ch);
+            });
+            if (match !== undefined) {
+              e.preventDefault();
+              setFocusedIndex(match);
+            }
+          }
+          break;
+        }
       }
     },
     [focusedIndex, items, selectableIndices, onClose],
@@ -220,9 +243,16 @@ export function ContextMenu({
                   cancelSchedule();
                   setActiveSubmenu(null);
                 }
+                if (item.tooltip && !hasSubmenu) {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  setTooltip({ text: item.tooltip, x: r.right + 8, y: r.top });
+                } else {
+                  setTooltip(null);
+                }
               }}
               onMouseLeave={() => {
                 if (hasSubmenu) cancelSchedule();
+                setTooltip(null);
               }}
               onClick={() => {
                 if (!hasSubmenu && 'action' in item && !item.disabled) {
@@ -261,7 +291,19 @@ export function ContextMenu({
               {item.icon && <span className="flex-shrink-0 text-slate-400">{item.icon}</span>}
 
               {/* Label */}
-              <span className="flex-1 truncate">{item.label}</span>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="flex items-baseline gap-1.5">
+                  {item.abbr && (
+                    <span className="flex-shrink-0 rounded px-1 py-0.5 text-[9px] font-bold leading-none bg-slate-100 text-slate-500">
+                      {item.abbr}
+                    </span>
+                  )}
+                  <span className="truncate">{item.label}</span>
+                </span>
+                {item.sublabel && (
+                  <span className="truncate text-[10px] leading-tight text-slate-400">{item.sublabel}</span>
+                )}
+              </span>
 
               {/* Submenu indicator */}
               {hasSubmenu && (
@@ -291,7 +333,7 @@ export function ContextMenu({
           role="menu"
           className="fixed z-[101] min-w-[180px] rounded-lg border border-slate-200 bg-white py-1 shadow-xl"
           style={{ left: activeSubmenu.x, top: activeSubmenu.y }}
-          onMouseEnter={cancelSchedule}
+          onMouseEnter={() => { cancelSchedule(); setTooltip(null); }}
         >
           {activeSubmenu.items.map((item, i) => {
             if ('type' in item && item.type === 'separator') {
@@ -339,10 +381,32 @@ export function ContextMenu({
                   <span className={`h-2 w-2 flex-shrink-0 rounded-full ${item.dotColorClass}`} />
                 )}
 
-                <span className="flex-1 truncate">{item.label}</span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="flex items-baseline gap-1.5">
+                    {item.abbr && (
+                      <span className="flex-shrink-0 rounded px-1 py-0.5 text-[9px] font-bold leading-none bg-slate-100 text-slate-500">
+                        {item.abbr}
+                      </span>
+                    )}
+                    <span className="truncate">{item.label}</span>
+                  </span>
+                  {item.sublabel && (
+                    <span className="truncate text-[10px] leading-tight text-slate-400">{item.sublabel}</span>
+                  )}
+                </span>
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Tooltip overlay */}
+      {tooltip && (
+        <div
+          className="fixed z-[200] max-w-[200px] rounded-md bg-slate-800 px-2 py-1.5 text-xs text-white shadow-lg pointer-events-none"
+          style={{ left: tooltip.x, top: tooltip.y }}
+        >
+          {tooltip.text}
         </div>
       )}
     </>

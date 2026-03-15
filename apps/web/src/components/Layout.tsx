@@ -32,7 +32,7 @@ export function Layout() {
               />
             </svg>
           </button>
-          <span className="text-sm font-semibold text-slate-900">SyncDocs</span>
+          <span className="text-sm font-semibold text-slate-900">Nyx</span>
         </div>
 
         {/* Main content */}

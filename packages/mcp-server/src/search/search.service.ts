@@ -2,7 +2,7 @@ import type { SearchInput, SearchResponse, SearchResult } from './search.types.j
 import { searchWithBrave } from './providers/brave.provider.js';
 import { searchWithTavily } from './providers/tavily.provider.js';
 
-const PROVIDER = process.env.SYNCDOCS_SEARCH_PROVIDER ?? 'brave';
+const PROVIDER = process.env.NYX_SEARCH_PROVIDER ?? 'brave';
 
 export async function performWebSearch(
   query: string,

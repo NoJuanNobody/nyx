@@ -897,7 +897,7 @@ function ApiKeysPanel() {
       <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4">
         <h3 className="text-sm font-semibold text-blue-800">API Keys for MCP Server</h3>
         <p className="mt-1 text-xs text-blue-600 leading-relaxed">
-          API keys let external tools like Claude Code, Cursor, and Copilot access your SyncDocs
+          API keys let external tools like Claude Code, Cursor, and Copilot access your Nyx
           workspace via the MCP server. Keys use the <code className="rounded bg-blue-100 px-1 py-0.5 font-mono text-[11px]">sd_</code> prefix.
         </p>
       </div>

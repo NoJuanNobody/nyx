@@ -64,6 +64,7 @@ export const teamInvitations = pgTable('team_invitations', {
   invitedById: uuid('invited_by_id')
     .notNull()
     .references(() => users.id),
+  token: text('token').notNull().unique(),
   status: invitationStatusEnum('status').notNull().default('pending'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
@@ -182,6 +183,7 @@ export const tickets = pgTable('tickets', {
   externalUrl: text('external_url').notNull(),
   title: text('title').notNull(),
   status: ticketStatusEnum('status').notNull().default('open'),
+  claudeInsights: jsonb('claude_insights'),
   createdById: uuid('created_by_id')
     .notNull()
     .references(() => users.id),
