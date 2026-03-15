@@ -1198,3 +1198,61 @@ export function fetchProjectShowcases(): Promise<ProjectShowcase[]> {
 export function createProjectShowcase(data: { title: string; description: string; techStack?: string[]; teamSize?: number; nuxFeatures?: string[]; url?: string }): Promise<ProjectShowcase> {
   return request<ProjectShowcase>('/project-showcases', { method: 'POST', body: JSON.stringify(data) });
 }
+
+// ── Ticket Suggestions (Bulk) ───────────────────────────────────────
+
+export interface TicketSuggestion {
+  id: string;
+  documentId: string;
+  title: string;
+  description: string;
+  labels: string[];
+  status: string;
+  reviewedById: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BulkApproveResult {
+  suggestionId: string;
+  success: boolean;
+  ticket?: { id: string; title: string; externalUrl: string };
+  error?: string;
+}
+
+export function fetchTicketSuggestions(documentId: string): Promise<TicketSuggestion[]> {
+  return request<TicketSuggestion[]>(`/documents/${encodeURIComponent(documentId)}/ticket-suggestions`);
+}
+
+export function generateBulkSuggestions(documentId: string): Promise<TicketSuggestion[]> {
+  return request<TicketSuggestion[]>(`/documents/${encodeURIComponent(documentId)}/bulk-suggest-tickets`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export function bulkApproveSuggestions(
+  suggestionIds: string[],
+  provider: 'github' | 'jira',
+): Promise<BulkApproveResult[]> {
+  return request<BulkApproveResult[]>('/ticket-suggestions/bulk-approve', {
+    method: 'POST',
+    body: JSON.stringify({ suggestionIds, provider }),
+  });
+}
+
+export function updateTicketSuggestion(
+  id: string,
+  updates: { title?: string; description?: string; labels?: string[] },
+): Promise<TicketSuggestion> {
+  return request<TicketSuggestion>(`/ticket-suggestions/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+}
+
+export function dismissTicketSuggestion(id: string): Promise<TicketSuggestion> {
+  return request<TicketSuggestion>(`/ticket-suggestions/${encodeURIComponent(id)}/dismiss`, {
+    method: 'POST',
+  });
+}

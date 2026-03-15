@@ -46,4 +46,35 @@ export const suggestionRoutes: FastifyPluginAsync = async (app) => {
       return { error: message };
     }
   });
+
+  // POST /api/documents/:documentId/bulk-suggest-tickets — generate bulk ticket suggestions
+  app.post('/documents/:documentId/bulk-suggest-tickets', { preHandler: [requireRole({ minimumRole: 'editor', source: 'document' })] }, async (request) => {
+    const { documentId } = request.params as { documentId: string };
+    const suggestions = await suggestionService.generateBulkSuggestions(documentId);
+    return suggestions;
+  });
+
+  // POST /api/ticket-suggestions/bulk-approve — approve multiple suggestions at once
+  app.post('/ticket-suggestions/bulk-approve', async (request, reply) => {
+    const { suggestionIds, provider } = request.body as { suggestionIds: string[]; provider: 'github' | 'jira' };
+    const userId = request.user.id;
+    if (!suggestionIds?.length) { reply.code(400); return { error: 'No suggestions selected' }; }
+    if (!['github', 'jira'].includes(provider)) { reply.code(400); return { error: 'Invalid provider' }; }
+    const results = await suggestionService.bulkApprove(suggestionIds, userId, provider);
+    return results;
+  });
+
+  // PATCH /api/ticket-suggestions/:id — edit a pending suggestion
+  app.patch('/ticket-suggestions/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const updates = request.body as { title?: string; description?: string; labels?: string[] };
+    try {
+      const updated = await suggestionService.updateSuggestion(id, updates);
+      return updated;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(400);
+      return { error: message };
+    }
+  });
 };

@@ -464,6 +464,71 @@ STRICT RULES:
     }
   },
 
+  async generateBulkTicketSuggestions(
+    content: string,
+    title: string,
+    stage: string | null,
+    codeContext?: string,
+  ): Promise<Array<{ title: string; description: string; labels: string[] }>> {
+    const ai = requireClient();
+
+    const truncatedContent = content.slice(0, 8000);
+    const truncatedCode = codeContext ? codeContext.slice(0, 4000) : '';
+
+    let stageFocus = '';
+    if (stage && ['conception', 'definition'].includes(stage)) {
+      stageFocus = 'Focus on requirement gaps, missing user stories, and unanswered questions.';
+    } else if (stage && ['architecture', 'implementation'].includes(stage)) {
+      stageFocus = 'Focus on code changes, API contracts, migration tasks, and test coverage.';
+    } else if (stage === 'execution') {
+      stageFocus = 'Focus on drift remediation and documentation updates.';
+    }
+
+    const stageContext = stage && STAGE_QUALITY_PROMPTS[stage]
+      ? `\n\nThis is a "${stage}" stage document. ${STAGE_QUALITY_PROMPTS[stage]}`
+      : '';
+
+    const codeBlock = truncatedCode
+      ? `\n\nLinked code context:\n${truncatedCode}`
+      : '';
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 4096,
+      system:
+        `You are a ticket suggestion engine for a documentation platform. Given a document and optional code context, generate 5-10 actionable ticket suggestions. ${stageFocus}${stageContext}
+
+Each ticket must have:
+- title: prefixed with [S], [M], or [L] for estimated scope (small/medium/large)
+- description: must include a "## Context" section citing the specific spec heading or section, an "## Affected Areas" section listing file paths or modules, and an "## Acceptance Criteria" section with a markdown checklist of verifiable conditions
+- labels: array of relevant labels (e.g., bug, enhancement, drift, spec-gap)
+
+Respond ONLY with a valid JSON array of objects with title, description, and labels fields.`,
+      messages: [
+        {
+          role: 'user',
+          content: `Generate ticket suggestions for the document "${title}":\n\n${truncatedContent}${codeBlock}`,
+        },
+      ],
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip code fences
+    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+    try {
+      const parsed = JSON.parse(text) as Array<{ title: string; description: string; labels: string[] }>;
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+      return [{ title: `[M] Review "${title}"`, description: text, labels: ['spec-review'] }];
+    } catch {
+      return [{ title: `[M] Review "${title}"`, description: text, labels: ['spec-review'] }];
+    }
+  },
+
   async seedNextStage(
     content: string,
     fromStage: string,
