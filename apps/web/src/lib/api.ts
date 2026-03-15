@@ -335,6 +335,7 @@ export interface AgentWorkflow {
   name: string;
   description: string;
   defaultPrompt?: string;
+  postSessionSuggestions?: string[];
 }
 
 export function fetchWorkflows(): Promise<AgentWorkflow[]> {

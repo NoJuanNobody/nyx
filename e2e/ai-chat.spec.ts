@@ -17,7 +17,7 @@ test.describe('AI Chat Panel', () => {
 
     // The chat textarea should be visible inside the drawer
     // The AIChatPanel has a textarea with placeholder "Ask AI to edit..."
-    const chatInput = page.locator('textarea[placeholder*="Ask AI"], textarea[placeholder*="Describe"]').first();
+    const chatInput = page.locator('textarea[placeholder*="Ask Nyx"], textarea[placeholder*="Describe"]').first();
     await expect(chatInput).toBeVisible({ timeout: 5_000 });
   });
 
@@ -31,7 +31,7 @@ test.describe('AI Chat Panel', () => {
     await expect(page.locator(SEL.editor.drawerClose)).toBeVisible({ timeout: 5_000 });
 
     // Type a message in the chat textarea
-    const chatInput = page.locator('textarea[placeholder*="Ask AI"], textarea[placeholder*="Describe"]').first();
+    const chatInput = page.locator('textarea[placeholder*="Ask Nyx"], textarea[placeholder*="Describe"]').first();
     await chatInput.fill('Improve the error handling section');
 
     // Click the Send button (has title="Send", not text)
@@ -61,7 +61,7 @@ test.describe('AI Chat Panel', () => {
     await firstChip.click();
 
     // After clicking a chip, the textarea should be populated with the chip text
-    const chatInput = page.locator('textarea[placeholder*="Ask AI"], textarea[placeholder*="Describe"]').first();
+    const chatInput = page.locator('textarea[placeholder*="Ask Nyx"], textarea[placeholder*="Describe"]').first();
     const inputValue = await chatInput.inputValue();
     expect(inputValue.length).toBeGreaterThan(0);
   });
@@ -76,7 +76,7 @@ test.describe('AI Chat Panel', () => {
     await expect(page.locator(SEL.editor.drawerClose)).toBeVisible({ timeout: 5_000 });
 
     // Send a message first so there is history to clear
-    const chatInput = page.locator('textarea[placeholder*="Ask AI"], textarea[placeholder*="Describe"]').first();
+    const chatInput = page.locator('textarea[placeholder*="Ask Nyx"], textarea[placeholder*="Describe"]').first();
     await chatInput.fill('Add an overview section');
 
     const sendButton = page.locator('button[title="Send"]').first();
