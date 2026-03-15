@@ -39,4 +39,7 @@ export const SEED = {
   ALICE_EMAIL: 'alice@nyx.io',
   BOB_EMAIL: 'bob@nyx.io',
   PENDING_INVITE_EMAIL: 'pending@nyx.io',
+
+  // Invite tokens
+  PENDING_INVITE_TOKEN: 'e2e-invite-token-0001',
 } as const;

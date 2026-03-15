@@ -167,6 +167,16 @@ export const SEL = {
     submittingSpinner: 'text=Submitting your feedback',
   },
 
+  // ── Invite Accept ──────────────────────────────────────
+  invite: {
+    teamName: '[data-testid="invite-team-name"]',
+    role: '[data-testid="invite-role"]',
+    acceptButton: '[data-testid="invite-accept-button"]',
+    signUpButton: '[data-testid="invite-signup-button"]',
+    status: '[data-testid="invite-status"]',
+    error: '[data-testid="invite-error"]',
+  },
+
   // ── Landing ──────────────────────────────────────────
   landing: {
     heroTitle: 'h1',
