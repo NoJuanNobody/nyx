@@ -33,6 +33,7 @@ import { audioRoutes } from './routes/audio.js';
 import { slackRoutes } from './routes/slack.js';
 import { impactGraphRoutes } from './routes/impact-graph.js';
 import { invitationRoutes } from './routes/invitations.js';
+import { notificationRoutes } from './routes/notifications.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -77,6 +78,7 @@ export function buildApp() {
   app.register(slackRoutes, { prefix: '/api/slack' });
   app.register(impactGraphRoutes, { prefix: '/api' });
   app.register(invitationRoutes, { prefix: '/api/invitations' });
+  app.register(notificationRoutes, { prefix: '/api/notifications' });
 
   return app;
 }
