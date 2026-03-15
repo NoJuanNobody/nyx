@@ -89,7 +89,9 @@ export const ticketService = {
           ticketId: ticket.id,
           metadata: { provider, title, externalUrl },
         });
-      } catch {}
+      } catch (err) {
+        console.error('[ticket] Failed to record audit event:', err instanceof Error ? err.message : err);
+      }
     });
 
     return ticket;
