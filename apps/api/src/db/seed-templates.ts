@@ -9,6 +9,7 @@
  *   DATABASE_URL=<url> pnpm --filter @nyx/api db:seed-templates
  */
 import 'dotenv/config';
+import { isNull } from 'drizzle-orm';
 import { db } from './index.js';
 import { documentTemplates } from './schema.js';
 
@@ -52,16 +53,29 @@ const TEMPLATES: {
 
 /**
  * Ensures all built-in lifecycle templates exist in the database.
- * Safe to call at server startup — uses ON CONFLICT DO NOTHING.
+ * Checks for existing global templates (teamId IS NULL) first to avoid
+ * duplicates — the unique index on (stage, name, teamId) does not
+ * deduplicate NULLs in PostgreSQL.
  */
 export async function ensureTemplates(): Promise<void> {
+  // Check if any global templates already exist
+  const existing = await db
+    .select({ id: documentTemplates.id })
+    .from(documentTemplates)
+    .where(isNull(documentTemplates.teamId))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return; // Templates already seeded
+  }
+
   const result = await db.insert(documentTemplates)
     .values(TEMPLATES)
     .onConflictDoNothing() as unknown as { rowCount: number };
 
   const inserted = result?.rowCount ?? 0;
   if (inserted > 0) {
-    console.log(`[seed-templates] Inserted ${inserted} missing lifecycle templates`);
+    console.log(`[seed-templates] Inserted ${inserted} lifecycle templates`);
   }
 }
 
