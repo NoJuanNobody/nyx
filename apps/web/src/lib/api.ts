@@ -1083,6 +1083,122 @@ export function updateNotificationPreference(eventType: string, data: Partial<No
   });
 }
 
+// ── Marketplace ─────────────────────────────────────────────────────
+
+export interface MarketplaceListing {
+  id: string;
+  type: 'template' | 'workflow' | 'prompt';
+  title: string;
+  description: string;
+  content: string;
+  priceType: 'free' | 'paid';
+  priceAmountCents: number | null;
+  category: string | null;
+  tags: string[];
+  stage: string | null;
+  downloadCount: number;
+  authorId: string;
+  published: boolean;
+  createdAt: string;
+  avgRating?: number | null;
+  reviews?: MarketplaceReview[];
+}
+
+export interface MarketplaceReview {
+  id: string;
+  listingId: string;
+  userId: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+}
+
+export interface FeatureRequest {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  authorId: string;
+  upvoteCount: number;
+  createdAt: string;
+  userUpvoted?: boolean;
+  comments?: FeatureRequestComment[];
+}
+
+export interface FeatureRequestComment {
+  id: string;
+  userId: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface ProjectShowcase {
+  id: string;
+  title: string;
+  description: string;
+  techStack: string[];
+  teamSize: number | null;
+  nuxFeatures: string[];
+  url: string | null;
+  imageUrl: string | null;
+  authorId: string;
+  createdAt: string;
+}
+
+export function fetchMarketplaceListings(type?: string, search?: string): Promise<MarketplaceListing[]> {
+  const params = new URLSearchParams();
+  if (type) params.set('type', type);
+  if (search) params.set('search', search);
+  const qs = params.toString();
+  return request<MarketplaceListing[]>(`/marketplace${qs ? `?${qs}` : ''}`);
+}
+
+export function fetchMarketplaceListing(id: string): Promise<MarketplaceListing> {
+  return request<MarketplaceListing>(`/marketplace/${id}`);
+}
+
+export function createMarketplaceListing(data: { type: string; title: string; description: string; content: string; priceType?: string; category?: string; tags?: string[]; stage?: string }): Promise<MarketplaceListing> {
+  return request<MarketplaceListing>('/marketplace', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function downloadMarketplaceListing(id: string): Promise<{ content: string; title: string }> {
+  return request<{ content: string; title: string }>(`/marketplace/${id}/download`, { method: 'POST' });
+}
+
+export function reviewMarketplaceListing(id: string, data: { rating: number; comment?: string }): Promise<MarketplaceReview> {
+  return request<MarketplaceReview>(`/marketplace/${id}/reviews`, { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function fetchFeatureRequests(sort?: string): Promise<FeatureRequest[]> {
+  const params = new URLSearchParams();
+  if (sort) params.set('sort', sort);
+  return request<FeatureRequest[]>(`/feature-requests?${params.toString()}`);
+}
+
+export function fetchFeatureRequest(id: string): Promise<FeatureRequest> {
+  return request<FeatureRequest>(`/feature-requests/${id}`);
+}
+
+export function createFeatureRequest(data: { title: string; description: string }): Promise<FeatureRequest> {
+  return request<FeatureRequest>('/feature-requests', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function toggleFeatureRequestUpvote(id: string): Promise<{ upvoted: boolean }> {
+  return request<{ upvoted: boolean }>(`/feature-requests/${id}/upvote`, { method: 'POST' });
+}
+
+export function addFeatureRequestComment(id: string, content: string): Promise<FeatureRequestComment> {
+  return request<FeatureRequestComment>(`/feature-requests/${id}/comments`, { method: 'POST', body: JSON.stringify({ content }) });
+}
+
+export function fetchProjectShowcases(): Promise<ProjectShowcase[]> {
+  return request<ProjectShowcase[]>('/project-showcases');
+}
+
+export function createProjectShowcase(data: { title: string; description: string; techStack?: string[]; teamSize?: number; nuxFeatures?: string[]; url?: string }): Promise<ProjectShowcase> {
+  return request<ProjectShowcase>('/project-showcases', { method: 'POST', body: JSON.stringify(data) });
+}
+
 // ── Ticket Suggestions (Bulk) ───────────────────────────────────────
 
 export interface TicketSuggestion {
