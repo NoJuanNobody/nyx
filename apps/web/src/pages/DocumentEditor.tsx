@@ -302,10 +302,11 @@ export function DocumentEditor() {
 
           <button
             type="button"
+            data-testid="bulk-generate-tickets"
             onClick={() => setBulkTicketOpen(true)}
             className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 shadow-sm hover:bg-blue-100"
           >
-            Generate Tickets
+            Bulk Tickets
           </button>
 
           <SaveAsTemplateButton content={content} stage={docStage} teamId={doc.teamId} />
