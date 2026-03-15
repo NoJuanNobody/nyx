@@ -19,7 +19,7 @@ function Spinner() {
 function ErrorCard({ onHome }: { onHome: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center">
+      <div data-testid="invite-error" className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
           <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
@@ -95,11 +95,11 @@ function InvitationCard({
         <div className="mt-6 rounded-lg border border-slate-100 bg-slate-50 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-slate-500">Team</span>
-            <span className="text-sm font-medium text-slate-900">{invitation.teamName}</span>
+            <span data-testid="invite-team-name" className="text-sm font-medium text-slate-900">{invitation.teamName}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-slate-500">Role</span>
-            <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200 capitalize">
+            <span data-testid="invite-role" className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200 capitalize">
               {invitation.role}
             </span>
           </div>
