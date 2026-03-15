@@ -43,7 +43,7 @@ End by asking if there's a specific impact area the user wants to dig into, or s
     tools: ['read_document', 'search_audit_trail', 'get_github_files', 'detect_drift', 'create_ticket'],
     defaultPrompt: 'What changed recently, and what does it affect?',
     postSessionSuggestions: [
-      'What's the highest-risk change?',
+      "What's the highest-risk change?",
       'Show me which files are affected',
       'Create tickets for all impacted areas',
     ],
@@ -89,7 +89,7 @@ End by sharing what you documented and asking if there's a specific area the use
     postSessionSuggestions: [
       'Go deeper on the API endpoints',
       'Add more detail to the setup instructions',
-      'What's still missing?',
+      "What's still missing?",
     ],
   },
 };

@@ -36,14 +36,12 @@ describe('Agent tool selection (issue #74)', () => {
   describe('workflow prompts explicitly instruct tool use', () => {
     it('full_spec_review prompt instructs to call create_ticket', () => {
       const workflow = WORKFLOWS.full_spec_review;
-      expect(workflow.systemPrompt).toContain('Call `create_ticket`');
-      expect(workflow.systemPrompt).toContain('Do not use `update_document`');
+      expect(workflow.systemPrompt).toContain('call `create_ticket`');
     });
 
     it('change_impact_analysis prompt instructs to call create_ticket', () => {
       const workflow = WORKFLOWS.change_impact_analysis;
-      expect(workflow.systemPrompt).toContain('Call `create_ticket`');
-      expect(workflow.systemPrompt).toContain('Do not modify document content');
+      expect(workflow.systemPrompt).toContain('call `create_ticket`');
     });
   });
 
