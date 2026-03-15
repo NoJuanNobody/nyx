@@ -30,6 +30,7 @@
     "postgres": "^3",
     "puppeteer": "^24",
     "puppeteer-cluster": "^0.24",
+    "stripe": "^20.4.1",
     "zod": "^3"
   },
   "devDependencies": {

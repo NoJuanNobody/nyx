@@ -176,6 +176,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     '/api/integrations/github/callback',
     '/api/waitlist',
     '/api/invitations',
+    '/api/subscriptions/webhook',
   ];
 
   fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
