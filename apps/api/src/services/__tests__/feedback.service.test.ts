@@ -118,7 +118,7 @@ describe('feedbackService', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          html_url: 'https://github.com/NoJuanNobody/syncdocs/issues/99',
+          html_url: 'https://github.com/NoJuanNobody/nyx/issues/99',
           number: 99,
         }),
       });
@@ -132,11 +132,11 @@ describe('feedbackService', () => {
         'test@example.com',
       );
 
-      expect(result.issueUrl).toBe('https://github.com/NoJuanNobody/syncdocs/issues/99');
+      expect(result.issueUrl).toBe('https://github.com/NoJuanNobody/nyx/issues/99');
       expect(result.issueNumber).toBe(99);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.github.com/repos/NoJuanNobody/syncdocs/issues',
+        'https://api.github.com/repos/NoJuanNobody/nyx/issues',
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('"labels":["feedback","feature-request"]'),

@@ -124,7 +124,7 @@ export const SEEDED_INSIGHT = {
     'apps/api/src/__tests__/auth.test.ts',
   ],
   commentId: 1234567890,
-  commentUrl: 'https://github.com/syncdocs/app/issues/101#issuecomment-1234567890',
+  commentUrl: 'https://github.com/nyx/app/issues/101#issuecomment-1234567890',
   commentedAt: '2025-01-02T10:00:00Z',
   fetchedAt: '2025-01-02T10:05:00Z',
 };

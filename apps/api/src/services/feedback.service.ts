@@ -102,7 +102,7 @@ Rules:
 
     const fullBody = `${body}\n\n---\n_Submitted by: ${userName} (${userEmail})_\n_Category: ${category}_\n_Submitted via Nyx feedback_`;
 
-    const res = await fetch(`${GITHUB_API}/repos/NoJuanNobody/syncdocs/issues`, {
+    const res = await fetch(`${GITHUB_API}/repos/NoJuanNobody/nyx/issues`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,

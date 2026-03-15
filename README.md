@@ -46,7 +46,7 @@ Nyx solves this by providing a two-way bridge between intent (documentation) and
 ## Project Structure
 
 ```
-syncdocs/
+nyx/
 ├── apps/
 │   ├── web/          # React frontend (Vite)
 │   └── api/          # Fastify backend
@@ -71,8 +71,8 @@ syncdocs/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/NoJuanNobody/syncdocs.git
-cd syncdocs
+git clone https://github.com/NoJuanNobody/nyx.git
+cd nyx
 ```
 
 ### 2. Install dependencies
@@ -238,7 +238,7 @@ Add it to your Claude Code MCP config:
   "mcpServers": {
     "nyx": {
       "command": "node",
-      "args": ["/path/to/syncdocs/packages/mcp-server/dist/index.js"]
+      "args": ["/path/to/nyx/packages/mcp-server/dist/index.js"]
     }
   }
 }

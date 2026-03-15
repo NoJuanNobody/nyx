@@ -22,7 +22,7 @@ Take a raw idea from the user and ship it end-to-end: issue creation → impleme
    - Acceptance criteria checklist
 3. Create the issue:
    ```
-   gh issue create --repo NoJuanNobody/syncdocs --label "enhancement" --title "<title>" --body "<body>"
+   gh issue create --repo NoJuanNobody/nyx --label "enhancement" --title "<title>" --body "<body>"
    ```
 4. Create any needed labels if they don't exist
 5. Report the issue URL to the user
@@ -31,7 +31,7 @@ Take a raw idea from the user and ship it end-to-end: issue creation → impleme
 
 1. Comment on the issue to trigger the Claude GitHub app:
    ```
-   gh issue comment <number> --repo NoJuanNobody/syncdocs --body "@claude can you write an implementation plan?"
+   gh issue comment <number> --repo NoJuanNobody/nyx --body "@claude can you write an implementation plan?"
    ```
 2. Poll for the implementation plan to complete:
    - Check `gh issue view <number> --json comments` every 30-45 seconds
@@ -39,7 +39,7 @@ Take a raw idea from the user and ship it end-to-end: issue creation → impleme
    - Maximum 10 minutes of polling
 3. Once complete, add the `ready to code` label:
    ```
-   gh issue edit <number> --repo NoJuanNobody/syncdocs --add-label "ready to code"
+   gh issue edit <number> --repo NoJuanNobody/nyx --add-label "ready to code"
    ```
 
 ## Phase 3: Setup
