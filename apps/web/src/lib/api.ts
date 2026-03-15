@@ -88,6 +88,13 @@ export function createDocument(
     templateId?: string;
   },
 ): Promise<Document> {
+  if (!data.teamId) {
+    console.error(
+      '[Nyx] createDocument called without teamId. The user may not belong to a team yet. ' +
+      'Ensure GET /api/teams returns at least one team before attempting document creation.',
+    );
+    return Promise.reject(new Error('Cannot create document: no team selected. Please refresh or check your team membership.'));
+  }
   return request<Document>('/documents', {
     method: 'POST',
     body: JSON.stringify(data),

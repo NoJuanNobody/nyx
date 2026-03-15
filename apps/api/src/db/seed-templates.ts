@@ -50,24 +50,36 @@ const TEMPLATES: {
   { stage: 'execution', name: 'Deployment Notes', description: 'Pre/post deployment checklist and rollback procedure', content: '# Deployment Notes — v[X.Y.Z]\n\n## Pre-Deployment Checklist\n- [ ] Database migrations reviewed\n- [ ] Environment variables updated\n- [ ] Feature flags configured\n- [ ] Monitoring alerts set\n\n## Deployment Steps\n1. \n2. \n3. \n\n## Post-Deployment Verification\n- [ ] Health check passing\n- [ ] Key flows tested\n- [ ] Metrics baseline confirmed\n\n## Rollback Procedure\n1. \n2. \n\n## Contacts\n- **On-call:** \n- **Product:** \n', sortOrder: 3 },
 ];
 
-async function seedTemplates() {
-  const env = process.env.NODE_ENV || 'development';
-  console.log(`[seed-templates] Environment: ${env}`);
-  console.log('[seed-templates] Inserting lifecycle document templates (ON CONFLICT DO NOTHING)...\n');
-
+/**
+ * Ensures all built-in lifecycle templates exist in the database.
+ * Safe to call at server startup — uses ON CONFLICT DO NOTHING.
+ */
+export async function ensureTemplates(): Promise<void> {
   const result = await db.insert(documentTemplates)
     .values(TEMPLATES)
     .onConflictDoNothing() as unknown as { rowCount: number };
 
   const inserted = result?.rowCount ?? 0;
-  const skipped = TEMPLATES.length - inserted;
-
-  console.log(`[seed-templates] Done. ${inserted} inserted, ${skipped} already existed.`);
-  console.log('[seed-templates] Total templates defined: ' + TEMPLATES.length);
-  process.exit(0);
+  if (inserted > 0) {
+    console.log(`[seed-templates] Inserted ${inserted} missing lifecycle templates`);
+  }
 }
 
-seedTemplates().catch((err) => {
-  console.error('[seed-templates] Failed:', err);
-  process.exit(1);
-});
+// ── CLI entry point ─────────────────────────────────────────────────
+// Only runs when executed directly (pnpm db:seed-templates)
+const isCLI = process.argv[1]?.includes('seed-templates');
+if (isCLI) {
+  const env = process.env.NODE_ENV || 'development';
+  console.log(`[seed-templates] Environment: ${env}`);
+  console.log('[seed-templates] Inserting lifecycle document templates (ON CONFLICT DO NOTHING)...\n');
+
+  ensureTemplates()
+    .then(() => {
+      console.log('[seed-templates] Done. Total templates defined: ' + TEMPLATES.length);
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error('[seed-templates] Failed:', err);
+      process.exit(1);
+    });
+}

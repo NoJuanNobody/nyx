@@ -155,6 +155,10 @@ export function requireRole(options: RequireRoleOptions) {
     }
 
     if (!teamId) {
+      request.log.warn(
+        { userId, source, url: request.url, method: request.method },
+        'Permission check failed: unable to determine team context',
+      );
       return reply.code(400).send({ error: 'Unable to determine team context' });
     }
 
@@ -162,12 +166,20 @@ export function requireRole(options: RequireRoleOptions) {
     const userRole = await getUserTeamRole(userId, teamId);
 
     if (!userRole) {
+      request.log.warn(
+        { userId, teamId, source, url: request.url },
+        'Permission check failed: user is not a member of this team',
+      );
       return reply
         .code(403)
         .send({ error: 'You are not a member of this team' });
     }
 
     if (roleIndex(userRole) < roleIndex(minimumRole)) {
+      request.log.warn(
+        { userId, teamId, userRole, minimumRole, url: request.url },
+        'Permission check failed: insufficient role',
+      );
       return reply.code(403).send({
         error: `Requires at least '${minimumRole}' role. Your role: '${userRole}'`,
       });
