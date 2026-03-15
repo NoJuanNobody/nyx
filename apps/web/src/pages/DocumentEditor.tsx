@@ -14,6 +14,7 @@ import { DocDrawer, DocDrawerToggle, type DrawerPanel } from '../components/DocD
 import { MarkdownToolbar } from '../components/MarkdownToolbar';
 import { AIAdvisor } from '../components/AIAdvisor';
 import { CreateTicketModal } from '../components/CreateTicketModal';
+import { BulkTicketReview } from '../components/BulkTicketReview';
 import { JSXPreviewPanel } from '../components/JSXPreviewPanel';
 import { SaveAsTemplateButton } from '../components/SaveAsTemplateButton';
 
@@ -36,6 +37,7 @@ export function DocumentEditor() {
   const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
   const [viewingVersion, setViewingVersion] = useState<DocumentVersion | null>(null);
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
+  const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
   const [currentMockupJsx, setCurrentMockupJsx] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const splitContainerRef = useRef<HTMLDivElement>(null);
@@ -296,6 +298,15 @@ export function DocumentEditor() {
             className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
           >
             Create Ticket
+          </button>
+
+          <button
+            type="button"
+            data-testid="bulk-generate-tickets"
+            onClick={() => setBulkTicketOpen(true)}
+            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 shadow-sm hover:bg-blue-100"
+          >
+            Bulk Tickets
           </button>
 
           <SaveAsTemplateButton content={content} stage={docStage} teamId={doc.teamId} />
@@ -597,6 +608,13 @@ export function DocumentEditor() {
         documentTitle={title}
         documentContent={content}
         mockupJsx={currentMockupJsx}
+      />
+
+      <BulkTicketReview
+        documentId={id!}
+        teamId={doc.teamId}
+        open={bulkTicketOpen}
+        onClose={() => setBulkTicketOpen(false)}
       />
     </div>
   );

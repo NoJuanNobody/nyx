@@ -1,9 +1,9 @@
-import { eq } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { ticketSuggestions, documents, documentVersions } from '../db/schema.js';
+import { ticketSuggestions, documents, documentVersions, integrations } from '../db/schema.js';
 import { aiService } from './ai.service.js';
 import { ticketService } from './ticket.service.js';
-import { desc } from 'drizzle-orm';
+import { githubService } from './github.service.js';
 
 export const suggestionService = {
   async generateSuggestions(documentId: string) {
@@ -96,6 +96,137 @@ export const suggestionService = {
     const [updated] = await db
       .update(ticketSuggestions)
       .set({ status: 'dismissed', reviewedById: userId, updatedAt: new Date() })
+      .where(eq(ticketSuggestions.id, suggestionId))
+      .returning();
+
+    return updated;
+  },
+
+  async generateBulkSuggestions(documentId: string) {
+    // Fetch the document
+    const [doc] = await db
+      .select()
+      .from(documents)
+      .where(eq(documents.id, documentId));
+
+    if (!doc) throw new Error('Document not found');
+
+    // Optionally fetch code context from GitHub integration
+    let codeContextStr: string | undefined;
+    if (doc.teamId) {
+      try {
+        const [integration] = await db
+          .select()
+          .from(integrations)
+          .where(and(eq(integrations.teamId, doc.teamId), eq(integrations.type, 'github')));
+
+        if (integration) {
+          const cfg = integration.config as {
+            accessToken?: string;
+            selectedRepos?: Array<{ owner: string; name: string }>;
+            owner?: string;
+            repo?: string;
+          };
+          const accessToken = cfg.accessToken;
+          const owner = cfg.selectedRepos?.[0]?.owner ?? cfg.owner;
+          const repo = cfg.selectedRepos?.[0]?.name ?? cfg.repo;
+
+          if (accessToken && owner && repo) {
+            const tree = await githubService.getFileTree(accessToken, owner, repo);
+            codeContextStr = JSON.stringify(tree).slice(0, 4000);
+          }
+        }
+      } catch {
+        // Proceed without code context if GitHub fetch fails
+      }
+    }
+
+    // Generate suggestions via AI
+    const aiResults = await aiService.generateBulkTicketSuggestions(
+      doc.content ?? '',
+      doc.title,
+      doc.stage ?? null,
+      codeContextStr,
+    );
+
+    // Insert all suggestions into the database
+    const created = await db
+      .insert(ticketSuggestions)
+      .values(
+        aiResults.map((item) => ({
+          documentId,
+          title: item.title,
+          description: item.description,
+          labels: item.labels,
+          status: 'pending' as const,
+        })),
+      )
+      .returning();
+
+    return created;
+  },
+
+  async bulkApprove(suggestionIds: string[], userId: string, provider: 'github' | 'jira') {
+    // Fetch all suggestions by IDs
+    const suggestions = await db
+      .select()
+      .from(ticketSuggestions)
+      .where(inArray(ticketSuggestions.id, suggestionIds));
+
+    // Validate all are pending
+    const nonPending = suggestions.filter((s) => s.status !== 'pending');
+    if (nonPending.length > 0) {
+      throw new Error(`${nonPending.length} suggestion(s) are not in pending status`);
+    }
+
+    const results: Array<{ suggestionId: string; success: boolean; ticket?: unknown; error?: string }> = [];
+
+    for (const suggestion of suggestions) {
+      try {
+        const ticket = await ticketService.createFromDocument(
+          suggestion.documentId,
+          provider,
+          suggestion.title,
+          suggestion.description,
+          userId,
+        );
+
+        // Mark as approved
+        await db
+          .update(ticketSuggestions)
+          .set({ status: 'approved', reviewedById: userId, updatedAt: new Date() })
+          .where(eq(ticketSuggestions.id, suggestion.id));
+
+        results.push({ suggestionId: suggestion.id, success: true, ticket });
+      } catch (err) {
+        const error = err instanceof Error ? err.message : 'Unknown error';
+        results.push({ suggestionId: suggestion.id, success: false, error });
+      }
+
+      // Rate-limit between calls
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    return results;
+  },
+
+  async updateSuggestion(suggestionId: string, updates: { title?: string; description?: string; labels?: string[] }) {
+    const [suggestion] = await db
+      .select()
+      .from(ticketSuggestions)
+      .where(eq(ticketSuggestions.id, suggestionId));
+
+    if (!suggestion) throw new Error('Suggestion not found');
+    if (suggestion.status !== 'pending') throw new Error('Suggestion already reviewed');
+
+    const setValues: Record<string, unknown> = { updatedAt: new Date() };
+    if (updates.title !== undefined) setValues.title = updates.title;
+    if (updates.description !== undefined) setValues.description = updates.description;
+    if (updates.labels !== undefined) setValues.labels = updates.labels;
+
+    const [updated] = await db
+      .update(ticketSuggestions)
+      .set(setValues)
       .where(eq(ticketSuggestions.id, suggestionId))
       .returning();
 
