@@ -280,6 +280,33 @@ export function analyzeMissingSections(data: {
   });
 }
 
+// ── Decision Weight (capacity metric) ────────────────────────────────
+
+export interface DecisionWeightBreakdown {
+  ambiguity: number;
+  integrationSurface: number;
+  validationDifficulty: number;
+  scopeSpread: number;
+  novelty: number;
+}
+
+export interface DecisionWeightResult {
+  weight: number;
+  breakdown: DecisionWeightBreakdown;
+  bottlenecks: string[];
+  reviewCycles: number;
+}
+
+export function estimateDecisionWeight(data: {
+  content: string;
+  stage?: string;
+}): Promise<DecisionWeightResult> {
+  return request<DecisionWeightResult>('/ai/decision-weight', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export function replyToNotification(data: {
   notificationId: string;
   message: string;
@@ -846,14 +873,23 @@ export interface SprintTicket {
   id: string;
   title: string;
   points: number;
+  /** Decision weight: human judgment cost derived from the backing spec (1–100) */
+  decisionWeight: number;
+  /** Estimated review cycles needed before shippable */
+  reviewCycles: number;
   status: string;
 }
 
 export interface SprintCapacityData {
   sprintName: string;
+  /** Total decision weight the team can absorb per sprint */
+  totalWeight: number;
+  /** Sum of decision weight for all tickets */
+  usedWeight: number;
+  capacityPercent: number;
+  /** Legacy story points — kept for transition */
   totalPoints: number;
   usedPoints: number;
-  capacityPercent: number;
   tickets: SprintTicket[];
 }
 
@@ -872,6 +908,7 @@ export function getSprintCapacity(teamId: string): Promise<SprintCapacityData> {
 export function checkSprintCapacity(data: {
   teamId: string;
   newTicketPoints?: number;
+  newTicketWeight?: number;
 }): Promise<SprintCheckResult> {
   return request<SprintCheckResult>('/sprint/check', {
     method: 'POST',

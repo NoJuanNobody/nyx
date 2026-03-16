@@ -4,28 +4,10 @@ import {
   getSprintCapacity,
   checkSprintCapacity,
   deferSprintTicket,
+  type SprintTicket,
+  type SprintCapacityData,
+  type SprintCheckResult,
 } from '../lib/api';
-
-interface SprintTicket {
-  id: string;
-  title: string;
-  points: number;
-  status: string;
-}
-
-interface SprintCapacityData {
-  sprintName: string;
-  totalPoints: number;
-  usedPoints: number;
-  capacityPercent: number;
-  tickets: SprintTicket[];
-}
-
-interface SprintCheckResult {
-  capacity: SprintCapacityData;
-  overThreshold: boolean;
-  suggestions: string[];
-}
 
 function statusBadgeClass(status: string): string {
   switch (status) {
@@ -153,7 +135,7 @@ export function SprintGatekeeper() {
         <div>
           <h2 className="text-lg font-semibold text-slate-900">{capacity.sprintName}</h2>
           <p className="text-sm text-slate-500">
-            {capacity.usedPoints} / {capacity.totalPoints} points used
+            {capacity.usedWeight} / {capacity.totalWeight} decision weight used
           </p>
         </div>
         <span
@@ -199,10 +181,10 @@ export function SprintGatekeeper() {
             </svg>
             <div className="flex-1">
               <p className="text-sm font-medium text-amber-800">
-                Sprint is at {capacity.capacityPercent}% capacity.
+                Sprint is at {capacity.capacityPercent}% judgment bandwidth.
               </p>
               <p className="mt-1 text-sm text-amber-700">
-                To add a new spec, defer one or more of these tickets:
+                Your team's review capacity is near saturation. Defer tickets to free decision bandwidth:
               </p>
             </div>
           </div>
@@ -225,13 +207,16 @@ export function SprintGatekeeper() {
                     <span className="text-sm font-medium text-slate-800">{ticket.title}</span>
                     <span className="ml-2 text-xs text-slate-500">{ticket.id}</span>
                   </div>
-                  <span className="text-xs font-medium text-slate-500">{ticket.points} pts</span>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-xs font-medium text-slate-600">wt {ticket.decisionWeight}</span>
+                    <span className="text-xs text-slate-400">{ticket.reviewCycles} review{ticket.reviewCycles !== 1 ? 's' : ''}</span>
+                  </div>
                 </label>
               ))}
             </div>
           ) : (
             <p className="mt-3 text-sm text-amber-600">
-              All current tickets are in progress. Consider scheduling for the next sprint.
+              All current tickets are in progress. The team's review bandwidth is saturated.
             </p>
           )}
 
@@ -273,7 +258,8 @@ export function SprintGatekeeper() {
                   <span className="truncate text-sm text-slate-800">{ticket.title}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-medium text-slate-500">{ticket.points} pts</span>
+                  <span className="text-xs font-medium text-slate-500" title="Decision weight">wt {ticket.decisionWeight}</span>
+                  <span className="text-xs text-slate-400" title="Review cycles">{ticket.reviewCycles}R</span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(ticket.status)}`}
                   >

@@ -164,6 +164,19 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
     return result;
   });
 
+  // POST /api/ai/decision-weight — estimate the human judgment cost of a spec
+  app.post('/decision-weight', async (request, reply) => {
+    const { content, stage } = request.body as { content: string; stage?: string };
+
+    if (!content) {
+      reply.code(400);
+      return { error: 'content is required' };
+    }
+
+    const result = await aiService.estimateDecisionWeight(content, stage);
+    return result;
+  });
+
   // POST /api/ai/seed-next-stage — generate content for the next lifecycle stage
   app.post('/seed-next-stage', async (request, reply) => {
     const { content, fromStage, toStage } = request.body as {

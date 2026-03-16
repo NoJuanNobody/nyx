@@ -529,6 +529,98 @@ Respond ONLY with a valid JSON array of objects with title, description, and lab
     }
   },
 
+  /**
+   * Estimate the decision weight of a document — a capacity metric that measures
+   * the human judgment cost to ship what the doc describes.
+   * Returns a composite score (1–100) with a breakdown of contributing signals.
+   */
+  async estimateDecisionWeight(
+    content: string,
+    stage?: string | null,
+  ): Promise<{
+    weight: number;
+    breakdown: {
+      ambiguity: number;
+      integrationSurface: number;
+      validationDifficulty: number;
+      scopeSpread: number;
+      novelty: number;
+    };
+    bottlenecks: string[];
+    reviewCycles: number;
+  }> {
+    const ai = requireClient();
+
+    const stageContext = stage
+      ? `\n\nThis is a "${stage}" stage document. Earlier stages (conception, definition) typically carry higher ambiguity; later stages (implementation, execution) carry higher validation difficulty.`
+      : '';
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 1024,
+      system:
+        `You are a capacity estimation engine for AI-agent-heavy development teams. The bottleneck is no longer writing code — it is human judgment: reviewing, deciding, and integrating.
+
+Given a specification document, estimate its DECISION WEIGHT — the human judgment cost to ship what this doc describes. Analyze these five signals:
+
+1. **ambiguity** (1–20): Count of TBDs, open questions, vague language, undefined terms, missing acceptance criteria. Higher = more decisions the team must resolve.
+2. **integrationSurface** (1–20): Number of external systems, APIs, other components, or teams this work touches. Each seam requires human coordination.
+3. **validationDifficulty** (1–20): How hard is it to verify correctness? Visual UI is easy (low). Sync logic, data integrity, state management, security — these need deep review (high).
+4. **scopeSpread** (1–20): How many distinct work items does this doc imply? More items = more review cycles and integration points.
+5. **novelty** (1–20): Is there prior art to compare against, or is this greenfield? Novel work requires more judgment per unit of output.
+
+Also estimate **reviewCycles** — the number of human review passes this work will realistically require before it's shippable (1–10).
+
+Identify the top 2–4 **bottlenecks** — specific items in the doc driving the weight up (e.g., "No acceptance criteria for the sync endpoint", "Touches 4 external APIs with no error contract defined").
+
+Respond ONLY with valid JSON:
+{"weight": <sum of 5 signals, 5–100>, "breakdown": {"ambiguity": <n>, "integrationSurface": <n>, "validationDifficulty": <n>, "scopeSpread": <n>, "novelty": <n>}, "bottlenecks": ["...", "..."], "reviewCycles": <n>}${stageContext}`,
+      messages: [
+        {
+          role: 'user',
+          content: `Estimate the decision weight of this specification:\n\n${content.slice(0, 8000)}`,
+        },
+      ],
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip code fences
+    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+    try {
+      const parsed = JSON.parse(text) as {
+        weight: number;
+        breakdown: {
+          ambiguity: number;
+          integrationSurface: number;
+          validationDifficulty: number;
+          scopeSpread: number;
+          novelty: number;
+        };
+        bottlenecks: string[];
+        reviewCycles: number;
+      };
+      // Ensure weight equals sum of breakdown
+      const b = parsed.breakdown;
+      const sum = b.ambiguity + b.integrationSurface + b.validationDifficulty + b.scopeSpread + b.novelty;
+      return {
+        weight: sum,
+        breakdown: b,
+        bottlenecks: Array.isArray(parsed.bottlenecks) ? parsed.bottlenecks : [],
+        reviewCycles: typeof parsed.reviewCycles === 'number' ? parsed.reviewCycles : 3,
+      };
+    } catch {
+      return {
+        weight: 50,
+        breakdown: { ambiguity: 10, integrationSurface: 10, validationDifficulty: 10, scopeSpread: 10, novelty: 10 },
+        bottlenecks: ['Could not parse document for capacity estimation'],
+        reviewCycles: 3,
+      };
+    }
+  },
+
   async seedNextStage(
     content: string,
     fromStage: string,

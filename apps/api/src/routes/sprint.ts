@@ -16,9 +16,10 @@ export const sprintRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /api/sprint/check — check capacity and get trade-off suggestions
   app.post('/sprint/check', async (request, reply) => {
-    const { teamId, newTicketPoints } = request.body as {
+    const { teamId, newTicketPoints, newTicketWeight } = request.body as {
       teamId?: string;
       newTicketPoints?: number;
+      newTicketWeight?: number;
     };
 
     if (!teamId) {
@@ -26,7 +27,7 @@ export const sprintRoutes: FastifyPluginAsync = async (app) => {
       return { error: 'teamId is required' };
     }
 
-    return sprintService.checkSprintCapacity(teamId, newTicketPoints);
+    return sprintService.checkSprintCapacity(teamId, newTicketPoints, newTicketWeight);
   });
 
   // POST /api/sprint/defer — defer a ticket to backlog
