@@ -10,6 +10,7 @@ import { registerSprintCommand } from './commands/sprint.js';
 import { registerAgentCommand } from './commands/agent.js';
 import { registerVersionsCommand, registerDiffCommand } from './commands/versions.js';
 import { registerBulkCommand } from './commands/bulk.js';
+import { registerProposalsCommand } from './commands/proposals.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -30,6 +31,7 @@ registerAgentCommand(program);
 registerVersionsCommand(program);
 registerDiffCommand(program);
 registerBulkCommand(program);
+registerProposalsCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
