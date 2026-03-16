@@ -11,6 +11,7 @@ import { registerAgentCommand } from './commands/agent.js';
 import { registerVersionsCommand, registerDiffCommand } from './commands/versions.js';
 import { registerBulkCommand } from './commands/bulk.js';
 import { registerProposalsCommand } from './commands/proposals.js';
+import { registerGovernanceCommand } from './commands/governance.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -32,6 +33,7 @@ registerVersionsCommand(program);
 registerDiffCommand(program);
 registerBulkCommand(program);
 registerProposalsCommand(program);
+registerGovernanceCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
