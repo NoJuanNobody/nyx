@@ -13,6 +13,7 @@ import { registerBulkCommand } from './commands/bulk.js';
 import { registerProposalsCommand } from './commands/proposals.js';
 import { registerGovernanceCommand } from './commands/governance.js';
 import { registerPermissionsCommand } from './commands/permissions.js';
+import { registerPodcastCommand } from './commands/podcast.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -36,6 +37,7 @@ registerBulkCommand(program);
 registerProposalsCommand(program);
 registerGovernanceCommand(program);
 registerPermissionsCommand(program);
+registerPodcastCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
