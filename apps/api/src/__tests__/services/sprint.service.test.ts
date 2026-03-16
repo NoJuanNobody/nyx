@@ -46,7 +46,7 @@ describe('sprintService', () => {
       const after = await sprintService.getSprintCapacity('team-1');
       expect(after.capacityPercent).toBeLessThan(before.capacityPercent);
       expect(after.capacityPercent).toBe(
-        Math.round((after.usedPoints / after.totalPoints) * 100),
+        Math.round((after.usedWeight / after.totalWeight) * 100),
       );
     });
   });

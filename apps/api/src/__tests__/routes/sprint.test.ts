@@ -101,7 +101,7 @@ describe('Sprint Routes', () => {
       const body = JSON.parse(res.body);
       expect(body.overThreshold).toBe(true);
       expect(body.suggestions).toHaveLength(1);
-      expect(mockSprintService.checkSprintCapacity).toHaveBeenCalledWith('team-1', 5);
+      expect(mockSprintService.checkSprintCapacity).toHaveBeenCalledWith('team-1', 5, undefined);
     });
 
     it('returns 400 when teamId is missing', async () => {
@@ -132,7 +132,7 @@ describe('Sprint Routes', () => {
       });
 
       expect(res.statusCode).toBe(200);
-      expect(mockSprintService.checkSprintCapacity).toHaveBeenCalledWith('team-1', undefined);
+      expect(mockSprintService.checkSprintCapacity).toHaveBeenCalledWith('team-1', undefined, undefined);
     });
   });
 
