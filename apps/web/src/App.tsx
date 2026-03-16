@@ -14,6 +14,7 @@ import { SprintPage } from './pages/SprintPage';
 import { TracePage } from './pages/TracePage';
 import { Marketplace } from './pages/Marketplace';
 import { AgentMapPage } from './pages/AgentMapPage';
+import { ObservabilityPage } from './pages/ObservabilityPage';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 import { AcceptInvite } from './pages/AcceptInvite';
@@ -54,6 +55,7 @@ export function App() {
             <Route path="/sprint" element={<SprintPage />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/agent-map" element={<AgentMapPage />} />
+            <Route path="/observability" element={<ObservabilityPage />} />
           </Route>
         </Route>
       </Routes>
