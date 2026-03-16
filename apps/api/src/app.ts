@@ -40,6 +40,7 @@ import { marketplaceRoutes } from './routes/marketplace.js';
 import { featureRequestRoutes } from './routes/feature-requests.js';
 import { projectShowcaseRoutes } from './routes/project-showcases.js';
 import { observabilityRoutes } from './routes/observability.js';
+import { voiceRoutes } from './routes/voice.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -91,6 +92,7 @@ export function buildApp() {
   app.register(featureRequestRoutes, { prefix: '/api/feature-requests' });
   app.register(projectShowcaseRoutes, { prefix: '/api/project-showcases' });
   app.register(observabilityRoutes, { prefix: '/api/observability' });
+  app.register(voiceRoutes, { prefix: '/api/voice' });
 
   return app;
 }
