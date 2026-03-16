@@ -42,6 +42,7 @@ import { projectShowcaseRoutes } from './routes/project-showcases.js';
 import { governanceRoutes } from './routes/governance.js';
 import { permissionRoutes } from './routes/permissions.js';
 import { docChangesRoutes } from './routes/doc-changes.js';
+import { a2aRoutes } from './routes/a2a.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -95,6 +96,7 @@ export function buildApp() {
   app.register(governanceRoutes, { prefix: '/api/governance' });
   app.register(permissionRoutes, { prefix: '/api/permissions' });
   app.register(docChangesRoutes, { prefix: '/api/documents' });
+  app.register(a2aRoutes, { prefix: '/api/a2a' });
 
   return app;
 }
