@@ -1,0 +1,22 @@
+{
+  "name": "@nyx/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "CLI wrapper for the Nyx API",
+  "main": "dist/index.js",
+  "bin": {
+    "nyx": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3"
+  }
+}
