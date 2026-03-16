@@ -41,6 +41,7 @@ import { featureRequestRoutes } from './routes/feature-requests.js';
 import { projectShowcaseRoutes } from './routes/project-showcases.js';
 import { governanceRoutes } from './routes/governance.js';
 import { permissionRoutes } from './routes/permissions.js';
+import { docChangesRoutes } from './routes/doc-changes.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -93,6 +94,7 @@ export function buildApp() {
   app.register(projectShowcaseRoutes, { prefix: '/api/project-showcases' });
   app.register(governanceRoutes, { prefix: '/api/governance' });
   app.register(permissionRoutes, { prefix: '/api/permissions' });
+  app.register(docChangesRoutes, { prefix: '/api/documents' });
 
   return app;
 }
