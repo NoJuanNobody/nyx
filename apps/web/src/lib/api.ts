@@ -1236,6 +1236,28 @@ export function createProjectShowcase(data: { title: string; description: string
   return request<ProjectShowcase>('/project-showcases', { method: 'POST', body: JSON.stringify(data) });
 }
 
+// ── Observability ────────────────────────────────────────────────────
+
+export function fetchObservabilityDashboard(): Promise<{
+  metrics: Record<string, unknown[]>;
+  alerts: Array<{ ruleId: string; metric: string; value: number; threshold: number; triggeredAt: number; severity: 'warning' | 'critical' }>;
+  pipelineHealth: Array<{ stage: string; avgLatencyMs: number; errorRate: number; throughput: number; lastUpdated: number }>;
+}> {
+  return request('/observability/dashboard');
+}
+
+export function fetchObservabilityMetrics(): Promise<Record<string, unknown[]>> {
+  return request('/observability/metrics');
+}
+
+export function fetchObservabilityAlerts(): Promise<Array<{ ruleId: string; metric: string; value: number; threshold: number; triggeredAt: number; severity: 'warning' | 'critical' }>> {
+  return request('/observability/alerts');
+}
+
+export function fetchPipelineHealth(): Promise<Array<{ stage: string; avgLatencyMs: number; errorRate: number; throughput: number; lastUpdated: number }>> {
+  return request('/observability/pipeline-health');
+}
+
 // ── Ticket Suggestions (Bulk) ───────────────────────────────────────
 
 export interface TicketSuggestion {
