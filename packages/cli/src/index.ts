@@ -4,6 +4,7 @@ import { Command } from 'commander';
 // === COMMAND IMPORTS ===
 import { registerDocsCommand } from './commands/docs.js';
 import { registerConfigCommand } from './commands/config.js';
+import { registerVersionsCommand, registerDiffCommand } from './commands/versions.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -16,6 +17,8 @@ program
 // === COMMAND REGISTRATION ===
 registerDocsCommand(program);
 registerConfigCommand(program);
+registerVersionsCommand(program);
+registerDiffCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
