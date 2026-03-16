@@ -185,14 +185,14 @@ describe('AI Service', () => {
     expect(result).toContain('Project Overview');
   });
 
-  it('seedNextStage: returns parsed JSON on valid response', async () => {
+  it('seedNextStage: extracts title from first heading', async () => {
     mockCreate.mockResolvedValueOnce(
-      makeResponse('{"title": "PRD", "content": "# Product Requirements"}'),
+      makeResponse('# Product Requirements\n\nDetailed PRD content here'),
     );
 
     const result = await aiService.seedNextStage('# Conception doc', 'conception', 'definition');
-    expect(result.title).toBe('PRD');
-    expect(result.content).toBe('# Product Requirements');
+    expect(result.title).toBe('Product Requirements');
+    expect(result.content).toContain('Detailed PRD content here');
   });
 
   it('seedNextStage: returns fallback on parse failure', async () => {
@@ -205,13 +205,14 @@ describe('AI Service', () => {
     expect(result.content).toContain('Design details here');
   });
 
-  it('seedNextStage: strips code fences from response', async () => {
+  it('seedNextStage: returns Untitled Document when no heading found', async () => {
     mockCreate.mockResolvedValueOnce(
-      makeResponse('```json\n{"title": "Implementation", "content": "# Impl Plan"}\n```'),
+      makeResponse('Some content without a heading'),
     );
 
     const result = await aiService.seedNextStage('# Arch doc', 'architecture', 'implementation');
-    expect(result.title).toBe('Implementation');
+    expect(result.title).toBe('Untitled Document');
+    expect(result.content).toBe('Some content without a heading');
   });
 
   it('analyzeMissingSections: returns parsed sections', async () => {
@@ -297,19 +298,19 @@ describe('AI Service', () => {
     expect(callArgs.system).toContain('definition');
   });
 
-  it('seedNextStage: extracts JSON even when wrapped in prose', async () => {
+  it('seedNextStage: extracts title from heading in multi-section doc', async () => {
     mockCreate.mockResolvedValueOnce(
-      makeResponse('Here is the document:\n\n{"title": "PRD Document", "content": "# Product Requirements\\n\\n## Overview\\n\\nThis is the PRD."}\n\nLet me know if you need changes.'),
+      makeResponse('# PRD Document\n\n## Overview\n\nThis is the PRD.\n\n## Requirements\n\n- Req 1'),
     );
 
     const result = await aiService.seedNextStage('# Conception', 'conception', 'definition');
     expect(result.title).toBe('PRD Document');
-    expect(result.content).toContain('# Product Requirements');
+    expect(result.content).toContain('## Overview');
   });
 
   it('seedNextStage: system prompt emphasizes markdown format', async () => {
     mockCreate.mockResolvedValueOnce(
-      makeResponse('{"title": "Arch Doc", "content": "# Architecture"}'),
+      makeResponse('# Architecture\n\nDesign here'),
     );
 
     await aiService.seedNextStage('# PRD', 'definition', 'architecture');
