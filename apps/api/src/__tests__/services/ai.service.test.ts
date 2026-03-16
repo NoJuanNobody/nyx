@@ -296,4 +296,44 @@ describe('AI Service', () => {
     const callArgs = mockCreate.mock.calls[0][0];
     expect(callArgs.system).toContain('definition');
   });
+
+  it('seedNextStage: extracts JSON even when wrapped in prose', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('Here is the document:\n\n{"title": "PRD Document", "content": "# Product Requirements\\n\\n## Overview\\n\\nThis is the PRD."}\n\nLet me know if you need changes.'),
+    );
+
+    const result = await aiService.seedNextStage('# Conception', 'conception', 'definition');
+    expect(result.title).toBe('PRD Document');
+    expect(result.content).toContain('# Product Requirements');
+  });
+
+  it('seedNextStage: system prompt emphasizes markdown format', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('{"title": "Arch Doc", "content": "# Architecture"}'),
+    );
+
+    await aiService.seedNextStage('# PRD', 'definition', 'architecture');
+    const callArgs = mockCreate.mock.calls[0][0];
+    expect(callArgs.system).toContain('markdown');
+  });
+
+  it('refineJSXPreview: strips code fences with language tags', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('```jsx\nfunction App() { return <div>Refined</div>; }\n```'),
+    );
+
+    const result = await aiService.refineJSXPreview('<div>Old</div>', 'Update it');
+    expect(result).toContain('function App()');
+    expect(result).not.toContain('```');
+  });
+
+  it('refineJSXPreview: strips import statements', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('import React from "react";\nfunction App() { return <div/>; }'),
+    );
+
+    const result = await aiService.refineJSXPreview('<div/>', 'Add state');
+    expect(result).not.toContain('import');
+    expect(result).toContain('function App()');
+  });
 });
