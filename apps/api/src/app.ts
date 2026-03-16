@@ -42,6 +42,7 @@ import { projectShowcaseRoutes } from './routes/project-showcases.js';
 import { observabilityRoutes } from './routes/observability.js';
 import { voiceRoutes } from './routes/voice.js';
 import { voiceTranscriptionRoutes } from './routes/voice-transcription.js';
+import { voiceDocumentRoutes } from './routes/voice-documents.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -95,6 +96,7 @@ export function buildApp() {
   app.register(observabilityRoutes, { prefix: '/api/observability' });
   app.register(voiceRoutes, { prefix: '/api/voice' });
   app.register(voiceTranscriptionRoutes, { prefix: '/api/voice' });
+  app.register(voiceDocumentRoutes, { prefix: '/api/voice' });
 
   return app;
 }
