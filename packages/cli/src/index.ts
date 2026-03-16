@@ -7,6 +7,7 @@ import { registerConfigCommand } from './commands/config.js';
 import { registerAuditCommand, registerActivityCommand } from './commands/audit.js';
 import { registerQualityCommand } from './commands/quality.js';
 import { registerSprintCommand } from './commands/sprint.js';
+import { registerAgentCommand } from './commands/agent.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -23,6 +24,7 @@ registerAuditCommand(program);
 registerActivityCommand(program);
 registerQualityCommand(program);
 registerSprintCommand(program);
+registerAgentCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
