@@ -35,6 +35,7 @@ import { impactGraphRoutes } from './routes/impact-graph.js';
 import { invitationRoutes } from './routes/invitations.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { subscriptionRoutes } from './routes/subscriptions.js';
+import { docChangesRoutes } from './routes/doc-changes.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -81,6 +82,7 @@ export function buildApp() {
   app.register(invitationRoutes, { prefix: '/api/invitations' });
   app.register(notificationRoutes, { prefix: '/api/notifications' });
   app.register(subscriptionRoutes, { prefix: '/api/subscriptions' });
+  app.register(docChangesRoutes, { prefix: '/api/documents' });
 
   return app;
 }

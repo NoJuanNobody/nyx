@@ -1,0 +1,21 @@
+{
+  "name": "@nyx/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Nyx CLI — interact with the Nyx platform from the command line",
+  "main": "dist/index.js",
+  "bin": {
+    "nyx": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7",
+    "vitest": "^3"
+  }
+}
