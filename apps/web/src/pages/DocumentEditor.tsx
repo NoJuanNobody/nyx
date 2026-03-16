@@ -17,6 +17,7 @@ import { CreateTicketModal } from '../components/CreateTicketModal';
 import { BulkTicketReview } from '../components/BulkTicketReview';
 import { JSXPreviewPanel } from '../components/JSXPreviewPanel';
 import { SaveAsTemplateButton } from '../components/SaveAsTemplateButton';
+import { MeetingNoteQuality } from '../components/MeetingNoteQuality';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
 
@@ -140,6 +141,7 @@ export function DocumentEditor() {
   };
 
   const docStage = (doc as Document & { stage?: DocumentStage | null })?.stage ?? null;
+  const isMeetingSourced = content.trimStart().startsWith('# Meeting Notes:');
 
   const handleStageChange = (newStage: DocumentStage | null) => {
     saveMutation.mutate({ stage: newStage } as Parameters<typeof saveMutation.mutate>[0]);
@@ -562,6 +564,18 @@ export function DocumentEditor() {
           onApplyEdit={setAiProposedContent}
           onStageChange={handleStageChange}
         />
+
+        {/* Meeting Note Quality — shown for meeting-sourced documents */}
+        {isMeetingSourced && id && (
+          <MeetingNoteQuality
+            documentId={id}
+            content={content}
+            onApply={(newContent) => {
+              setContent(newContent);
+              scheduleSave({ title, content: newContent });
+            }}
+          />
+        )}
       </div>
 
       {/* Save Version modal */}

@@ -103,6 +103,35 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
     return { jsx };
   });
 
+  // POST /api/ai/meeting-quality — analyze meeting note quality
+  app.post('/meeting-quality', async (request, reply) => {
+    const { content } = request.body as { content: string };
+
+    if (!content) {
+      reply.code(400);
+      return { error: 'content is required' };
+    }
+
+    const result = await aiService.analyzeMeetingNoteQuality(content);
+    return result;
+  });
+
+  // POST /api/ai/meeting-apply-suggestions — apply improvement suggestions to meeting notes
+  app.post('/meeting-apply-suggestions', async (request, reply) => {
+    const { content, suggestions } = request.body as {
+      content: string;
+      suggestions: string[];
+    };
+
+    if (!content || !suggestions || !Array.isArray(suggestions) || suggestions.length === 0) {
+      reply.code(400);
+      return { error: 'content and suggestions (non-empty array) are required' };
+    }
+
+    const result = await aiService.applyMeetingSuggestions(content, suggestions);
+    return { content: result };
+  });
+
   // POST /api/ai/seed-from-stage — generate pre-filled content for the next lifecycle stage (document-based)
   app.post('/seed-from-stage', async (request, reply) => {
     const { documentId, fromStage, toStage } = request.body as {

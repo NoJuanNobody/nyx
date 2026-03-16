@@ -1288,6 +1288,38 @@ export function updateTicketSuggestion(
   });
 }
 
+// ── Meeting Note Quality ─────────────────────────────────────────────
+
+export interface MeetingMetrics {
+  decisions: number;
+  actionItems: number;
+  codeReferences: number;
+  openQuestions: number;
+}
+
+export interface MeetingQualityResult {
+  score: number;
+  suggestions: string[];
+  meetingMetrics: MeetingMetrics;
+}
+
+export function analyzeMeetingQuality(content: string): Promise<MeetingQualityResult> {
+  return request<MeetingQualityResult>('/ai/meeting-quality', {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+}
+
+export function applyMeetingSuggestions(
+  content: string,
+  suggestions: string[],
+): Promise<{ content: string }> {
+  return request<{ content: string }>('/ai/meeting-apply-suggestions', {
+    method: 'POST',
+    body: JSON.stringify({ content, suggestions }),
+  });
+}
+
 export function dismissTicketSuggestion(id: string): Promise<TicketSuggestion> {
   return request<TicketSuggestion>(`/ticket-suggestions/${encodeURIComponent(id)}/dismiss`, {
     method: 'POST',
