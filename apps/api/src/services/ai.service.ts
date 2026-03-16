@@ -529,6 +529,64 @@ Respond ONLY with a valid JSON array of objects with title, description, and lab
     }
   },
 
+  async generatePodcastScript(
+    content: string,
+    title?: string,
+  ): Promise<{
+    title: string;
+    script: Array<{ speaker: 'Host A' | 'Host B'; text: string }>;
+    qualityScore: number;
+    suggestions: string[];
+  }> {
+    const ai = requireClient();
+
+    const titleHint = title ? `\nThe podcast should be titled: "${title}"` : '';
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 4096,
+      system:
+        `You are a podcast script generator. Given technical documentation content, create an engaging conversational podcast script between two hosts (Host A and Host B). Host A is the main presenter who explains concepts, and Host B asks clarifying questions and adds commentary. Also assess the quality of the source documentation.${titleHint}
+
+Respond ONLY with valid JSON in this exact format:
+{"title": "<podcast episode title>", "script": [{"speaker": "Host A", "text": "<dialogue>"}, {"speaker": "Host B", "text": "<dialogue>"}, ...], "qualityScore": <number 1-10>, "suggestions": ["suggestion1", "suggestion2", ...]}`,
+      messages: [
+        {
+          role: 'user',
+          content: `Generate a podcast script from this documentation:\n\n${content}`,
+        },
+      ],
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip code fences
+    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+    try {
+      const parsed = JSON.parse(text) as {
+        title: string;
+        script: Array<{ speaker: 'Host A' | 'Host B'; text: string }>;
+        qualityScore: number;
+        suggestions: string[];
+      };
+      return {
+        title: parsed.title || title || 'Untitled Podcast',
+        script: Array.isArray(parsed.script) ? parsed.script : [],
+        qualityScore: typeof parsed.qualityScore === 'number' ? parsed.qualityScore : 5,
+        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+      };
+    } catch {
+      return {
+        title: title || 'Untitled Podcast',
+        script: [{ speaker: 'Host A', text: text }],
+        qualityScore: 5,
+        suggestions: [],
+      };
+    }
+  },
+
   async seedNextStage(
     content: string,
     fromStage: string,
