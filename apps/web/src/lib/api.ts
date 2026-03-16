@@ -1293,3 +1293,54 @@ export function dismissTicketSuggestion(id: string): Promise<TicketSuggestion> {
     method: 'POST',
   });
 }
+
+// ── Agent Registry ──────────────────────────────────────────────
+
+export interface AgentMapEntry {
+  type: string;
+  name: string;
+  description: string;
+  capabilities: string[];
+  currentState: string;
+  config: Record<string, unknown>;
+  enabledWorkspaces: string[];
+}
+
+export function fetchAgentRegistry(): Promise<AgentMapEntry[]> {
+  return request<AgentMapEntry[]>('/agent/registry');
+}
+
+export function fetchAgentDetails(type: string): Promise<AgentMapEntry> {
+  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}`);
+}
+
+export function updateAgentState(type: string, state: string): Promise<AgentMapEntry> {
+  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}/state`, {
+    method: 'PUT',
+    body: JSON.stringify({ state }),
+  });
+}
+
+export function updateAgentConfig(
+  type: string,
+  config: Record<string, unknown>,
+): Promise<AgentMapEntry> {
+  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}/config`, {
+    method: 'PUT',
+    body: JSON.stringify(config),
+  });
+}
+
+export function enableAgent(type: string, workspaceId: string): Promise<AgentMapEntry> {
+  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}/enable`, {
+    method: 'POST',
+    body: JSON.stringify({ workspaceId }),
+  });
+}
+
+export function disableAgent(type: string, workspaceId: string): Promise<AgentMapEntry> {
+  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}/disable`, {
+    method: 'POST',
+    body: JSON.stringify({ workspaceId }),
+  });
+}
