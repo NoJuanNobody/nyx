@@ -15,6 +15,7 @@ import { registerGovernanceCommand } from './commands/governance.js';
 import { registerPermissionsCommand } from './commands/permissions.js';
 import { registerPodcastCommand } from './commands/podcast.js';
 import { registerWatchCommand, registerChangesCommand } from './commands/watch.js';
+import { registerOrchestrateCommand } from './commands/orchestrate.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -41,6 +42,7 @@ registerPermissionsCommand(program);
 registerPodcastCommand(program);
 registerWatchCommand(program);
 registerChangesCommand(program);
+registerOrchestrateCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
