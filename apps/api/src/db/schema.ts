@@ -99,6 +99,19 @@ export const documents = pgTable('documents', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const meetingDocuments = pgTable('meeting_documents', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id')
+    .notNull()
+    .references(() => documents.id, { onDelete: 'cascade' }),
+  meetingSessionId: text('meeting_session_id').notNull(),
+  platform: text('platform').notNull(),
+  meetingIntelligence: jsonb('meeting_intelligence').notNull(),
+  duration: integer('duration'),
+  participants: jsonb('participants').$type<string[]>().default([]),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const documentTemplates = pgTable('document_templates', {
   id: uuid('id').primaryKey().defaultRandom(),
   stage: documentStageEnum('stage').notNull(),

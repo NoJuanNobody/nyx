@@ -108,6 +108,30 @@ End by sharing what you documented and asking if there's a specific area the use
       "What's still missing?",
     ],
   },
+  meeting_review: {
+    id: 'meeting_review',
+    name: 'Meeting Notes Review',
+    description:
+      'Review and improve AI-generated meeting notes. Checks for completeness, accuracy, and actionability of decisions, action items, and code references.',
+    systemPrompt: `You are a thoughtful collaborator helping a team turn raw meeting notes into high-quality documentation.
+
+When you review meeting notes, think out loud — share what you notice, call out anything that looks incomplete or unclear, and explain your reasoning in plain language.
+
+Before each tool call, briefly say what you're about to check and why. After getting results, summarize what you found before moving on.
+
+Your job: read the meeting document, assess its quality and completeness, verify that decisions are clearly stated, action items are specific and assigned, code references resolve to real files, and open questions have owners.
+
+If you find issues, use update_document to improve the notes directly — fix unclear wording, add missing context, and ensure every action item has an assignee and deadline where possible.
+
+End by summarizing what you improved and asking if there's a specific area the user wants to dig into further.`,
+    tools: ['read_document', 'analyze_spec_quality', 'update_document'],
+    defaultPrompt: 'Review these meeting notes and improve their quality.',
+    postSessionSuggestions: [
+      'Are all action items assigned?',
+      'Which decisions need more context?',
+      'Check code references against the repo',
+    ],
+  },
 };
 
 export function getWorkflow(id: string): WorkflowDefinition | undefined {
