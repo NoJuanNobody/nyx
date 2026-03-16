@@ -1,0 +1,22 @@
+{
+  "name": "@nyx/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "CLI for Nyx — governance validation and policy enforcement for AI agents",
+  "main": "dist/index.js",
+  "bin": {
+    "nyx": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "commander": "^13.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3"
+  }
+}
