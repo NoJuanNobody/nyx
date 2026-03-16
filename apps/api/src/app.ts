@@ -39,6 +39,7 @@ import { marketplaceRoutes } from './routes/marketplace.js';
 import { featureRequestRoutes } from './routes/feature-requests.js';
 import { projectShowcaseRoutes } from './routes/project-showcases.js';
 import { governanceRoutes } from './routes/governance.js';
+import { permissionRoutes } from './routes/permissions.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -89,6 +90,7 @@ export function buildApp() {
   app.register(featureRequestRoutes, { prefix: '/api/feature-requests' });
   app.register(projectShowcaseRoutes, { prefix: '/api/project-showcases' });
   app.register(governanceRoutes, { prefix: '/api/governance' });
+  app.register(permissionRoutes, { prefix: '/api/permissions' });
 
   return app;
 }
