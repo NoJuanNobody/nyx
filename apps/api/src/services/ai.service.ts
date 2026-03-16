@@ -31,13 +31,13 @@ const STAGE_QUALITY_PROMPTS: Record<string, string> = {
 // Seeding prompts by transition
 const SEED_PROMPTS: Record<string, string> = {
   'conception->definition':
-    'Based on this conception document (problem statement, vision, market analysis), generate a Product Requirements Document. Extract clear requirements, user stories with acceptance criteria, success metrics, and scope boundaries. Structure it as a proper PRD.',
+    'Based on this conception document (problem statement, vision, market analysis), generate a Product Requirements Document in **markdown format**. Extract clear requirements, user stories with acceptance criteria, success metrics, and scope boundaries. Structure it as a proper PRD.',
   'definition->architecture':
-    'Based on this product requirements document, design the system architecture. Include data model design, API contracts, component specifications, and key architectural decisions. Trace each architecture element back to a requirement.',
+    'Based on this product requirements document, design the system architecture in **markdown format**. Include data model design, API contracts, component specifications, and key architectural decisions. Trace each architecture element back to a requirement.',
   'architecture->implementation':
-    'Based on this architecture document, create an implementation specification. Include step-by-step coding plan, file-by-file changes, acceptance criteria, test plan, edge cases, and a ticket breakdown. Make it actionable for an AI coding agent.',
+    'Based on this architecture document, create an implementation specification in **markdown format**. Include step-by-step coding plan, file-by-file changes, acceptance criteria, test plan, edge cases, and a ticket breakdown. Make it actionable for an AI coding agent.',
   'implementation->execution':
-    'Based on this implementation specification, generate execution documentation. Include release notes template, deployment checklist, drift monitoring setup, and changelog entries. Focus on what was built and how to verify it.',
+    'Based on this implementation specification, generate execution documentation in **markdown format**. Include release notes template, deployment checklist, drift monitoring setup, and changelog entries. Focus on what was built and how to verify it.',
 };
 
 export const aiService = {
@@ -636,7 +636,7 @@ Respond ONLY with valid JSON:
       model: MODEL,
       max_tokens: 4096,
       system:
-        `You are a technical documentation expert helping teams progress through their product lifecycle. ${seedPrompt} Respond ONLY with valid JSON in this exact format: {"title": "<document title>", "content": "<full markdown content>"}`,
+        `You are a technical documentation expert. Given source documentation, generate the next-stage document as rich markdown with proper headings, lists, and formatting. ${seedPrompt} Return your response as valid JSON in this exact format: {"title": "<document title>", "content": "<full markdown content with proper headings, lists, and formatting>"}`,
       messages: [
         {
           role: 'user',
@@ -652,7 +652,7 @@ Respond ONLY with valid JSON:
     text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
 
     // Try to extract a JSON object from the text (AI may wrap it in extra prose)
-    const jsonMatch = text.match(/\{[\s\S]*"content"\s*:\s*"[\s\S]*\}/);
+    const jsonMatch = text.match(/(\{[\s\S]*"content"\s*:[\s\S]*\})\s*$/);
     const jsonCandidate = jsonMatch ? jsonMatch[0] : text;
 
     try {
