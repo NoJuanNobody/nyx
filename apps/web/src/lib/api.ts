@@ -1236,6 +1236,28 @@ export function createProjectShowcase(data: { title: string; description: string
   return request<ProjectShowcase>('/project-showcases', { method: 'POST', body: JSON.stringify(data) });
 }
 
+// ── Observability ────────────────────────────────────────────────────
+
+export function fetchObservabilityDashboard(): Promise<{
+  metrics: Record<string, unknown[]>;
+  alerts: Array<{ ruleId: string; metric: string; value: number; threshold: number; triggeredAt: number; severity: 'warning' | 'critical' }>;
+  pipelineHealth: Array<{ stage: string; avgLatencyMs: number; errorRate: number; throughput: number; lastUpdated: number }>;
+}> {
+  return request('/observability/dashboard');
+}
+
+export function fetchObservabilityMetrics(): Promise<Record<string, unknown[]>> {
+  return request('/observability/metrics');
+}
+
+export function fetchObservabilityAlerts(): Promise<Array<{ ruleId: string; metric: string; value: number; threshold: number; triggeredAt: number; severity: 'warning' | 'critical' }>> {
+  return request('/observability/alerts');
+}
+
+export function fetchPipelineHealth(): Promise<Array<{ stage: string; avgLatencyMs: number; errorRate: number; throughput: number; lastUpdated: number }>> {
+  return request('/observability/pipeline-health');
+}
+
 // ── Ticket Suggestions (Bulk) ───────────────────────────────────────
 
 export interface TicketSuggestion {
@@ -1288,8 +1310,91 @@ export function updateTicketSuggestion(
   });
 }
 
+// ── Meeting Note Quality ─────────────────────────────────────────────
+
+export interface MeetingMetrics {
+  decisions: number;
+  actionItems: number;
+  codeReferences: number;
+  openQuestions: number;
+}
+
+export interface MeetingQualityResult {
+  score: number;
+  suggestions: string[];
+  meetingMetrics: MeetingMetrics;
+}
+
+export function analyzeMeetingQuality(content: string): Promise<MeetingQualityResult> {
+  return request<MeetingQualityResult>('/ai/meeting-quality', {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+}
+
+export function applyMeetingSuggestions(
+  content: string,
+  suggestions: string[],
+): Promise<{ content: string }> {
+  return request<{ content: string }>('/ai/meeting-apply-suggestions', {
+    method: 'POST',
+    body: JSON.stringify({ content, suggestions }),
+  });
+}
+
 export function dismissTicketSuggestion(id: string): Promise<TicketSuggestion> {
   return request<TicketSuggestion>(`/ticket-suggestions/${encodeURIComponent(id)}/dismiss`, {
     method: 'POST',
+  });
+}
+
+// ── Agent Registry ──────────────────────────────────────────────
+
+export interface AgentMapEntry {
+  type: string;
+  name: string;
+  description: string;
+  capabilities: string[];
+  currentState: string;
+  config: Record<string, unknown>;
+  enabledWorkspaces: string[];
+}
+
+export function fetchAgentRegistry(): Promise<AgentMapEntry[]> {
+  return request<AgentMapEntry[]>('/agent/registry');
+}
+
+export function fetchAgentDetails(type: string): Promise<AgentMapEntry> {
+  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}`);
+}
+
+export function updateAgentState(type: string, state: string): Promise<AgentMapEntry> {
+  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}/state`, {
+    method: 'PUT',
+    body: JSON.stringify({ state }),
+  });
+}
+
+export function updateAgentConfig(
+  type: string,
+  config: Record<string, unknown>,
+): Promise<AgentMapEntry> {
+  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}/config`, {
+    method: 'PUT',
+    body: JSON.stringify(config),
+  });
+}
+
+export function enableAgent(type: string, workspaceId: string): Promise<AgentMapEntry> {
+  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}/enable`, {
+    method: 'POST',
+    body: JSON.stringify({ workspaceId }),
+  });
+}
+
+export function disableAgent(type: string, workspaceId: string): Promise<AgentMapEntry> {
+  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}/disable`, {
+    method: 'POST',
+    body: JSON.stringify({ workspaceId }),
   });
 }

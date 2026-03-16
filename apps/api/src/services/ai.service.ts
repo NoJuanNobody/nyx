@@ -31,13 +31,13 @@ const STAGE_QUALITY_PROMPTS: Record<string, string> = {
 // Seeding prompts by transition
 const SEED_PROMPTS: Record<string, string> = {
   'conception->definition':
-    'Based on this conception document (problem statement, vision, market analysis), generate a Product Requirements Document. Extract clear requirements, user stories with acceptance criteria, success metrics, and scope boundaries. Structure it as a proper PRD.',
+    'Based on this conception document (problem statement, vision, market analysis), generate a Product Requirements Document in **markdown format**. Extract clear requirements, user stories with acceptance criteria, success metrics, and scope boundaries. Structure it as a proper PRD.',
   'definition->architecture':
-    'Based on this product requirements document, design the system architecture. Include data model design, API contracts, component specifications, and key architectural decisions. Trace each architecture element back to a requirement.',
+    'Based on this product requirements document, design the system architecture in **markdown format**. Include data model design, API contracts, component specifications, and key architectural decisions. Trace each architecture element back to a requirement.',
   'architecture->implementation':
-    'Based on this architecture document, create an implementation specification. Include step-by-step coding plan, file-by-file changes, acceptance criteria, test plan, edge cases, and a ticket breakdown. Make it actionable for an AI coding agent.',
+    'Based on this architecture document, create an implementation specification in **markdown format**. Include step-by-step coding plan, file-by-file changes, acceptance criteria, test plan, edge cases, and a ticket breakdown. Make it actionable for an AI coding agent.',
   'implementation->execution':
-    'Based on this implementation specification, generate execution documentation. Include release notes template, deployment checklist, drift monitoring setup, and changelog entries. Focus on what was built and how to verify it.',
+    'Based on this implementation specification, generate execution documentation in **markdown format**. Include release notes template, deployment checklist, drift monitoring setup, and changelog entries. Focus on what was built and how to verify it.',
 };
 
 export const aiService = {
@@ -353,7 +353,9 @@ STRICT RULES:
     });
 
     let text = response.content[0].type === 'text' ? response.content[0].text : '';
-    text = text.replace(/^```(?:jsx?|javascript|tsx?)?\n?/, '').replace(/\n?```$/, '').trim();
+    text = text.replace(/```(?:jsx?|javascript|tsx?)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+    // Strip any import statements the model may have included
+    text = text.replace(/^\s*import\s+.*?(?:from\s+['"].*?['"]|['"].*?['"])\s*;?\s*$/gm, '');
     return text;
   },
 
@@ -679,6 +681,118 @@ Respond ONLY with valid JSON in this exact format:
     }
   },
 
+  async analyzeMeetingNoteQuality(
+    content: string,
+  ): Promise<{
+    score: number;
+    suggestions: string[];
+    meetingMetrics: {
+      decisions: number;
+      actionItems: number;
+      codeReferences: number;
+      openQuestions: number;
+    };
+  }> {
+    const ai = requireClient();
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 1024,
+      system:
+        `You are a meeting notes quality analyzer for a technical team. Given meeting notes, rate their quality from 1 to 10 and provide actionable improvement suggestions. Evaluate based on these criteria:
+- Are decisions clearly stated with owners?
+- Are action items specific, assigned, and have deadlines?
+- Are code references resolvable (file paths, not vague)?
+- Are open questions properly flagged?
+- Is the summary comprehensive?
+- Is there proper speaker attribution?
+
+Also extract metrics: count of decisions, action items, code references, and open questions.
+
+Respond ONLY with valid JSON in this exact format: {"score": <number>, "suggestions": ["suggestion1", "suggestion2", ...], "meetingMetrics": {"decisions": <number>, "actionItems": <number>, "codeReferences": <number>, "openQuestions": <number>}}`,
+      messages: [
+        {
+          role: 'user',
+          content: `Analyze the quality of these meeting notes:\n\n${content}`,
+        },
+      ],
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip code fences
+    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+    // Try to extract JSON object from response
+    const jsonMatch = text.match(
+      /\{[\s\S]*"score"\s*:[\s\S]*"suggestions"\s*:[\s\S]*"meetingMetrics"\s*:[\s\S]*\}/,
+    );
+    const jsonCandidate = jsonMatch ? jsonMatch[0] : text;
+
+    try {
+      const parsed = JSON.parse(jsonCandidate) as {
+        score: number;
+        suggestions: string[];
+        meetingMetrics: {
+          decisions: number;
+          actionItems: number;
+          codeReferences: number;
+          openQuestions: number;
+        };
+      };
+      return {
+        score: typeof parsed.score === 'number' ? parsed.score : 5,
+        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+        meetingMetrics: {
+          decisions: parsed.meetingMetrics?.decisions ?? 0,
+          actionItems: parsed.meetingMetrics?.actionItems ?? 0,
+          codeReferences: parsed.meetingMetrics?.codeReferences ?? 0,
+          openQuestions: parsed.meetingMetrics?.openQuestions ?? 0,
+        },
+      };
+    } catch {
+      const scoreMatch = text.match(/(\d+)\s*\/\s*10/);
+      return {
+        score: scoreMatch ? parseInt(scoreMatch[1], 10) : 5,
+        suggestions: [text],
+        meetingMetrics: { decisions: 0, actionItems: 0, codeReferences: 0, openQuestions: 0 },
+      };
+    }
+  },
+
+  async applyMeetingSuggestions(
+    content: string,
+    suggestions: string[],
+  ): Promise<string> {
+    const ai = requireClient();
+
+    const suggestionList = suggestions
+      .map((s, i) => `${i + 1}. ${s}`)
+      .join('\n');
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 4096,
+      system:
+        'You are an expert meeting notes editor. Given meeting notes and a list of improvement suggestions, apply all the suggested improvements to the content. Return ONLY the updated markdown content. Do not wrap the output in code fences. Do not include any explanations — just the raw updated markdown.',
+      messages: [
+        {
+          role: 'user',
+          content: `Here are the meeting notes:\n\n${content}\n\n---\n\nApply these improvements:\n${suggestionList}`,
+        },
+      ],
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip leading/trailing triple backticks if AI wraps output
+    text = text.replace(/^```(?:markdown)?\n?/, '').replace(/\n?```$/, '');
+
+    return text;
+  },
+
   async seedNextStage(
     content: string,
     fromStage: string,
@@ -694,7 +808,7 @@ Respond ONLY with valid JSON in this exact format:
       model: MODEL,
       max_tokens: 4096,
       system:
-        `You are a technical documentation expert helping teams progress through their product lifecycle. ${seedPrompt} Respond ONLY with valid JSON in this exact format: {"title": "<document title>", "content": "<full markdown content>"}`,
+        `You are a technical documentation expert helping teams progress through their product lifecycle. ${seedPrompt} Write the output as a well-structured markdown document. Start with a # Title heading on the first line.`,
       messages: [
         {
           role: 'user',
@@ -703,29 +817,14 @@ Respond ONLY with valid JSON in this exact format:
       ],
     });
 
-    let text =
-      response.content[0].type === 'text' ? response.content[0].text : '';
+    const text =
+      (response.content[0].type === 'text' ? response.content[0].text : '').trim();
 
-    // Strip code fences (```json ... ``` or ``` ... ```) anywhere in the text
-    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
-
-    // Try to extract a JSON object from the text (AI may wrap it in extra prose)
-    const jsonMatch = text.match(/\{[\s\S]*"content"\s*:\s*"[\s\S]*\}/);
-    const jsonCandidate = jsonMatch ? jsonMatch[0] : text;
-
-    try {
-      const parsed = JSON.parse(jsonCandidate) as { title: string; content: string };
-      return {
-        title: parsed.title || 'Untitled Document',
-        content: parsed.content || text,
-      };
-    } catch {
-      // Fallback: extract title from first markdown heading
-      const headingMatch = text.match(/^#\s+(.+)$/m);
-      return {
-        title: headingMatch ? headingMatch[1].trim() : 'Untitled Document',
-        content: text,
-      };
-    }
+    // Extract the title from the first # heading
+    const headingMatch = text.match(/^#\s+(.+)$/m);
+    return {
+      title: headingMatch ? headingMatch[1].trim() : 'Untitled Document',
+      content: text,
+    };
   },
 };
