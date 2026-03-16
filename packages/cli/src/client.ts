@@ -87,4 +87,21 @@ export class NyxClient {
   async delete<T>(path: string): Promise<T> {
     return this.request<T>('DELETE', path);
   }
+
+  async getRaw(path: string): Promise<Response> {
+    const url = `${this.config.apiUrl}${path}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+      },
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`API error ${res.status}: ${text || res.statusText}`);
+    }
+
+    return res;
+  }
 }
