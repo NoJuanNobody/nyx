@@ -20,6 +20,7 @@ import { changeProposalRoutes } from './routes/change-proposals.js';
 import { auditRoutes } from './routes/audit.js';
 import { traceRoutes } from './routes/trace.js';
 import { agentRoutes } from './routes/agent.js';
+import { agentRegistryRoutes } from './routes/agent-registry.js';
 import { apiKeyRoutes } from './routes/api-keys.js';
 import { userRoutes } from './routes/users.js';
 import { waitlistRoutes } from './routes/waitlist.js';
@@ -38,6 +39,10 @@ import { subscriptionRoutes } from './routes/subscriptions.js';
 import { marketplaceRoutes } from './routes/marketplace.js';
 import { featureRequestRoutes } from './routes/feature-requests.js';
 import { projectShowcaseRoutes } from './routes/project-showcases.js';
+import { observabilityRoutes } from './routes/observability.js';
+import { voiceRoutes } from './routes/voice.js';
+import { voiceTranscriptionRoutes } from './routes/voice-transcription.js';
+import { voiceDocumentRoutes } from './routes/voice-documents.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -69,6 +74,7 @@ export function buildApp() {
   app.register(auditRoutes, { prefix: '/api' });
   app.register(traceRoutes, { prefix: '/api' });
   app.register(agentRoutes, { prefix: '/api/agent' });
+  app.register(agentRegistryRoutes, { prefix: '/api/agent/registry' });
   app.register(apiKeyRoutes, { prefix: '/api/api-keys' });
   app.register(userRoutes, { prefix: '/api/users' });
   app.register(waitlistRoutes, { prefix: '/api/waitlist' });
@@ -87,6 +93,10 @@ export function buildApp() {
   app.register(marketplaceRoutes, { prefix: '/api/marketplace' });
   app.register(featureRequestRoutes, { prefix: '/api/feature-requests' });
   app.register(projectShowcaseRoutes, { prefix: '/api/project-showcases' });
+  app.register(observabilityRoutes, { prefix: '/api/observability' });
+  app.register(voiceRoutes, { prefix: '/api/voice' });
+  app.register(voiceTranscriptionRoutes, { prefix: '/api/voice' });
+  app.register(voiceDocumentRoutes, { prefix: '/api/voice' });
 
   return app;
 }

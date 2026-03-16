@@ -623,6 +623,118 @@ Respond ONLY with valid JSON:
     }
   },
 
+  async analyzeMeetingNoteQuality(
+    content: string,
+  ): Promise<{
+    score: number;
+    suggestions: string[];
+    meetingMetrics: {
+      decisions: number;
+      actionItems: number;
+      codeReferences: number;
+      openQuestions: number;
+    };
+  }> {
+    const ai = requireClient();
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 1024,
+      system:
+        `You are a meeting notes quality analyzer for a technical team. Given meeting notes, rate their quality from 1 to 10 and provide actionable improvement suggestions. Evaluate based on these criteria:
+- Are decisions clearly stated with owners?
+- Are action items specific, assigned, and have deadlines?
+- Are code references resolvable (file paths, not vague)?
+- Are open questions properly flagged?
+- Is the summary comprehensive?
+- Is there proper speaker attribution?
+
+Also extract metrics: count of decisions, action items, code references, and open questions.
+
+Respond ONLY with valid JSON in this exact format: {"score": <number>, "suggestions": ["suggestion1", "suggestion2", ...], "meetingMetrics": {"decisions": <number>, "actionItems": <number>, "codeReferences": <number>, "openQuestions": <number>}}`,
+      messages: [
+        {
+          role: 'user',
+          content: `Analyze the quality of these meeting notes:\n\n${content}`,
+        },
+      ],
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip code fences
+    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+    // Try to extract JSON object from response
+    const jsonMatch = text.match(
+      /\{[\s\S]*"score"\s*:[\s\S]*"suggestions"\s*:[\s\S]*"meetingMetrics"\s*:[\s\S]*\}/,
+    );
+    const jsonCandidate = jsonMatch ? jsonMatch[0] : text;
+
+    try {
+      const parsed = JSON.parse(jsonCandidate) as {
+        score: number;
+        suggestions: string[];
+        meetingMetrics: {
+          decisions: number;
+          actionItems: number;
+          codeReferences: number;
+          openQuestions: number;
+        };
+      };
+      return {
+        score: typeof parsed.score === 'number' ? parsed.score : 5,
+        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+        meetingMetrics: {
+          decisions: parsed.meetingMetrics?.decisions ?? 0,
+          actionItems: parsed.meetingMetrics?.actionItems ?? 0,
+          codeReferences: parsed.meetingMetrics?.codeReferences ?? 0,
+          openQuestions: parsed.meetingMetrics?.openQuestions ?? 0,
+        },
+      };
+    } catch {
+      const scoreMatch = text.match(/(\d+)\s*\/\s*10/);
+      return {
+        score: scoreMatch ? parseInt(scoreMatch[1], 10) : 5,
+        suggestions: [text],
+        meetingMetrics: { decisions: 0, actionItems: 0, codeReferences: 0, openQuestions: 0 },
+      };
+    }
+  },
+
+  async applyMeetingSuggestions(
+    content: string,
+    suggestions: string[],
+  ): Promise<string> {
+    const ai = requireClient();
+
+    const suggestionList = suggestions
+      .map((s, i) => `${i + 1}. ${s}`)
+      .join('\n');
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 4096,
+      system:
+        'You are an expert meeting notes editor. Given meeting notes and a list of improvement suggestions, apply all the suggested improvements to the content. Return ONLY the updated markdown content. Do not wrap the output in code fences. Do not include any explanations — just the raw updated markdown.',
+      messages: [
+        {
+          role: 'user',
+          content: `Here are the meeting notes:\n\n${content}\n\n---\n\nApply these improvements:\n${suggestionList}`,
+        },
+      ],
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip leading/trailing triple backticks if AI wraps output
+    text = text.replace(/^```(?:markdown)?\n?/, '').replace(/\n?```$/, '');
+
+    return text;
+  },
+
   async seedNextStage(
     content: string,
     fromStage: string,
