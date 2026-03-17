@@ -135,6 +135,59 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       required: ['query'],
     },
   },
+  {
+    name: 'nyx_join_meeting',
+    description:
+      'Join a live meeting (Zoom, Google Meet, or Teams) with the Nyx voice agent. The agent joins as a participant and captures the transcript in real time.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        platform: {
+          type: 'string',
+          enum: ['zoom', 'google_meet', 'teams'],
+          description: 'Meeting platform',
+        },
+        meeting_url: { type: 'string', description: 'The meeting invite URL' },
+      },
+      required: ['platform', 'meeting_url'],
+    },
+  },
+  {
+    name: 'nyx_leave_meeting',
+    description: 'Remove the Nyx voice agent from an active meeting session.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        session_id: { type: 'string', description: 'The session ID returned by nyx_join_meeting' },
+      },
+      required: ['session_id'],
+    },
+  },
+  {
+    name: 'nyx_meeting_status',
+    description:
+      'Check the current status of a voice agent meeting session. Returns state (idle, connecting, in_call, ended, error), platform, and timing info.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        session_id: { type: 'string', description: 'The session ID to check' },
+      },
+      required: ['session_id'],
+    },
+  },
+  {
+    name: 'nyx_generate_meeting_doc',
+    description:
+      'Generate a Nyx document from a completed meeting session. Extracts decisions, action items, code references, and open questions from the transcript.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        session_id: { type: 'string', description: 'The meeting session ID' },
+        team_id: { type: 'string', description: 'Team UUID to create the document under' },
+      },
+      required: ['session_id', 'team_id'],
+    },
+  },
 ];
 
 /**
@@ -198,6 +251,33 @@ export async function executeTool(
     }
     case 'nyx_get_timeline': {
       return apiRequest(`/api/documents/${args.document_id}/timeline`);
+    }
+    case 'nyx_join_meeting': {
+      return apiRequest('/api/voice/join', {
+        method: 'POST',
+        body: JSON.stringify({
+          platform: args.platform,
+          meetingUrl: args.meeting_url,
+        }),
+      });
+    }
+    case 'nyx_leave_meeting': {
+      return apiRequest('/api/voice/leave', {
+        method: 'POST',
+        body: JSON.stringify({ sessionId: args.session_id }),
+      });
+    }
+    case 'nyx_meeting_status': {
+      return apiRequest(`/api/voice/status/${args.session_id}`);
+    }
+    case 'nyx_generate_meeting_doc': {
+      return apiRequest('/api/voice/documents/from-meeting', {
+        method: 'POST',
+        body: JSON.stringify({
+          sessionId: args.session_id,
+          teamId: args.team_id,
+        }),
+      });
     }
     case 'nyx_web_search': {
       const query = args.query as string;
