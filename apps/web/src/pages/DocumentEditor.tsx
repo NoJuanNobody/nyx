@@ -5,6 +5,7 @@ import type { Document, DocumentVersion } from '@nyx/shared';
 
 import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage } from '../lib/api';
 import { STAGE_MAP, STAGES, STAGE_ORDER, getNextStage, type DocumentStage } from '../lib/stages';
+import { useUIStore } from '../stores/ui.store';
 
 import { Modal } from '../components/Modal';
 import { AIEditReview } from '../components/AIEditReview';
@@ -33,7 +34,7 @@ export function DocumentEditor() {
   const [versionMessage, setVersionMessage] = useState('');
   const [aiProposedContent, setAiProposedContent] = useState<string | null>(null);
   const [editorLayout, setEditorLayout] = useState<'split' | 'editor' | 'preview' | 'jsx-preview'>('split');
-  const [seeding, setSeeding] = useState(false);
+  const { seeding, setSeeding } = useUIStore();
   const [splitPercent, setSplitPercent] = useState(50);
   const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
   const [viewingVersion, setViewingVersion] = useState<DocumentVersion | null>(null);
