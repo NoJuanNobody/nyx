@@ -13,6 +13,7 @@ import {
   fetchTemplates,
 } from '../lib/api';
 import { STAGE_MAP, STAGES, type DocumentStage } from '../lib/stages';
+import { getLifecycle, getStageInfo, type StageInfo } from '../lib/lifecycles';
 import { useUIStore } from '../stores/ui.store';
 import { TemplatePicker } from './TemplatePicker';
 import {
@@ -520,13 +521,17 @@ function DocItem({
         ) : (
           <span className="flex-1 truncate text-xs">{doc.title || 'Untitled'}</span>
         )}
-        {(doc as Document & { stage?: DocumentStage | null }).stage && STAGE_MAP[(doc as Document & { stage: DocumentStage }).stage] && (
-          <span
-            className={`flex-shrink-0 rounded px-1 py-0.5 text-[9px] font-bold leading-none ${STAGE_MAP[(doc as Document & { stage: DocumentStage }).stage].color} ${STAGE_MAP[(doc as Document & { stage: DocumentStage }).stage].textColor}`}
-          >
-            {STAGE_MAP[(doc as Document & { stage: DocumentStage }).stage].abbreviation}
-          </span>
-        )}
+        {(() => {
+          const stageId = (doc as Document & { stage?: string | null }).stage;
+          const info = stageId ? (STAGE_MAP[stageId] ?? getStageInfo(stageId, activeLifecycleSlug)) : undefined;
+          return info ? (
+            <span
+              className={`flex-shrink-0 rounded px-1 py-0.5 text-[9px] font-bold leading-none ${info.color} ${info.textColor}`}
+            >
+              {info.abbreviation}
+            </span>
+          ) : null;
+        })()}
         <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${statusDot[doc.status] ?? 'bg-slate-300'}`} />
       </NavLink>
 
@@ -624,6 +629,9 @@ export function FileTree() {
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const seeding = useUIStore((s) => s.seeding);
+  const activeLifecycleSlug = useUIStore((s) => s.activeLifecycleSlug);
+  const activeLifecycle = getLifecycle(activeLifecycleSlug);
+  const activeStages = activeLifecycle.stages;
 
   const { data: teams } = useQuery({
     queryKey: ['teams'],
@@ -651,15 +659,12 @@ export function FileTree() {
     staleTime: 5 * 60 * 1000, // 5 min
   });
 
-  // Group templates by stage for fast lookup
+  // Group templates by stage for fast lookup (dynamic based on active lifecycle)
   const templatesByStage = useMemo(() => {
-    const map: Record<string, DocumentTemplate[]> = {
-      conception: [],
-      definition: [],
-      architecture: [],
-      implementation: [],
-      execution: [],
-    };
+    const map: Record<string, DocumentTemplate[]> = {};
+    for (const stage of activeStages) {
+      map[stage.id] = [];
+    }
     for (const t of templates ?? []) {
       const stageKey = t.stage as string | undefined;
       if (stageKey && stageKey in map) {
@@ -670,7 +675,7 @@ export function FileTree() {
       }
     }
     return map;
-  }, [templates]);
+  }, [templates, activeStages]);
 
   const createMutation = useMutation({
     mutationFn: (data: { title: string; content: string; teamId: string; path: string; stage?: DocumentStage | null; templateId?: string }) =>
@@ -863,7 +868,7 @@ export function FileTree() {
     path: string,
     isFolder: boolean,
   ): ContextMenuItem[] {
-    const stageItems: ContextMenuItem[] = STAGES.map((stage) => {
+    const stageItems: ContextMenuItem[] = activeStages.map((stage) => {
       const stageTemplates = templatesByStage[stage.id] ?? [];
       const submenu: (ContextMenuLeafItem | ContextMenuSeparator)[] = [
         ...stageTemplates.map(
@@ -944,7 +949,7 @@ export function FileTree() {
       (doc as Document & { stage?: DocumentStage | null }).stage ?? null;
 
     const setStageSubmenu: (ContextMenuLeafItem | ContextMenuSeparator)[] = [
-      ...STAGES.map(
+      ...activeStages.map(
         (stage): ContextMenuLeafItem => ({
           label: stage.label,
           dotColorClass: stage.dotColor,

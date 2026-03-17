@@ -25,6 +25,8 @@ interface UIState {
   setTheme: (theme: Theme) => void;
   seeding: boolean;
   setSeeding: (seeding: boolean) => void;
+  activeLifecycleSlug: string;
+  setActiveLifecycleSlug: (slug: string) => void;
 }
 
 // Apply theme immediately on module load (before first render)
@@ -45,6 +47,11 @@ export const useUIStore = create<UIState>((set) => ({
   },
   seeding: false,
   setSeeding: (seeding) => set({ seeding }),
+  activeLifecycleSlug: localStorage.getItem('nyx:activeLifecycle') ?? 'software_development',
+  setActiveLifecycleSlug: (slug) => {
+    localStorage.setItem('nyx:activeLifecycle', slug);
+    set({ activeLifecycleSlug: slug });
+  },
 }));
 
 // Re-apply when system preference changes (only matters when theme === 'system')

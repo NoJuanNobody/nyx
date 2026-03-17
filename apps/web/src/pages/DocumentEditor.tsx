@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Document, DocumentVersion } from '@nyx/shared';
 
 import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage } from '../lib/api';
-import { STAGE_MAP, STAGES, STAGE_ORDER, getNextStage, type DocumentStage } from '../lib/stages';
+import { STAGE_MAP, STAGES, STAGE_ORDER, type DocumentStage } from '../lib/stages';
+import { getLifecycle, getNextStage as lifecycleGetNextStage, getStageInfo } from '../lib/lifecycles';
 import { useUIStore } from '../stores/ui.store';
 
 import { Modal } from '../components/Modal';
@@ -143,6 +144,12 @@ export function DocumentEditor() {
 
   const docStage = (doc as Document & { stage?: DocumentStage | null })?.stage ?? null;
   const isMeetingSourced = content.trimStart().startsWith('# Meeting Notes:');
+  const activeLifecycleSlug = useUIStore((s) => s.activeLifecycleSlug);
+  const editorLifecycle = getLifecycle(activeLifecycleSlug);
+  const editorStages = editorLifecycle.stages;
+  const editorStageMap: Record<string, typeof editorStages[0]> = Object.fromEntries(
+    editorStages.map((s) => [s.id, s]),
+  );
 
   const handleStageChange = (newStage: DocumentStage | null) => {
     saveMutation.mutate({ stage: newStage } as Parameters<typeof saveMutation.mutate>[0]);
@@ -150,7 +157,7 @@ export function DocumentEditor() {
 
   const handleSeedNextStage = async () => {
     if (!docStage || !doc) return;
-    const next = getNextStage(docStage);
+    const next = lifecycleGetNextStage(docStage, activeLifecycleSlug);
     if (!next) return;
 
     setSeeding(true);
@@ -259,13 +266,13 @@ export function DocumentEditor() {
                 handleStageChange(val ? (val as DocumentStage) : null);
               }}
               className={`rounded-md border px-2 py-1.5 text-xs font-medium outline-none transition-colors ${
-                docStage && STAGE_MAP[docStage]
-                  ? `${STAGE_MAP[docStage].color} ${STAGE_MAP[docStage].textColor} ${STAGE_MAP[docStage].borderColor}`
+                docStage && editorStageMap[docStage]
+                  ? `${editorStageMap[docStage].color} ${editorStageMap[docStage].textColor} ${editorStageMap[docStage].borderColor}`
                   : 'border-slate-200 bg-white text-slate-500'
               }`}
             >
               <option value="">No stage</option>
-              {STAGES.map((s) => (
+              {editorStages.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.abbreviation} {s.label}
                 </option>
@@ -276,15 +283,15 @@ export function DocumentEditor() {
           <span className={`text-xs font-medium ${saveColor}`}>{saveLabel}</span>
 
           {/* Seed next stage button */}
-          {docStage && docStage !== 'execution' && (
+          {docStage && lifecycleGetNextStage(docStage, activeLifecycleSlug) && (
             <button
               type="button"
               onClick={handleSeedNextStage}
               disabled={seeding}
-              title={`Seed ${getNextStage(docStage) ? STAGE_MAP[getNextStage(docStage)!].label : 'next'} stage`}
+              title={`Seed ${editorStageMap[lifecycleGetNextStage(docStage, activeLifecycleSlug)!]?.label ?? 'next'} stage`}
               className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
             >
-              {seeding ? 'Seeding...' : `Seed ${getNextStage(docStage) ? STAGE_MAP[getNextStage(docStage)!].label : 'Next'}`}
+              {seeding ? 'Seeding...' : `Seed ${editorStageMap[lifecycleGetNextStage(docStage, activeLifecycleSlug)!]?.label ?? 'Next'}`}
             </button>
           )}
 

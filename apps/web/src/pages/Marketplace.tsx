@@ -14,6 +14,7 @@ import {
   type ProjectShowcase,
   type LifecycleResponse,
 } from '../lib/api';
+import { useUIStore } from '../stores/ui.store';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -820,9 +821,11 @@ function ShowcaseTab() {
 
 function PipelineCard({ lifecycle }: { lifecycle: LifecycleResponse }) {
   const [expanded, setExpanded] = useState(false);
+  const { activeLifecycleSlug, setActiveLifecycleSlug } = useUIStore();
+  const isActive = activeLifecycleSlug === lifecycle.slug;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+    <div className={`rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow ${isActive ? 'border-blue-400 ring-1 ring-blue-200' : 'border-slate-200'}`}>
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
@@ -880,6 +883,29 @@ function PipelineCard({ lifecycle }: { lifecycle: LifecycleResponse }) {
           ))}
         </div>
       </button>
+
+      {/* Use Pipeline action bar */}
+      <div className="flex items-center justify-end gap-2 px-5 pb-3">
+        {isActive ? (
+          <span className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 ring-1 ring-blue-200">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+            Active Pipeline
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveLifecycleSlug(lifecycle.slug);
+            }}
+            className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+          >
+            Use Pipeline
+          </button>
+        )}
+      </div>
 
       {expanded && (
         <div className="border-t border-slate-100 px-5 pb-5 pt-4">
