@@ -12,6 +12,7 @@
     "db:seed": "pnpm --filter api db:seed",
     "db:studio": "pnpm --filter api db:studio",
     "test:e2e": "playwright test",
+    "test:smoke": "playwright test e2e/smoke.spec.ts",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore"
   },
   "devDependencies": {
