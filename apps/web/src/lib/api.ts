@@ -188,6 +188,46 @@ export function fetchTimeline(documentId: string): Promise<{ documentId: string;
 
 // ── AI ─────────────────────────────────────────────────────────────
 
+// ── Lifecycles ─────────────────────────────────────────────────────
+
+export interface LifecycleResponse {
+  id: string;
+  slug: string;
+  label: string;
+  description: string;
+  icon: string;
+  isDefault: boolean;
+  sortOrder: number;
+  stages: {
+    id: string;
+    lifecycleId: string;
+    slug: string;
+    sortOrder: number;
+    label: string;
+    abbreviation: string;
+    subtitle: string;
+    color: string;
+    textColor: string;
+    dotColor: string;
+    borderColor: string;
+    hex: string;
+    who: string;
+    description: string;
+    icon: string;
+    ai: string;
+    output: string;
+    docs: string[];
+  }[];
+}
+
+export function fetchLifecycles(): Promise<LifecycleResponse[]> {
+  return request<LifecycleResponse[]>('/lifecycles');
+}
+
+export function fetchLifecycle(slug: string): Promise<LifecycleResponse> {
+  return request<LifecycleResponse>(`/lifecycles/${slug}`);
+}
+
 // ── Templates ──────────────────────────────────────────────────────
 
 export function fetchTemplates(stage?: DocumentStage, teamId?: string): Promise<DocumentTemplate[]> {

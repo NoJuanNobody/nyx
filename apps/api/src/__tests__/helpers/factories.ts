@@ -118,11 +118,12 @@ export function makeChangeProposal(overrides?: Record<string, unknown>) {
 export function makeTemplate(overrides?: Record<string, unknown>) {
   return {
     id: randomUUID(),
-    stage: 'definition' as const,
+    stage: 'definition',
     name: 'Test Template',
     description: 'A test template',
     content: '# Template\n\nContent here',
     sortOrder: 0,
+    lifecycleId: null as string | null,
     createdAt: new Date(),
     ...overrides,
   };

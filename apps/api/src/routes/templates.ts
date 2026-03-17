@@ -4,9 +4,9 @@ import { db } from '../db/index.js';
 import { documentTemplates } from '../db/schema.js';
 
 export const templateRoutes: FastifyPluginAsync = async (app) => {
-  // GET /api/templates?stage=X&teamId=Y — list templates, optional stage/team filter
+  // GET /api/templates?stage=X&teamId=Y&lifecycleId=Z — list templates, optional filters
   app.get('/', async (request) => {
-    const { stage, teamId } = request.query as { stage?: string; teamId?: string };
+    const { stage, teamId, lifecycleId } = request.query as { stage?: string; teamId?: string; lifecycleId?: string };
 
     let rows;
     if (teamId) {
@@ -34,11 +34,15 @@ export const templateRoutes: FastifyPluginAsync = async (app) => {
       return true;
     });
 
+    let filtered = deduped;
     if (stage) {
-      return deduped.filter((t) => t.stage === stage);
+      filtered = filtered.filter((t) => t.stage === stage);
+    }
+    if (lifecycleId) {
+      filtered = filtered.filter((t) => (t as any).lifecycleId === lifecycleId || !(t as any).lifecycleId);
     }
 
-    return deduped;
+    return filtered;
   });
 
   // GET /api/templates/:id — single template
