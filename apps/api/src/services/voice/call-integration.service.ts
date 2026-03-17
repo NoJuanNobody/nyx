@@ -223,6 +223,42 @@ export const callIntegrationService = {
   },
 
   /**
+   * Update session state from an external source (e.g. webhook).
+   * Creates the session if it does not already exist.
+   */
+  updateSessionState(sessionId: string, state: CallState): CallSessionInternal {
+    let session = sessions.get(sessionId);
+    if (!session) {
+      // Create a minimal session for externally-managed bots
+      session = {
+        id: sessionId,
+        platform: 'zoom',
+        state: 'idle',
+        meetingUrl: '',
+        startedAt: new Date().toISOString(),
+      };
+      sessions.set(sessionId, session);
+    }
+
+    const from = session.state;
+    session.state = state;
+
+    if (state === 'ended' || state === 'error') {
+      session.endedAt = new Date().toISOString();
+    }
+
+    const event: CallLifecycleEvent = {
+      type: 'state_change',
+      sessionId,
+      from,
+      to: state,
+    };
+    eventBus.emit('lifecycle', event);
+
+    return session;
+  },
+
+  /**
    * Clear all sessions (for testing).
    */
   _reset(): void {
