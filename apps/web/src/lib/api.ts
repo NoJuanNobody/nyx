@@ -328,6 +328,29 @@ export function generateDocument(
   });
 }
 
+export interface GenerateAllResult {
+  documentId: string;
+  title: string;
+  status: 'success' | 'error';
+  error?: string;
+}
+
+export interface GenerateAllResponse {
+  results: GenerateAllResult[];
+  total: number;
+  succeeded: number;
+  failed: number;
+}
+
+export function generateAllDocuments(
+  teamId: string,
+): Promise<GenerateAllResponse> {
+  return request<GenerateAllResponse>('/ai/generate-all', {
+    method: 'POST',
+    body: JSON.stringify({ teamId }),
+  });
+}
+
 export function editDocumentAI(
   content: string,
   instruction: string,
