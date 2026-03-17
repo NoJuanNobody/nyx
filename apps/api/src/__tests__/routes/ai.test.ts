@@ -3,6 +3,14 @@ import { mockDb } from '../helpers/setup.js';
 import Fastify from 'fastify';
 import { aiRoutes } from '../../routes/ai.js';
 
+vi.mock('../../db/schema.js', () => ({
+  documents: { id: 'id', teamId: 'teamId', status: 'status' },
+}));
+
+vi.mock('drizzle-orm', () => ({
+  eq: vi.fn((...args: unknown[]) => args),
+}));
+
 const mockAiService = vi.hoisted(() => ({
   analyzeSpecQuality: vi.fn(),
   detectDrift: vi.fn(),
@@ -159,5 +167,162 @@ describe('AI Routes', () => {
       payload: { notificationId: 'notif-1' },
     });
     expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /api/ai/generate-all returns 400 without teamId', async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/generate-all',
+      payload: {},
+    });
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body).error).toBe('teamId is required');
+  });
+
+  it('POST /api/ai/generate-all returns empty results when no documents', async () => {
+    // Mock db to return empty array
+    const chain = {
+      select: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      then: (resolve: (v: unknown) => void) => Promise.resolve([]).then(resolve),
+    };
+    mockDb.select.mockReturnValueOnce(chain as any);
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/generate-all',
+      payload: { teamId: 'team-1' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.total).toBe(0);
+    expect(body.results).toEqual([]);
+  });
+
+  it('POST /api/ai/generate-all generates content for all documents', async () => {
+    const mockDocs = [
+      { id: 'doc-1', title: 'Feature Spec', content: '', status: 'draft', teamId: 'team-1' },
+      { id: 'doc-2', title: 'API Design', content: '', status: 'published', teamId: 'team-1' },
+    ];
+
+    // Mock db.select for fetching documents
+    const selectChain = {
+      select: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      then: (resolve: (v: unknown) => void) => Promise.resolve(mockDocs).then(resolve),
+    };
+    mockDb.select.mockReturnValueOnce(selectChain as any);
+
+    // Mock db.update for each document update
+    const updateChain = {
+      update: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      then: (resolve: (v: unknown) => void) => Promise.resolve([]).then(resolve),
+    };
+    mockDb.update.mockReturnValue(updateChain as any);
+
+    mockAiService.generateDocument
+      .mockResolvedValueOnce({ title: 'Feature Spec', content: '# Feature Spec\nGenerated content' })
+      .mockResolvedValueOnce({ title: 'API Design', content: '# API Design\nGenerated content' });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/generate-all',
+      payload: { teamId: 'team-1' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.total).toBe(2);
+    expect(body.succeeded).toBe(2);
+    expect(body.failed).toBe(0);
+    expect(body.results).toHaveLength(2);
+    expect(body.results[0].status).toBe('success');
+    expect(body.results[1].status).toBe('success');
+    expect(mockAiService.generateDocument).toHaveBeenCalledTimes(2);
+  });
+
+  it('POST /api/ai/generate-all handles partial failures gracefully', async () => {
+    const mockDocs = [
+      { id: 'doc-1', title: 'Good Doc', content: '', status: 'draft', teamId: 'team-1' },
+      { id: 'doc-2', title: 'Bad Doc', content: '', status: 'draft', teamId: 'team-1' },
+    ];
+
+    const selectChain = {
+      select: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      then: (resolve: (v: unknown) => void) => Promise.resolve(mockDocs).then(resolve),
+    };
+    mockDb.select.mockReturnValueOnce(selectChain as any);
+
+    const updateChain = {
+      update: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      then: (resolve: (v: unknown) => void) => Promise.resolve([]).then(resolve),
+    };
+    mockDb.update.mockReturnValue(updateChain as any);
+
+    mockAiService.generateDocument
+      .mockResolvedValueOnce({ title: 'Good Doc', content: '# Good\nContent' })
+      .mockRejectedValueOnce(new Error('AI provider error'));
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/generate-all',
+      payload: { teamId: 'team-1' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.total).toBe(2);
+    expect(body.succeeded).toBe(1);
+    expect(body.failed).toBe(1);
+    expect(body.results[0].status).toBe('success');
+    expect(body.results[1].status).toBe('error');
+    expect(body.results[1].error).toBe('AI provider error');
+  });
+
+  it('POST /api/ai/generate-all skips archived documents', async () => {
+    const mockDocs = [
+      { id: 'doc-1', title: 'Active Doc', content: '', status: 'draft', teamId: 'team-1' },
+      { id: 'doc-2', title: 'Archived Doc', content: '', status: 'archived', teamId: 'team-1' },
+    ];
+
+    const selectChain = {
+      select: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      then: (resolve: (v: unknown) => void) => Promise.resolve(mockDocs).then(resolve),
+    };
+    mockDb.select.mockReturnValueOnce(selectChain as any);
+
+    const updateChain = {
+      update: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      then: (resolve: (v: unknown) => void) => Promise.resolve([]).then(resolve),
+    };
+    mockDb.update.mockReturnValue(updateChain as any);
+
+    mockAiService.generateDocument
+      .mockResolvedValueOnce({ title: 'Active Doc', content: '# Active\nContent' });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/generate-all',
+      payload: { teamId: 'team-1' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.total).toBe(1);
+    expect(body.succeeded).toBe(1);
+    expect(mockAiService.generateDocument).toHaveBeenCalledTimes(1);
   });
 });
