@@ -9,9 +9,10 @@
  *   DATABASE_URL=<url> pnpm --filter @nyx/api db:seed-templates
  */
 import 'dotenv/config';
-import { isNull } from 'drizzle-orm';
+import { isNull, and, eq } from 'drizzle-orm';
 import { db } from './index.js';
 import { documentTemplates } from './schema.js';
+import { LIFECYCLE_TEMPLATES } from './lifecycle-templates.js';
 
 const TEMPLATES: {
   stage: string;
@@ -51,31 +52,38 @@ const TEMPLATES: {
   { stage: 'execution', name: 'Deployment Notes', description: 'Pre/post deployment checklist and rollback procedure', content: '# Deployment Notes — v[X.Y.Z]\n\n## Pre-Deployment Checklist\n- [ ] Database migrations reviewed\n- [ ] Environment variables updated\n- [ ] Feature flags configured\n- [ ] Monitoring alerts set\n\n## Deployment Steps\n1. \n2. \n3. \n\n## Post-Deployment Verification\n- [ ] Health check passing\n- [ ] Key flows tested\n- [ ] Metrics baseline confirmed\n\n## Rollback Procedure\n1. \n2. \n\n## Contacts\n- **On-call:** \n- **Product:** \n', sortOrder: 3 },
 ];
 
+const ALL_TEMPLATES = [...TEMPLATES, ...LIFECYCLE_TEMPLATES];
+
 /**
  * Ensures all built-in lifecycle templates exist in the database.
- * Checks for existing global templates (teamId IS NULL) first to avoid
- * duplicates — the unique index on (stage, name, teamId) does not
- * deduplicate NULLs in PostgreSQL.
+ * Inserts missing templates by checking (stage, name) pairs against
+ * existing global templates (teamId IS NULL).
  */
 export async function ensureTemplates(): Promise<void> {
-  // Check if any global templates already exist
+  // Fetch existing global template (stage, name) pairs
   const existing = await db
-    .select({ id: documentTemplates.id })
+    .select({ stage: documentTemplates.stage, name: documentTemplates.name })
     .from(documentTemplates)
-    .where(isNull(documentTemplates.teamId))
-    .limit(1);
+    .where(isNull(documentTemplates.teamId));
 
-  if (existing.length > 0) {
-    return; // Templates already seeded
+  const existingKeys = new Set(existing.map((t) => `${t.stage}:${t.name}`));
+
+  // Filter to only templates that don't already exist
+  const toInsert = ALL_TEMPLATES.filter(
+    (t) => !existingKeys.has(`${t.stage}:${t.name}`),
+  );
+
+  if (toInsert.length === 0) {
+    return; // All templates already seeded
   }
 
   const result = await db.insert(documentTemplates)
-    .values(TEMPLATES)
+    .values(toInsert)
     .onConflictDoNothing() as unknown as { rowCount: number };
 
   const inserted = result?.rowCount ?? 0;
   if (inserted > 0) {
-    console.log(`[seed-templates] Inserted ${inserted} lifecycle templates`);
+    console.log(`[seed-templates] Inserted ${inserted} lifecycle templates (${ALL_TEMPLATES.length} total defined)`);
   }
 }
 
@@ -89,7 +97,7 @@ if (isCLI) {
 
   ensureTemplates()
     .then(() => {
-      console.log('[seed-templates] Done. Total templates defined: ' + TEMPLATES.length);
+      console.log('[seed-templates] Done. Total templates defined: ' + ALL_TEMPLATES.length);
       process.exit(0);
     })
     .catch((err) => {
