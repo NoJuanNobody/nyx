@@ -13,7 +13,7 @@ export function LifecycleExplorer({
   initialPhase = 0,
 }: LifecycleExplorerProps) {
   const [active, setActive] = useState(initialPhase);
-  const [animated, setAnimated] = useState(false);
+  const [, setAnimated] = useState(false);
 
   useEffect(() => {
     const link = document.createElement('link');

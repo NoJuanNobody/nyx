@@ -220,10 +220,6 @@ type TokenType =
   | 'hash'
   | 'text';
 
-interface Token {
-  type: TokenType;
-  content: string;
-}
 
 const TOKEN_STYLES: Record<TokenType, string> = {
   heading: 'text-blue-600 font-semibold',

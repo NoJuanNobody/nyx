@@ -34,7 +34,7 @@ describe('Auth Store', () => {
 
   it('initial load reads currentTeamId from localStorage', () => {
     // Simulate localStorage having a value
-    (localStorage.getItem as any).mockReturnValueOnce('team-saved');
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValueOnce('team-saved');
 
     // Re-import to test initial state — but since zustand memoizes, we test the loadTeamId logic
     // The store calls loadTeamId() at creation time

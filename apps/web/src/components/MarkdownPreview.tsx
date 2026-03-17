@@ -128,7 +128,7 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          code({ className, children, ...props }) {
+          code({ className, children }) {
             // Detect if this is a fenced code block (has language class) or is inside a <pre>
             const isBlock = className?.startsWith('language-');
             if (isBlock) {

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchGitHubRepos, saveSelectedRepos, type GitHubRepoItem } from '../lib/api';
+import { fetchGitHubRepos, saveSelectedRepos } from '../lib/api';
 
 interface RepoPickerModalProps {
   integrationId: string;

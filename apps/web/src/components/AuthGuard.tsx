@@ -84,7 +84,6 @@ function ClerkAuthGuard() {
 }
 
 function DevAuthGuard() {
-  const navigate = useNavigate();
   const { setUser, setTeams, setCurrentTeamId, currentTeamId, user } = useAuthStore();
 
   useEffect(() => {

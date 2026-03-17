@@ -413,7 +413,7 @@ function Folder({
 
 // ── JSX Preview virtual file item ─────────────────────
 
-function JSXPreviewItem({ docId, depth }: { docId: string; depth: number }) {
+function _JSXPreviewItem({ docId, depth }: { docId: string; depth: number }) {
   return (
     <NavLink
       to={`/documents/${docId}?layout=jsx-preview`}

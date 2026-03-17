@@ -9,6 +9,17 @@ import {
 
 type FilterTab = 'all' | 'unread' | 'drift' | 'tickets';
 
+interface NotificationItem {
+  id: string;
+  read?: boolean;
+  readAt?: string | null;
+  eventType?: string;
+  title?: string;
+  body?: string;
+  createdAt: string;
+  metadata?: { documentId?: string; ticketId?: string };
+}
+
 function relativeTime(dateStr: string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
@@ -63,7 +74,7 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
     },
   });
 
-  const handleItemClick = (item: any) => {
+  const handleItemClick = (item: NotificationItem) => {
     if (!item.read) {
       markReadMutation.mutate(item.id);
     }
@@ -146,7 +157,7 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
             <span className="text-xs text-slate-400">No notifications</span>
           </div>
         )}
-        {items.map((item: any) => (
+        {items.map((item: NotificationItem) => (
           <button
             key={item.id}
             type="button"
