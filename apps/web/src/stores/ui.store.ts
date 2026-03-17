@@ -23,6 +23,8 @@ interface UIState {
   toggleSidebarCollapsed: () => void;
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  seeding: boolean;
+  setSeeding: (seeding: boolean) => void;
 }
 
 // Apply theme immediately on module load (before first render)
@@ -41,6 +43,8 @@ export const useUIStore = create<UIState>((set) => ({
     applyTheme(theme);
     set({ theme });
   },
+  seeding: false,
+  setSeeding: (seeding) => set({ seeding }),
 }));
 
 // Re-apply when system preference changes (only matters when theme === 'system')

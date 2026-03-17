@@ -33,4 +33,14 @@ describe('UI Store', () => {
     useUIStore.getState().toggleSidebar();
     expect(useUIStore.getState().sidebarOpen).toBe(false);
   });
+
+  it('seeding defaults to false and setSeeding updates state', () => {
+    expect(useUIStore.getState().seeding).toBe(false);
+
+    useUIStore.getState().setSeeding(true);
+    expect(useUIStore.getState().seeding).toBe(true);
+
+    useUIStore.getState().setSeeding(false);
+    expect(useUIStore.getState().seeding).toBe(false);
+  });
 });
