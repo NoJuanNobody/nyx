@@ -4,18 +4,63 @@ interface JSXPreviewRendererProps {
   jsx: string;
 }
 
+function stripTypeScriptBlocks(code: string): string {
+  const lines = code.split('\n');
+  const result: string[] = [];
+  let braceDepth = 0;
+  let inBlock = false;
+
+  for (const line of lines) {
+    // Detect start of interface/type block
+    if (!inBlock && /^\s*(?:export\s+)?(?:interface|type)\s+\w+/.test(line)) {
+      // Single-line type alias (no opening brace or has closing on same line)
+      if (!line.includes('{') || (line.includes('{') && line.includes('}'))) {
+        continue; // skip single-line type/interface
+      }
+      // Multi-line block — start tracking braces
+      inBlock = true;
+      braceDepth = 0;
+      for (const ch of line) {
+        if (ch === '{') braceDepth++;
+        if (ch === '}') braceDepth--;
+      }
+      if (braceDepth <= 0) inBlock = false;
+      continue;
+    }
+
+    if (inBlock) {
+      for (const ch of line) {
+        if (ch === '{') braceDepth++;
+        if (ch === '}') braceDepth--;
+      }
+      if (braceDepth <= 0) inBlock = false;
+      continue;
+    }
+
+    result.push(line);
+  }
+  return result.join('\n');
+}
+
 function cleanJSX(jsx: string): string {
   let code = jsx;
   // Strip code fences if present
   code = code.replace(/```(?:jsx?|javascript|tsx?)?\s*\n?/g, '').replace(/\n?\s*```/g, '');
-  // Strip import statements
-  code = code.replace(/^\s*import\s+.*?(?:from\s+['"].*?['"]|['"].*?['"])\s*;?\s*$/gm, '');
+  // Strip import statements (including `import type`)
+  code = code.replace(/^\s*import\s+(?:type\s+)?.*?(?:from\s+['"].*?['"]|['"].*?['"])\s*;?\s*$/gm, '');
   // Strip export default
   code = code.replace(/^\s*export\s+default\s+/gm, '');
   // Strip lone export statements
   code = code.replace(/^\s*export\s+(?=function|const|class)/gm, '');
-  // Strip TypeScript interface/type declarations that Babel may choke on
-  code = code.replace(/^\s*(?:interface|type)\s+\w+[\s\S]*?^\}/gm, '');
+  // Strip TypeScript interface/type declarations (multi-line aware)
+  code = stripTypeScriptBlocks(code);
+  // Strip type annotations from function params: ({ value }: Props) → ({ value })
+  code = code.replace(/(\}\s*):\s*\w+(?:<[^>]*>)?/g, '$1');
+  // Strip return type annotations: ): JSX.Element => → ) =>
+  code = code.replace(/\)\s*:\s*[\w.]+(?:<[^>]*>)?\s*=>/g, ') =>');
+  code = code.replace(/\)\s*:\s*[\w.]+(?:<[^>]*>)?\s*\{/g, ') {');
+  // Strip `as Type` assertions
+  code = code.replace(/\s+as\s+\w+(?:<[^>]*>)?/g, '');
   return code.trim();
 }
 
@@ -80,11 +125,7 @@ export function JSXPreviewRenderer({ jsx }: JSXPreviewRendererProps) {
     const url = URL.createObjectURL(blob);
     blobUrlRef.current = url;
 
-    const iframe = iframeRef.current;
-    if (iframe) {
-      iframe.src = url;
-    }
-
+    // Register error handler BEFORE setting iframe src to avoid race condition
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'jsx-preview-error') {
         setError(event.data.error as string);
@@ -93,6 +134,11 @@ export function JSXPreviewRenderer({ jsx }: JSXPreviewRendererProps) {
     };
 
     window.addEventListener('message', handleMessage);
+
+    const iframe = iframeRef.current;
+    if (iframe) {
+      iframe.src = url;
+    }
     return () => {
       window.removeEventListener('message', handleMessage);
     };
@@ -128,9 +174,9 @@ export function JSXPreviewRenderer({ jsx }: JSXPreviewRendererProps) {
               <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
               </svg>
-              <span className="text-xs font-semibold text-red-700">Transpilation error</span>
+              <span className="text-xs font-semibold text-red-700">Preview failed</span>
             </div>
-            <p className="font-mono text-[11px] leading-relaxed text-red-600">{error}</p>
+            <p className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-red-600">{error}</p>
           </div>
         </div>
       )}
