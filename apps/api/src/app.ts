@@ -25,6 +25,7 @@ import { apiKeyRoutes } from './routes/api-keys.js';
 import { userRoutes } from './routes/users.js';
 import { waitlistRoutes } from './routes/waitlist.js';
 import { templateRoutes } from './routes/templates.js';
+import { lifecycleRoutes } from './routes/lifecycles.js';
 import { mockupRoutes, setMockupCluster } from './routes/mockups.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { intakeRoutes } from './routes/intake.js';
@@ -85,6 +86,7 @@ export function buildApp() {
   app.register(userRoutes, { prefix: '/api/users' });
   app.register(waitlistRoutes, { prefix: '/api/waitlist' });
   app.register(templateRoutes, { prefix: '/api/templates' });
+  app.register(lifecycleRoutes, { prefix: '/api/lifecycles' });
   app.register(mockupRoutes, { prefix: '/api/mockups' });
   app.register(feedbackRoutes, { prefix: '/api/feedback' });
   app.register(intakeRoutes, { prefix: '/api/intake' });

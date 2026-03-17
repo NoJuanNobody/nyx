@@ -3,9 +3,8 @@ import { z } from 'zod';
 export const DocumentStatus = z.enum(['draft', 'published', 'archived']);
 export type DocumentStatus = z.infer<typeof DocumentStatus>;
 
-export const DocumentStage = z.enum([
-  'conception', 'definition', 'architecture', 'implementation', 'execution',
-]);
+// Widened from z.enum to z.string() to support multiple lifecycle pipelines
+export const DocumentStage = z.string();
 export type DocumentStage = z.infer<typeof DocumentStage>;
 
 export const DocumentSchema = z.object({
@@ -14,7 +13,8 @@ export const DocumentSchema = z.object({
   content: z.string(),
   path: z.string(),
   status: DocumentStatus,
-  stage: DocumentStage.nullable().optional(),
+  stage: z.string().nullable().optional(),
+  lifecycleId: z.string().uuid().nullable().optional(),
   teamId: z.string().uuid(),
   createdById: z.string().uuid(),
   createdAt: z.string().datetime(),
@@ -52,13 +52,14 @@ export type DocumentBranch = z.infer<typeof DocumentBranchSchema>;
 
 export const DocumentTemplateSchema = z.object({
   id: z.string().uuid(),
-  stage: DocumentStage,
+  stage: z.string(),
   name: z.string(),
   description: z.string(),
   content: z.string(),
   sortOrder: z.number().int(),
   teamId: z.string().uuid().nullable().optional(),
   createdById: z.string().uuid().nullable().optional(),
+  lifecycleId: z.string().uuid().nullable().optional(),
   createdAt: z.string().datetime(),
 });
 

@@ -14,7 +14,7 @@ import { db } from './index.js';
 import { documentTemplates } from './schema.js';
 
 const TEMPLATES: {
-  stage: 'conception' | 'definition' | 'architecture' | 'implementation' | 'execution';
+  stage: string;
   name: string;
   description: string;
   content: string;

@@ -81,7 +81,7 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       content?: string;
       teamId: string;
       path?: string;
-      stage?: 'conception' | 'definition' | 'architecture' | 'implementation' | 'execution' | null;
+      stage?: string | null;
       templateId?: string;
     };
     const userId = request.user.id;
@@ -143,7 +143,7 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       content?: string;
       path?: string;
       status?: 'draft' | 'published' | 'archived';
-      stage?: 'conception' | 'definition' | 'architecture' | 'implementation' | 'execution' | null;
+      stage?: string | null;
     };
 
     const updates: Partial<typeof documents.$inferInsert> = {

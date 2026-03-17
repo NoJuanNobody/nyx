@@ -18,6 +18,44 @@ export const documentStageEnum = pgEnum('document_stage', [
   'conception', 'definition', 'architecture', 'implementation', 'execution',
 ]);
 
+// ── Lifecycles ───────────────────────────────────────────
+
+export const lifecycles = pgTable('lifecycles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  slug: text('slug').notNull().unique(),
+  label: text('label').notNull(),
+  description: text('description').notNull().default(''),
+  icon: text('icon').notNull().default(''),
+  isDefault: boolean('is_default').notNull().default(false),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const lifecycleStages = pgTable('lifecycle_stages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  lifecycleId: uuid('lifecycle_id')
+    .notNull()
+    .references(() => lifecycles.id, { onDelete: 'cascade' }),
+  slug: text('slug').notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+  label: text('label').notNull(),
+  abbreviation: text('abbreviation').notNull().default(''),
+  subtitle: text('subtitle').notNull().default(''),
+  color: text('color').notNull().default(''),
+  textColor: text('text_color').notNull().default(''),
+  dotColor: text('dot_color').notNull().default(''),
+  borderColor: text('border_color').notNull().default(''),
+  hex: text('hex').notNull().default('#888888'),
+  who: text('who').notNull().default(''),
+  description: text('description').notNull().default(''),
+  icon: text('icon').notNull().default(''),
+  ai: text('ai').notNull().default(''),
+  output: text('output').notNull().default(''),
+  docs: jsonb('docs').$type<string[]>().notNull().default([]),
+}, (table) => [
+  uniqueIndex('lifecycle_stages_lifecycle_slug_idx').on(table.lifecycleId, table.slug),
+]);
+
 // ── Users ──────────────────────────────────────────────
 
 export const users = pgTable('users', {
@@ -94,7 +132,8 @@ export const documents = pgTable('documents', {
   createdById: uuid('created_by_id')
     .notNull()
     .references(() => users.id),
-  stage: documentStageEnum('stage'),  // nullable — existing docs unaffected
+  stage: text('stage'),  // nullable text — was enum, now supports any lifecycle stage
+  lifecycleId: uuid('lifecycle_id').references(() => lifecycles.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -114,13 +153,14 @@ export const meetingDocuments = pgTable('meeting_documents', {
 
 export const documentTemplates = pgTable('document_templates', {
   id: uuid('id').primaryKey().defaultRandom(),
-  stage: documentStageEnum('stage').notNull(),
+  stage: text('stage').notNull(),  // was enum, now text to support any lifecycle stage
   name: text('name').notNull(),
   description: text('description').notNull(),
   content: text('content').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
   teamId: uuid('team_id').references(() => teams.id),
   createdById: uuid('created_by_id').references(() => users.id),
+  lifecycleId: uuid('lifecycle_id').references(() => lifecycles.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   uniqueIndex('document_templates_stage_name_team_idx').on(table.stage, table.name, table.teamId),
@@ -460,7 +500,7 @@ export const marketplaceListings = pgTable('marketplace_listings', {
   priceAmountCents: integer('price_amount_cents'),
   category: text('category'),
   tags: jsonb('tags').notNull().default([]),
-  stage: documentStageEnum('stage'),
+  stage: text('stage'),
   downloadCount: integer('download_count').notNull().default(0),
   authorId: uuid('author_id').notNull().references(() => users.id),
   teamId: uuid('team_id').references(() => teams.id),
