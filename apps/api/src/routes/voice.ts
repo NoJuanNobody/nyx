@@ -4,10 +4,23 @@ import {
   callIntegrationService,
   stubAdapter,
 } from '../services/voice/call-integration.service.js';
+import {
+  recallZoomAdapter,
+  recallGoogleMeetAdapter,
+  recallTeamsAdapter,
+} from '../services/voice/recall-adapter.js';
 import type { CallLifecycleEvent } from '../services/voice/call-integration.types.js';
 
-// Register the stub adapter by default for MVP
-callIntegrationService.registerAdapter(stubAdapter);
+// Register Recall.ai adapters when API key is available, otherwise fall back to stub
+if (process.env.RECALL_AI_API_KEY) {
+  callIntegrationService.registerAdapter(recallZoomAdapter);
+  callIntegrationService.registerAdapter(recallGoogleMeetAdapter);
+  callIntegrationService.registerAdapter(recallTeamsAdapter);
+  console.log('Voice: Recall.ai adapters registered for zoom, google_meet, teams');
+} else {
+  callIntegrationService.registerAdapter(stubAdapter);
+  console.log('Voice: No RECALL_AI_API_KEY found — using stub adapter (dev mode)');
+}
 
 export const voiceRoutes: FastifyPluginAsync = async (fastify) => {
   // ── Join a call ─────────────────────────────────────────

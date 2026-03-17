@@ -1398,3 +1398,35 @@ export function disableAgent(type: string, workspaceId: string): Promise<AgentMa
     body: JSON.stringify({ workspaceId }),
   });
 }
+
+// ── Voice / Meetings ────────────────────────────────────────────────
+
+export interface VoiceSession {
+  id: string;
+  platform: 'zoom' | 'google_meet' | 'teams';
+  state: 'idle' | 'connecting' | 'in_call' | 'disconnecting' | 'ended' | 'error';
+  meetingUrl: string;
+  startedAt: string;
+  endedAt?: string;
+}
+
+export function joinCall(platform: string, meetingUrl: string): Promise<{ session: VoiceSession }> {
+  return request<{ session: VoiceSession }>('/voice/join', {
+    method: 'POST',
+    body: JSON.stringify({ platform, meetingUrl }),
+  });
+}
+
+export function leaveCall(sessionId: string): Promise<{ session: VoiceSession }> {
+  return request<{ session: VoiceSession }>('/voice/leave', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId }),
+  });
+}
+
+export function createMeetingDocument(sessionId: string, teamId: string): Promise<{ documentId: string }> {
+  return request<{ documentId: string }>('/voice/documents/from-meeting', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId, teamId }),
+  });
+}
