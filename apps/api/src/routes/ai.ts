@@ -1,4 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { eq } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { documents } from '../db/schema.js';
 import { aiService } from '../services/ai.service.js';
 
 export const aiRoutes: FastifyPluginAsync = async (app) => {
@@ -221,5 +224,69 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
 
     const result = await aiService.seedNextStage(content, fromStage, toStage);
     return result;
+  });
+
+  // POST /api/ai/generate-all — batch-generate AI content for all documents in a team
+  app.post('/generate-all', async (request, reply) => {
+    const { teamId } = request.body as { teamId: string };
+
+    if (!teamId) {
+      reply.code(400);
+      return { error: 'teamId is required' };
+    }
+
+    // Fetch all non-archived documents for the team
+    const docs = await db
+      .select()
+      .from(documents)
+      .where(eq(documents.teamId, teamId));
+
+    const activeDocs = docs.filter((doc) => doc.status !== 'archived');
+
+    if (activeDocs.length === 0) {
+      return { results: [], total: 0, succeeded: 0, failed: 0 };
+    }
+
+    const results: Array<{
+      documentId: string;
+      title: string;
+      status: 'success' | 'error';
+      error?: string;
+    }> = [];
+
+    // Process documents sequentially to avoid overwhelming the AI provider
+    for (const doc of activeDocs) {
+      try {
+        const prompt = `Generate comprehensive documentation for: ${doc.title || 'Untitled Document'}`;
+        const generated = await aiService.generateDocument(prompt);
+
+        await db
+          .update(documents)
+          .set({
+            content: generated.content,
+            title: generated.title || doc.title,
+            updatedAt: new Date(),
+          })
+          .where(eq(documents.id, doc.id));
+
+        results.push({
+          documentId: doc.id,
+          title: generated.title || doc.title || 'Untitled',
+          status: 'success',
+        });
+      } catch (err) {
+        results.push({
+          documentId: doc.id,
+          title: doc.title || 'Untitled',
+          status: 'error',
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    }
+
+    const succeeded = results.filter((r) => r.status === 'success').length;
+    const failed = results.filter((r) => r.status === 'error').length;
+
+    return { results, total: activeDocs.length, succeeded, failed };
   });
 };
