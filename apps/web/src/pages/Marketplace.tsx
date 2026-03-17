@@ -8,16 +8,19 @@ import {
   toggleFeatureRequestUpvote,
   fetchProjectShowcases,
   createProjectShowcase,
+  fetchLifecycles,
   type MarketplaceListing,
   type FeatureRequest,
   type ProjectShowcase,
+  type LifecycleResponse,
 } from '../lib/api';
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type MarketplaceTab = 'templates' | 'workflows' | 'prompts' | 'feature-requests' | 'showcase';
+type MarketplaceTab = 'pipelines' | 'templates' | 'workflows' | 'prompts' | 'feature-requests' | 'showcase';
 
 const TABS: { key: MarketplaceTab; label: string; icon: string }[] = [
+  { key: 'pipelines', label: 'Pipelines', icon: '\u25CB' },
   { key: 'templates', label: 'Templates', icon: '\u25C8' },
   { key: 'workflows', label: 'Workflows', icon: '\u27F3' },
   { key: 'prompts', label: 'Prompts', icon: '\u2726' },
@@ -813,10 +816,174 @@ function ShowcaseTab() {
   );
 }
 
+// ── Pipeline Card ────────────────────────────────────────────────────
+
+function PipelineCard({ lifecycle }: { lifecycle: LifecycleResponse }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full p-5 text-left"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-2xl flex-shrink-0">{lifecycle.icon}</span>
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-slate-900 leading-snug">{lifecycle.label}</h3>
+              <p className="mt-0.5 text-xs text-slate-500 line-clamp-1">{lifecycle.description}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+              {lifecycle.stages.length} stages
+            </span>
+            {lifecycle.isDefault && (
+              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600 ring-1 ring-blue-200">
+                Default
+              </span>
+            )}
+            <svg
+              className={`h-4 w-4 text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Stage flow preview */}
+        <div className="mt-3 flex items-center gap-1 overflow-hidden">
+          {lifecycle.stages.map((stage, i) => (
+            <div key={stage.id} className="flex items-center gap-1 min-w-0">
+              <span
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap"
+                style={{ backgroundColor: stage.hex + '18', color: stage.hex }}
+              >
+                <span
+                  className="inline-block h-1.5 w-1.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: stage.hex }}
+                />
+                {stage.abbreviation}
+              </span>
+              {i < lifecycle.stages.length - 1 && (
+                <svg className="h-3 w-3 flex-shrink-0 text-slate-300" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              )}
+            </div>
+          ))}
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-slate-100 px-5 pb-5 pt-4">
+          <div className="space-y-3">
+            {lifecycle.stages.map((stage, i) => (
+              <div key={stage.id} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <span
+                    className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white flex-shrink-0"
+                    style={{ backgroundColor: stage.hex }}
+                  >
+                    {i + 1}
+                  </span>
+                  {i < lifecycle.stages.length - 1 && (
+                    <div className="w-px flex-1 bg-slate-200 mt-1" />
+                  )}
+                </div>
+                <div className="pb-3 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{stage.icon}</span>
+                    <span className="text-sm font-semibold text-slate-800">{stage.label}</span>
+                    <span className="text-[10px] text-slate-400">{stage.subtitle}</span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-slate-500">{stage.description}</p>
+                  <div className="mt-1.5 flex items-center gap-3 text-[10px] text-slate-400">
+                    <span>Who: {stage.who}</span>
+                  </div>
+                  {stage.docs && stage.docs.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {stage.docs.map((doc) => (
+                        <span
+                          key={doc}
+                          className="rounded px-1.5 py-0.5 text-[10px] font-medium"
+                          style={{ backgroundColor: stage.hex + '12', color: stage.hex }}
+                        >
+                          {doc}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Pipelines Tab ────────────────────────────────────────────────────
+
+function PipelinesTab() {
+  const [search, setSearch] = useState('');
+
+  const { data: lifecycles = [], isLoading, isError, error } = useQuery({
+    queryKey: ['lifecycles'],
+    queryFn: fetchLifecycles,
+  });
+
+  const filtered = search
+    ? lifecycles.filter(
+        (lc) =>
+          lc.label.toLowerCase().includes(search.toLowerCase()) ||
+          lc.description.toLowerCase().includes(search.toLowerCase()),
+      )
+    : lifecycles;
+
+  return (
+    <div>
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex-1 max-w-md">
+          <SearchInput value={search} onChange={setSearch} placeholder="Search pipelines..." />
+        </div>
+        <span className="text-xs text-slate-400">
+          {filtered.length} pipeline{filtered.length !== 1 ? 's' : ''} available
+        </span>
+      </div>
+
+      {isLoading ? (
+        <Spinner />
+      ) : isError ? (
+        <ErrorBanner message={error instanceof Error ? error.message : 'Failed to load pipelines.'} />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon="\u25CB"
+          title="No pipelines found"
+          subtitle={search ? 'Try a different search term.' : 'No lifecycle pipelines are configured yet.'}
+        />
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((lc) => (
+            <PipelineCard key={lc.id} lifecycle={lc} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Marketplace Page ─────────────────────────────────────────────────
 
 export function Marketplace() {
-  const [activeTab, setActiveTab] = useState<MarketplaceTab>('templates');
+  const [activeTab, setActiveTab] = useState<MarketplaceTab>('pipelines');
 
   return (
     <>
@@ -850,6 +1017,7 @@ export function Marketplace() {
 
       {/* Tab content */}
       <div>
+        {activeTab === 'pipelines' && <PipelinesTab />}
         {activeTab === 'templates' && <ListingsTab type="template" />}
         {activeTab === 'workflows' && <ListingsTab type="workflow" />}
         {activeTab === 'prompts' && <ListingsTab type="prompt" />}
