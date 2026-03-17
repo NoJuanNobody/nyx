@@ -204,6 +204,8 @@ describe('callIntegrationService', () => {
               // Emit immediately after handler registration
               setTimeout(emitAudio, 10);
             },
+            async sendChat() {},
+            async speak() {},
           };
         },
       };
@@ -261,6 +263,8 @@ describe('callIntegrationService', () => {
           return {
             async disconnect() {},
             onAudio() {},
+            async sendChat() {},
+            async speak() {},
           };
         },
       };

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
-import type { CallState, AudioStreamEvent } from '@nyx/shared';
+import type { CallState, AudioStreamEvent, BotOutputEvent } from '@nyx/shared';
 import type {
   CallSessionInternal,
   JoinCallConfig,
@@ -12,8 +12,12 @@ import { VALID_TRANSITIONS } from './call-integration.types.js';
 /** In-memory session store (Map-based for MVP). */
 const sessions = new Map<string, CallSessionInternal>();
 
-/** Map of sessionId -> platform adapter disconnect function */
-const activeConnections = new Map<string, { disconnect: () => Promise<void> }>();
+/** Map of sessionId -> platform adapter connection */
+const activeConnections = new Map<string, {
+  disconnect: () => Promise<void>;
+  sendChat: (message: string) => Promise<void>;
+  speak: (message: string) => Promise<void>;
+}>();
 
 /** Map of platform name -> adapter instance */
 const adapters = new Map<string, CallPlatformAdapter>();
@@ -89,6 +93,12 @@ export const stubAdapter: CallPlatformAdapter = {
       onAudio(handler: (event: AudioStreamEvent) => void) {
         audioHandlers.push(handler);
       },
+      async sendChat(_message: string) {
+        // Stub: no-op in dev mode
+      },
+      async speak(_message: string) {
+        // Stub: no-op in dev mode
+      },
     };
   },
 };
@@ -128,7 +138,7 @@ export const callIntegrationService = {
     transitionState(sessionId, 'connecting');
 
     try {
-      const connection = await adapter.connect(config);
+      const connection = await adapter.connect({ ...config, sessionId });
 
       // Forward audio events through the event bus
       connection.onAudio((audioEvent) => {
@@ -194,6 +204,72 @@ export const callIntegrationService = {
     transitionState(sessionId, 'ended');
 
     return sessions.get(sessionId)!;
+  },
+
+  /**
+   * Send a chat message into the active call.
+   */
+  async sendChat(sessionId: string, message: string): Promise<void> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Unknown session: ${sessionId}`);
+    }
+    if (session.state !== 'in_call') {
+      throw new Error(`Cannot send chat: session is in "${session.state}" state`);
+    }
+
+    const connection = activeConnections.get(sessionId);
+    if (!connection) {
+      throw new Error(`No active connection for session: ${sessionId}`);
+    }
+
+    await connection.sendChat(message);
+
+    const outputEvent: BotOutputEvent = {
+      type: 'chat',
+      message,
+      sessionId,
+      timestampMs: Date.now(),
+    };
+    const lifecycleEvent: CallLifecycleEvent = {
+      type: 'bot_output',
+      sessionId,
+      event: outputEvent,
+    };
+    eventBus.emit('lifecycle', lifecycleEvent);
+  },
+
+  /**
+   * Speak a message via TTS into the active call.
+   */
+  async speak(sessionId: string, message: string): Promise<void> {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Unknown session: ${sessionId}`);
+    }
+    if (session.state !== 'in_call') {
+      throw new Error(`Cannot speak: session is in "${session.state}" state`);
+    }
+
+    const connection = activeConnections.get(sessionId);
+    if (!connection) {
+      throw new Error(`No active connection for session: ${sessionId}`);
+    }
+
+    await connection.speak(message);
+
+    const outputEvent: BotOutputEvent = {
+      type: 'tts',
+      message,
+      sessionId,
+      timestampMs: Date.now(),
+    };
+    const lifecycleEvent: CallLifecycleEvent = {
+      type: 'bot_output',
+      sessionId,
+      event: outputEvent,
+    };
+    eventBus.emit('lifecycle', lifecycleEvent);
   },
 
   /**

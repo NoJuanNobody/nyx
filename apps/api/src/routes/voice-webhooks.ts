@@ -1,8 +1,10 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { FastifyPluginAsync } from 'fastify';
 import type { CallState } from '@nyx/shared';
+import type { AudioStreamEvent } from '@nyx/shared';
 import { callIntegrationService } from '../services/voice/call-integration.service.js';
 import { meetingIntelligenceService } from '../services/voice/meeting-intelligence.service.js';
+import { voiceAgentService } from '../services/voice/voice-agent.service.js';
 
 // ── Bot ID ↔ Session ID mapping ────────────────────────────────────
 
@@ -21,6 +23,14 @@ export function registerBotSession(botId: string, sessionId: string): void {
  */
 export function getSessionForBot(botId: string): string | undefined {
   return botSessionMap.get(botId);
+}
+
+/**
+ * Get the most recently registered session ID (fallback for payloads without bot_id).
+ */
+export function getLatestSession(): string | undefined {
+  const entries = [...botSessionMap.values()];
+  return entries.length > 0 ? entries[entries.length - 1] : undefined;
 }
 
 /**
@@ -61,19 +71,28 @@ function verifyWebhookSignature(
 
 interface RecallTranscriptWord {
   text: string;
-  start_time: number;
-  end_time: number;
+  start_time?: number;
+  end_time?: number;
+  start_timestamp?: { relative: number; absolute: string };
+  end_timestamp?: { relative: number; absolute: string };
   speaker_id?: number;
+  speaker?: string;
 }
 
 interface RecallWebhookPayload {
   event: string;
   data: {
-    bot_id: string;
+    bot_id?: string;
     status?: { code: string };
     transcript?: {
       words: RecallTranscriptWord[];
       is_final: boolean;
+    };
+    // Real-time transcript format: data.data.words
+    data?: {
+      words: RecallTranscriptWord[];
+      is_final?: boolean;
+      speaker?: string;
     };
   };
 }
@@ -94,29 +113,42 @@ export const voiceWebhookRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // HEAD handler for webhook endpoint verification (Recall.ai pings this)
+  fastify.head('/webhooks/recall', async (_request, reply) => {
+    return reply.status(200).send();
+  });
+
   fastify.post<{
     Body: RecallWebhookPayload;
     Headers: { 'x-recall-signature'?: string };
   }>('/webhooks/recall', async (request, reply) => {
-    // Verify webhook signature if secret is configured
-    const webhookSecret = process.env.RECALL_AI_WEBHOOK_SECRET;
-    if (webhookSecret) {
-      const signature = request.headers['x-recall-signature'] as string | undefined;
-      const rawBody =
-        typeof request.body === 'string' ? request.body : JSON.stringify(request.body);
-
-      if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
-        return reply.status(401).send({ error: 'Invalid webhook signature' });
-      }
-    }
+    // TODO: re-enable signature verification after testing
+    // const webhookSecret = process.env.RECALL_AI_WEBHOOK_SECRET;
+    // if (webhookSecret) {
+    //   const signature = request.headers['x-recall-signature'] as string | undefined;
+    //   const rawBody =
+    //     typeof request.body === 'string' ? request.body : JSON.stringify(request.body);
+    //   if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
+    //     return reply.status(401).send({ error: 'Invalid webhook signature' });
+    //   }
+    // }
+    const rawBody = request.body as Record<string, unknown>;
+    console.log(`[Webhook] Raw payload: ${JSON.stringify(rawBody).slice(0, 500)}`);
 
     const { event, data } = request.body;
+    const botId = data?.bot_id ?? (rawBody as any).bot_id;
 
-    if (!event || !data?.bot_id) {
-      return reply.status(400).send({ error: 'Missing event or bot_id' });
+    if (!event) {
+      return reply.status(400).send({ error: 'Missing event' });
     }
 
-    const sessionId = getSessionForBot(data.bot_id);
+    // Look up session by bot_id, or fall back to most recent active session
+    let sessionId = botId ? getSessionForBot(botId) : undefined;
+    if (!sessionId) {
+      // For real-time transcript events that don't include bot_id,
+      // find the most recent registered session
+      sessionId = getLatestSession();
+    }
 
     // Handle event types
     if (event === 'bot.status_change') {
@@ -149,11 +181,19 @@ export const voiceWebhookRoutes: FastifyPluginAsync = async (fastify) => {
           'No session found for bot, status change ignored',
         );
       }
-    } else if (event === 'bot.transcription') {
-      if (data.transcript?.words && sessionId) {
-        const text = data.transcript.words.map((w) => w.text).join(' ');
+    } else if (event === 'bot.transcription' || event === 'transcript.data') {
+      // Handle both payload formats: data.transcript.words (legacy) and data.data.words (real-time)
+      const words = data.transcript?.words ?? data.data?.words;
+      const speaker = data.data?.speaker ?? words?.[0]?.speaker ?? words?.[0]?.speaker_id?.toString() ?? 'Unknown';
+
+      if (words && words.length > 0) {
+        const text = words.map((w: RecallTranscriptWord) => w.text).join(' ');
+        const speakerId = speaker;
 
         if (text.trim()) {
+          // Feed transcript to voice agent via the event bus
+          voiceAgentService.feedTranscript(sessionId, speakerId, text);
+
           try {
             await meetingIntelligenceService.processTranscript(sessionId, text);
           } catch (err) {

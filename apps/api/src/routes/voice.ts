@@ -10,6 +10,7 @@ import {
   recallTeamsAdapter,
 } from '../services/voice/recall-adapter.js';
 import type { CallLifecycleEvent } from '../services/voice/call-integration.types.js';
+import { voiceAgentService } from '../services/voice/voice-agent.service.js';
 
 // Register Recall.ai adapters when API key is available, otherwise fall back to stub
 if (process.env.RECALL_AI_API_KEY) {
@@ -46,6 +47,10 @@ export const voiceRoutes: FastifyPluginAsync = async (fastify) => {
         meetingUrl,
         authToken,
       });
+
+      // Auto-start the voice agent for this session
+      voiceAgentService.start(session.id);
+
       return reply.status(200).send({ session });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to join call';
@@ -64,12 +69,53 @@ export const voiceRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     try {
+      voiceAgentService.stop(sessionId);
       const session = await callIntegrationService.leaveCall(sessionId);
       return reply.status(200).send({ session });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to leave call';
       const statusCode = message.includes('Unknown session') ? 404 : 500;
       return reply.status(statusCode).send({ error: message });
+    }
+  });
+
+  // ── Send chat message into call ───────────────────────────
+  fastify.post<{
+    Body: { sessionId: string; message: string };
+  }>('/chat', async (request, reply) => {
+    const { sessionId, message } = request.body;
+
+    if (!sessionId || !message) {
+      return reply.status(400).send({ error: 'sessionId and message are required' });
+    }
+
+    try {
+      await callIntegrationService.sendChat(sessionId, message);
+      return reply.status(200).send({ ok: true });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to send chat';
+      const statusCode = msg.includes('Unknown session') ? 404 : 500;
+      return reply.status(statusCode).send({ error: msg });
+    }
+  });
+
+  // ── Speak via TTS into call ──────────────────────────────
+  fastify.post<{
+    Body: { sessionId: string; message: string };
+  }>('/speak', async (request, reply) => {
+    const { sessionId, message } = request.body;
+
+    if (!sessionId || !message) {
+      return reply.status(400).send({ error: 'sessionId and message are required' });
+    }
+
+    try {
+      await callIntegrationService.speak(sessionId, message);
+      return reply.status(200).send({ ok: true });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to speak';
+      const statusCode = msg.includes('Unknown session') ? 404 : 500;
+      return reply.status(statusCode).send({ error: msg });
     }
   });
 

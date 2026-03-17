@@ -477,6 +477,7 @@ function DocItem({
     archived: 'bg-slate-300',
   };
 
+  const activeLifecycleSlug = useUIStore((s) => s.activeLifecycleSlug);
   const [showActions, setShowActions] = useState(false);
 
   return (

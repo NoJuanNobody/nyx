@@ -1,7 +1,8 @@
 import type { MeetingPlatform, AudioStreamEvent } from '@nyx/shared';
 import type { CallPlatformAdapter, JoinCallConfig } from './call-integration.types.js';
+import { registerBotSession } from '../../routes/voice-webhooks.js';
 
-const RECALL_API_BASE = 'https://api.recall.ai/api/v1';
+const RECALL_API_BASE = process.env.RECALL_AI_API_BASE ?? 'https://us-east-1.recall.ai/api/v1';
 
 /** How often (ms) to poll bot status while waiting for it to join the meeting. */
 const STATUS_POLL_INTERVAL_MS = 2_000;
@@ -25,12 +26,21 @@ const TERMINAL_FAILURE_STATUSES = new Set([
 
 interface RecallBotResponse {
   id: string;
-  status: { code: string };
+  status?: { code: string };
+  status_changes?: Array<{ code: string; created_at: string }>;
 }
 
 interface RecallTranscriptEntry {
   speaker: string;
   words: Array<{ text: string; start_timestamp: number; end_timestamp: number }>;
+}
+
+function getBotStatusCode(bot: RecallBotResponse): string {
+  if (bot.status?.code) return bot.status.code;
+  if (bot.status_changes?.length) {
+    return bot.status_changes[bot.status_changes.length - 1].code;
+  }
+  return 'unknown';
 }
 
 function getApiKey(): string {
@@ -52,13 +62,33 @@ function authHeaders(): Record<string, string> {
 }
 
 async function createBot(meetingUrl: string): Promise<RecallBotResponse> {
+  const webhookUrl = process.env.RECALL_WEBHOOK_URL;
+
+  const botConfig: Record<string, unknown> = {
+    meeting_url: meetingUrl,
+    output_media: { camera: { kind: 'default' }, speaker: { kind: 'default' } },
+  };
+
+  if (webhookUrl) {
+    botConfig.recording_config = {
+      transcript: {
+        provider: { gladia_v2_streaming: {} },
+      },
+      realtime_endpoints: [
+        {
+          type: 'webhook',
+          url: webhookUrl,
+          events: ['transcript.data'],
+        },
+      ],
+    };
+    console.log(`[Recall] Bot will send transcripts to: ${webhookUrl}`);
+  }
+
   const response = await fetch(`${RECALL_API_BASE}/bot`, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify({
-      meeting_url: meetingUrl,
-      transcription_options: { provider: 'default' },
-    }),
+    body: JSON.stringify(botConfig),
   });
 
   if (!response.ok) {
@@ -92,11 +122,45 @@ async function getTranscript(botId: string): Promise<RecallTranscriptEntry[]> {
   });
 
   if (!response.ok) {
-    // Transcript may not be available yet — return empty rather than throwing
+    const body = await response.text().catch(() => 'unknown');
+    console.log(`[Recall] Transcript fetch failed (${response.status}): ${body}`);
     return [];
   }
 
   return (await response.json()) as RecallTranscriptEntry[];
+}
+
+async function sendChatMessage(botId: string, message: string): Promise<void> {
+  const response = await fetch(`${RECALL_API_BASE}/bot/${botId}/send_chat_message`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ message }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => 'unknown error');
+    throw new Error(
+      `Recall.ai send_chat_message failed (${response.status}): ${body}`,
+    );
+  }
+}
+
+async function sendOutputAudio(botId: string, message: string): Promise<void> {
+  const response = await fetch(`${RECALL_API_BASE}/bot/${botId}/output_audio`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({
+      kind: 'text',
+      data: { value: message },
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => 'unknown error');
+    throw new Error(
+      `Recall.ai output_audio failed (${response.status}): ${body}`,
+    );
+  }
 }
 
 async function removeBot(botId: string): Promise<void> {
@@ -130,7 +194,7 @@ async function waitForBotInCall(
     }
 
     const bot = await getBotStatus(botId);
-    const statusCode = bot.status.code;
+    const statusCode = getBotStatusCode(bot);
 
     if (IN_CALL_STATUSES.has(statusCode)) {
       return;
@@ -163,6 +227,12 @@ function createRecallAdapter(platform: MeetingPlatform): CallPlatformAdapter {
       const bot = await createBot(config.meetingUrl);
       const botId = bot.id;
 
+      // Register bot-to-session mapping for webhook routing
+      if (config.sessionId) {
+        registerBotSession(botId, config.sessionId);
+        console.log(`[Recall] Mapped bot ${botId.slice(0, 8)} -> session ${config.sessionId.slice(0, 8)}`);
+      }
+
       const abortController = new AbortController();
       const audioHandlers: Array<(event: AudioStreamEvent) => void> = [];
       let transcriptPollTimer: ReturnType<typeof setInterval> | undefined;
@@ -178,6 +248,7 @@ function createRecallAdapter(platform: MeetingPlatform): CallPlatformAdapter {
 
         try {
           const entries = await getTranscript(botId);
+          console.log(`[Recall:${botId.slice(0, 8)}] Transcript poll: ${entries.length} entries (last seen: ${lastTranscriptLength})`);
 
           // Only process new entries since last poll
           if (entries.length > lastTranscriptLength) {
@@ -234,6 +305,20 @@ function createRecallAdapter(platform: MeetingPlatform): CallPlatformAdapter {
 
         onAudio(handler: (event: AudioStreamEvent) => void) {
           audioHandlers.push(handler);
+        },
+
+        async sendChat(message: string) {
+          if (disconnected) {
+            throw new Error('Cannot send chat: bot is disconnected');
+          }
+          await sendChatMessage(botId, message);
+        },
+
+        async speak(message: string) {
+          if (disconnected) {
+            throw new Error('Cannot speak: bot is disconnected');
+          }
+          await sendOutputAudio(botId, message);
         },
       };
     },

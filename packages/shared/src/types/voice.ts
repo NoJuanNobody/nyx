@@ -21,6 +21,14 @@ export const AudioStreamEventSchema = z.object({
 });
 export type AudioStreamEvent = z.infer<typeof AudioStreamEventSchema>;
 
+export const BotOutputEventSchema = z.object({
+  type: z.enum(['chat', 'tts']),
+  message: z.string(),
+  sessionId: z.string().optional(),
+  timestampMs: z.number(),
+});
+export type BotOutputEvent = z.infer<typeof BotOutputEventSchema>;
+
 export const CallSessionSchema = z.object({
   id: z.string().uuid(),
   platform: MeetingPlatformSchema,
