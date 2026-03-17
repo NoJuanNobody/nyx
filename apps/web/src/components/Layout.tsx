@@ -10,7 +10,7 @@ export function Layout() {
     <div className="flex h-screen bg-slate-50">
       <Sidebar />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col min-h-0">
         {/* Top bar */}
         <div className="flex items-center gap-2 px-4 py-2">
           <button
