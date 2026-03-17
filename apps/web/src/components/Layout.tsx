@@ -39,7 +39,7 @@ export function Layout() {
         </div>
 
         {/* Main content */}
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden p-6 lg:p-8">
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto p-6 lg:p-8">
           <Outlet />
         </main>
       </div>
