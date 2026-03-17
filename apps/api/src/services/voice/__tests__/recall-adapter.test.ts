@@ -341,8 +341,8 @@ describe('recall-adapter', () => {
 
       // Verify leave_call was called
       const leaveCall = mockFetch.mock.calls.find(
-        ([url]: [string]) =>
-          typeof url === 'string' && url.includes('/leave_call'),
+        (args: any[]) =>
+          typeof args[0] === 'string' && args[0].includes('/leave_call'),
       );
       expect(leaveCall).toBeDefined();
       expect(leaveCall![0]).toBe(
@@ -363,8 +363,8 @@ describe('recall-adapter', () => {
 
       // leave_call should only be called once
       const leaveCalls = mockFetch.mock.calls.filter(
-        ([url]: [string]) =>
-          typeof url === 'string' && url.includes('/leave_call'),
+        (args: any[]) =>
+          typeof args[0] === 'string' && args[0].includes('/leave_call'),
       );
       expect(leaveCalls.length).toBe(1);
     });
