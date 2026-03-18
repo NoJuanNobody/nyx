@@ -25,6 +25,9 @@ export function VideoGenerationPanel({ documentId }: VideoGenerationPanelProps) 
       queryClient.invalidateQueries({ queryKey: ['videos', documentId] });
       setPrompt('');
     },
+    onError: (err: Error) => {
+      console.error('Video generation failed:', err.message);
+    },
   });
 
   const downloadMutation = useMutation({

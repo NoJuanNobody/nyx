@@ -11,9 +11,9 @@ import { config } from '../lib/config.js';
 export interface VideoGenerationRequest {
   prompt: string;
   documentId?: string;
-  duration?: number; // seconds, default 5
+  duration?: number;
   aspectRatio?: '16:9' | '9:16' | '1:1';
-  documentContext?: string; // document content for context-aware generation
+  documentContext?: string;
 }
 
 export interface GeneratedVideo {
@@ -28,10 +28,7 @@ export interface GeneratedVideo {
   error?: string;
 }
 
-// In-memory store for MVP
 const videoStore = new Map<string, GeneratedVideo>();
-
-// Video output directory
 const VIDEO_OUTPUT_DIR = join(process.cwd(), 'generated-videos');
 
 function getGoogleAIClient(): GoogleGenAI | null {
@@ -40,24 +37,96 @@ function getGoogleAIClient(): GoogleGenAI | null {
   return new GoogleGenAI({ apiKey });
 }
 
-export const videoGenerationService = {
-  async generateVideo(request: VideoGenerationRequest): Promise<GeneratedVideo> {
-    const id = randomUUID();
-    const duration = request.duration ?? 5;
+async function buildContextPrompt(request: VideoGenerationRequest): Promise<string> {
+  let contextPrompt = request.prompt;
 
-    // Build context-aware prompt
-    let contextPrompt = request.prompt;
-    if (request.documentId && !request.documentContext) {
+  if (request.documentId && !request.documentContext) {
+    try {
       const [doc] = await db.select().from(documents).where(eq(documents.id, request.documentId));
       if (doc) {
         const docSummary = doc.content.slice(0, 500);
         contextPrompt = `Based on this document "${doc.title}":\n${docSummary}\n\nVideo prompt: ${request.prompt}`;
       }
-    } else if (request.documentContext) {
-      const contextSummary = request.documentContext.slice(0, 500);
-      contextPrompt = `Based on this document context:\n${contextSummary}\n\nVideo prompt: ${request.prompt}`;
+    } catch {
+      // Invalid UUID or DB error — continue with original prompt
+    }
+  } else if (request.documentContext) {
+    const contextSummary = request.documentContext.slice(0, 500);
+    contextPrompt = `Based on this document context:\n${contextSummary}\n\nVideo prompt: ${request.prompt}`;
+  }
+
+  return contextPrompt;
+}
+
+async function generateInBackground(
+  id: string,
+  client: GoogleGenAI,
+  contextPrompt: string,
+  aspectRatio: string | undefined,
+  duration: number,
+): Promise<void> {
+  const video = videoStore.get(id);
+  if (!video) return;
+
+  try {
+    const ar = aspectRatio === '9:16' ? '9:16' : aspectRatio === '1:1' ? '1:1' : '16:9';
+
+    const response = await client.models.generateVideos({
+      model: 'veo-2.0-generate-001',
+      prompt: contextPrompt,
+      config: {
+        aspectRatio: ar,
+        numberOfVideos: 1,
+        durationSeconds: duration <= 8 ? 5 : 8,
+        personGeneration: 'allow_all',
+      },
+    });
+
+    // Poll for completion
+    let operation = response;
+    while (!operation.done) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      operation = await client.operations.getVideosOperation({ operation });
     }
 
+    if (operation.response?.generatedVideos?.length) {
+      const generatedVideo = operation.response.generatedVideos[0];
+
+      if (generatedVideo.video?.uri) {
+        await mkdir(VIDEO_OUTPUT_DIR, { recursive: true });
+        const fileName = `${id}.mp4`;
+        const filePath = join(VIDEO_OUTPUT_DIR, fileName);
+
+        const videoResponse = await fetch(generatedVideo.video.uri);
+        const videoBuffer = Buffer.from(await videoResponse.arrayBuffer());
+        await writeFile(filePath, videoBuffer);
+
+        video.status = 'completed';
+        video.videoUrl = `/api/video/file/${id}.mp4`;
+        console.log(`[VideoGen] Video ${id} completed: ${filePath}`);
+      } else {
+        video.status = 'failed';
+        video.error = 'No video URI in response';
+      }
+    } else {
+      video.status = 'failed';
+      video.error = 'No videos generated';
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error(`[VideoGen] Failed to generate video ${id}: ${message}`);
+    video.status = 'failed';
+    video.error = message;
+  }
+
+  videoStore.set(id, video);
+}
+
+export const videoGenerationService = {
+  async generateVideo(request: VideoGenerationRequest): Promise<GeneratedVideo> {
+    const id = randomUUID();
+    const duration = request.duration ?? 5;
+    const contextPrompt = await buildContextPrompt(request);
     const client = getGoogleAIClient();
 
     // Stub mode if no API key
@@ -77,7 +146,7 @@ export const videoGenerationService = {
       return video;
     }
 
-    // Create initial pending entry
+    // Create entry and return immediately — generate in background
     const video: GeneratedVideo = {
       id,
       prompt: contextPrompt,
@@ -90,63 +159,8 @@ export const videoGenerationService = {
     };
     videoStore.set(id, video);
 
-    // Generate video with Google Veo 2
-    try {
-      const response = await client.models.generateVideos({
-        model: 'veo-2.0-generate-001',
-        prompt: contextPrompt,
-        config: {
-          aspectRatio: request.aspectRatio === '9:16' ? '9:16' : request.aspectRatio === '1:1' ? '1:1' : '16:9',
-          numberOfVideos: 1,
-          durationSeconds: duration <= 8 ? 5 : 8,
-          personGeneration: 'allow_all',
-        },
-      });
+    generateInBackground(id, client, contextPrompt, request.aspectRatio, duration).catch(() => {});
 
-      // Poll for completion
-      let operation = response;
-      while (!operation.done) {
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-        operation = await client.operations.getVideosOperation({
-          operation: operation,
-        });
-      }
-
-      if (operation.response?.generatedVideos?.length) {
-        const generatedVideo = operation.response.generatedVideos[0];
-
-        if (generatedVideo.video?.uri) {
-          // Save video file locally
-          await mkdir(VIDEO_OUTPUT_DIR, { recursive: true });
-          const fileName = `${id}.mp4`;
-          const filePath = join(VIDEO_OUTPUT_DIR, fileName);
-
-          // Download video from URI
-          const videoResponse = await fetch(generatedVideo.video.uri);
-          const videoBuffer = Buffer.from(await videoResponse.arrayBuffer());
-          await writeFile(filePath, videoBuffer);
-
-          video.status = 'completed';
-          video.videoUrl = `/api/video/file/${id}.mp4`;
-          video.thumbnailUrl = null;
-
-          console.log(`[VideoGen] Video ${id} completed: ${filePath}`);
-        } else {
-          video.status = 'failed';
-          video.error = 'No video URI in response';
-        }
-      } else {
-        video.status = 'failed';
-        video.error = 'No videos generated';
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      console.error(`[VideoGen] Failed to generate video ${id}: ${message}`);
-      video.status = 'failed';
-      video.error = message;
-    }
-
-    videoStore.set(id, video);
     return video;
   },
 
@@ -177,15 +191,13 @@ export const videoGenerationService = {
         const video = videoStore.get(videoId);
         if (video) {
           if (video.videoUrl?.startsWith('/api/video/file/')) {
-            // Real video file — add from disk
             const fileName = video.videoUrl.replace('/api/video/file/', '');
             const filePath = join(VIDEO_OUTPUT_DIR, fileName);
             archive.file(filePath, { name: fileName });
           } else {
-            // Stub — add placeholder text
             const safeName = video.prompt.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60);
             archive.append(
-              `Placeholder for video: ${video.prompt}\nID: ${video.id}\nDuration: ${video.duration}s\nStatus: ${video.status}\nURL: ${video.videoUrl}`,
+              `Video: ${video.prompt}\nID: ${video.id}\nDuration: ${video.duration}s\nStatus: ${video.status}\nURL: ${video.videoUrl}`,
               { name: `${safeName}.txt` },
             );
           }
@@ -196,7 +208,6 @@ export const videoGenerationService = {
     });
   },
 
-  /** Reset store — exported for testing */
   _reset(): void {
     videoStore.clear();
   },
