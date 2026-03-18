@@ -6,6 +6,9 @@ import { documents } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
 import { pcbParserService } from '../services/pcb-parser.service.js';
 
+// In-memory PCB metadata store (keyed by documentId)
+const pcbStore = new Map<string, unknown[]>();
+
 export const pcbRoutes: FastifyPluginAsync = async (app) => {
   // Register multipart support scoped to this plugin
   await app.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } }); // 50 MB max for PCB files
@@ -52,29 +55,20 @@ export const pcbRoutes: FastifyPluginAsync = async (app) => {
         return { error: 'Document not found' };
       }
 
-      // Store PCB metadata as attachment metadata in the document's metadata JSON field
-      const existingMeta = (doc.metadata as Record<string, unknown>) ?? {};
-      const pcbAttachments = (existingMeta.pcbAttachments as unknown[]) ?? [];
-
       const attachment = {
         uploadedAt: new Date().toISOString(),
+        fileName,
         metadata,
         ...(bom.length > 0 ? { bom } : {}),
       };
 
-      pcbAttachments.push(attachment);
-
-      const [updated] = await db
-        .update(documents)
-        .set({
-          metadata: { ...existingMeta, pcbAttachments },
-          updatedAt: new Date(),
-        })
-        .where(eq(documents.id, id))
-        .returning();
+      // Store in memory (will be replaced by a proper DB column in a future migration)
+      const existing = pcbStore.get(id) ?? [];
+      existing.push(attachment);
+      pcbStore.set(id, existing);
 
       return {
-        document: { id: updated.id, title: updated.title },
+        document: { id: doc.id, title: doc.title },
         pcb: attachment,
       };
     },
@@ -94,8 +88,7 @@ export const pcbRoutes: FastifyPluginAsync = async (app) => {
         return { error: 'Document not found' };
       }
 
-      const meta = (doc.metadata as Record<string, unknown>) ?? {};
-      const pcbAttachments = (meta.pcbAttachments as unknown[]) ?? [];
+      const pcbAttachments = pcbStore.get(id) ?? [];
 
       if (pcbAttachments.length === 0) {
         reply.code(404);

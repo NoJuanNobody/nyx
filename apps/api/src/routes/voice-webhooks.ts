@@ -122,18 +122,16 @@ export const voiceWebhookRoutes: FastifyPluginAsync = async (fastify) => {
     Body: RecallWebhookPayload;
     Headers: { 'x-recall-signature'?: string };
   }>('/webhooks/recall', async (request, reply) => {
-    // TODO: re-enable signature verification after testing
-    // const webhookSecret = process.env.RECALL_AI_WEBHOOK_SECRET;
-    // if (webhookSecret) {
-    //   const signature = request.headers['x-recall-signature'] as string | undefined;
-    //   const rawBody =
-    //     typeof request.body === 'string' ? request.body : JSON.stringify(request.body);
-    //   if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
-    //     return reply.status(401).send({ error: 'Invalid webhook signature' });
-    //   }
-    // }
-    const rawBody = request.body as Record<string, unknown>;
-    console.log(`[Webhook] Raw payload: ${JSON.stringify(rawBody).slice(0, 500)}`);
+    const webhookSecret = process.env.RECALL_AI_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const signature = request.headers['x-recall-signature'] as string | undefined;
+      const rawBodyStr =
+        typeof request.body === 'string' ? request.body : JSON.stringify(request.body);
+      if (!verifyWebhookSignature(rawBodyStr, signature, webhookSecret)) {
+        return reply.status(401).send({ error: 'Invalid webhook signature' });
+      }
+    }
+    const rawBody = request.body as unknown as Record<string, unknown>;
 
     const { event, data } = request.body;
     const botId = data?.bot_id ?? (rawBody as any).bot_id;
@@ -144,7 +142,7 @@ export const voiceWebhookRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Look up session by bot_id, or fall back to most recent active session
     let sessionId = botId ? getSessionForBot(botId) : undefined;
-    if (!sessionId) {
+    if (!sessionId && !botId) {
       // For real-time transcript events that don't include bot_id,
       // find the most recent registered session
       sessionId = getLatestSession();
@@ -192,10 +190,14 @@ export const voiceWebhookRoutes: FastifyPluginAsync = async (fastify) => {
 
         if (text.trim()) {
           // Feed transcript to voice agent via the event bus
-          voiceAgentService.feedTranscript(sessionId, speakerId, text);
+          if (sessionId) {
+            voiceAgentService.feedTranscript(sessionId, speakerId, text);
+          }
 
           try {
-            await meetingIntelligenceService.processTranscript(sessionId, text);
+            if (sessionId) {
+              await meetingIntelligenceService.processTranscript(sessionId, text);
+            }
           } catch (err) {
             request.log.error(
               { err, sessionId },

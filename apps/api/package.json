@@ -34,6 +34,7 @@
     "zod": "^3"
   },
   "devDependencies": {
+    "@types/form-data": "^2.5.2",
     "@types/node": "^22",
     "@types/pdfkit": "^0.13",
     "@vitest/coverage-v8": "^3",
