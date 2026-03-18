@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchMarketplaceListings,
@@ -9,6 +10,9 @@ import {
   fetchProjectShowcases,
   createProjectShowcase,
   fetchLifecycles,
+  fetchTeams,
+  createDocument,
+  downloadMarketplaceListing,
   type MarketplaceListing,
   type FeatureRequest,
   type ProjectShowcase,
@@ -481,8 +485,30 @@ function ShowcaseModal({ onClose }: { onClose: () => void }) {
 // ── Listing Card ─────────────────────────────────────────────────────
 
 function ListingCard({ listing }: { listing: MarketplaceListing }) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { data: teams } = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
+  const teamId = teams?.[0]?.id;
+
+  const applyMutation = useMutation({
+    mutationFn: async () => {
+      const { content, title } = await downloadMarketplaceListing(listing.id);
+      return createDocument({
+        title,
+        content,
+        teamId: teamId!,
+        stage: listing.stage ?? undefined,
+      });
+    },
+    onSuccess: (doc) => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      navigate(`/documents/${doc.id}`);
+    },
+  });
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div className="group relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-sm font-semibold text-slate-900 leading-snug line-clamp-1">{listing.title}</h3>
         <PriceBadge priceType={listing.priceType} priceAmountCents={listing.priceAmountCents} />
@@ -514,6 +540,18 @@ function ListingCard({ listing }: { listing: MarketplaceListing }) {
           <span className="text-[10px] text-slate-400">{listing.category}</span>
         )}
       </div>
+
+      {listing.type === 'template' && teamId && (
+        <button
+          type="button"
+          onClick={() => applyMutation.mutate()}
+          disabled={applyMutation.isPending}
+          title="Create a new document from this template"
+          className="absolute bottom-4 right-4 hidden group-hover:flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          {applyMutation.isPending ? 'Creating…' : 'Use Template'}
+        </button>
+      )}
     </div>
   );
 }
@@ -824,6 +862,20 @@ function PipelineCard({ lifecycle }: { lifecycle: LifecycleResponse }) {
   const { activeLifecycleSlug, setActiveLifecycleSlug } = useUIStore();
   const isActive = activeLifecycleSlug === lifecycle.slug;
 
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data: teams } = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
+  const teamId = teams?.[0]?.id;
+
+  const createDocMutation = useMutation({
+    mutationFn: ({ title, stageId }: { title: string; stageId: string }) =>
+      createDocument({ title, content: '', teamId: teamId!, stage: stageId }),
+    onSuccess: (doc) => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      navigate(`/documents/${doc.id}`);
+    },
+  });
+
   return (
     <div className={`rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow ${isActive ? 'border-blue-400 ring-1 ring-blue-200' : 'border-slate-200'}`}>
       <button
@@ -934,16 +986,26 @@ function PipelineCard({ lifecycle }: { lifecycle: LifecycleResponse }) {
                     <span>Who: {stage.who}</span>
                   </div>
                   {stage.docs && stage.docs.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1">
+                    <div className="mt-1.5">
+                      <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Click to create:</span>
+                      <div className="mt-1 flex flex-wrap gap-1">
                       {stage.docs.map((doc) => (
-                        <span
+                        <button
                           key={doc}
-                          className="rounded px-1.5 py-0.5 text-[10px] font-medium"
-                          style={{ backgroundColor: stage.hex + '12', color: stage.hex }}
+                          type="button"
+                          disabled={!teamId || createDocMutation.isPending}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            createDocMutation.mutate({ title: doc, stageId: stage.id });
+                          }}
+                          title={`Create "${doc}" document`}
+                          className="rounded px-1.5 py-0.5 text-[10px] font-medium cursor-pointer hover:opacity-75 hover:ring-1 transition-all disabled:cursor-not-allowed disabled:opacity-50"
+                          style={{ backgroundColor: stage.hex + '12', color: stage.hex, outlineColor: stage.hex }}
                         >
                           {doc}
-                        </span>
+                        </button>
                       ))}
+                      </div>
                     </div>
                   )}
                 </div>
