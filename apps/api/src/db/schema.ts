@@ -605,3 +605,28 @@ export const socialPosts = pgTable('social_posts', {
   publishedAt: timestamp('published_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ── Credit Ledger ─────────────────────────────────────
+
+export const creditTransactionTypeEnum = pgEnum('credit_transaction_type', [
+  'purchase',
+  'consumption',
+  'refund',
+]);
+
+export const creditBalances = pgTable('credit_balances', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull().unique(),
+  balance: integer('balance').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const creditTransactions = pgTable('credit_transactions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull(),
+  amount: integer('amount').notNull(),
+  type: creditTransactionTypeEnum('type').notNull(),
+  description: text('description').notNull(),
+  taskType: text('task_type'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

@@ -57,6 +57,7 @@ import { pcbRoutes } from './routes/pcb.js';
 import { socialRoutes } from './routes/social.js';
 import { billingRoutes } from './routes/billing.js';
 import { planRoutes } from './routes/plan.js';
+import { creditRoutes } from './routes/credits.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -126,6 +127,7 @@ export function buildApp() {
   app.register(socialRoutes, { prefix: '/api/documents' });
   app.register(billingRoutes, { prefix: '/api/billing' });
   app.register(planRoutes, { prefix: '/api/plan' });
+  app.register(creditRoutes, { prefix: '/api/credits' });
 
   return app;
 }
