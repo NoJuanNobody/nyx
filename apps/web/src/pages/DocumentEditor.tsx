@@ -18,6 +18,7 @@ import { AIAdvisor } from '../components/AIAdvisor';
 import { CreateTicketModal } from '../components/CreateTicketModal';
 import { BulkTicketReview } from '../components/BulkTicketReview';
 import { JSXPreviewPanel } from '../components/JSXPreviewPanel';
+import { PCBViewer } from '../components/PCBViewer';
 import { SaveAsTemplateButton } from '../components/SaveAsTemplateButton';
 import { MeetingNoteQuality } from '../components/MeetingNoteQuality';
 
@@ -34,7 +35,7 @@ export function DocumentEditor() {
   const [versionModalOpen, setVersionModalOpen] = useState(false);
   const [versionMessage, setVersionMessage] = useState('');
   const [aiProposedContent, setAiProposedContent] = useState<string | null>(null);
-  const [editorLayout, setEditorLayout] = useState<'split' | 'editor' | 'preview' | 'jsx-preview'>('split');
+  const [editorLayout, setEditorLayout] = useState<'split' | 'editor' | 'preview' | 'jsx-preview' | 'pcb'>('split');
   const { seeding, setSeeding } = useUIStore();
   const [splitPercent, setSplitPercent] = useState(50);
   const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
@@ -447,10 +448,21 @@ export function DocumentEditor() {
                 >
                   JSX Preview
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorLayout('pcb')}
+                  className={`px-4 py-2 text-xs font-medium transition-colors ${
+                    editorLayout === 'pcb'
+                      ? 'border-b-2 border-amber-500 text-amber-600'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  PCB Files
+                </button>
               </div>
 
               {/* Markdown formatting toolbar */}
-              {editorLayout !== 'preview' && editorLayout !== 'jsx-preview' && (
+              {editorLayout !== 'preview' && editorLayout !== 'jsx-preview' && editorLayout !== 'pcb' && (
                 <MarkdownToolbar
                   textareaRef={textareaRef as RefObject<HTMLTextAreaElement>}
                   value={content}
@@ -460,7 +472,11 @@ export function DocumentEditor() {
 
               {/* Content area */}
               <div className="flex min-h-0 flex-1">
-                {editorLayout === 'jsx-preview' ? (
+                {editorLayout === 'pcb' ? (
+                  <div className="flex-1 overflow-y-auto p-6">
+                    {id && <PCBViewer documentId={id} />}
+                  </div>
+                ) : editorLayout === 'jsx-preview' ? (
                   <>
                     {/* Editor pane */}
                     <div

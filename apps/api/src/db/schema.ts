@@ -546,6 +546,24 @@ export const featureRequestComments = pgTable('feature_request_comments', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── PCB Attachments ───────────────────────────────────────────────
+
+export const pcbAttachments = pgTable('pcb_attachments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id')
+    .notNull()
+    .references(() => documents.id, { onDelete: 'cascade' }),
+  filename: text('filename').notNull(),
+  fileType: text('file_type').notNull(), // 'gerber' | 'kicad' | 'eagle' | 'altium' | 'other'
+  mimeType: text('mime_type').notNull(),
+  fileData: text('file_data').notNull(), // base64-encoded file content
+  fileSize: integer('file_size').notNull(),
+  layerName: text('layer_name'), // e.g. 'F.Cu', 'B.Cu', 'F.SilkS', 'Edge.Cuts'
+  layerType: text('layer_type'), // 'copper' | 'silkscreen' | 'soldermask' | 'drill' | 'outline' | 'project'
+  metadata: jsonb('metadata').notNull().default({}), // BOM items, board dimensions, component count
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const projectShowcases = pgTable('project_showcases', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),

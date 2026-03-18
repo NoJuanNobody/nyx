@@ -1493,3 +1493,59 @@ export function createMeetingDocument(sessionId: string, teamId: string): Promis
     body: JSON.stringify({ sessionId, teamId }),
   });
 }
+
+// ── PCB Attachments ──────────────────────────────────────────────────
+
+export interface PcbAttachment {
+  id: string;
+  documentId: string;
+  filename: string;
+  fileType: 'gerber' | 'kicad' | 'eagle' | 'altium' | 'other';
+  mimeType: string;
+  fileSize: number;
+  layerName: string | null;
+  layerType: 'copper' | 'silkscreen' | 'soldermask' | 'drill' | 'outline' | 'project' | null;
+  metadata: {
+    bom: Array<{ reference: string; value: string; package: string; quantity: number }>;
+    componentCount: number;
+    boardWidthMm?: number;
+    boardHeightMm?: number;
+  };
+  createdAt: string;
+}
+
+export function fetchPcbAttachments(documentId: string): Promise<PcbAttachment[]> {
+  return request<PcbAttachment[]>(`/pcb/document/${documentId}`);
+}
+
+export async function uploadPcbFiles(
+  documentId: string,
+  files: File[],
+): Promise<{ uploaded: PcbAttachment[]; errors?: string[] }> {
+  const formData = new FormData();
+  for (const file of files) {
+    formData.append('files', file, file.name);
+  }
+
+  const token = await resolveToken();
+  const res = await fetch(`${BASE}/pcb/upload?documentId=${encodeURIComponent(documentId)}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`API ${res.status}: ${body || res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export function deletePcbAttachment(id: string): Promise<{ success: boolean }> {
+  return request<{ success: boolean }>(`/pcb/${id}`, { method: 'DELETE' });
+}
+
+export function getPcbRawUrl(id: string): string {
+  return `${BASE}/pcb/${id}/raw`;
+}
