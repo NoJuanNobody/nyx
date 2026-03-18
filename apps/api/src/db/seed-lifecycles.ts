@@ -281,9 +281,27 @@ export const LIFECYCLE_SEEDS: LifecycleSeed[] = [
     ],
   },
 
+  // ── #192: Unscripted Video Production ──────────────────────────
+  {
+    slug: 'unscripted_video_production',
+    label: 'Unscripted Video Production',
+    description: 'Flexible video production without a predetermined script — from concept to delivery',
+    icon: '🎥',
+    isDefault: false,
+    sortOrder: 18,
+    stages: [
+      { slug: 'brief_concept', sortOrder: 0, label: 'Brief & Concept', abbreviation: 'BC', subtitle: 'Concept', color: 'bg-amber-100', textColor: 'text-amber-700', dotColor: 'bg-amber-400', borderColor: 'border-amber-300', hex: '#F59E0B', who: 'Producer, Director', description: 'Define the video concept, format, audience, and key talking points', icon: '💡', ai: 'Suggests angles, key messages, and talking points based on the concept', output: 'Approved concept brief', docs: ['Project Overview', 'Concept Brief', 'Talking Points', 'Participant List'] },
+      { slug: 'shot_list_outline', sortOrder: 1, label: 'Shot List / Outline', abbreviation: 'SL', subtitle: 'Visual Planning', color: 'bg-orange-100', textColor: 'text-orange-700', dotColor: 'bg-orange-400', borderColor: 'border-orange-300', hex: '#F97316', who: 'Director, DP', description: 'Plan shots, angles, and a loose coverage outline in place of a full storyboard', icon: '🎞️', ai: 'Suggests shot types, b-roll ideas, and coverage for the format', output: 'Shot list and coverage outline', docs: ['Shot List', 'Coverage Outline', 'B-Roll Checklist', 'Equipment Notes'] },
+      { slug: 'recording_notes', sortOrder: 2, label: 'Recording Notes', abbreviation: 'RN', subtitle: 'Production', color: 'bg-yellow-100', textColor: 'text-yellow-700', dotColor: 'bg-yellow-400', borderColor: 'border-yellow-300', hex: '#EAB308', who: 'Director, DP, Sound', description: 'Capture take logs, timestamps, and on-set notes during recording for use in editing', icon: '🎙️', ai: 'Flags best takes and key moments from recording notes', output: 'Annotated take log and timestamp notes', docs: ['Take Log', 'Timestamp Notes', 'B-Roll Log', 'Audio Notes'] },
+      { slug: 'post_production_review', sortOrder: 3, label: 'Post-Production', abbreviation: 'PP', subtitle: 'Editing & Finishing', color: 'bg-teal-100', textColor: 'text-teal-700', dotColor: 'bg-teal-400', borderColor: 'border-teal-300', hex: '#2DD4BF', who: 'Editor', description: 'Edit footage, add graphics and captions, mix audio, and prepare a review cut', icon: '🎬', ai: 'Analyzes pacing and suggests structure from recording notes', output: 'Polished cut ready for stakeholder review', docs: ['Edit Notes', 'Graphics List', 'Music Notes', 'Caption Draft'] },
+      { slug: 'stakeholder_review', sortOrder: 4, label: 'Review', abbreviation: 'RV', subtitle: 'Stakeholder Review', color: 'bg-violet-100', textColor: 'text-violet-700', dotColor: 'bg-violet-400', borderColor: 'border-violet-300', hex: '#8B5CF6', who: 'Stakeholders, Client', description: 'Collect structured feedback from stakeholders and track revisions to final approval', icon: '👁️', ai: 'Summarizes feedback themes and prioritizes revision items', output: 'Approved final cut', docs: ['Review Feedback', 'Revision List', 'Approval Sign-off'] },
+      { slug: 'final_delivery', sortOrder: 5, label: 'Final Delivery', abbreviation: 'FD', subtitle: 'Deliverables', color: 'bg-emerald-100', textColor: 'text-emerald-700', dotColor: 'bg-emerald-400', borderColor: 'border-emerald-300', hex: '#10B981', who: 'Post Supervisor', description: 'Export final video in all required formats and deliver with QC report', icon: '📦', ai: 'Validates delivery specs and generates QC report', output: 'Complete delivery package', docs: ['Final Master', 'Manifest', 'QC Report', 'Captions', 'Distribution Notes'] },
+    ],
+  },
+
   // ── #174: Graphic Design ────────────────────────────────────────
   {
-    slug: 'graphic_design', label: 'Graphic Design', description: 'Graphic design from brief to final deliverables', icon: '🎨', isDefault: false, sortOrder: 18,
+    slug: 'graphic_design', label: 'Graphic Design', description: 'Graphic design from brief to final deliverables', icon: '🎨', isDefault: false, sortOrder: 19,
     stages: [
       { slug: 'brief_direction', sortOrder: 0, label: 'Brief & Creative Direction', abbreviation: 'BD', subtitle: 'Project Brief', color: 'bg-blue-100', textColor: 'text-blue-700', dotColor: 'bg-blue-400', borderColor: 'border-blue-300', hex: '#3B82F6', who: 'Client, Art Director', description: 'Define the design brief and direction', icon: '🎯', ai: 'Suggests visual styles, identifies constraints', output: 'Approved creative brief', docs: ['Creative Brief', 'Mood Board', 'Brand Guidelines', 'Scope', 'References'] },
       { slug: 'concept_sketches', sortOrder: 1, label: 'Concept Sketches', abbreviation: 'CS', subtitle: 'Initial Concepts', color: 'bg-indigo-100', textColor: 'text-indigo-700', dotColor: 'bg-indigo-400', borderColor: 'border-indigo-300', hex: '#6366F1', who: 'Designer', description: 'Create initial concept sketches', icon: '✏️', ai: 'Checks visual hierarchy, suggests compositions', output: 'Multiple concept directions', docs: ['Concepts', 'Design Explorations', 'Typography Study', 'Color Palettes'] },
