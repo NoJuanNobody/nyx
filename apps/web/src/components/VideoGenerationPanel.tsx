@@ -59,10 +59,13 @@ export function VideoGenerationPanel({ documentId }: VideoGenerationPanelProps) 
         <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-400">
           Generate Video
         </label>
+        <p className="text-[10px] text-slate-400">
+          Videos are generated using the current document as context.
+        </p>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Describe the video you want to generate..."
+          placeholder="Describe the video you want to generate (document content is used as context)..."
           rows={3}
           className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
         />

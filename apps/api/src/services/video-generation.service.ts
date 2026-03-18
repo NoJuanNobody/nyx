@@ -1,11 +1,15 @@
 import { randomUUID } from 'crypto';
 import archiver from 'archiver';
+import { eq } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { documents } from '../db/schema.js';
 
 export interface VideoGenerationRequest {
   prompt: string;
   documentId?: string;
   duration?: number; // seconds, default 5
   aspectRatio?: '16:9' | '9:16' | '1:1';
+  documentContext?: string; // document content for context-aware generation
 }
 
 export interface GeneratedVideo {
@@ -27,10 +31,24 @@ export const videoGenerationService = {
     const id = randomUUID();
     const duration = request.duration ?? 5;
 
+    // If documentId is provided, fetch document content for context
+    let contextPrompt = request.prompt;
+    if (request.documentId && !request.documentContext) {
+      const [doc] = await db.select().from(documents).where(eq(documents.id, request.documentId));
+      if (doc) {
+        const docSummary = doc.content.slice(0, 500);
+        contextPrompt = `Based on this document "${doc.title}":\n${docSummary}\n\nVideo prompt: ${request.prompt}`;
+      }
+    } else if (request.documentContext) {
+      const contextSummary = request.documentContext.slice(0, 500);
+      contextPrompt = `Based on this document context:\n${contextSummary}\n\nVideo prompt: ${request.prompt}`;
+    }
+
     // Stub implementation — in production this would call Replicate/Sora API
+    // contextPrompt would be sent to the video generation API
     const video: GeneratedVideo = {
       id,
-      prompt: request.prompt,
+      prompt: contextPrompt,
       status: 'completed',
       videoUrl: `https://nyx-placeholder.test/videos/${id}.mp4`,
       thumbnailUrl: `https://nyx-placeholder.test/thumbnails/${id}.jpg`,
