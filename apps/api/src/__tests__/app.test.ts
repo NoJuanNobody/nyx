@@ -27,6 +27,7 @@ vi.mock('../routes/waitlist.js', () => ({ waitlistRoutes: async () => {} }));
 vi.mock('../routes/templates.js', () => ({ templateRoutes: async () => {} }));
 vi.mock('../routes/mockups.js', () => ({ mockupRoutes: async () => {}, setMockupCluster: vi.fn() }));
 vi.mock('../routes/feedback.js', () => ({ feedbackRoutes: async () => {} }));
+vi.mock('../routes/upload.js', () => ({ uploadRoutes: async () => {} }));
 vi.mock('../middleware/auth.js', () => ({ authMiddleware: async () => {} }));
 
 import { buildApp } from '../app.js';
