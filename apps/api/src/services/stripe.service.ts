@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { subscriptions } from '../db/schema.js';
+import { subscriptions, stripeCustomers } from '../db/schema.js';
 import { config } from '../lib/config.js';
 
 // ── Plan → Stripe Price ID mapping ──────────────────────
@@ -16,9 +16,9 @@ const PLAN_PRICES: Record<string, string> = {
 
 let stripeClient: Stripe | null = null;
 
-function getStripe(): Stripe {
+function getStripe(): Stripe | null {
   if (!config.STRIPE_SECRET_KEY) {
-    throw new Error('Stripe is not configured: STRIPE_SECRET_KEY is missing');
+    return null;
   }
   if (!stripeClient) {
     stripeClient = new Stripe(config.STRIPE_SECRET_KEY, {
@@ -38,8 +38,6 @@ export async function getOrCreateCustomer(
   teamName: string,
   email: string,
 ): Promise<string> {
-  const stripe = getStripe();
-
   // Check if we already have a customer id stored
   const [sub] = await db
     .select({ stripeCustomerId: subscriptions.stripeCustomerId })
@@ -49,6 +47,17 @@ export async function getOrCreateCustomer(
 
   if (sub?.stripeCustomerId) {
     return sub.stripeCustomerId;
+  }
+
+  const stripe = getStripe();
+  if (!stripe) {
+    // Stub: return a mock customer ID when Stripe is not configured
+    const mockId = `cus_mock_${teamId.slice(0, 8)}`;
+    await db
+      .insert(subscriptions)
+      .values({ teamId, stripeCustomerId: mockId })
+      .onConflictDoNothing();
+    return mockId;
   }
 
   // Create new Stripe customer
@@ -72,6 +81,10 @@ export async function createCheckoutSession(
   cancelUrl: string,
 ): Promise<string> {
   const stripe = getStripe();
+  if (!stripe) {
+    // Stub: return a mock checkout URL when Stripe is not configured
+    return `https://checkout.stripe.com/mock?customer=${customerId}&price=${priceId}`;
+  }
 
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
@@ -93,6 +106,10 @@ export async function createPortalSession(
   returnUrl: string,
 ): Promise<string> {
   const stripe = getStripe();
+  if (!stripe) {
+    // Stub: return a mock portal URL when Stripe is not configured
+    return `https://billing.stripe.com/mock/portal?customer=${customerId}`;
+  }
 
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
@@ -115,11 +132,19 @@ export async function handleWebhookEvent(
     throw new Error('STRIPE_WEBHOOK_SECRET is not configured');
   }
 
-  const event = stripe.webhooks.constructEvent(
-    payload,
-    signature,
-    config.STRIPE_WEBHOOK_SECRET,
-  );
+  let event: Stripe.Event;
+
+  if (stripe) {
+    event = stripe.webhooks.constructEvent(
+      payload,
+      signature,
+      config.STRIPE_WEBHOOK_SECRET,
+    );
+  } else {
+    // Stub mode: parse the payload directly (no signature verification)
+    const raw = typeof payload === 'string' ? payload : payload.toString();
+    event = JSON.parse(raw) as Stripe.Event;
+  }
 
   switch (event.type) {
     case 'checkout.session.completed': {
@@ -127,13 +152,27 @@ export async function handleWebhookEvent(
       const teamId = session.metadata?.teamId;
       if (!teamId || !session.subscription) break;
 
-      const stripeSubscription = await stripe.subscriptions.retrieve(
-        session.subscription as string,
-      );
+      let priceId: string | undefined;
+      let plan = 'pro';
+      let periodStart = Date.now();
+      let periodEnd = Date.now();
+      let cancelAtPeriodEnd = false;
 
-      // Determine plan from price id
-      const priceId = stripeSubscription.items.data[0]?.price.id;
-      const plan = Object.entries(PLAN_PRICES).find(([, pid]) => pid === priceId)?.[0] ?? 'pro';
+      if (stripe) {
+        const stripeSubscription = await stripe.subscriptions.retrieve(
+          session.subscription as string,
+        );
+        priceId = stripeSubscription.items.data[0]?.price.id;
+        plan =
+          Object.entries(PLAN_PRICES).find(([, pid]) => pid === priceId)?.[0] ?? 'pro';
+        periodStart = stripeSubscription.items.data[0]?.current_period_start
+          ? stripeSubscription.items.data[0].current_period_start * 1000
+          : Date.now();
+        periodEnd = stripeSubscription.items.data[0]?.current_period_end
+          ? stripeSubscription.items.data[0].current_period_end * 1000
+          : Date.now();
+        cancelAtPeriodEnd = stripeSubscription.cancel_at_period_end;
+      }
 
       // Upsert subscription record
       const [existing] = await db
@@ -146,15 +185,14 @@ export async function handleWebhookEvent(
         plan: plan as 'free' | 'pro' | 'team' | 'enterprise',
         status: 'active' as const,
         stripeCustomerId: session.customer as string,
-        stripeSubscriptionId: stripeSubscription.id,
+        stripeSubscriptionId:
+          typeof session.subscription === 'string'
+            ? session.subscription
+            : (session.subscription as unknown as { id: string }).id,
         stripePriceId: priceId ?? null,
-        currentPeriodStart: new Date(stripeSubscription.items.data[0]?.current_period_start
-          ? stripeSubscription.items.data[0].current_period_start * 1000
-          : Date.now()),
-        currentPeriodEnd: new Date(stripeSubscription.items.data[0]?.current_period_end
-          ? stripeSubscription.items.data[0].current_period_end * 1000
-          : Date.now()),
-        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+        currentPeriodStart: new Date(periodStart),
+        currentPeriodEnd: new Date(periodEnd),
+        cancelAtPeriodEnd,
         updatedAt: new Date(),
       };
 
@@ -166,6 +204,26 @@ export async function handleWebhookEvent(
       } else {
         await db.insert(subscriptions).values({ teamId, ...values });
       }
+
+      // Also upsert stripe_customers record
+      const userId = session.client_reference_id ?? teamId;
+      const [existingCustomer] = await db
+        .select()
+        .from(stripeCustomers)
+        .where(eq(stripeCustomers.stripeCustomerId, session.customer as string))
+        .limit(1);
+
+      if (!existingCustomer) {
+        await db.insert(stripeCustomers).values({
+          userId,
+          stripeCustomerId: session.customer as string,
+          subscriptionId:
+            typeof session.subscription === 'string'
+              ? session.subscription
+              : null,
+          plan,
+        });
+      }
       break;
     }
 
@@ -175,20 +233,22 @@ export async function handleWebhookEvent(
       const teamId = sub.metadata?.teamId;
       if (!teamId) break;
 
-      const status = sub.status === 'active'
-        ? 'active'
-        : sub.status === 'past_due'
-          ? 'past_due'
-          : sub.status === 'canceled'
-            ? 'canceled'
-            : sub.status === 'trialing'
-              ? 'trialing'
-              : 'incomplete';
+      const status =
+        sub.status === 'active'
+          ? 'active'
+          : sub.status === 'past_due'
+            ? 'past_due'
+            : sub.status === 'canceled'
+              ? 'canceled'
+              : sub.status === 'trialing'
+                ? 'trialing'
+                : 'incomplete';
 
       const priceId = sub.items.data[0]?.price.id;
-      const plan = event.type === 'customer.subscription.deleted'
-        ? 'free'
-        : (Object.entries(PLAN_PRICES).find(([, pid]) => pid === priceId)?.[0] ?? 'pro');
+      const plan =
+        event.type === 'customer.subscription.deleted'
+          ? 'free'
+          : (Object.entries(PLAN_PRICES).find(([, pid]) => pid === priceId)?.[0] ?? 'pro');
 
       await db
         .update(subscriptions)
@@ -197,15 +257,36 @@ export async function handleWebhookEvent(
           status: status as 'active' | 'past_due' | 'canceled' | 'trialing' | 'incomplete',
           stripePriceId: priceId ?? null,
           cancelAtPeriodEnd: sub.cancel_at_period_end,
-          currentPeriodStart: new Date(sub.items.data[0]?.current_period_start
-            ? sub.items.data[0].current_period_start * 1000
-            : Date.now()),
-          currentPeriodEnd: new Date(sub.items.data[0]?.current_period_end
-            ? sub.items.data[0].current_period_end * 1000
-            : Date.now()),
+          currentPeriodStart: new Date(
+            sub.items.data[0]?.current_period_start
+              ? sub.items.data[0].current_period_start * 1000
+              : Date.now(),
+          ),
+          currentPeriodEnd: new Date(
+            sub.items.data[0]?.current_period_end
+              ? sub.items.data[0].current_period_end * 1000
+              : Date.now(),
+          ),
           updatedAt: new Date(),
         })
         .where(eq(subscriptions.teamId, teamId));
+
+      // Update stripe_customers plan
+      if (sub.customer) {
+        const customerId =
+          typeof sub.customer === 'string' ? sub.customer : sub.customer.toString();
+        await db
+          .update(stripeCustomers)
+          .set({
+            plan,
+            planExpiresAt:
+              event.type === 'customer.subscription.deleted'
+                ? new Date()
+                : null,
+            updatedAt: new Date(),
+          })
+          .where(eq(stripeCustomers.stripeCustomerId, customerId));
+      }
       break;
     }
 
