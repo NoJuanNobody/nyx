@@ -95,7 +95,10 @@ async function generateInBackground(
         const fileName = `${id}.mp4`;
         const filePath = join(VIDEO_OUTPUT_DIR, fileName);
 
-        const videoResponse = await fetch(generatedVideo.video.uri);
+        // Append API key to the download URI for authentication
+        const downloadUrl = new URL(generatedVideo.video.uri);
+        downloadUrl.searchParams.set('key', config.GOOGLE_AI_API_KEY!);
+        const videoResponse = await fetch(downloadUrl.toString());
         if (!videoResponse.ok) {
           const errBody = await videoResponse.text().catch(() => 'Download failed');
           video.status = 'failed';
