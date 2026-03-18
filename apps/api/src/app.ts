@@ -53,6 +53,7 @@ import { voiceTranscriptionRoutes } from './routes/voice-transcription.js';
 import { voiceDocumentRoutes } from './routes/voice-documents.js';
 import { voiceWebhookRoutes } from './routes/voice-webhooks.js';
 import { uploadRoutes } from './routes/upload.js';
+import { pcbRoutes } from './routes/pcb.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -118,6 +119,7 @@ export function buildApp() {
   app.register(voiceDocumentRoutes, { prefix: '/api/voice' });
   app.register(voiceWebhookRoutes, { prefix: '/api/voice' });
   app.register(uploadRoutes, { prefix: '/api/documents' });
+  app.register(pcbRoutes, { prefix: '/api/documents' });
 
   return app;
 }
