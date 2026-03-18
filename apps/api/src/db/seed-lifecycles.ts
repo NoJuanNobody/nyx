@@ -281,6 +281,19 @@ export const LIFECYCLE_SEEDS: LifecycleSeed[] = [
     ],
   },
 
+  // ── #173b: Video Production (Unscripted) ────────────────────────
+  {
+    slug: 'video_production_unscripted', label: 'Video Production (Unscripted)', description: 'Impromptu or ad-hoc video production without a pre-written script', icon: '🎥', isDefault: false, sortOrder: 17,
+    stages: [
+      { slug: 'video_brief_concept', sortOrder: 0, label: 'Brief & Concept', abbreviation: 'BC', subtitle: 'Project Brief', color: 'bg-purple-100', textColor: 'text-purple-700', dotColor: 'bg-purple-400', borderColor: 'border-purple-300', hex: '#A855F7', who: 'Director, Producer', description: 'Define the creative brief, goals, and talking points without a full script', icon: '💡', ai: 'Suggests talking points, outlines key messages, identifies content gaps', output: 'Approved brief with key messages', docs: ['Creative Brief', 'Key Messages', 'Target Audience', 'Goals', 'References'] },
+      { slug: 'video_shot_list', sortOrder: 1, label: 'Shot List / Outline', abbreviation: 'SL', subtitle: 'Visual Planning', color: 'bg-fuchsia-100', textColor: 'text-fuchsia-700', dotColor: 'bg-fuchsia-400', borderColor: 'border-fuchsia-300', hex: '#D946EF', who: 'Director, DP', description: 'Plan shots and sequences without a scripted storyboard', icon: '🎞️', ai: 'Suggests shot angles, identifies coverage gaps, estimates runtime', output: 'Shot list and visual outline', docs: ['Shot List', 'B-Roll Checklist', 'Interview Questions', 'Location Notes'] },
+      { slug: 'video_recording_notes', sortOrder: 2, label: 'Recording Notes', abbreviation: 'RN', subtitle: 'Pre-Production', color: 'bg-rose-100', textColor: 'text-rose-700', dotColor: 'bg-rose-400', borderColor: 'border-rose-300', hex: '#F43F5E', who: 'Producer, AD', description: 'Logistics, setup notes, and talking-point reminders for the recording day', icon: '📋', ai: 'Generates day-of checklist, suggests prompt cards, identifies logistical risks', output: 'Recording day package', docs: ['Day-of Checklist', 'Prompt Cards', 'Equipment List', 'Crew Notes', 'Consent Forms'] },
+      { slug: 'rough_cut', sortOrder: 3, label: 'Rough Cut', abbreviation: 'RC', subtitle: 'First Edit', color: 'bg-lime-100', textColor: 'text-lime-700', dotColor: 'bg-lime-400', borderColor: 'border-lime-300', hex: '#A3E635', who: 'Editor, Director', description: 'Assemble the rough cut from filmed footage', icon: '🎬', ai: 'Analyzes pacing, suggests alternate takes, identifies missing coverage', output: 'Rough cut for review', docs: ['Rough Cut', 'Edit Decision List', 'Missing Coverage', 'Temp Music'] },
+      { slug: 'color_sound', sortOrder: 4, label: 'Color & Sound', abbreviation: 'CS', subtitle: 'Post-Production', color: 'bg-teal-100', textColor: 'text-teal-700', dotColor: 'bg-teal-400', borderColor: 'border-teal-300', hex: '#2DD4BF', who: 'Colorist, Sound Designer', description: 'Color grading and audio mixing', icon: '🎨', ai: 'Checks color consistency, audio levels', output: 'Color-graded and mixed version', docs: ['Color Grade', 'Sound Design', 'Audio Mix', 'VFX', 'Music Cues'] },
+      { slug: 'final_delivery', sortOrder: 5, label: 'Final Delivery', abbreviation: 'FD', subtitle: 'Deliverables', color: 'bg-emerald-100', textColor: 'text-emerald-700', dotColor: 'bg-emerald-400', borderColor: 'border-emerald-300', hex: '#10B981', who: 'Post Supervisor', description: 'Final deliverables in all formats', icon: '📦', ai: 'Validates delivery specs, generates QC report', output: 'Complete delivery package', docs: ['Final Master', 'Manifest', 'QC Report', 'Captions', 'Promo Materials'] },
+    ],
+  },
+
   // ── #174: Graphic Design ────────────────────────────────────────
   {
     slug: 'graphic_design', label: 'Graphic Design', description: 'Graphic design from brief to final deliverables', icon: '🎨', isDefault: false, sortOrder: 18,

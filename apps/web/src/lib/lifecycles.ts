@@ -589,6 +589,32 @@ LIFECYCLES.set('video_production', {
   },
 });
 
+// ── #173b: Video Production (Unscripted) ──────────────────────────
+
+LIFECYCLES.set('video_production_unscripted', {
+  slug: 'video_production_unscripted',
+  label: 'Video Production (Unscripted)',
+  description: 'Impromptu or ad-hoc video production without a pre-written script',
+  icon: '🎥',
+  stages: [
+    { id: 'video_brief_concept', label: 'Brief & Concept', abbreviation: 'BC', subtitle: 'Project Brief', color: 'bg-purple-100', textColor: 'text-purple-700', dotColor: 'bg-purple-400', borderColor: 'border-purple-300', hex: '#A855F7', who: 'Director, Producer', description: 'Define the creative brief, goals, and talking points without a full script', icon: '💡', ai: 'Suggests talking points, outlines key messages, identifies content gaps', output: 'Approved brief with key messages', docs: ['Creative Brief', 'Key Messages', 'Target Audience', 'Goals', 'References'] },
+    { id: 'video_shot_list', label: 'Shot List / Outline', abbreviation: 'SL', subtitle: 'Visual Planning', color: 'bg-fuchsia-100', textColor: 'text-fuchsia-700', dotColor: 'bg-fuchsia-400', borderColor: 'border-fuchsia-300', hex: '#D946EF', who: 'Director, DP', description: 'Plan shots and sequences without a scripted storyboard', icon: '🎞️', ai: 'Suggests shot angles, identifies coverage gaps, estimates runtime', output: 'Shot list and visual outline', docs: ['Shot List', 'B-Roll Checklist', 'Interview Questions', 'Location Notes'] },
+    { id: 'video_recording_notes', label: 'Recording Notes', abbreviation: 'RN', subtitle: 'Pre-Production', color: 'bg-rose-100', textColor: 'text-rose-700', dotColor: 'bg-rose-400', borderColor: 'border-rose-300', hex: '#F43F5E', who: 'Producer, AD', description: 'Logistics, setup notes, and talking-point reminders for the recording day', icon: '📋', ai: 'Generates day-of checklist, suggests prompt cards, identifies logistical risks', output: 'Recording day package', docs: ['Day-of Checklist', 'Prompt Cards', 'Equipment List', 'Crew Notes', 'Consent Forms'] },
+    { id: 'rough_cut', label: 'Rough Cut', abbreviation: 'RC', subtitle: 'First Edit', color: 'bg-lime-100', textColor: 'text-lime-700', dotColor: 'bg-lime-400', borderColor: 'border-lime-300', hex: '#A3E635', who: 'Editor, Director', description: 'Assemble the rough cut from filmed footage', icon: '🎬', ai: 'Analyzes pacing, suggests alternate takes, identifies missing coverage', output: 'Rough cut for review', docs: ['Rough Cut', 'Edit Decision List', 'Missing Coverage', 'Temp Music'] },
+    { id: 'color_sound', label: 'Color & Sound', abbreviation: 'CS', subtitle: 'Post-Production', color: 'bg-teal-100', textColor: 'text-teal-700', dotColor: 'bg-teal-400', borderColor: 'border-teal-300', hex: '#2DD4BF', who: 'Colorist, Sound Designer', description: 'Color grading and audio mixing', icon: '🎨', ai: 'Checks color consistency, audio levels', output: 'Color-graded and mixed version', docs: ['Color Grade', 'Sound Design', 'Audio Mix', 'VFX', 'Music Cues'] },
+    { id: 'final_delivery', label: 'Final Delivery', abbreviation: 'FD', subtitle: 'Deliverables', color: 'bg-emerald-100', textColor: 'text-emerald-700', dotColor: 'bg-emerald-400', borderColor: 'border-emerald-300', hex: '#10B981', who: 'Post Supervisor', description: 'Final deliverables in all formats', icon: '📦', ai: 'Validates delivery specs, generates QC report', output: 'Complete delivery package', docs: ['Final Master', 'Manifest', 'QC Report', 'Captions', 'Promo Materials'] },
+  ],
+  connectors: ['Brief guides shot planning', 'Shot list informs recording', 'Recording produces the rough cut', 'Rough cut gets color & sound', 'Color & sound produce the final delivery'],
+  suggestions: {
+    video_brief_concept: ['Suggest talking points', 'Outline key messages', 'Identify audience'],
+    video_shot_list: ['Suggest shot angles', 'Check coverage', 'Estimate runtime'],
+    video_recording_notes: ['Generate day-of checklist', 'Suggest prompt cards', 'Flag risks'],
+    rough_cut: ['Analyze pacing', 'Suggest alternate takes', 'Identify missing coverage'],
+    color_sound: ['Check color consistency', 'Analyze audio levels', 'Suggest sound design'],
+    final_delivery: ['Validate delivery specs', 'Generate QC report', 'Create manifest'],
+  },
+});
+
 // ── #174: Graphic Design ──────────────────────────────────────────
 
 LIFECYCLES.set('graphic_design', {

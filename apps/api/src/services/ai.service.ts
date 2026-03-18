@@ -38,6 +38,13 @@ const SEED_PROMPTS: Record<string, string> = {
     'Based on this architecture document, create an implementation specification in **markdown format**. Include step-by-step coding plan, file-by-file changes, acceptance criteria, test plan, edge cases, and a ticket breakdown. Make it actionable for an AI coding agent.',
   'implementation->execution':
     'Based on this implementation specification, generate execution documentation in **markdown format**. Include release notes template, deployment checklist, drift monitoring setup, and changelog entries. Focus on what was built and how to verify it.',
+  // Video production (unscripted) transitions
+  'video_brief_concept->video_shot_list':
+    'Based on this creative brief and talking points, generate a shot list and visual outline in **markdown format**. For each key message or section in the brief, suggest 2–3 shots (main coverage, close-up, B-roll). Include an interview question sheet if there is an on-camera subject. Make it practical for a single-camera unscripted shoot.',
+  'video_shot_list->video_recording_notes':
+    'Based on this shot list and outline, generate a recording day package in **markdown format**. Include a day-of checklist, equipment list, prompt cards summarising the key talking points, and a B-roll tracker. Flag any logistical risks or missing elements.',
+  'video_recording_notes->rough_cut':
+    'Based on these recording notes and prompt cards, generate an edit decision framework in **markdown format**. Suggest a rough assembly order based on the talking point sections, note where B-roll cutaways are needed to cover jump cuts, and list any pickups or re-records that may be required.',
 };
 
 export const aiService = {

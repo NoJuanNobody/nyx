@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DocumentTemplate } from '@nyx/shared';
 import { fetchTemplates, createTemplate, deleteTemplate } from '../lib/api';
 import { STAGES, type DocumentStage } from '../lib/stages';
+import { WorkflowSelector } from './WorkflowSelector';
 
 interface TemplatePickerProps {
   onClose: () => void;
@@ -10,9 +11,14 @@ interface TemplatePickerProps {
   teamId?: string;
 }
 
+// Stage slugs that belong to each video production lifecycle variant
+const VIDEO_SCRIPTED_STAGES = new Set(['script_treatment', 'storyboard', 'production_notes', 'rough_cut', 'color_sound', 'final_delivery']);
+const VIDEO_UNSCRIPTED_STAGES = new Set(['video_brief_concept', 'video_shot_list', 'video_recording_notes', 'rough_cut', 'color_sound', 'final_delivery']);
+
 export function TemplatePicker({ onClose, onCreate, teamId }: TemplatePickerProps) {
   const [selectedStage, setSelectedStage] = useState<DocumentStage | null>(null);
   const [tab, setTab] = useState<'built-in' | 'custom'>('built-in');
+  const [videoVariant, setVideoVariant] = useState<'scripted' | 'unscripted' | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTemplate, setNewTemplate] = useState({ name: '', description: '', content: '', stage: 'conception' as DocumentStage });
 
@@ -43,9 +49,17 @@ export function TemplatePicker({ onClose, onCreate, teamId }: TemplatePickerProp
   const builtInTemplates = (templates ?? []).filter(t => !(t as any).teamId);
   const customTemplates = (templates ?? []).filter(t => !!(t as any).teamId);
 
-  const filteredBuiltIn = builtInTemplates.filter(
-    (t) => !selectedStage || t.stage === selectedStage,
-  );
+  const videoStageFilter = videoVariant === 'scripted'
+    ? VIDEO_SCRIPTED_STAGES
+    : videoVariant === 'unscripted'
+      ? VIDEO_UNSCRIPTED_STAGES
+      : null;
+
+  const filteredBuiltIn = builtInTemplates.filter((t) => {
+    if (videoStageFilter) return videoStageFilter.has(t.stage);
+    if (selectedStage) return t.stage === selectedStage;
+    return true;
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
@@ -109,41 +123,56 @@ export function TemplatePicker({ onClose, onCreate, teamId }: TemplatePickerProp
 
           {tab === 'built-in' && (
             <>
-              {/* Stage rail */}
-              <div className="mb-4">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  From Template
-                </span>
+              {/* Video Production workflow selector */}
+              <div className="mb-5">
+                <WorkflowSelector
+                  selected={videoVariant}
+                  onSelect={(variant) => {
+                    setVideoVariant((prev) => (prev === variant ? null : variant));
+                    setSelectedStage(null);
+                  }}
+                />
               </div>
 
-              <div className="mb-4 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedStage(null)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    selectedStage === null
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  All
-                </button>
-                {STAGES.map((stage) => (
-                  <button
-                    key={stage.id}
-                    type="button"
-                    onClick={() => setSelectedStage(stage.id)}
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                      selectedStage === stage.id
-                        ? `${stage.color} ${stage.textColor}`
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    <span className={`h-2 w-2 rounded-full ${stage.dotColor}`} />
-                    {stage.label}
-                  </button>
-                ))}
-              </div>
+              {/* Stage rail (hidden when a video variant is active) */}
+              {!videoVariant && (
+                <>
+                  <div className="mb-4">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      From Template
+                    </span>
+                  </div>
+
+                  <div className="mb-4 flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStage(null)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                        selectedStage === null
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      All
+                    </button>
+                    {STAGES.map((stage) => (
+                      <button
+                        key={stage.id}
+                        type="button"
+                        onClick={() => setSelectedStage(stage.id)}
+                        className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                          selectedStage === stage.id
+                            ? `${stage.color} ${stage.textColor}`
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        <span className={`h-2 w-2 rounded-full ${stage.dotColor}`} />
+                        {stage.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
 
               {/* Template list */}
               <div className="max-h-64 overflow-y-auto">
