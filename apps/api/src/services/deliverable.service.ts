@@ -2,8 +2,9 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { deliverables, documents } from '../db/schema.js';
 import { exportService } from './export.service.js';
+import { exportJupyterService } from './export-jupyter.service.js';
 
-export type DeliverableType = 'pdf' | 'markdown' | 'report';
+export type DeliverableType = 'pdf' | 'markdown' | 'report' | 'jupyter';
 
 export interface GenerateDeliverableInput {
   documentId: string;
@@ -43,6 +44,13 @@ export const deliverableService = {
       }
       case 'report': {
         fileName = `${safeTitle}_${stage}_report.md`;
+        fileUrl = `/deliverables/${documentId}/${fileName}`;
+        break;
+      }
+      case 'jupyter': {
+        const result = await exportJupyterService.toJupyterNotebook(documentId);
+        if (!result) return null;
+        fileName = `${safeTitle}_${stage}.ipynb`;
         fileUrl = `/deliverables/${documentId}/${fileName}`;
         break;
       }

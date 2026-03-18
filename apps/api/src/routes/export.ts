@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { exportService } from '../services/export.service.js';
 import { exportLatexService, isValidTheme } from '../services/export-latex.service.js';
 import type { LatexTheme } from '../services/export-latex.service.js';
+import { exportJupyterService } from '../services/export-jupyter.service.js';
 
 export const exportRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/export/documents/:id/export/markdown — download document as markdown
@@ -62,5 +63,23 @@ export const exportRoutes: FastifyPluginAsync = async (app) => {
       .header('Content-Type', 'application/x-tex; charset=utf-8')
       .header('Content-Disposition', `attachment; filename="${filename}"`)
       .send(result.content);
+  });
+
+  // POST /api/documents/:id/export/jupyter — download document as Jupyter notebook
+  app.post('/documents/:id/export/jupyter', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const result = await exportJupyterService.toJupyterNotebook(id);
+    if (!result) {
+      reply.code(404);
+      return { error: 'Document not found' };
+    }
+
+    const safeTitle = result.title.replace(/[^a-zA-Z0-9-_]/g, '_');
+
+    reply
+      .header('Content-Type', 'application/x-ipynb+json')
+      .header('Content-Disposition', `attachment; filename="${safeTitle}.ipynb"`)
+      .send(JSON.stringify(result.content, null, 2));
   });
 };
