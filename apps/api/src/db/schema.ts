@@ -486,6 +486,23 @@ export const subscriptions = pgTable('subscriptions', {
 
 // ── Community Marketplace ─────────────────────────────
 
+// ── Deliverables ──────────────────────────────────────
+
+export const deliverableTypeEnum = pgEnum('deliverable_type', ['pdf', 'markdown', 'report']);
+
+export const deliverables = pgTable('deliverables', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id')
+    .notNull()
+    .references(() => documents.id, { onDelete: 'cascade' }),
+  stage: text('stage').notNull(),
+  type: deliverableTypeEnum('type').notNull(),
+  fileName: text('file_name').notNull(),
+  fileUrl: text('file_url').notNull(),
+  generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().defaultNow(),
+  metadata: jsonb('metadata'),
+});
+
 export const listingTypeEnum = pgEnum('listing_type', ['template', 'workflow', 'prompt']);
 export const listingPriceTypeEnum = pgEnum('listing_price_type', ['free', 'paid']);
 export const featureRequestStatusEnum = pgEnum('feature_request_status', ['submitted', 'under_review', 'planned', 'in_progress', 'shipped', 'declined']);

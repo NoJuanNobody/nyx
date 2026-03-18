@@ -46,6 +46,7 @@ import { permissionRoutes } from './routes/permissions.js';
 import { docChangesRoutes } from './routes/doc-changes.js';
 import { orchestrationRoutes } from './routes/orchestration.js';
 import { observabilityRoutes } from './routes/observability.js';
+import { deliverableRoutes, deliverableSingleRoutes } from './routes/deliverables.js';
 import { voiceRoutes } from './routes/voice.js';
 import { voiceTranscriptionRoutes } from './routes/voice-transcription.js';
 import { voiceDocumentRoutes } from './routes/voice-documents.js';
@@ -107,6 +108,8 @@ export function buildApp() {
   app.register(docChangesRoutes, { prefix: '/api/documents' });
   app.register(orchestrationRoutes, { prefix: '/api/orchestration' });
   app.register(observabilityRoutes, { prefix: '/api/observability' });
+  app.register(deliverableRoutes, { prefix: '/api/documents' });
+  app.register(deliverableSingleRoutes, { prefix: '/api/deliverables' });
   app.register(voiceRoutes, { prefix: '/api/voice' });
   app.register(voiceTranscriptionRoutes, { prefix: '/api/voice' });
   app.register(voiceDocumentRoutes, { prefix: '/api/voice' });
