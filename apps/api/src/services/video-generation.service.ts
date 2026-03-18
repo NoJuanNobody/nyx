@@ -96,12 +96,32 @@ async function generateInBackground(
         const filePath = join(VIDEO_OUTPUT_DIR, fileName);
 
         const videoResponse = await fetch(generatedVideo.video.uri);
+        if (!videoResponse.ok) {
+          const errBody = await videoResponse.text().catch(() => 'Download failed');
+          video.status = 'failed';
+          video.error = `Video download failed (${videoResponse.status}): ${errBody.slice(0, 200)}`;
+          console.error(`[VideoGen] Video ${id} download failed: ${errBody.slice(0, 200)}`);
+          videoStore.set(id, video);
+          return;
+        }
+
         const videoBuffer = Buffer.from(await videoResponse.arrayBuffer());
+
+        // Validate it's actually a video, not an error response
+        if (videoBuffer.length < 1000 || videoBuffer.slice(0, 1).toString() === '{') {
+          const text = videoBuffer.toString('utf-8').slice(0, 300);
+          video.status = 'failed';
+          video.error = `Downloaded file is not a valid video: ${text}`;
+          console.error(`[VideoGen] Video ${id} invalid content: ${text.slice(0, 200)}`);
+          videoStore.set(id, video);
+          return;
+        }
+
         await writeFile(filePath, videoBuffer);
 
         video.status = 'completed';
         video.videoUrl = `/api/video/file/${id}.mp4`;
-        console.log(`[VideoGen] Video ${id} completed: ${filePath}`);
+        console.log(`[VideoGen] Video ${id} completed (${(videoBuffer.length / 1024 / 1024).toFixed(1)}MB): ${filePath}`);
       } else {
         video.status = 'failed';
         video.error = 'No video URI in response';
