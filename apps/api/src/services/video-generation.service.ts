@@ -5,7 +5,7 @@ import archiver from 'archiver';
 import { eq } from 'drizzle-orm';
 import { GoogleGenAI } from '@google/genai';
 import { db } from '../db/index.js';
-import { documents } from '../db/schema.js';
+import { documents, generatedVideos } from '../db/schema.js';
 import { config } from '../lib/config.js';
 
 export interface VideoGenerationRequest {
@@ -24,11 +24,10 @@ export interface GeneratedVideo {
   thumbnailUrl: string | null;
   duration: number;
   createdAt: string;
-  documentId?: string;
-  error?: string;
+  documentId?: string | null;
+  error?: string | null;
 }
 
-const videoStore = new Map<string, GeneratedVideo>();
 const VIDEO_OUTPUT_DIR = join(process.cwd(), 'generated-videos');
 
 function getGoogleAIClient(): GoogleGenAI | null {
@@ -63,11 +62,7 @@ async function generateInBackground(
   client: GoogleGenAI,
   contextPrompt: string,
   aspectRatio: string | undefined,
-  duration: number,
 ): Promise<void> {
-  const video = videoStore.get(id);
-  if (!video) return;
-
   try {
     const ar = aspectRatio === '9:16' ? '9:16' : aspectRatio === '1:1' ? '1:1' : '16:9';
 
@@ -80,7 +75,6 @@ async function generateInBackground(
       },
     });
 
-    // Poll for completion
     let operation = response;
     while (!operation.done) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -95,112 +89,98 @@ async function generateInBackground(
         const fileName = `${id}.mp4`;
         const filePath = join(VIDEO_OUTPUT_DIR, fileName);
 
-        // Append API key to the download URI for authentication
         const downloadUrl = new URL(generatedVideo.video.uri);
         downloadUrl.searchParams.set('key', config.GOOGLE_AI_API_KEY!);
         const videoResponse = await fetch(downloadUrl.toString());
+
         if (!videoResponse.ok) {
           const errBody = await videoResponse.text().catch(() => 'Download failed');
-          video.status = 'failed';
-          video.error = `Video download failed (${videoResponse.status}): ${errBody.slice(0, 200)}`;
+          await db.update(generatedVideos).set({ status: 'failed', error: errBody.slice(0, 500) }).where(eq(generatedVideos.id, id));
           console.error(`[VideoGen] Video ${id} download failed: ${errBody.slice(0, 200)}`);
-          videoStore.set(id, video);
           return;
         }
 
         const videoBuffer = Buffer.from(await videoResponse.arrayBuffer());
 
-        // Validate it's actually a video, not an error response
         if (videoBuffer.length < 1000 || videoBuffer.slice(0, 1).toString() === '{') {
           const text = videoBuffer.toString('utf-8').slice(0, 300);
-          video.status = 'failed';
-          video.error = `Downloaded file is not a valid video: ${text}`;
-          console.error(`[VideoGen] Video ${id} invalid content: ${text.slice(0, 200)}`);
-          videoStore.set(id, video);
+          await db.update(generatedVideos).set({ status: 'failed', error: text }).where(eq(generatedVideos.id, id));
+          console.error(`[VideoGen] Video ${id} invalid content`);
           return;
         }
 
         await writeFile(filePath, videoBuffer);
+        await db.update(generatedVideos).set({
+          status: 'completed',
+          videoUrl: `/api/video/file/${id}.mp4`,
+        }).where(eq(generatedVideos.id, id));
 
-        video.status = 'completed';
-        video.videoUrl = `/api/video/file/${id}.mp4`;
-        console.log(`[VideoGen] Video ${id} completed (${(videoBuffer.length / 1024 / 1024).toFixed(1)}MB): ${filePath}`);
+        console.log(`[VideoGen] Video ${id} completed (${(videoBuffer.length / 1024 / 1024).toFixed(1)}MB)`);
       } else {
-        video.status = 'failed';
-        video.error = 'No video URI in response';
+        await db.update(generatedVideos).set({ status: 'failed', error: 'No video URI in response' }).where(eq(generatedVideos.id, id));
       }
     } else {
-      video.status = 'failed';
-      video.error = 'No videos generated';
+      await db.update(generatedVideos).set({ status: 'failed', error: 'No videos generated' }).where(eq(generatedVideos.id, id));
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error(`[VideoGen] Failed to generate video ${id}: ${message}`);
-    video.status = 'failed';
-    video.error = message;
+    await db.update(generatedVideos).set({ status: 'failed', error: message.slice(0, 500) }).where(eq(generatedVideos.id, id)).catch(() => {});
   }
+}
 
-  videoStore.set(id, video);
+function toGeneratedVideo(row: typeof generatedVideos.$inferSelect): GeneratedVideo {
+  return {
+    id: row.id,
+    prompt: row.prompt,
+    status: row.status,
+    videoUrl: row.videoUrl,
+    thumbnailUrl: row.thumbnailUrl,
+    duration: row.duration,
+    createdAt: row.createdAt.toISOString(),
+    documentId: row.documentId,
+    error: row.error,
+  };
 }
 
 export const videoGenerationService = {
   async generateVideo(request: VideoGenerationRequest): Promise<GeneratedVideo> {
-    const id = randomUUID();
     const duration = request.duration ?? 5;
     const contextPrompt = await buildContextPrompt(request);
     const client = getGoogleAIClient();
 
-    // Stub mode if no API key
+    // Insert into DB
+    const [row] = await db.insert(generatedVideos).values({
+      documentId: request.documentId ?? null,
+      prompt: contextPrompt,
+      status: client ? 'generating' : 'completed',
+      videoUrl: client ? null : `https://nyx-placeholder.test/videos/stub.mp4`,
+      duration,
+    }).returning();
+
     if (!client) {
       console.log('[VideoGen] No GOOGLE_AI_API_KEY — using stub mode');
-      const video: GeneratedVideo = {
-        id,
-        prompt: contextPrompt,
-        status: 'completed',
-        videoUrl: `https://nyx-placeholder.test/videos/${id}.mp4`,
-        thumbnailUrl: `https://nyx-placeholder.test/thumbnails/${id}.jpg`,
-        duration,
-        createdAt: new Date().toISOString(),
-        documentId: request.documentId,
-      };
-      videoStore.set(id, video);
-      return video;
+      return toGeneratedVideo(row);
     }
 
-    // Create entry and return immediately — generate in background
-    const video: GeneratedVideo = {
-      id,
-      prompt: contextPrompt,
-      status: 'generating',
-      videoUrl: null,
-      thumbnailUrl: null,
-      duration,
-      createdAt: new Date().toISOString(),
-      documentId: request.documentId,
-    };
-    videoStore.set(id, video);
+    // Generate in background
+    generateInBackground(row.id, client, contextPrompt, request.aspectRatio).catch(() => {});
 
-    generateInBackground(id, client, contextPrompt, request.aspectRatio, duration).catch(() => {});
-
-    return video;
+    return toGeneratedVideo(row);
   },
 
   async getVideoStatus(videoId: string): Promise<GeneratedVideo | null> {
-    return videoStore.get(videoId) ?? null;
+    const [row] = await db.select().from(generatedVideos).where(eq(generatedVideos.id, videoId));
+    return row ? toGeneratedVideo(row) : null;
   },
 
   async listVideos(documentId: string): Promise<GeneratedVideo[]> {
-    const results: GeneratedVideo[] = [];
-    for (const video of videoStore.values()) {
-      if (video.documentId === documentId) {
-        results.push(video);
-      }
-    }
-    return results;
+    const rows = await db.select().from(generatedVideos).where(eq(generatedVideos.documentId, documentId));
+    return rows.map(toGeneratedVideo);
   },
 
   async generateBatchZip(videoIds: string[]): Promise<Buffer> {
-    return new Promise<Buffer>((resolve, reject) => {
+    return new Promise<Buffer>(async (resolve, reject) => {
       const archive = archiver('zip', { zlib: { level: 9 } });
       const chunks: Buffer[] = [];
 
@@ -209,7 +189,7 @@ export const videoGenerationService = {
       archive.on('error', (err: Error) => reject(err));
 
       for (const videoId of videoIds) {
-        const video = videoStore.get(videoId);
+        const [video] = await db.select().from(generatedVideos).where(eq(generatedVideos.id, videoId));
         if (video) {
           if (video.videoUrl?.startsWith('/api/video/file/')) {
             const fileName = video.videoUrl.replace('/api/video/file/', '');
@@ -218,7 +198,7 @@ export const videoGenerationService = {
           } else {
             const safeName = video.prompt.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60);
             archive.append(
-              `Video: ${video.prompt}\nID: ${video.id}\nDuration: ${video.duration}s\nStatus: ${video.status}\nURL: ${video.videoUrl}`,
+              `Video: ${video.prompt}\nID: ${video.id}\nDuration: ${video.duration}s\nStatus: ${video.status}`,
               { name: `${safeName}.txt` },
             );
           }
@@ -227,9 +207,5 @@ export const videoGenerationService = {
 
       archive.finalize();
     });
-  },
-
-  _reset(): void {
-    videoStore.clear();
   },
 };

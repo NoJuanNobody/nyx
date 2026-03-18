@@ -606,6 +606,22 @@ export const socialPosts = pgTable('social_posts', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── Generated Videos ──────────────────────────────────
+
+export const videoStatusEnum = pgEnum('video_status', ['pending', 'generating', 'completed', 'failed']);
+
+export const generatedVideos = pgTable('generated_videos', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id').references(() => documents.id, { onDelete: 'cascade' }),
+  prompt: text('prompt').notNull(),
+  status: videoStatusEnum('status').notNull().default('generating'),
+  videoUrl: text('video_url'),
+  thumbnailUrl: text('thumbnail_url'),
+  duration: integer('duration').notNull().default(5),
+  error: text('error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ── Credit Ledger ─────────────────────────────────────
 
 export const creditTransactionTypeEnum = pgEnum('credit_transaction_type', [
