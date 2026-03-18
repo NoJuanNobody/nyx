@@ -5,6 +5,7 @@ import { documents, documentTemplates, marketplaceListings } from '../db/schema.
 import { requireRole } from '../middleware/permissions.js';
 import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
+import { gatekeeperService } from '../services/gatekeeper.service.js';
 
 export const documentRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/documents?teamId=X&stage=Y — list documents for a team
@@ -209,6 +210,32 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       status?: 'draft' | 'published' | 'archived';
       stage?: string | null;
     };
+
+    // If stage is changing, enforce gatekeeper rules
+    if (body.stage !== undefined) {
+      // Fetch the current document to evaluate the gate
+      const [current] = await db.select().from(documents).where(eq(documents.id, id));
+      if (!current) {
+        reply.code(404);
+        return { error: 'Document not found' };
+      }
+
+      // Use the content that will be saved (body.content if provided, otherwise current)
+      const effectiveContent = body.content !== undefined ? body.content : current.content;
+
+      const gateResult = gatekeeperService.evaluateGate(
+        { content: effectiveContent, stage: current.stage },
+        body.stage as string,
+      );
+
+      if (!gateResult.passed) {
+        reply.code(422);
+        return {
+          error: 'Stage transition blocked by gatekeeper',
+          checks: gateResult.checks.filter((c) => !c.passed),
+        };
+      }
+    }
 
     const updates: Partial<typeof documents.$inferInsert> = {
       updatedAt: new Date(),
