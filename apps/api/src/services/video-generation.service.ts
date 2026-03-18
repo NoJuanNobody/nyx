@@ -72,12 +72,12 @@ async function generateInBackground(
     const ar = aspectRatio === '9:16' ? '9:16' : aspectRatio === '1:1' ? '1:1' : '16:9';
 
     const response = await client.models.generateVideos({
-      model: 'veo-2.0-generate-001',
+      model: 'veo-3.0-fast-generate-001',
       prompt: contextPrompt,
       config: {
         aspectRatio: ar,
         numberOfVideos: 1,
-        durationSeconds: duration <= 8 ? 5 : 8,
+        durationSeconds: Math.min(Math.max(duration, 4), 8),
         personGeneration: 'allow_all',
       },
     });
