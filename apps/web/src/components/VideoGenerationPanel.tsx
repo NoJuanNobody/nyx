@@ -20,7 +20,7 @@ export function VideoGenerationPanel({ documentId }: VideoGenerationPanelProps) 
 
   const generateMutation = useMutation({
     mutationFn: () =>
-      generateVideo({ prompt, documentId, aspectRatio }),
+      generateVideo({ prompt: prompt || 'Generate a video based on this document', documentId, aspectRatio }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['videos', documentId] });
       setPrompt('');
@@ -63,12 +63,12 @@ export function VideoGenerationPanel({ documentId }: VideoGenerationPanelProps) 
           Generate Video
         </label>
         <p className="text-[10px] text-slate-400">
-          Videos are generated using the current document as context.
+          Videos are generated using the current document as context. Add an optional prompt to guide the style.
         </p>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Describe the video you want to generate (document content is used as context)..."
+          placeholder="Optional: describe style, tone, or specific scenes (document content is used automatically)..."
           rows={3}
           className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
         />
@@ -85,7 +85,7 @@ export function VideoGenerationPanel({ documentId }: VideoGenerationPanelProps) 
           <button
             type="button"
             onClick={() => generateMutation.mutate()}
-            disabled={!prompt.trim() || generateMutation.isPending}
+            disabled={generateMutation.isPending}
             className="ml-auto rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
           >
             {generateMutation.isPending ? 'Generating...' : 'Generate Video'}
