@@ -58,6 +58,7 @@ import { socialRoutes } from './routes/social.js';
 import { billingRoutes } from './routes/billing.js';
 import { planRoutes } from './routes/plan.js';
 import { creditRoutes } from './routes/credits.js';
+import { videoGenerationRoutes } from './routes/video-generation.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -128,6 +129,7 @@ export function buildApp() {
   app.register(billingRoutes, { prefix: '/api/billing' });
   app.register(planRoutes, { prefix: '/api/plan' });
   app.register(creditRoutes, { prefix: '/api/credits' });
+  app.register(videoGenerationRoutes, { prefix: '/api/video' });
 
   return app;
 }
