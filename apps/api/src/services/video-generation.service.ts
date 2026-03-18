@@ -77,8 +77,6 @@ async function generateInBackground(
       config: {
         aspectRatio: ar,
         numberOfVideos: 1,
-        durationSeconds: Math.min(Math.max(duration, 4), 8),
-        personGeneration: 'allow_all',
       },
     });
 
