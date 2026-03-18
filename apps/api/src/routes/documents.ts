@@ -1,10 +1,11 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { documents, documentTemplates } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
 import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
+import { gatekeeperService } from '../services/gatekeeper.service.js';
 
 export const documentRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/documents?teamId=X&stage=Y — list documents for a team
@@ -134,6 +135,21 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
     }
   });
 
+  // GET /api/documents/:id/gate-status?targetStage=SLUG — non-blocking gate check
+  // viewers+ can check
+  app.get('/:id/gate-status', { preHandler: [requireRole({ minimumRole: 'viewer', source: 'document' })] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { targetStage, lifecycleId } = request.query as { targetStage?: string; lifecycleId?: string };
+
+    if (!targetStage) {
+      reply.code(400);
+      return { error: 'targetStage query parameter is required' };
+    }
+
+    const result = await gatekeeperService.evaluateGate(id, targetStage, lifecycleId);
+    return result;
+  });
+
   // PUT /api/documents/:id — update a document
   // editors+ can update
   app.put('/:id', { preHandler: [requireRole({ minimumRole: 'editor', source: 'document' })] }, async (request, reply) => {
@@ -145,6 +161,25 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       status?: 'draft' | 'published' | 'archived';
       stage?: string | null;
     };
+
+    // If advancing to a new stage, enforce gate rules before allowing the transition
+    if (body.stage) {
+      const [currentDoc] = await db.select().from(documents).where(eq(documents.id, id));
+      if (currentDoc && currentDoc.stage !== body.stage) {
+        const gateResult = await gatekeeperService.evaluateGate(
+          id,
+          body.stage,
+          currentDoc.lifecycleId,
+        );
+        if (!gateResult.passed) {
+          reply.code(422);
+          return {
+            error: 'Stage gate conditions not met',
+            gate: gateResult,
+          };
+        }
+      }
+    }
 
     const updates: Partial<typeof documents.$inferInsert> = {
       updatedAt: new Date(),

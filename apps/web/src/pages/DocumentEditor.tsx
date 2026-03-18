@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Document, DocumentVersion } from '@nyx/shared';
 
-import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage } from '../lib/api';
+import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage, fetchGateStatus, type GateCheckResult } from '../lib/api';
 import { STAGE_MAP, STAGES, STAGE_ORDER, type DocumentStage } from '../lib/stages';
 import { getLifecycle, getNextStage as lifecycleGetNextStage, getStageInfo } from '../lib/lifecycles';
 import { useUIStore } from '../stores/ui.store';
@@ -20,6 +20,7 @@ import { BulkTicketReview } from '../components/BulkTicketReview';
 import { JSXPreviewPanel } from '../components/JSXPreviewPanel';
 import { SaveAsTemplateButton } from '../components/SaveAsTemplateButton';
 import { MeetingNoteQuality } from '../components/MeetingNoteQuality';
+import { GateChecklist } from '../components/GateChecklist';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
 
@@ -42,6 +43,8 @@ export function DocumentEditor() {
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
   const [currentMockupJsx, setCurrentMockupJsx] = useState<string | null>(null);
+  const [pendingStage, setPendingStage] = useState<DocumentStage | null>(null);
+  const [gateCheckResult, setGateCheckResult] = useState<GateCheckResult | null>(null);
   const [searchParams] = useSearchParams();
   const splitContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -151,8 +154,37 @@ export function DocumentEditor() {
     editorStages.map((s) => [s.id, s]),
   );
 
-  const handleStageChange = (newStage: DocumentStage | null) => {
+  const handleStageChange = async (newStage: DocumentStage | null) => {
+    if (!newStage || !id) {
+      // Clearing stage — no gate check needed
+      saveMutation.mutate({ stage: newStage } as Parameters<typeof saveMutation.mutate>[0]);
+      return;
+    }
+    try {
+      const gateResult = await fetchGateStatus(id, newStage, (doc as Document & { lifecycleId?: string })?.lifecycleId);
+      if (!gateResult.passed) {
+        // Show gate checklist modal — do not advance yet
+        setPendingStage(newStage);
+        setGateCheckResult(gateResult);
+        return;
+      }
+    } catch {
+      // If gate check fails for network/other reasons, proceed normally
+    }
     saveMutation.mutate({ stage: newStage } as Parameters<typeof saveMutation.mutate>[0]);
+  };
+
+  const handleGateOverride = () => {
+    if (pendingStage) {
+      saveMutation.mutate({ stage: pendingStage } as Parameters<typeof saveMutation.mutate>[0]);
+    }
+    setPendingStage(null);
+    setGateCheckResult(null);
+  };
+
+  const handleGateCancel = () => {
+    setPendingStage(null);
+    setGateCheckResult(null);
   };
 
   const handleSeedNextStage = async () => {
@@ -638,6 +670,16 @@ export function DocumentEditor() {
         open={bulkTicketOpen}
         onClose={() => setBulkTicketOpen(false)}
       />
+
+      {/* Gate checklist modal — shown when a stage transition is blocked */}
+      {gateCheckResult && pendingStage && (
+        <GateChecklist
+          result={gateCheckResult}
+          targetStageLabel={editorStageMap[pendingStage]?.label ?? pendingStage}
+          onOverride={handleGateOverride}
+          onCancel={handleGateCancel}
+        />
+      )}
     </div>
   );
 }

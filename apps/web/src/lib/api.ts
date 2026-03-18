@@ -989,6 +989,50 @@ export function deferSprintTicket(data: {
   });
 }
 
+// ── Stage Gate Rules ─────────────────────────────────────
+
+export type GateRuleType = 'min_content_length' | 'min_word_count' | 'required_section';
+
+export interface GateRule {
+  id: string;
+  type: GateRuleType;
+  label: string;
+  value: number | string;
+}
+
+export interface GateRuleResult extends GateRule {
+  met: boolean;
+  reason?: string;
+}
+
+export interface GateCheckResult {
+  passed: boolean;
+  rules: GateRuleResult[];
+}
+
+export function fetchGateStatus(
+  documentId: string,
+  targetStage: string,
+  lifecycleId?: string,
+): Promise<GateCheckResult> {
+  const params = new URLSearchParams({ targetStage });
+  if (lifecycleId) params.set('lifecycleId', lifecycleId);
+  return request<GateCheckResult>(`/documents/${encodeURIComponent(documentId)}/gate-status?${params}`);
+}
+
+export function fetchStageGateRules(
+  stageId: string,
+): Promise<{ stageId: string; slug: string; label: string; rules: GateRule[] }> {
+  return request(`/lifecycles/stages/${encodeURIComponent(stageId)}/gate-rules`);
+}
+
+export function updateStageGateRules(stageId: string, rules: GateRule[]): Promise<unknown> {
+  return request(`/lifecycles/stages/${encodeURIComponent(stageId)}/gate-rules`, {
+    method: 'PUT',
+    body: JSON.stringify({ rules }),
+  });
+}
+
 // ── Context Matching ─────────────────────────────────────
 
 export interface ContextMatch {

@@ -8,15 +8,17 @@ import {
   updateProfile, deleteAccount,
   fetchPlans, fetchCurrentSubscription, createCheckoutSession, createPortalSession,
   type SubscriptionPlan, type Subscription,
+  fetchLifecycles,
 } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
 import { RepoPickerModal } from '../components/RepoPickerModal';
 import { SlackIntegration } from '../components/SlackIntegration';
 import { NotificationPreferences } from '../components/NotificationPreferences';
+import { LifecycleGateRulesEditor } from '../components/LifecycleGateRulesEditor';
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type SettingsTab = 'team' | 'integrations' | 'api-keys' | 'notifications' | 'billing' | 'account';
+type SettingsTab = 'team' | 'integrations' | 'api-keys' | 'notifications' | 'billing' | 'account' | 'lifecycle';
 
 interface TeamMember {
   id: string;
@@ -101,6 +103,15 @@ const TABS: { key: SettingsTab; label: string; icon: ReactElement }[] = [
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+      </svg>
+    ),
+  },
+  {
+    key: 'lifecycle',
+    label: 'Gate Rules',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
       </svg>
     ),
   },
@@ -1232,6 +1243,46 @@ function BillingPanel() {
   );
 }
 
+// ── Lifecycle Gate Rules Panel ───────────────────────────────────────
+
+function LifecycleGateRulesPanel() {
+  const { data: lifecycles, isLoading, error } = useQuery({
+    queryKey: ['lifecycles'],
+    queryFn: fetchLifecycles,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="animate-pulse space-y-3">
+        {[1, 2, 3].map((i) => <div key={i} className="h-10 rounded-lg bg-slate-100" />)}
+      </div>
+    );
+  }
+
+  if (error || !lifecycles) {
+    return (
+      <p className="text-sm text-red-600">
+        {error instanceof Error ? error.message : 'Failed to load lifecycle data.'}
+      </p>
+    );
+  }
+
+  // Flatten stages across all lifecycles for the editor
+  const stages = lifecycles.flatMap((lc) =>
+    (lc.stages ?? []).map((s) => ({ id: s.id, slug: s.slug, label: `${lc.label} › ${s.label}` })),
+  );
+
+  if (stages.length === 0) {
+    return (
+      <p className="text-sm text-slate-500">
+        No lifecycle stages found. Ensure the database is seeded.
+      </p>
+    );
+  }
+
+  return <LifecycleGateRulesEditor stages={stages} />;
+}
+
 // ── Settings Page ────────────────────────────────────────────────────
 
 export function Settings() {
@@ -1274,6 +1325,7 @@ export function Settings() {
           {activeTab === 'notifications' && <NotificationPreferences />}
           {activeTab === 'billing' && <BillingPanel />}
           {activeTab === 'account' && <AccountPanel />}
+          {activeTab === 'lifecycle' && <LifecycleGateRulesPanel />}
         </div>
       </div>
     </>

@@ -52,6 +52,7 @@ export const lifecycleStages = pgTable('lifecycle_stages', {
   ai: text('ai').notNull().default(''),
   output: text('output').notNull().default(''),
   docs: jsonb('docs').$type<string[]>().notNull().default([]),
+  gateRules: jsonb('gate_rules').notNull().default([]),
 }, (table) => [
   uniqueIndex('lifecycle_stages_lifecycle_slug_idx').on(table.lifecycleId, table.slug),
 ]);
