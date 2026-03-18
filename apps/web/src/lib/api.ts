@@ -1493,3 +1493,51 @@ export function createMeetingDocument(sessionId: string, teamId: string): Promis
     body: JSON.stringify({ sessionId, teamId }),
   });
 }
+
+// ── Credits ─────────────────────────────────────────────────────────
+
+export interface CreditPack {
+  id: string;
+  label: string;
+  credits: number;
+  priceCents: number;
+  priceLabel: string;
+  popular: boolean;
+}
+
+export interface CreditTransaction {
+  id: string;
+  amount: number;
+  type: 'purchase' | 'consumption' | 'refund';
+  description: string;
+  taskType: string | null;
+  createdAt: string;
+}
+
+export function fetchCreditBalance(): Promise<{ balance: number }> {
+  return request<{ balance: number }>('/credits/balance');
+}
+
+export function fetchCreditPacks(): Promise<CreditPack[]> {
+  return request<CreditPack[]>('/credits/packs');
+}
+
+export function fetchCreditTransactions(
+  limit = 50,
+  offset = 0,
+): Promise<{ transactions: CreditTransaction[]; total: number }> {
+  return request<{ transactions: CreditTransaction[]; total: number }>(
+    `/credits/transactions?limit=${limit}&offset=${offset}`,
+  );
+}
+
+export function purchaseCredits(
+  packId: string,
+  successUrl: string,
+  cancelUrl: string,
+): Promise<{ url: string }> {
+  return request<{ url: string }>('/credits/purchase', {
+    method: 'POST',
+    body: JSON.stringify({ packId, successUrl, cancelUrl }),
+  });
+}

@@ -560,3 +560,25 @@ export const projectShowcases = pgTable('project_showcases', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ── Credits ───────────────────────────────────────────
+
+export const creditTransactionTypeEnum = pgEnum('credit_transaction_type', ['purchase', 'consumption', 'refund']);
+
+export const creditBalances = pgTable('credit_balances', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  balance: integer('balance').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const creditTransactions = pgTable('credit_transactions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  amount: integer('amount').notNull(), // positive = credit added, negative = credit consumed
+  type: creditTransactionTypeEnum('type').notNull(),
+  description: text('description').notNull(),
+  taskType: text('task_type'), // populated for consumption transactions
+  stripeSessionId: text('stripe_session_id'), // populated for purchase transactions
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

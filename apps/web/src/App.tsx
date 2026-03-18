@@ -17,6 +17,7 @@ import { AgentMapPage } from './pages/AgentMapPage';
 import { ObservabilityPage } from './pages/ObservabilityPage';
 import { VoicePage } from './pages/VoicePage';
 import { GettingStarted } from './pages/GettingStarted';
+import { Credits } from './pages/Credits';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 import { AcceptInvite } from './pages/AcceptInvite';
@@ -60,6 +61,7 @@ export function App() {
             <Route path="/observability" element={<ObservabilityPage />} />
             <Route path="/voice" element={<VoicePage />} />
             <Route path="/getting-started" element={<GettingStarted />} />
+            <Route path="/credits" element={<Credits />} />
           </Route>
         </Route>
       </Routes>
