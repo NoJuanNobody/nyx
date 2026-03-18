@@ -102,7 +102,7 @@ export function LifecycleExplorer({
             transition: 'color 0.4s',
           }}
         >
-          Product Lifecycle
+          About the Lifecycle
         </div>
         <div
           style={{
