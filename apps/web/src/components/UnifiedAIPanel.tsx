@@ -411,23 +411,43 @@ export function UnifiedAIPanel({
 
               if (msg.kind === 'tool_call') {
                 const tc = msg.entry;
+                const isWebSearch = tc.toolName === 'web_search';
+                const isSearching = isWebSearch && tc.durationMs === undefined && !tc.error;
                 return (
-                  <div key={msg.id} className="rounded-lg border border-slate-100 bg-slate-50">
+                  <div key={msg.id} className={`rounded-lg border ${isWebSearch ? 'border-sky-100 bg-sky-50/60' : 'border-slate-100 bg-slate-50'}`}>
                     <button
                       type="button"
                       onClick={() => toggleToolCall(tc.sequence)}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left transition-colors hover:bg-slate-100"
                     >
-                      <svg
-                        className={`h-3 w-3 flex-shrink-0 text-slate-400 transition-transform ${tc.collapsed ? '' : 'rotate-90'}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={2}
-                        stroke="currentColor"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                      </svg>
-                      <span className="flex-1 font-mono text-[11px] text-slate-700">{tc.toolName}</span>
+                      {isWebSearch ? (
+                        <svg
+                          className={`h-3 w-3 flex-shrink-0 text-sky-500 ${isSearching ? 'animate-pulse' : ''}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                        </svg>
+                      ) : (
+                        <svg
+                          className={`h-3 w-3 flex-shrink-0 text-slate-400 transition-transform ${tc.collapsed ? '' : 'rotate-90'}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                        </svg>
+                      )}
+                      <span className={`flex-1 font-mono text-[11px] ${isWebSearch ? 'text-sky-700' : 'text-slate-700'}`}>
+                        {isSearching
+                          ? `Searching the web for "${(tc.input as { query?: string }).query ?? ''}"…`
+                          : isWebSearch
+                            ? `web_search: "${(tc.input as { query?: string }).query ?? ''}"`
+                            : tc.toolName}
+                      </span>
                       {tc.error ? (
                         <span className="rounded bg-red-100 px-1.5 py-0.5 text-[9px] font-medium text-red-600">error</span>
                       ) : tc.durationMs !== undefined ? (
@@ -438,16 +458,45 @@ export function UnifiedAIPanel({
                     </button>
                     {!tc.collapsed && (
                       <div className="border-t border-slate-100 px-3 py-2 text-[10px]">
-                        <div className="mb-1 font-medium text-slate-500">Input:</div>
-                        <pre className="mb-2 max-h-20 overflow-auto whitespace-pre-wrap text-slate-600">
-                          {JSON.stringify(tc.input, null, 2)}
-                        </pre>
-                        {tc.output !== undefined && (
+                        {isWebSearch && tc.output !== undefined && !tc.error ? (
+                          /* Render web search results as a readable list */
+                          (() => {
+                            const results = (tc.output as { results?: Array<{ title: string; url: string; snippet: string }> })?.results ?? [];
+                            return results.length > 0 ? (
+                              <div className="space-y-2">
+                                {results.map((r, i) => (
+                                  <div key={i} className="rounded border border-sky-100 bg-white/80 p-2">
+                                    <a
+                                      href={r.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="font-medium text-sky-700 hover:underline"
+                                    >
+                                      {r.title}
+                                    </a>
+                                    <p className="mt-0.5 text-slate-500">{r.snippet}</p>
+                                    <p className="mt-0.5 truncate text-slate-400">{r.url}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-slate-400">No results found.</p>
+                            );
+                          })()
+                        ) : (
                           <>
-                            <div className="mb-1 font-medium text-slate-500">{tc.error ? 'Error:' : 'Output:'}</div>
-                            <pre className="max-h-20 overflow-auto whitespace-pre-wrap text-slate-600">
-                              {typeof tc.output === 'string' ? tc.output : JSON.stringify(tc.output, null, 2)}
+                            <div className="mb-1 font-medium text-slate-500">Input:</div>
+                            <pre className="mb-2 max-h-20 overflow-auto whitespace-pre-wrap text-slate-600">
+                              {JSON.stringify(tc.input, null, 2)}
                             </pre>
+                            {tc.output !== undefined && (
+                              <>
+                                <div className="mb-1 font-medium text-slate-500">{tc.error ? 'Error:' : 'Output:'}</div>
+                                <pre className="max-h-20 overflow-auto whitespace-pre-wrap text-slate-600">
+                                  {typeof tc.output === 'string' ? tc.output : JSON.stringify(tc.output, null, 2)}
+                                </pre>
+                              </>
+                            )}
                           </>
                         )}
                       </div>

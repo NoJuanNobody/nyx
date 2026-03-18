@@ -5,6 +5,7 @@ import { aiService } from '../ai.service.js';
 import { ticketService } from '../ticket.service.js';
 import { auditService } from '../audit.service.js';
 import { githubService } from '../github.service.js';
+import { webSearch } from '../search.service.js';
 import type { AgentContext } from './types.js';
 
 // Roles that can write (update docs, create tickets)
@@ -141,6 +142,12 @@ export async function executeTool(
     case 'search_audit_trail': {
       const events = await auditService.getTrailForDocument(input.document_id as string);
       return events.slice(0, 50); // Limit to prevent massive payloads
+    }
+
+    case 'web_search': {
+      const query = input.query as string;
+      const count = typeof input.count === 'number' ? input.count : 5;
+      return webSearch(query, count);
     }
 
     default:

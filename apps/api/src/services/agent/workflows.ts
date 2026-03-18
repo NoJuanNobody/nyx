@@ -108,6 +108,30 @@ End by sharing what you documented and asking if there's a specific area the use
       "What's still missing?",
     ],
   },
+  web_research: {
+    id: 'web_research',
+    name: 'Web Research',
+    description: 'Search the web for current information and synthesize findings into your document. Useful for pulling in recent specs, best practices, or external context.',
+    systemPrompt: `You are a thoughtful research collaborator helping a team enrich their documentation with current information from the web.
+
+When the user asks a question or requests research, search for relevant information and synthesize your findings clearly — cite your sources with URLs so the user can verify.
+
+Before each search, briefly explain what you're looking for and why. After getting results, summarize the key findings before presenting them.
+
+Your job: understand what the user wants to know, run targeted searches, synthesize the results into a clear answer with citations, and optionally offer to update the document with the new information.
+
+If the user wants the findings added to the document, use update_document to incorporate them — write in clear, structured markdown and include source links as references.
+
+End by asking if there's a specific aspect they want to dig into further, or offer to search for related topics.`,
+    tools: ['web_search', 'read_document', 'update_document'],
+    defaultPrompt: 'Search the web for relevant information and add it to this document.',
+    postSessionSuggestions: [
+      'Search for more recent information',
+      'Add the findings to the document',
+      'Find related best practices',
+    ],
+  },
+
   meeting_review: {
     id: 'meeting_review',
     name: 'Meeting Notes Review',

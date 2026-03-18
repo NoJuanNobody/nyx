@@ -120,6 +120,19 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
       required: ['document_id'],
     },
   },
+
+  web_search: {
+    name: 'web_search',
+    description: 'Search the web for current information on any topic. Returns titles, URLs, and snippets from top results. Use this when the user asks about recent events, external documentation, best practices, or anything that requires up-to-date information beyond your training data.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'The search query' },
+        count: { type: 'number', description: 'Number of results to return (1–10, default 5)' },
+      },
+      required: ['query'],
+    },
+  },
 };
 
 /**
