@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { STAGES, CONNECTORS } from '../lib/stages';
+import { useUIStore } from '../stores/ui.store';
+import { getLifecycle } from '../lib/lifecycles';
 
 interface LifecycleExplorerProps {
   mode?: 'dashboard' | 'onboarding';
@@ -14,6 +16,8 @@ export function LifecycleExplorer({
 }: LifecycleExplorerProps) {
   const [active, setActive] = useState(initialPhase);
   const [, setAnimated] = useState(false);
+  const activeLifecycleSlug = useUIStore((s) => s.activeLifecycleSlug);
+  const activeLifecycle = getLifecycle(activeLifecycleSlug);
 
   useEffect(() => {
     const link = document.createElement('link');
@@ -102,7 +106,7 @@ export function LifecycleExplorer({
             transition: 'color 0.4s',
           }}
         >
-          Product Lifecycle
+          About {activeLifecycle.label}
         </div>
         <div
           style={{
