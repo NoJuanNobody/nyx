@@ -85,37 +85,16 @@ async function generateInBackground(
       const generatedVideo = operation.response.generatedVideos[0];
 
       if (generatedVideo.video?.uri) {
-        await mkdir(VIDEO_OUTPUT_DIR, { recursive: true });
-        const fileName = `${id}.mp4`;
-        const filePath = join(VIDEO_OUTPUT_DIR, fileName);
-
+        // Store the Google-hosted video URI directly (with API key for auth)
         const downloadUrl = new URL(generatedVideo.video.uri);
         downloadUrl.searchParams.set('key', config.GOOGLE_AI_API_KEY!);
-        const videoResponse = await fetch(downloadUrl.toString());
 
-        if (!videoResponse.ok) {
-          const errBody = await videoResponse.text().catch(() => 'Download failed');
-          await db.update(generatedVideos).set({ status: 'failed', error: errBody.slice(0, 500) }).where(eq(generatedVideos.id, id));
-          console.error(`[VideoGen] Video ${id} download failed: ${errBody.slice(0, 200)}`);
-          return;
-        }
-
-        const videoBuffer = Buffer.from(await videoResponse.arrayBuffer());
-
-        if (videoBuffer.length < 1000 || videoBuffer.slice(0, 1).toString() === '{') {
-          const text = videoBuffer.toString('utf-8').slice(0, 300);
-          await db.update(generatedVideos).set({ status: 'failed', error: text }).where(eq(generatedVideos.id, id));
-          console.error(`[VideoGen] Video ${id} invalid content`);
-          return;
-        }
-
-        await writeFile(filePath, videoBuffer);
         await db.update(generatedVideos).set({
           status: 'completed',
-          videoUrl: `/api/video/file/${id}.mp4`,
+          videoUrl: downloadUrl.toString(),
         }).where(eq(generatedVideos.id, id));
 
-        console.log(`[VideoGen] Video ${id} completed (${(videoBuffer.length / 1024 / 1024).toFixed(1)}MB)`);
+        console.log(`[VideoGen] Video ${id} completed`);
       } else {
         await db.update(generatedVideos).set({ status: 'failed', error: 'No video URI in response' }).where(eq(generatedVideos.id, id));
       }

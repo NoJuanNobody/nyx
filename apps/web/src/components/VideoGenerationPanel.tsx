@@ -168,7 +168,7 @@ export function VideoGenerationPanel({ documentId }: VideoGenerationPanelProps) 
                       <video
                         controls
                         className="w-full rounded-lg border border-slate-200"
-                        src={video.videoUrl.startsWith('/') ? `http://localhost:3001${video.videoUrl}` : video.videoUrl}
+                        src={video.videoUrl}
                       >
                         Your browser does not support the video tag.
                       </video>
