@@ -1577,7 +1577,7 @@ export async function exportJupyterNotebook(documentId: string): Promise<void> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${BASE}/export/documents/${encodeURIComponent(documentId)}/export/jupyter`, {
+  const res = await fetch(`${BASE}/documents/${encodeURIComponent(documentId)}/export/jupyter`, {
     method: 'POST',
     headers,
   });
