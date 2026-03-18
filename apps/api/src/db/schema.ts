@@ -64,6 +64,7 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   name: text('name').notNull(),
   avatarUrl: text('avatar_url'),
+  stripeConnectAccountId: text('stripe_connect_account_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -557,6 +558,26 @@ export const projectShowcases = pgTable('project_showcases', {
   imageUrl: text('image_url'),
   authorId: uuid('author_id').notNull().references(() => users.id),
   published: boolean('published').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Marketplace Transactions ───────────────────────────
+
+export const marketplaceTransactionStatusEnum = pgEnum('marketplace_transaction_status', [
+  'pending', 'completed', 'refunded', 'failed',
+]);
+
+export const marketplaceTransactions = pgTable('marketplace_transactions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  listingId: uuid('listing_id').notNull().references(() => marketplaceListings.id),
+  buyerId: uuid('buyer_id').notNull().references(() => users.id),
+  sellerId: uuid('seller_id').notNull().references(() => users.id),
+  amountCents: integer('amount_cents').notNull(),
+  platformFeeCents: integer('platform_fee_cents').notNull(),
+  status: marketplaceTransactionStatusEnum('status').notNull().default('pending'),
+  stripeCheckoutSessionId: text('stripe_checkout_session_id'),
+  stripePaymentIntentId: text('stripe_payment_intent_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

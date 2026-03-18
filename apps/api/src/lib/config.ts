@@ -32,6 +32,9 @@ const envSchema = z.object({
   APP_URL: z.string().url().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_PRICE_PRO: z.string().optional(),
+  STRIPE_PRICE_TEAM: z.string().optional(),
+  STRIPE_CONNECT_CLIENT_ID: z.string().optional(),
   RECALL_AI_API_KEY: z.string().optional(),
   RECALL_AI_WEBHOOK_SECRET: z.string().optional(),
 }).superRefine((data, ctx) => {

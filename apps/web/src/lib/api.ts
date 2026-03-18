@@ -1269,6 +1269,32 @@ export function reviewMarketplaceListing(id: string, data: { rating: number; com
   return request<MarketplaceReview>(`/marketplace/${id}/reviews`, { method: 'POST', body: JSON.stringify(data) });
 }
 
+export function purchaseMarketplaceListing(id: string, data: { successUrl: string; cancelUrl: string }): Promise<{ url: string; transactionId: string }> {
+  return request<{ url: string; transactionId: string }>(`/marketplace/${id}/purchase`, { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function onboardMarketplaceSeller(data: { returnUrl: string; refreshUrl: string }): Promise<{ url: string; accountId: string }> {
+  return request<{ url: string; accountId: string }>('/marketplace/connect/onboard', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function fetchSellerConnectStatus(): Promise<{ connected: boolean; chargesEnabled: boolean; payoutsEnabled: boolean; detailsSubmitted: boolean }> {
+  return request<{ connected: boolean; chargesEnabled: boolean; payoutsEnabled: boolean; detailsSubmitted: boolean }>('/marketplace/connect/status');
+}
+
+export interface MarketplaceTransaction {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  amountCents: number;
+  platformFeeCents: number;
+  status: 'pending' | 'completed' | 'refunded' | 'failed';
+  createdAt: string;
+}
+
+export function fetchSellerTransactions(): Promise<{ transactions: MarketplaceTransaction[]; totalEarningsCents: number }> {
+  return request<{ transactions: MarketplaceTransaction[]; totalEarningsCents: number }>('/marketplace/seller/transactions');
+}
+
 export function fetchFeatureRequests(sort?: string): Promise<FeatureRequest[]> {
   const params = new URLSearchParams();
   if (sort) params.set('sort', sort);

@@ -3,6 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchMarketplaceListings,
   createMarketplaceListing,
+  downloadMarketplaceListing,
+  purchaseMarketplaceListing,
+  onboardMarketplaceSeller,
+  fetchSellerConnectStatus,
+  fetchSellerTransactions,
   fetchFeatureRequests,
   createFeatureRequest,
   toggleFeatureRequestUpvote,
@@ -10,6 +15,7 @@ import {
   createProjectShowcase,
   fetchLifecycles,
   type MarketplaceListing,
+  type MarketplaceTransaction,
   type FeatureRequest,
   type ProjectShowcase,
   type LifecycleResponse,
@@ -18,7 +24,7 @@ import { useUIStore } from '../stores/ui.store';
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type MarketplaceTab = 'pipelines' | 'templates' | 'workflows' | 'prompts' | 'feature-requests' | 'showcase';
+type MarketplaceTab = 'pipelines' | 'templates' | 'workflows' | 'prompts' | 'feature-requests' | 'showcase' | 'seller';
 
 const TABS: { key: MarketplaceTab; label: string; icon: string }[] = [
   { key: 'pipelines', label: 'Pipelines', icon: '\u25CB' },
@@ -27,6 +33,7 @@ const TABS: { key: MarketplaceTab; label: string; icon: string }[] = [
   { key: 'prompts', label: 'Prompts', icon: '\u2726' },
   { key: 'feature-requests', label: 'Feature Requests', icon: '\u25CE' },
   { key: 'showcase', label: 'Showcase', icon: '\u25C9' },
+  { key: 'seller', label: 'Seller Dashboard', icon: '\u{1F4B0}' },
 ];
 
 const TAB_TO_TYPE: Record<string, string> = {
@@ -481,8 +488,35 @@ function ShowcaseModal({ onClose }: { onClose: () => void }) {
 // ── Listing Card ─────────────────────────────────────────────────────
 
 function ListingCard({ listing }: { listing: MarketplaceListing }) {
+  const queryClient = useQueryClient();
+
+  const downloadMutation = useMutation({
+    mutationFn: () => downloadMarketplaceListing(listing.id),
+    onSuccess: ({ content, title }) => {
+      const blob = new Blob([content], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title.replace(/\s+/g, '-').toLowerCase()}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      queryClient.invalidateQueries({ queryKey: ['marketplace'] });
+    },
+  });
+
+  const purchaseMutation = useMutation({
+    mutationFn: () =>
+      purchaseMarketplaceListing(listing.id, {
+        successUrl: `${window.location.origin}/marketplace?purchase=success`,
+        cancelUrl: `${window.location.origin}/marketplace`,
+      }),
+    onSuccess: ({ url }) => {
+      window.location.href = url;
+    },
+  });
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-sm font-semibold text-slate-900 leading-snug line-clamp-1">{listing.title}</h3>
         <PriceBadge priceType={listing.priceType} priceAmountCents={listing.priceAmountCents} />
@@ -512,6 +546,35 @@ function ListingCard({ listing }: { listing: MarketplaceListing }) {
         </div>
         {listing.category && (
           <span className="text-[10px] text-slate-400">{listing.category}</span>
+        )}
+      </div>
+      <div className="mt-4 pt-4 border-t border-slate-100">
+        {listing.priceType === 'free' ? (
+          <button
+            type="button"
+            onClick={() => downloadMutation.mutate()}
+            disabled={downloadMutation.isPending}
+            className="w-full rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50 transition-colors"
+          >
+            {downloadMutation.isPending ? 'Downloading...' : 'Download Free'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => purchaseMutation.mutate()}
+            disabled={purchaseMutation.isPending}
+            className="w-full rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {purchaseMutation.isPending
+              ? 'Redirecting...'
+              : `Buy — $${listing.priceAmountCents ? (listing.priceAmountCents / 100).toFixed(2) : '0.00'}`}
+          </button>
+        )}
+        {(downloadMutation.isError || purchaseMutation.isError) && (
+          <p className="mt-1.5 text-[10px] text-red-500 text-center">
+            {downloadMutation.error instanceof Error ? downloadMutation.error.message :
+             purchaseMutation.error instanceof Error ? purchaseMutation.error.message : 'Something went wrong'}
+          </p>
         )}
       </div>
     </div>
@@ -1006,6 +1069,131 @@ function PipelinesTab() {
   );
 }
 
+// ── Seller Dashboard ─────────────────────────────────────────────────
+
+function SellerDashboard() {
+  const { data: status, isLoading: statusLoading } = useQuery({
+    queryKey: ['marketplace', 'connect-status'],
+    queryFn: fetchSellerConnectStatus,
+  });
+
+  const { data: earningsData, isLoading: earningsLoading } = useQuery({
+    queryKey: ['marketplace', 'seller-transactions'],
+    queryFn: fetchSellerTransactions,
+    enabled: status?.connected && status.chargesEnabled,
+  });
+
+  const onboardMutation = useMutation({
+    mutationFn: () =>
+      onboardMarketplaceSeller({
+        returnUrl: `${window.location.origin}/marketplace?tab=seller&onboarded=true`,
+        refreshUrl: `${window.location.origin}/marketplace?tab=seller`,
+      }),
+    onSuccess: ({ url }) => {
+      window.location.href = url;
+    },
+  });
+
+  if (statusLoading) return <Spinner />;
+
+  const isFullyOnboarded = status?.connected && status.chargesEnabled && status.detailsSubmitted;
+
+  return (
+    <div className="max-w-2xl space-y-6">
+      {/* Connect account status */}
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-base font-semibold text-slate-900 mb-1">Stripe Connect Account</h2>
+        <p className="text-sm text-slate-500 mb-4">
+          Connect your Stripe account to receive payouts when buyers purchase your paid listings. Nyx takes a 10% platform fee.
+        </p>
+
+        {isFullyOnboarded ? (
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="text-sm font-medium text-emerald-700">Account connected and active</span>
+          </div>
+        ) : status?.connected && !status.chargesEnabled ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-amber-500" />
+              <span className="text-sm font-medium text-amber-700">Onboarding incomplete</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onboardMutation.mutate()}
+              disabled={onboardMutation.isPending}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {onboardMutation.isPending ? 'Loading...' : 'Continue Onboarding'}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onboardMutation.mutate()}
+            disabled={onboardMutation.isPending}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {onboardMutation.isPending ? 'Loading...' : 'Connect Stripe Account'}
+          </button>
+        )}
+        {onboardMutation.isError && (
+          <p className="mt-2 text-sm text-red-500">
+            {onboardMutation.error instanceof Error ? onboardMutation.error.message : 'Failed to start onboarding'}
+          </p>
+        )}
+      </div>
+
+      {/* Earnings summary */}
+      {isFullyOnboarded && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-base font-semibold text-slate-900 mb-4">Earnings</h2>
+          {earningsLoading ? (
+            <Spinner />
+          ) : (
+            <>
+              <div className="mb-5 rounded-lg bg-slate-50 p-4">
+                <p className="text-xs text-slate-500 mb-1">Total Earnings (after platform fee)</p>
+                <p className="text-2xl font-bold text-slate-900">
+                  ${earningsData ? ((earningsData.totalEarningsCents) / 100).toFixed(2) : '0.00'}
+                </p>
+              </div>
+
+              {earningsData && earningsData.transactions.length > 0 ? (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recent Transactions</h3>
+                  {earningsData.transactions.map((tx: MarketplaceTransaction) => (
+                    <div key={tx.id} className="flex items-center justify-between rounded-lg border border-slate-100 p-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 line-clamp-1">{tx.listingTitle}</p>
+                        <p className="text-xs text-slate-400">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-slate-900">
+                          +${((tx.amountCents - tx.platformFeeCents) / 100).toFixed(2)}
+                        </p>
+                        <span className={`text-[10px] font-medium rounded-full px-1.5 py-0.5 ${
+                          tx.status === 'completed' ? 'bg-emerald-50 text-emerald-700' :
+                          tx.status === 'pending' ? 'bg-amber-50 text-amber-700' :
+                          'bg-red-50 text-red-700'
+                        }`}>
+                          {tx.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">No transactions yet. Publish a paid listing to start earning.</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Marketplace Page ─────────────────────────────────────────────────
 
 export function Marketplace() {
@@ -1049,6 +1237,7 @@ export function Marketplace() {
         {activeTab === 'prompts' && <ListingsTab type="prompt" />}
         {activeTab === 'feature-requests' && <FeatureRequestsTab />}
         {activeTab === 'showcase' && <ShowcaseTab />}
+        {activeTab === 'seller' && <SellerDashboard />}
       </div>
     </>
   );
