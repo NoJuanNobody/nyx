@@ -16,6 +16,10 @@ export function VideoGenerationPanel({ documentId }: VideoGenerationPanelProps) 
   const { data: videos = [], isLoading } = useQuery<GeneratedVideo[]>({
     queryKey: ['videos', documentId],
     queryFn: () => listVideos(documentId),
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.some((v) => v.status === 'generating') ? 5000 : false;
+    },
   });
 
   const generateMutation = useMutation({
@@ -159,15 +163,16 @@ export function VideoGenerationPanel({ documentId }: VideoGenerationPanelProps) 
                       </span>
                     )}
                   </div>
-                  {video.videoUrl && (
-                    <a
-                      href={video.videoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-1 inline-block text-[11px] font-medium text-blue-600 hover:text-blue-700"
-                    >
-                      View video
-                    </a>
+                  {video.videoUrl && video.status === 'completed' && (
+                    <div className="mt-2">
+                      <video
+                        controls
+                        className="w-full rounded-lg border border-slate-200"
+                        src={video.videoUrl.startsWith('/') ? `http://localhost:3001${video.videoUrl}` : video.videoUrl}
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    </div>
                   )}
                 </div>
               </div>
