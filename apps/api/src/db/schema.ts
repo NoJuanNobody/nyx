@@ -4,7 +4,7 @@ export const userRoleEnum = pgEnum('user_role', ['owner', 'admin', 'developer', 
 export const documentStatusEnum = pgEnum('document_status', ['draft', 'published', 'archived']);
 export const ticketProviderEnum = pgEnum('ticket_provider', ['github', 'jira']);
 export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'closed']);
-export const integrationTypeEnum = pgEnum('integration_type', ['github', 'jira', 'confluence']);
+export const integrationTypeEnum = pgEnum('integration_type', ['github', 'jira', 'confluence', 'otter']);
 export const proposalStatusEnum = pgEnum('proposal_status', ['pending', 'approved', 'rejected', 'pushed']);
 export const auditEventTypeEnum = pgEnum('audit_event_type', [
   'doc_edit', 'snapshot_created', 'ticket_created', 'ticket_updated',

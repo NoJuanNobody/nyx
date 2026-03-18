@@ -20,6 +20,7 @@ import { BulkTicketReview } from '../components/BulkTicketReview';
 import { JSXPreviewPanel } from '../components/JSXPreviewPanel';
 import { SaveAsTemplateButton } from '../components/SaveAsTemplateButton';
 import { MeetingNoteQuality } from '../components/MeetingNoteQuality';
+import { ImportOtterModal } from '../components/ImportOtterModal';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
 
@@ -42,6 +43,7 @@ export function DocumentEditor() {
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
   const [currentMockupJsx, setCurrentMockupJsx] = useState<string | null>(null);
+  const [otterModalOpen, setOtterModalOpen] = useState(false);
   const [searchParams] = useSearchParams();
   const splitContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -320,6 +322,18 @@ export function DocumentEditor() {
           </button>
 
           <SaveAsTemplateButton content={content} stage={docStage} teamId={doc.teamId} />
+
+          <button
+            type="button"
+            onClick={() => setOtterModalOpen(true)}
+            title="Import transcript from Otter.ai"
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
+            </svg>
+            Otter.ai
+          </button>
 
           <button
             type="button"
@@ -637,6 +651,17 @@ export function DocumentEditor() {
         teamId={doc.teamId}
         open={bulkTicketOpen}
         onClose={() => setBulkTicketOpen(false)}
+      />
+
+      <ImportOtterModal
+        open={otterModalOpen}
+        onClose={() => setOtterModalOpen(false)}
+        teamId={doc.teamId}
+        onImport={({ title: importedTitle, content: importedContent }) => {
+          setTitle(importedTitle);
+          setContent(importedContent);
+          scheduleSave({ title: importedTitle, content: importedContent });
+        }}
       />
     </div>
   );

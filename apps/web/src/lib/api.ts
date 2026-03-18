@@ -1493,3 +1493,39 @@ export function createMeetingDocument(sessionId: string, teamId: string): Promis
     body: JSON.stringify({ sessionId, teamId }),
   });
 }
+
+// ── Otter.ai Integration ─────────────────────────────────────────────
+
+export interface OtterSpeechSummary {
+  speech_id: string;
+  title: string;
+  create_time: number;
+  start_time: string;
+  end_time: string;
+  duration: number;
+}
+
+export function listOtterTranscripts(
+  teamId: string,
+  query?: string,
+  limit = 20,
+): Promise<{ speeches: OtterSpeechSummary[]; error?: string }> {
+  const params = new URLSearchParams({ teamId, limit: String(limit) });
+  if (query) params.set('query', query);
+  return request<{ speeches: OtterSpeechSummary[]; error?: string }>(
+    `/integrations/otter/transcripts?${params.toString()}`,
+  );
+}
+
+export function importOtterTranscript(
+  teamId: string,
+  speechId: string,
+): Promise<{ title: string; content: string; speechId: string; duration: number; participants: string[] }> {
+  return request<{ title: string; content: string; speechId: string; duration: number; participants: string[] }>(
+    '/integrations/otter/import',
+    {
+      method: 'POST',
+      body: JSON.stringify({ teamId, speechId }),
+    },
+  );
+}

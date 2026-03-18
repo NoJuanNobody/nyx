@@ -7,6 +7,13 @@ import { githubService, GitHubTokenExpiredError } from '../services/github.servi
 import { jiraService } from '../services/jira.service.js';
 import { requireRole } from '../middleware/permissions.js';
 import { config } from '../lib/config.js';
+import {
+  otterService,
+  exchangeCodeForToken as otterExchangeCode,
+  OTTER_OAUTH_AUTHORIZE_URL,
+} from '../services/integrations/otter.service.js';
+import { semanticParserService } from '../services/voice/semantic-parser.service.js';
+import { transformToDocument } from '../services/voice/doc-transformer.service.js';
 
 // Simple state signing for OAuth CSRF protection
 const STATE_SECRET = config.CLERK_SECRET_KEY ?? randomBytes(32).toString('hex');
@@ -401,6 +408,235 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
+  // ── Otter.ai OAuth flow ────────────────────────────────────────────
+
+  // GET /api/integrations/otter/connect — initiate Otter.ai OAuth
+  app.get('/otter/connect', async (request, reply) => {
+    let { teamId } = request.query as { teamId?: string };
+
+    if (!teamId) {
+      const userId = request.user.id;
+      let userTeams = await db
+        .select({ id: teams.id })
+        .from(teamMembers)
+        .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+        .where(eq(teamMembers.userId, userId))
+        .limit(1);
+
+      if (userTeams.length === 0) {
+        const slug = `personal-${userId.slice(0, 8)}`;
+        const [team] = await db.insert(teams).values({ name: 'My Workspace', slug }).returning();
+        await db.insert(teamMembers).values({ teamId: team.id, userId, role: 'owner' });
+        teamId = team.id;
+      } else {
+        teamId = userTeams[0].id;
+      }
+    }
+
+    if (!config.OTTER_CLIENT_ID || !config.OTTER_CLIENT_SECRET) {
+      reply.code(500);
+      return { error: 'Otter.ai OAuth not configured: OTTER_CLIENT_ID and OTTER_CLIENT_SECRET required' };
+    }
+
+    const statePayload = JSON.stringify({ teamId, nonce: randomBytes(16).toString('hex') });
+    const state = signState(statePayload);
+
+    reply.setCookie('otter_oauth_state', state, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: config.NODE_ENV === 'production',
+      maxAge: 600,
+      path: '/',
+    });
+
+    const origin = request.headers.referer
+      ? new URL(request.headers.referer).origin
+      : `${request.protocol}://${request.host}`;
+
+    const params = new URLSearchParams({
+      client_id: config.OTTER_CLIENT_ID,
+      redirect_uri: `${origin}/api/integrations/otter/callback`,
+      response_type: 'code',
+      scope: 'speech.read',
+      state,
+    });
+
+    reply.redirect(`${OTTER_OAUTH_AUTHORIZE_URL}?${params.toString()}`);
+  });
+
+  // GET /api/integrations/otter/callback — handle Otter.ai OAuth callback
+  app.get('/otter/callback', async (request, reply) => {
+    const { code, state } = request.query as { code?: string; state?: string };
+
+    if (!code || !state) {
+      reply.code(400);
+      return { error: 'Missing code or state parameter' };
+    }
+
+    const cookieState = request.cookies.otter_oauth_state;
+    if (!cookieState || cookieState !== state) {
+      reply.code(403);
+      return { error: 'Invalid OAuth state — possible CSRF attack' };
+    }
+
+    const payload = verifyState(state);
+    if (!payload) {
+      reply.code(403);
+      return { error: 'State signature verification failed' };
+    }
+
+    const { teamId } = JSON.parse(payload) as { teamId: string };
+    reply.clearCookie('otter_oauth_state', { path: '/' });
+
+    const origin = request.headers.referer
+      ? new URL(request.headers.referer).origin
+      : `${request.protocol}://${request.host}`;
+
+    const tokenData = await otterExchangeCode(
+      config.OTTER_CLIENT_ID!,
+      config.OTTER_CLIENT_SECRET!,
+      code,
+      `${origin}/api/integrations/otter/callback`,
+    );
+
+    const [existing] = await db
+      .select()
+      .from(integrations)
+      .where(and(eq(integrations.teamId, teamId), eq(integrations.type, 'otter')));
+
+    if (existing) {
+      await db
+        .update(integrations)
+        .set({
+          config: {
+            accessToken: tokenData.access_token,
+            refreshToken: tokenData.refresh_token,
+            expiresAt: Date.now() + tokenData.expires_in * 1000,
+          },
+          updatedAt: new Date(),
+        })
+        .where(eq(integrations.id, existing.id));
+    } else {
+      await db.insert(integrations).values({
+        teamId,
+        type: 'otter',
+        config: {
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token,
+          expiresAt: Date.now() + tokenData.expires_in * 1000,
+        },
+      });
+    }
+
+    reply.redirect('/settings?tab=integrations&otter=connected');
+  });
+
+  // GET /api/integrations/otter/transcripts — list Otter.ai speeches for a team
+  app.get('/otter/transcripts', async (request, reply) => {
+    const { teamId, query, limit } = request.query as {
+      teamId?: string;
+      query?: string;
+      limit?: string;
+    };
+
+    if (!teamId) {
+      reply.code(400);
+      return { error: 'teamId query parameter is required' };
+    }
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(and(eq(integrations.teamId, teamId), eq(integrations.type, 'otter')));
+
+    if (!integration) {
+      reply.code(404);
+      return { error: 'Otter.ai integration not found. Please connect Otter.ai first.' };
+    }
+
+    const cfg = integration.config as { accessToken?: string };
+    if (!cfg.accessToken) {
+      reply.code(400);
+      return { error: 'Otter.ai access token is missing. Please reconnect.' };
+    }
+
+    try {
+      const speeches = await otterService.listTranscripts(
+        cfg.accessToken,
+        limit ? parseInt(limit, 10) : 20,
+        query,
+      );
+      return { speeches };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(502);
+      return { error: message };
+    }
+  });
+
+  // POST /api/integrations/otter/import — import an Otter.ai transcript as Nyx document content
+  app.post('/otter/import', async (request, reply) => {
+    const { teamId, speechId } = request.body as { teamId: string; speechId: string };
+
+    if (!teamId || !speechId) {
+      reply.code(400);
+      return { error: 'teamId and speechId are required' };
+    }
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(and(eq(integrations.teamId, teamId), eq(integrations.type, 'otter')));
+
+    if (!integration) {
+      reply.code(404);
+      return { error: 'Otter.ai integration not found. Please connect Otter.ai first.' };
+    }
+
+    const cfg = integration.config as { accessToken?: string };
+    if (!cfg.accessToken) {
+      reply.code(400);
+      return { error: 'Otter.ai access token is missing. Please reconnect.' };
+    }
+
+    try {
+      // Fetch the full speech including transcript segments
+      const speech = await otterService.getSpeech(cfg.accessToken, speechId);
+      const plainText = otterService.transcriptToPlainText(speech);
+
+      // Route through the semantic parser to extract structured intelligence
+      const parsed = await semanticParserService.parseTranscript(plainText);
+
+      // Build a MeetingIntelligence-compatible object for the doc transformer
+      const intelligence = {
+        sessionId: `otter-${speechId}`,
+        transcript: [],
+        decisions: parsed.decisions,
+        actionItems: parsed.actionItems,
+        codeReferences: parsed.codeReferences,
+        openQuestions: parsed.openQuestions,
+        summary: parsed.summary,
+        duration: speech.duration ?? 0,
+        participants: parsed.participants,
+        createdAt: speech.start_time ?? new Date().toISOString(),
+      };
+
+      const { title, content } = transformToDocument(intelligence);
+
+      return {
+        title: speech.title || title,
+        content,
+        speechId: speech.speech_id,
+        duration: speech.duration,
+        participants: parsed.participants,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(502);
+      return { error: message };
+    }
+  });
+
   // ── Generic integration CRUD ───────────────────────────────────────
 
   // GET /api/integrations?teamId=X — list integrations for a team
@@ -426,7 +662,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
   app.post('/', { preHandler: [requireRole({ minimumRole: 'admin', source: 'request' })] }, async (request, reply) => {
     const { teamId, type, config } = request.body as {
       teamId: string;
-      type: 'github' | 'jira' | 'confluence';
+      type: 'github' | 'jira' | 'confluence' | 'otter';
       config: Record<string, unknown>;
     };
 
