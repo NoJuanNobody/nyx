@@ -117,6 +117,31 @@ export async function deleteDocument(id: string): Promise<void> {
   await request<void>(`/documents/${id}`, { method: 'DELETE' });
 }
 
+export async function uploadDocumentFile(
+  id: string,
+  file: File,
+): Promise<{ content: string; title: string | null }> {
+  const token = await resolveToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${BASE}/documents/${id}/upload`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Upload failed: ${body || res.statusText}`);
+  }
+
+  return res.json() as Promise<{ content: string; title: string | null }>;
+}
+
 // ── Teams ───────────────────────────────────────────────────────────
 
 export function fetchTeams(): Promise<{ id: string; name: string; slug: string }[]> {

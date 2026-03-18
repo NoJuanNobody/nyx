@@ -31,10 +31,14 @@
     "puppeteer": "^24",
     "puppeteer-cluster": "^0.24",
     "stripe": "^20.4.1",
+    "mammoth": "^1.8",
+    "pdf-parse": "^1.1",
+    "xlsx": "^0.18",
     "zod": "^3"
   },
   "devDependencies": {
     "@types/node": "^22",
+    "@types/pdf-parse": "^1.1",
     "@types/pdfkit": "^0.13",
     "@vitest/coverage-v8": "^3",
     "drizzle-kit": "^0.30",

@@ -20,6 +20,7 @@ import { BulkTicketReview } from '../components/BulkTicketReview';
 import { JSXPreviewPanel } from '../components/JSXPreviewPanel';
 import { SaveAsTemplateButton } from '../components/SaveAsTemplateButton';
 import { MeetingNoteQuality } from '../components/MeetingNoteQuality';
+import { FileUploadZone } from '../components/FileUploadZone';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
 
@@ -42,6 +43,7 @@ export function DocumentEditor() {
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
   const [currentMockupJsx, setCurrentMockupJsx] = useState<string | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [searchParams] = useSearchParams();
   const splitContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -327,6 +329,15 @@ export function DocumentEditor() {
             className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
           >
             Save Version
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setUploadOpen(true)}
+            title="Import file (.txt, .md, .docx, .pdf, .csv, .xlsx)"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            Import File
           </button>
 
           {/* Drawer panel toggles */}
@@ -638,6 +649,20 @@ export function DocumentEditor() {
         open={bulkTicketOpen}
         onClose={() => setBulkTicketOpen(false)}
       />
+
+      {uploadOpen && id && (
+        <FileUploadZone
+          documentId={id}
+          onClose={() => setUploadOpen(false)}
+          onImport={(parsed, mode) => {
+            const newContent =
+              mode === 'append' ? `${content}\n\n${parsed}` : parsed;
+            setContent(newContent);
+            scheduleSave({ title, content: newContent });
+            setUploadOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -50,6 +50,7 @@ import { voiceRoutes } from './routes/voice.js';
 import { voiceTranscriptionRoutes } from './routes/voice-transcription.js';
 import { voiceDocumentRoutes } from './routes/voice-documents.js';
 import { voiceWebhookRoutes } from './routes/voice-webhooks.js';
+import { documentUploadRoutes } from './routes/document-upload.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -64,6 +65,7 @@ export function buildApp() {
   app.register(healthRoutes);
   app.register(authRoutes, { prefix: '/api/auth' });
   app.register(documentRoutes, { prefix: '/api/documents' });
+  app.register(documentUploadRoutes, { prefix: '/api/documents' });
   app.register(documentVersionRoutes, { prefix: '/api/documents' });
   app.register(timelineRoutes, { prefix: '/api/documents' });
   app.register(versionRoutes, { prefix: '/api/versions' });
