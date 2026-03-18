@@ -1493,3 +1493,71 @@ export function createMeetingDocument(sessionId: string, teamId: string): Promis
     body: JSON.stringify({ sessionId, teamId }),
   });
 }
+
+// ── Document Export ─────────────────────────────────────────────────
+
+export type LatexTheme = 'plain' | 'ieee' | 'acm' | 'apa' | 'nature' | 'elsevier';
+
+export interface LatexThemeInfo {
+  id: string;
+  description: string;
+}
+
+export async function fetchLatexThemes(documentId: string): Promise<LatexThemeInfo[]> {
+  const data = await request<{ themes: LatexThemeInfo[] }>(`/documents/${documentId}/export/latex/themes`);
+  return data.themes;
+}
+
+export async function downloadDocumentLatex(documentId: string, theme: LatexTheme = 'plain'): Promise<void> {
+  const token = await resolveToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}/documents/${documentId}/export/latex?theme=${theme}`, { headers });
+  if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
+
+  const blob = await res.blob();
+  const filename = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'document.tex';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadDocumentMarkdown(documentId: string): Promise<void> {
+  const token = await resolveToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}/documents/${documentId}/export/markdown`, { headers });
+  if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
+
+  const blob = await res.blob();
+  const filename = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'document.md';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadDocumentPdf(documentId: string): Promise<void> {
+  const token = await resolveToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}/documents/${documentId}/export/pdf`, { headers });
+  if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
+
+  const blob = await res.blob();
+  const filename = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'document.pdf';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}

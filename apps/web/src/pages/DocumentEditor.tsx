@@ -19,6 +19,7 @@ import { CreateTicketModal } from '../components/CreateTicketModal';
 import { BulkTicketReview } from '../components/BulkTicketReview';
 import { JSXPreviewPanel } from '../components/JSXPreviewPanel';
 import { SaveAsTemplateButton } from '../components/SaveAsTemplateButton';
+import { ExportMenu } from '../components/ExportMenu';
 import { MeetingNoteQuality } from '../components/MeetingNoteQuality';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
@@ -320,6 +321,8 @@ export function DocumentEditor() {
           </button>
 
           <SaveAsTemplateButton content={content} stage={docStage} teamId={doc.teamId} />
+
+          <ExportMenu documentId={id!} />
 
           <button
             type="button"
