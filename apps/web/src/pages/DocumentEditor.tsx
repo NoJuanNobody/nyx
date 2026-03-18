@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Document, DocumentVersion } from '@nyx/shared';
 
-import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage } from '../lib/api';
+import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage, exportJupyterNotebook } from '../lib/api';
 import { STAGE_MAP, STAGES, STAGE_ORDER, type DocumentStage } from '../lib/stages';
 import { getLifecycle, getNextStage as lifecycleGetNextStage, getStageInfo } from '../lib/lifecycles';
 import { useUIStore } from '../stores/ui.store';
@@ -41,6 +41,7 @@ export function DocumentEditor() {
   const [viewingVersion, setViewingVersion] = useState<DocumentVersion | null>(null);
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
+  const [jupyterExporting, setJupyterExporting] = useState(false);
   const [currentMockupJsx, setCurrentMockupJsx] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const splitContainerRef = useRef<HTMLDivElement>(null);
@@ -320,6 +321,25 @@ export function DocumentEditor() {
           </button>
 
           <SaveAsTemplateButton content={content} stage={docStage} teamId={doc.teamId} />
+
+          <button
+            type="button"
+            onClick={async () => {
+              if (!id) return;
+              setJupyterExporting(true);
+              try {
+                await exportJupyterNotebook(id);
+              } catch (err) {
+                console.error('Jupyter export failed:', err);
+              } finally {
+                setJupyterExporting(false);
+              }
+            }}
+            disabled={jupyterExporting}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+          >
+            {jupyterExporting ? 'Exporting...' : 'Export Jupyter'}
+          </button>
 
           <button
             type="button"
