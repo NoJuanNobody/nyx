@@ -16,6 +16,8 @@ interface Notebook {
   metadata: {
     kernelspec: { display_name: string; language: string; name: string };
     language_info: { name: string; version: string };
+    title?: string;
+    [key: string]: unknown;
   };
   cells: NotebookCell[];
 }
@@ -92,6 +94,7 @@ export function markdownToNotebook(markdown: string, title: string = 'Untitled')
     metadata: {
       kernelspec: { display_name: 'Python 3', language: 'python', name: 'python3' },
       language_info: { name: 'python', version: '3.11.0' },
+      title,
     },
     cells,
   };

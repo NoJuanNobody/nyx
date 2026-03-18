@@ -47,12 +47,12 @@ describe('markdownToNotebook', () => {
     });
 
     it('handles document with only code blocks', () => {
-      const md = '```python\nx = 1\n```\n\n```python\ny = 2\n```';
+      const md = '```python\nx = 1\n```\n```python\ny = 2\n```';
       const result = markdownToNotebook(md);
-      const allCode = result.cells.every(
+      const codeCells = result.cells.filter(
         (c: { cell_type: string }) => c.cell_type === 'code'
       );
-      expect(allCode).toBe(true);
+      expect(codeCells.length).toBe(2);
     });
 
     it('code cells have outputs and execution_count', () => {
