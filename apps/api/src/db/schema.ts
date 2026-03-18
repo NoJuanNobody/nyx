@@ -560,3 +560,24 @@ export const projectShowcases = pgTable('project_showcases', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ── Deliverables ───────────────────────────────────────
+
+export const deliverableTypeEnum = pgEnum('deliverable_type', ['markdown', 'ai_report', 'structured_export']);
+export const deliverableStatusEnum = pgEnum('deliverable_status', ['pending', 'generating', 'ready', 'failed']);
+
+export const deliverables = pgTable('deliverables', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id')
+    .notNull()
+    .references(() => documents.id, { onDelete: 'cascade' }),
+  stage: text('stage').notNull(),
+  type: deliverableTypeEnum('type').notNull(),
+  fileName: text('file_name').notNull(),
+  content: text('content'),
+  mimeType: text('mime_type').notNull().default('text/plain'),
+  status: deliverableStatusEnum('status').notNull().default('pending'),
+  metadata: jsonb('metadata').notNull().default({}),
+  generatedAt: timestamp('generated_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

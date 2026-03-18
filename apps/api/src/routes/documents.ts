@@ -5,6 +5,7 @@ import { documents, documentTemplates } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
 import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
+import { deliverableService } from '../services/deliverable.service.js';
 
 export const documentRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/documents?teamId=X&stage=Y — list documents for a team
@@ -166,7 +167,8 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       return { error: 'Document not found' };
     }
 
-    // Fire-and-forget: record timeline event
+    // Fire-and-forget: record timeline event and trigger deliverable generation on stage change
+    const stageChanged = body.stage !== undefined && body.stage !== null;
     setImmediate(async () => {
       try {
         await timelineService.create({
@@ -183,6 +185,13 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
           metadata: { fields: Object.keys(body).filter(k => (body as Record<string, unknown>)[k] !== undefined) },
         });
       } catch {}
+
+      // Auto-generate deliverables when stage changes
+      if (stageChanged && doc.stage) {
+        try {
+          await deliverableService.generateDeliverables(id);
+        } catch {}
+      }
     });
 
     return doc;

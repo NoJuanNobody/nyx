@@ -1493,3 +1493,39 @@ export function createMeetingDocument(sessionId: string, teamId: string): Promis
     body: JSON.stringify({ sessionId, teamId }),
   });
 }
+
+// ── Deliverables ──────────────────────────────────────────────────────
+
+export interface Deliverable {
+  id: string;
+  documentId: string;
+  stage: string;
+  type: 'markdown' | 'ai_report' | 'structured_export';
+  fileName: string;
+  content: string | null;
+  mimeType: string;
+  status: 'pending' | 'generating' | 'ready' | 'failed';
+  metadata: Record<string, unknown>;
+  generatedAt: string | null;
+  createdAt: string;
+}
+
+export function fetchDeliverables(documentId: string): Promise<Deliverable[]> {
+  return request<Deliverable[]>(`/documents/${documentId}/deliverables`);
+}
+
+export function generateDeliverables(documentId: string): Promise<Deliverable[]> {
+  return request<Deliverable[]>(`/documents/${documentId}/deliverables/generate`, {
+    method: 'POST',
+  });
+}
+
+export function deleteDeliverable(documentId: string, deliverableId: string): Promise<{ success: boolean }> {
+  return request<{ success: boolean }>(`/documents/${documentId}/deliverables/${deliverableId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function getDeliverableDownloadUrl(documentId: string, deliverableId: string): string {
+  return `${BASE}/documents/${documentId}/deliverables/${deliverableId}/download`;
+}
