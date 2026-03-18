@@ -484,6 +484,19 @@ export const subscriptions = pgTable('subscriptions', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── Stripe Customers ─────────────────────────────────
+
+export const stripeCustomers = pgTable('stripe_customers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull(),
+  stripeCustomerId: text('stripe_customer_id').notNull().unique(),
+  subscriptionId: text('subscription_id'),
+  plan: text('plan').notNull().default('free'),
+  planExpiresAt: timestamp('plan_expires_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ── Community Marketplace ─────────────────────────────
 
 // ── Deliverables ──────────────────────────────────────
