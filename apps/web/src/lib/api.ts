@@ -1538,8 +1538,9 @@ export function generateVideo(params: {
   });
 }
 
-export function listVideos(documentId: string): Promise<GeneratedVideo[]> {
-  return request<GeneratedVideo[]>(`/video?documentId=${encodeURIComponent(documentId)}`);
+export async function listVideos(documentId: string): Promise<GeneratedVideo[]> {
+  const result = await request<{ videos: GeneratedVideo[] }>(`/video?documentId=${encodeURIComponent(documentId)}`);
+  return result.videos;
 }
 
 export async function downloadVideosBatch(videoIds: string[]): Promise<void> {
