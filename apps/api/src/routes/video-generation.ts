@@ -1,5 +1,9 @@
+import { createReadStream, existsSync } from 'fs';
+import { join } from 'path';
 import type { FastifyPluginAsync } from 'fastify';
 import { videoGenerationService } from '../services/video-generation.service.js';
+
+const VIDEO_OUTPUT_DIR = join(process.cwd(), 'generated-videos');
 
 export const videoGenerationRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/video/generate — generate a video from prompt
@@ -50,6 +54,24 @@ export const videoGenerationRoutes: FastifyPluginAsync = async (app) => {
 
     const videos = await videoGenerationService.listVideos(documentId);
     return { videos };
+  });
+
+  // GET /api/video/file/:fileName — serve generated video files
+  app.get('/file/:fileName', async (request, reply) => {
+    const { fileName } = request.params as { fileName: string };
+    const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '');
+    const filePath = join(VIDEO_OUTPUT_DIR, safeName);
+
+    if (!existsSync(filePath)) {
+      reply.code(404);
+      return { error: 'Video file not found' };
+    }
+
+    reply
+      .header('Content-Type', 'video/mp4')
+      .header('Content-Disposition', `inline; filename="${safeName}"`);
+
+    return reply.send(createReadStream(filePath));
   });
 
   // POST /api/video/batch-download — accepts { videoIds: string[] }, returns zip
