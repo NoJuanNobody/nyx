@@ -101,6 +101,26 @@ export function createDocument(
   });
 }
 
+export function createDocumentFromTemplate(
+  data: {
+    listingId: string;
+    teamId: string;
+    path?: string;
+  },
+): Promise<Document> {
+  if (!data.teamId) {
+    return Promise.reject(
+      new Error(
+        'Cannot create document: no team selected. Please refresh or check your team membership.',
+      ),
+    );
+  }
+  return request<Document>('/documents/from-template', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export function updateDocument(
   id: string,
   data: Partial<Pick<Document, 'title' | 'content' | 'status' | 'path'>> & {
