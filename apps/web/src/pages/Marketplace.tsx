@@ -11,6 +11,8 @@ import {
   fetchProjectShowcases,
   createProjectShowcase,
   fetchLifecycles,
+  getCreditsBalance,
+  purchaseMarketplaceListing,
   type MarketplaceListing,
   type FeatureRequest,
   type ProjectShowcase,
@@ -91,10 +93,10 @@ function PriceBadge({ priceType, priceAmountCents }: { priceType: string; priceA
       </span>
     );
   }
-  const dollars = priceAmountCents ? (priceAmountCents / 100).toFixed(2) : '0.00';
+  const credits = priceAmountCents ?? 0;
   return (
-    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 ring-1 ring-blue-200">
-      ${dollars}
+    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
+      {credits} credits
     </span>
   );
 }
@@ -138,6 +140,7 @@ function PublishModal({
   const [category, setCategory] = useState('');
   const [tagsStr, setTagsStr] = useState('');
   const [priceType, setPriceType] = useState<'free' | 'paid'>('free');
+  const [priceCredits, setPriceCredits] = useState('');
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -147,6 +150,7 @@ function PublishModal({
         description,
         content,
         priceType,
+        priceAmountCents: priceType === 'paid' && priceCredits ? parseInt(priceCredits, 10) : undefined,
         category: category || undefined,
         tags: tagsStr ? tagsStr.split(',').map((t) => t.trim()).filter(Boolean) : undefined,
       }),
@@ -244,6 +248,19 @@ function PublishModal({
                 Paid
               </label>
             </div>
+            {priceType === 'paid' && (
+              <div className="mt-2">
+                <label className="block text-xs font-medium text-slate-600 mb-1">Price (credits)</label>
+                <input
+                  type="number"
+                  value={priceCredits}
+                  onChange={(e) => setPriceCredits(e.target.value)}
+                  min={1}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  placeholder="e.g., 10"
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -601,6 +618,110 @@ function UseTemplateModal({
   );
 }
 
+// ── Purchase Modal (paid listings) ───────────────────────────────────
+
+function PurchaseModal({
+  listing,
+  onClose,
+  onPurchased,
+}: {
+  listing: MarketplaceListing;
+  onClose: () => void;
+  onPurchased: (content: string, title: string) => void;
+}) {
+  const queryClient = useQueryClient();
+  const [success, setSuccess] = useState(false);
+
+  const { data: balanceData, isLoading: balanceLoading } = useQuery({
+    queryKey: ['credits-balance'],
+    queryFn: getCreditsBalance,
+  });
+
+  const mutation = useMutation({
+    mutationFn: () => purchaseMarketplaceListing(listing.id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['credits-balance'] });
+      setSuccess(true);
+      onPurchased(data.content, data.title);
+    },
+  });
+
+  const credits = listing.priceAmountCents ?? 0;
+  const balance = balanceData?.balance ?? 0;
+  const insufficient = !balanceLoading && balance < credits;
+  const is402 = mutation.isError && mutation.error instanceof Error && mutation.error.message.includes('402');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-lg font-semibold text-slate-900">Purchase Listing</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Purchase &ldquo;{listing.title}&rdquo; from the marketplace.
+        </p>
+
+        <div className="mt-5 space-y-3">
+          <div className="flex items-center justify-between rounded-lg bg-slate-50 px-4 py-3">
+            <span className="text-sm text-slate-600">Price</span>
+            <span className="text-sm font-semibold text-amber-700">{credits} credits</span>
+          </div>
+          <div className="flex items-center justify-between rounded-lg bg-slate-50 px-4 py-3">
+            <span className="text-sm text-slate-600">Your balance</span>
+            {balanceLoading ? (
+              <span className="text-sm text-slate-400">Loading...</span>
+            ) : (
+              <span className={`text-sm font-semibold ${insufficient ? 'text-red-600' : 'text-slate-700'}`}>
+                {balance} credits
+              </span>
+            )}
+          </div>
+        </div>
+
+        {(insufficient || is402) && (
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
+            <p className="text-xs font-medium text-red-700">Insufficient credits</p>
+            <p className="mt-1 text-xs text-red-500">
+              You need {credits - balance} more credits to purchase this listing.
+            </p>
+          </div>
+        )}
+
+        {mutation.isError && !is402 && (
+          <p className="mt-3 text-xs text-red-600">
+            {mutation.error instanceof Error ? mutation.error.message : 'Purchase failed. Please try again.'}
+          </p>
+        )}
+
+        {success && (
+          <p className="mt-3 text-xs text-emerald-600">Purchase successful! The content has been added.</p>
+        )}
+
+        <div className="mt-6 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            {success ? 'Close' : 'Cancel'}
+          </button>
+          {!success && (
+            <button
+              type="button"
+              onClick={() => mutation.mutate()}
+              disabled={insufficient || mutation.isPending || balanceLoading}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {mutation.isPending ? 'Purchasing...' : `Purchase for ${credits} credits`}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Listing Card ─────────────────────────────────────────────────────
 
 function ListingCard({
@@ -616,10 +737,10 @@ function ListingCard({
       data-testid="listing-card"
       onClick={() => onUseTemplate?.(listing)}
     >
-      {/* Use Template overlay on hover */}
+      {/* Use Template / Purchase overlay on hover */}
       <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/80 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-        <span className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm">
-          Use Template
+        <span className={`rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm ${listing.priceType === 'paid' ? 'bg-amber-600' : 'bg-blue-600'}`}>
+          {listing.priceType === 'paid' ? `Purchase (${listing.priceAmountCents ?? 0} credits)` : 'Use Template'}
         </span>
       </div>
 
@@ -664,6 +785,7 @@ function ListingsTab({ type }: { type: 'template' | 'workflow' | 'prompt' }) {
   const [search, setSearch] = useState('');
   const [showPublish, setShowPublish] = useState(false);
   const [templateToUse, setTemplateToUse] = useState<MarketplaceListing | null>(null);
+  const [listingToPurchase, setListingToPurchase] = useState<MarketplaceListing | null>(null);
 
   const { data: listings = [], isLoading, isError, error } = useQuery({
     queryKey: ['marketplace', type, search],
@@ -672,6 +794,14 @@ function ListingsTab({ type }: { type: 'template' | 'workflow' | 'prompt' }) {
 
   const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
   const pluralLabel = typeLabel + 's';
+
+  const handleListingClick = (listing: MarketplaceListing) => {
+    if (listing.priceType === 'paid') {
+      setListingToPurchase(listing);
+    } else {
+      setTemplateToUse(listing);
+    }
+  };
 
   return (
     <div>
@@ -707,7 +837,7 @@ function ListingsTab({ type }: { type: 'template' | 'workflow' | 'prompt' }) {
             <ListingCard
               key={listing.id}
               listing={listing}
-              onUseTemplate={setTemplateToUse}
+              onUseTemplate={handleListingClick}
             />
           ))}
         </div>
@@ -716,6 +846,13 @@ function ListingsTab({ type }: { type: 'template' | 'workflow' | 'prompt' }) {
       {showPublish && <PublishModal type={type} onClose={() => setShowPublish(false)} />}
       {templateToUse && (
         <UseTemplateModal listing={templateToUse} onClose={() => setTemplateToUse(null)} />
+      )}
+      {listingToPurchase && (
+        <PurchaseModal
+          listing={listingToPurchase}
+          onClose={() => setListingToPurchase(null)}
+          onPurchased={() => setListingToPurchase(null)}
+        />
       )}
     </div>
   );

@@ -1277,7 +1277,7 @@ export function fetchMarketplaceListing(id: string): Promise<MarketplaceListing>
   return request<MarketplaceListing>(`/marketplace/${id}`);
 }
 
-export function createMarketplaceListing(data: { type: string; title: string; description: string; content: string; priceType?: string; category?: string; tags?: string[]; stage?: string }): Promise<MarketplaceListing> {
+export function createMarketplaceListing(data: { type: string; title: string; description: string; content: string; priceType?: string; priceAmountCents?: number; category?: string; tags?: string[]; stage?: string }): Promise<MarketplaceListing> {
   return request<MarketplaceListing>('/marketplace', { method: 'POST', body: JSON.stringify(data) });
 }
 
@@ -1566,6 +1566,29 @@ export async function downloadVideosBatch(videoIds: string[]): Promise<void> {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// ── Credits ─────────────────────────────────────────────────────────
+
+export function getCreditsBalance(): Promise<{ balance: number }> {
+  return request<{ balance: number }>('/credits/balance');
+}
+
+export function purchaseCredits(amount: number): Promise<{ balance: number; added: number }> {
+  return request<{ balance: number; added: number }>('/credits/purchase', {
+    method: 'POST',
+    body: JSON.stringify({ amount }),
+  });
+}
+
+export function purchaseMarketplaceListing(listingId: string): Promise<{ content: string; title: string; balance: number }> {
+  return request<{ content: string; title: string; balance: number }>(`/marketplace/${listingId}/purchase`, {
+    method: 'POST',
+  });
+}
+
+export function getCreditCosts(): Promise<Record<string, number>> {
+  return request<Record<string, number>>('/credits/costs');
 }
 
 // ── Export: Jupyter Notebook ────────────────────────────────────────
