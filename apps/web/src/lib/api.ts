@@ -1567,3 +1567,33 @@ export async function downloadVideosBatch(videoIds: string[]): Promise<void> {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// ── Export: Jupyter Notebook ────────────────────────────────────────
+
+export async function exportJupyterNotebook(documentId: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  const token = await resolveToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE}/export/documents/${encodeURIComponent(documentId)}/export/jupyter`, {
+    method: 'POST',
+    headers,
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Failed to export Jupyter notebook: ${body || res.statusText}`);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'document.ipynb';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

@@ -501,7 +501,7 @@ export const stripeCustomers = pgTable('stripe_customers', {
 
 // ── Deliverables ──────────────────────────────────────
 
-export const deliverableTypeEnum = pgEnum('deliverable_type', ['pdf', 'markdown', 'report']);
+export const deliverableTypeEnum = pgEnum('deliverable_type', ['pdf', 'markdown', 'report', 'jupyter']);
 
 export const deliverables = pgTable('deliverables', {
   id: uuid('id').primaryKey().defaultRandom(),
