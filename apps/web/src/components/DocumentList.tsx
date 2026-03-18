@@ -7,8 +7,10 @@ import {
   createDocument,
   fetchTeams,
   generateAllDocuments,
+  PlanLimitError,
 } from '../lib/api';
-import type { GenerateAllResponse } from '../lib/api';
+import type { GenerateAllResponse, PlanLimitDetails } from '../lib/api';
+import { UpgradeModal } from './UpgradeModal';
 
 const statusColors: Record<string, string> = {
   draft: 'bg-yellow-100 text-yellow-800',
@@ -20,6 +22,7 @@ export function DocumentList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [generateAllResult, setGenerateAllResult] = useState<GenerateAllResponse | null>(null);
+  const [planLimitDetails, setPlanLimitDetails] = useState<PlanLimitDetails | null>(null);
 
   const { data: teams, isLoading: teamsLoading } = useQuery({
     queryKey: ['teams'],
@@ -44,6 +47,11 @@ export function DocumentList() {
     onSuccess: (doc) => {
       queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
       navigate(`/documents/${doc.id}`);
+    },
+    onError: (err) => {
+      if (err instanceof PlanLimitError) {
+        setPlanLimitDetails(err.details);
+      }
     },
   });
 
@@ -229,6 +237,13 @@ export function DocumentList() {
           ))}
         </ul>
       </div>
+
+      {planLimitDetails && (
+        <UpgradeModal
+          details={planLimitDetails}
+          onClose={() => setPlanLimitDetails(null)}
+        />
+      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   handleWebhookEvent,
   getPriceId,
 } from '../services/stripe.service.js';
+import { planLimitsService } from '../services/plan-limits.service.js';
 
 // ── Static plan data ────────────────────────────────────
 
@@ -75,6 +76,20 @@ export const subscriptionRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/plans', async () => {
     return PLANS;
   });
+
+  // ── Get current usage for a team ──────────────────────
+  fastify.get<{ Querystring: { teamId: string } }>(
+    '/usage',
+    async (request) => {
+      const { teamId } = request.query;
+
+      if (!teamId) {
+        throw { statusCode: 400, message: 'teamId is required' };
+      }
+
+      return planLimitsService.getPlanUsage(teamId);
+    },
+  );
 
   // ── Get current subscription for a team ───────────────
   fastify.get<{ Querystring: { teamId: string } }>(

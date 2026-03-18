@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchTeams, createDocument } from '../lib/api';
+import { fetchTeams, createDocument, PlanLimitError } from '../lib/api';
+import type { PlanLimitDetails } from '../lib/api';
 import { DashboardAIPrompt } from '../components/DashboardAIPrompt';
 import { PhaseSuggestions } from '../components/PhaseSuggestions';
 import { RecentDocuments } from '../components/RecentDocuments';
+import { UpgradeModal } from '../components/UpgradeModal';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [planLimitDetails, setPlanLimitDetails] = useState<PlanLimitDetails | null>(null);
 
   const { data: teams } = useQuery({
     queryKey: ['teams'],
@@ -28,10 +32,21 @@ export function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       navigate(`/documents/${doc.id}`);
     },
+    onError: (err) => {
+      if (err instanceof PlanLimitError) {
+        setPlanLimitDetails(err.details);
+      }
+    },
   });
 
   return (
     <>
+      {planLimitDetails && (
+        <UpgradeModal
+          details={planLimitDetails}
+          onClose={() => setPlanLimitDetails(null)}
+        />
+      )}
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>

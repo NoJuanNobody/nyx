@@ -3,6 +3,7 @@ import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { documents, documentTemplates } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
+import { requireDocumentLimit } from '../middleware/plan-limits.js';
 import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
 
@@ -74,8 +75,8 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/documents — create a document
-  // editors+ can create
-  app.post('/', { preHandler: [requireRole({ minimumRole: 'editor', source: 'request' })] }, async (request, reply) => {
+  // editors+ can create; enforces plan document limit
+  app.post('/', { preHandler: [requireRole({ minimumRole: 'editor', source: 'request' }), requireDocumentLimit()] }, async (request, reply) => {
     const { title, content, teamId, path, stage, templateId } = request.body as {
       title: string;
       content?: string;

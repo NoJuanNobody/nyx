@@ -42,6 +42,23 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     if (res.status === 401 && body.includes('github_token_expired')) {
       throw new GitHubTokenExpiredError('Your GitHub connection has expired. Please reconnect.');
     }
+    // Detect plan limit errors
+    if (res.status === 403) {
+      try {
+        const json = JSON.parse(body);
+        if (json.limit !== undefined && json.current !== undefined) {
+          throw new PlanLimitError(json.error ?? 'Plan limit reached', {
+            feature: json.feature,
+            limit: json.limit,
+            current: json.current,
+            plan: json.plan,
+            upgradeUrl: json.upgradeUrl ?? '/settings?tab=billing',
+          });
+        }
+      } catch (e) {
+        if (e instanceof PlanLimitError) throw e;
+      }
+    }
     throw new Error(`API ${res.status}: ${body || res.statusText}`);
   }
 
@@ -52,6 +69,23 @@ export class GitHubTokenExpiredError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'GitHubTokenExpiredError';
+  }
+}
+
+export interface PlanLimitDetails {
+  feature?: string;
+  limit: number;
+  current: number;
+  plan: string;
+  upgradeUrl: string;
+}
+
+export class PlanLimitError extends Error {
+  details: PlanLimitDetails;
+  constructor(message: string, details: PlanLimitDetails) {
+    super(message);
+    this.name = 'PlanLimitError';
+    this.details = details;
   }
 }
 
@@ -1122,6 +1156,18 @@ export interface Subscription {
   status: string;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+}
+
+export interface PlanUsage {
+  plan: string;
+  documents: { current: number; limit: number };
+  teamMembers: { current: number; limit: number };
+  ai: boolean;
+  voice: boolean;
+}
+
+export function fetchPlanUsage(teamId: string): Promise<PlanUsage> {
+  return request<PlanUsage>(`/subscriptions/usage?teamId=${encodeURIComponent(teamId)}`);
 }
 
 export function fetchPlans(): Promise<SubscriptionPlan[]> {

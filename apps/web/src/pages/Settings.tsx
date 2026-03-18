@@ -7,7 +7,8 @@ import {
   fetchIntegrations, deleteIntegration, testIntegration,
   updateProfile, deleteAccount,
   fetchPlans, fetchCurrentSubscription, createCheckoutSession, createPortalSession,
-  type SubscriptionPlan, type Subscription,
+  fetchPlanUsage,
+  type SubscriptionPlan, type Subscription, type PlanUsage,
 } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
 import { RepoPickerModal } from '../components/RepoPickerModal';
@@ -1043,6 +1044,32 @@ const PLAN_BADGE_COLORS: Record<string, string> = {
   enterprise: 'bg-amber-100 text-amber-700',
 };
 
+function UsageMeter({ label, current, limit }: { label: string; current: number; limit: number }) {
+  const isUnlimited = limit === -1;
+  const pct = isUnlimited ? 0 : Math.min(100, Math.round((current / limit) * 100));
+  const isNearLimit = !isUnlimited && pct >= 80;
+  const isAtLimit = !isUnlimited && current >= limit;
+
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between text-sm">
+        <span className="text-slate-600">{label}</span>
+        <span className={`font-medium ${isAtLimit ? 'text-red-600' : isNearLimit ? 'text-amber-600' : 'text-slate-700'}`}>
+          {isUnlimited ? `${current} / Unlimited` : `${current} / ${limit}`}
+        </span>
+      </div>
+      {!isUnlimited && (
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div
+            className={`h-full rounded-full transition-all ${isAtLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-400' : 'bg-blue-500'}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BillingPanel() {
   const { user } = useAuthStore();
   const teamsQuery = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
@@ -1052,6 +1079,11 @@ function BillingPanel() {
   const subQuery = useQuery({
     queryKey: ['subscription', teamId],
     queryFn: () => fetchCurrentSubscription(teamId!),
+    enabled: !!teamId,
+  });
+  const usageQuery = useQuery<PlanUsage>({
+    queryKey: ['plan-usage', teamId],
+    queryFn: () => fetchPlanUsage(teamId!),
     enabled: !!teamId,
   });
 
@@ -1133,6 +1165,37 @@ function BillingPanel() {
           )}
         </div>
       </div>
+
+      {/* Usage meters */}
+      {usageQuery.data && (
+        <div className="rounded-lg border border-slate-200 bg-white p-5">
+          <h3 className="mb-4 text-sm font-semibold text-slate-800">Current Usage</h3>
+          <div className="space-y-4">
+            <UsageMeter
+              label="Documents"
+              current={usageQuery.data.documents.current}
+              limit={usageQuery.data.documents.limit}
+            />
+            <UsageMeter
+              label="Team Members"
+              current={usageQuery.data.teamMembers.current}
+              limit={usageQuery.data.teamMembers.limit}
+            />
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-600">AI Features</span>
+              <span className={usageQuery.data.ai ? 'text-green-600 font-medium' : 'text-slate-400'}>
+                {usageQuery.data.ai ? 'Included' : 'Not included'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-600">Voice Agent</span>
+              <span className={usageQuery.data.voice ? 'text-green-600 font-medium' : 'text-slate-400'}>
+                {usageQuery.data.voice ? 'Included' : 'Not included'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Plan comparison cards */}
       <div>
