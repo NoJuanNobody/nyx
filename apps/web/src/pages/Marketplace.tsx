@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchMarketplaceListings,
   createMarketplaceListing,
+  createDocumentFromTemplate,
+  fetchTeams,
   fetchFeatureRequests,
   createFeatureRequest,
   toggleFeatureRequestUpvote,
@@ -478,11 +480,149 @@ function ShowcaseModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ── Use Template Modal ────────────────────────────────────────────────
+
+function UseTemplateModal({
+  listing,
+  onClose,
+}: {
+  listing: MarketplaceListing;
+  onClose: () => void;
+}) {
+  const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [path, setPath] = useState('/');
+
+  const { data: teams = [], isLoading: teamsLoading } = useQuery({
+    queryKey: ['teams'],
+    queryFn: fetchTeams,
+  });
+
+  // Auto-select the first team once loaded
+  if (teams.length > 0 && !selectedTeamId) {
+    setSelectedTeamId(teams[0].id);
+  }
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      createDocumentFromTemplate({
+        listingId: listing.id,
+        teamId: selectedTeamId,
+        path: path || '/',
+      }),
+    onSuccess: () => {
+      onClose();
+    },
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      data-testid="use-template-modal"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-lg font-semibold text-slate-900">Use Template</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Create a new document from &ldquo;{listing.title}&rdquo;.
+        </p>
+
+        <div className="mt-5 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Team</label>
+            {teamsLoading ? (
+              <div className="text-xs text-slate-400">Loading teams...</div>
+            ) : teams.length === 0 ? (
+              <div className="text-xs text-red-500">
+                No teams found. You must belong to a team to create documents.
+              </div>
+            ) : (
+              <select
+                value={selectedTeamId}
+                onChange={(e) => setSelectedTeamId(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                data-testid="team-select"
+              >
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Folder Path</label>
+            <input
+              type="text"
+              value={path}
+              onChange={(e) => setPath(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              placeholder="/"
+              data-testid="path-input"
+            />
+          </div>
+        </div>
+
+        {mutation.isError && (
+          <p className="mt-3 text-xs text-red-600">
+            {mutation.error instanceof Error
+              ? mutation.error.message
+              : 'Failed to create document. Please try again.'}
+          </p>
+        )}
+
+        {mutation.isSuccess && (
+          <p className="mt-3 text-xs text-emerald-600">Document created successfully!</p>
+        )}
+
+        <div className="mt-6 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => mutation.mutate()}
+            disabled={!selectedTeamId || mutation.isPending}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            data-testid="confirm-use-template"
+          >
+            {mutation.isPending ? 'Creating...' : 'Create Document'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Listing Card ─────────────────────────────────────────────────────
 
-function ListingCard({ listing }: { listing: MarketplaceListing }) {
+function ListingCard({
+  listing,
+  onUseTemplate,
+}: {
+  listing: MarketplaceListing;
+  onUseTemplate?: (listing: MarketplaceListing) => void;
+}) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div
+      className="group relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer"
+      data-testid="listing-card"
+      onClick={() => onUseTemplate?.(listing)}
+    >
+      {/* Use Template overlay on hover */}
+      <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/80 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        <span className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm">
+          Use Template
+        </span>
+      </div>
+
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-sm font-semibold text-slate-900 leading-snug line-clamp-1">{listing.title}</h3>
         <PriceBadge priceType={listing.priceType} priceAmountCents={listing.priceAmountCents} />
@@ -523,6 +663,7 @@ function ListingCard({ listing }: { listing: MarketplaceListing }) {
 function ListingsTab({ type }: { type: 'template' | 'workflow' | 'prompt' }) {
   const [search, setSearch] = useState('');
   const [showPublish, setShowPublish] = useState(false);
+  const [templateToUse, setTemplateToUse] = useState<MarketplaceListing | null>(null);
 
   const { data: listings = [], isLoading, isError, error } = useQuery({
     queryKey: ['marketplace', type, search],
@@ -563,12 +704,19 @@ function ListingsTab({ type }: { type: 'template' | 'workflow' | 'prompt' }) {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
+            <ListingCard
+              key={listing.id}
+              listing={listing}
+              onUseTemplate={setTemplateToUse}
+            />
           ))}
         </div>
       )}
 
       {showPublish && <PublishModal type={type} onClose={() => setShowPublish(false)} />}
+      {templateToUse && (
+        <UseTemplateModal listing={templateToUse} onClose={() => setTemplateToUse(null)} />
+      )}
     </div>
   );
 }

@@ -31,9 +31,12 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   APP_URL: z.string().url().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   RECALL_AI_API_KEY: z.string().optional(),
   RECALL_AI_WEBHOOK_SECRET: z.string().optional(),
+  TAVILY_API_KEY: z.string().optional(),
+  OTTER_API_KEY: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production' && !data.GITHUB_WEBHOOK_SECRET) {
     ctx.addIssue({

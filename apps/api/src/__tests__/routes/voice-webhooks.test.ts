@@ -105,18 +105,17 @@ describe('Voice Webhook Routes — POST /api/voice/webhooks/recall', () => {
       });
 
       expect(res.statusCode).toBe(400);
-      expect(res.json()).toEqual({ error: 'Missing event or bot_id' });
+      expect(res.json()).toEqual({ error: 'Missing event' });
     });
 
-    it('rejects payload missing bot_id', async () => {
+    it('accepts payload missing bot_id (for real-time transcript events)', async () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/voice/webhooks/recall',
         payload: { event: 'bot.status_change', data: {} },
       });
 
-      expect(res.statusCode).toBe(400);
-      expect(res.json()).toEqual({ error: 'Missing event or bot_id' });
+      expect(res.statusCode).toBe(200);
     });
   });
 

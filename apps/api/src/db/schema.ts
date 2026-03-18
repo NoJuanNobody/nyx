@@ -484,7 +484,37 @@ export const subscriptions = pgTable('subscriptions', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── Stripe Customers ─────────────────────────────────
+
+export const stripeCustomers = pgTable('stripe_customers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull(),
+  stripeCustomerId: text('stripe_customer_id').notNull().unique(),
+  subscriptionId: text('subscription_id'),
+  plan: text('plan').notNull().default('free'),
+  planExpiresAt: timestamp('plan_expires_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ── Community Marketplace ─────────────────────────────
+
+// ── Deliverables ──────────────────────────────────────
+
+export const deliverableTypeEnum = pgEnum('deliverable_type', ['pdf', 'markdown', 'report']);
+
+export const deliverables = pgTable('deliverables', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id')
+    .notNull()
+    .references(() => documents.id, { onDelete: 'cascade' }),
+  stage: text('stage').notNull(),
+  type: deliverableTypeEnum('type').notNull(),
+  fileName: text('file_name').notNull(),
+  fileUrl: text('file_url').notNull(),
+  generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().defaultNow(),
+  metadata: jsonb('metadata'),
+});
 
 export const listingTypeEnum = pgEnum('listing_type', ['template', 'workflow', 'prompt']);
 export const listingPriceTypeEnum = pgEnum('listing_price_type', ['free', 'paid']);
@@ -559,4 +589,44 @@ export const projectShowcases = pgTable('project_showcases', {
   published: boolean('published').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Social Posts ──────────────────────────────────────
+
+export const socialPosts = pgTable('social_posts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id')
+    .notNull()
+    .references(() => documents.id, { onDelete: 'cascade' }),
+  platform: text('platform').notNull(),
+  content: text('content').notNull(),
+  postUrl: text('post_url'),
+  status: text('status').notNull().default('draft'),
+  publishedAt: timestamp('published_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Credit Ledger ─────────────────────────────────────
+
+export const creditTransactionTypeEnum = pgEnum('credit_transaction_type', [
+  'purchase',
+  'consumption',
+  'refund',
+]);
+
+export const creditBalances = pgTable('credit_balances', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull().unique(),
+  balance: integer('balance').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const creditTransactions = pgTable('credit_transactions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull(),
+  amount: integer('amount').notNull(),
+  type: creditTransactionTypeEnum('type').notNull(),
+  description: text('description').notNull(),
+  taskType: text('task_type'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

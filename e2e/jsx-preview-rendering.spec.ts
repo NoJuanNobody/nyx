@@ -102,7 +102,7 @@ test.describe('JSX Preview Rendering — error handling', () => {
     await openPreviewPanel(page);
     await generatePreviewAndWait(page);
 
-    await expect(page.locator('text=Transpilation error')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=Preview failed')).toBeVisible({ timeout: 10_000 });
   });
 });
 

@@ -34,10 +34,12 @@
     "zod": "^3"
   },
   "devDependencies": {
+    "@types/form-data": "^2.5.2",
     "@types/node": "^22",
     "@types/pdfkit": "^0.13",
     "@vitest/coverage-v8": "^3",
     "drizzle-kit": "^0.30",
+    "form-data": "^4.0.5",
     "tsx": "^4",
     "typescript": "^5.7",
     "vitest": "^3"

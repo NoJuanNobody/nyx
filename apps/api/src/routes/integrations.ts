@@ -5,6 +5,7 @@ import { db } from '../db/index.js';
 import { integrations, documents, timelineEvents, teams, teamMembers } from '../db/schema.js';
 import { githubService, GitHubTokenExpiredError } from '../services/github.service.js';
 import { jiraService } from '../services/jira.service.js';
+import { otterService } from '../services/integrations/otter.service.js';
 import { requireRole } from '../middleware/permissions.js';
 import { config } from '../lib/config.js';
 
@@ -399,6 +400,85 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       .where(eq(integrations.id, id));
 
     return { ok: true };
+  });
+
+  // ── Otter.ai transcript import ────────────────────────────────────
+
+  // POST /api/integrations/otter/import — import an Otter.ai transcript into a document
+  app.post('/otter/import', async (request, reply) => {
+    const { transcriptText, documentId } = request.body as {
+      transcriptText?: string;
+      documentId?: string;
+    };
+
+    if (!transcriptText || !documentId) {
+      reply.code(400);
+      return { error: 'transcriptText and documentId are required' };
+    }
+
+    // Fetch the target document
+    const [doc] = await db
+      .select()
+      .from(documents)
+      .where(eq(documents.id, documentId));
+
+    if (!doc) {
+      reply.code(404);
+      return { error: 'Document not found' };
+    }
+
+    try {
+      const { content, formattedText } = otterService.importTranscript(
+        transcriptText,
+        doc.content,
+      );
+
+      // Update the document with the appended transcript
+      await db
+        .update(documents)
+        .set({ content, updatedAt: new Date() })
+        .where(eq(documents.id, documentId));
+
+      return {
+        ok: true,
+        documentId,
+        appendedLength: formattedText.length,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(400);
+      return { error: message };
+    }
+  });
+
+  // GET /api/integrations/otter/transcripts — list available Otter.ai transcripts
+  app.get('/otter/transcripts', async (_request, reply) => {
+    try {
+      const transcripts = await otterService.listTranscripts();
+      return { transcripts };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(502);
+      return { error: message };
+    }
+  });
+
+  // GET /api/integrations/otter/transcripts/:id — get a single Otter.ai transcript
+  app.get('/otter/transcripts/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    try {
+      const transcript = await otterService.getTranscript(id);
+      return { transcript };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      if (message.includes('not found')) {
+        reply.code(404);
+      } else {
+        reply.code(502);
+      }
+      return { error: message };
+    }
   });
 
   // ── Generic integration CRUD ───────────────────────────────────────

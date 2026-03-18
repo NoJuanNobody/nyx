@@ -91,7 +91,7 @@ describe('recall-adapter', () => {
 
       // Verify POST body
       const [createUrl, createInit] = mockFetch.mock.calls[0];
-      expect(createUrl).toBe('https://api.recall.ai/api/v1/bot');
+      expect(createUrl).toBe('https://us-east-1.recall.ai/api/v1/bot');
       expect(createInit.method).toBe('POST');
       expect(JSON.parse(createInit.body)).toMatchObject({
         meeting_url: 'https://zoom.us/j/123456',
@@ -346,7 +346,7 @@ describe('recall-adapter', () => {
       );
       expect(leaveCall).toBeDefined();
       expect(leaveCall![0]).toBe(
-        'https://api.recall.ai/api/v1/bot/bot-dc/leave_call',
+        'https://us-east-1.recall.ai/api/v1/bot/bot-dc/leave_call',
       );
       expect(leaveCall![1].method).toBe('POST');
 

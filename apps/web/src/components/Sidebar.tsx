@@ -4,6 +4,7 @@ import { useUIStore } from '../stores/ui.store';
 import { useAuthStore } from '../stores/auth.store';
 import { FileTree } from './FileTree';
 import { FeedbackModal } from './FeedbackModal';
+import { getLifecycle } from '../lib/lifecycles';
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -226,8 +227,10 @@ const primaryNavItems = [
 ];
 
 export function Sidebar() {
-  const { sidebarOpen, setSidebarOpen, sidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
+  const { sidebarOpen, setSidebarOpen, sidebarCollapsed, toggleSidebarCollapsed, activeLifecycleSlug } =
+    useUIStore();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const activeLifecycle = getLifecycle(activeLifecycleSlug);
 
   const navLinkClass = (isActive: boolean, collapsed: boolean) =>
     `flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors ${collapsed ? 'justify-center px-2' : ''} ${
@@ -306,18 +309,24 @@ export function Sidebar() {
 
         {/* Primary nav */}
         <div className="border-t border-slate-200">
-          {primaryNavItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={() => setSidebarOpen(false)}
-              title={sidebarCollapsed ? item.label : undefined}
-              className={({ isActive }) => navLinkClass(isActive, sidebarCollapsed)}
-            >
-              {item.icon}
-              {!sidebarCollapsed && item.label}
-            </NavLink>
-          ))}
+          {primaryNavItems.map((item) => {
+            const displayLabel =
+              item.to === '/lifecycle'
+                ? `About ${activeLifecycle.label}`
+                : item.label;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={() => setSidebarOpen(false)}
+                title={sidebarCollapsed ? displayLabel : undefined}
+                className={({ isActive }) => navLinkClass(isActive, sidebarCollapsed)}
+              >
+                {item.icon}
+                {!sidebarCollapsed && displayLabel}
+              </NavLink>
+            );
+          })}
         </div>
 
         {/* Utility nav — Getting Started + Settings + Feedback */}

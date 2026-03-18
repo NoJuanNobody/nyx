@@ -46,10 +46,18 @@ import { permissionRoutes } from './routes/permissions.js';
 import { docChangesRoutes } from './routes/doc-changes.js';
 import { orchestrationRoutes } from './routes/orchestration.js';
 import { observabilityRoutes } from './routes/observability.js';
+import { deliverableRoutes, deliverableSingleRoutes } from './routes/deliverables.js';
+import { searchRoutes } from './routes/search.js';
 import { voiceRoutes } from './routes/voice.js';
 import { voiceTranscriptionRoutes } from './routes/voice-transcription.js';
 import { voiceDocumentRoutes } from './routes/voice-documents.js';
 import { voiceWebhookRoutes } from './routes/voice-webhooks.js';
+import { uploadRoutes } from './routes/upload.js';
+import { pcbRoutes } from './routes/pcb.js';
+import { socialRoutes } from './routes/social.js';
+import { billingRoutes } from './routes/billing.js';
+import { planRoutes } from './routes/plan.js';
+import { creditRoutes } from './routes/credits.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -107,10 +115,19 @@ export function buildApp() {
   app.register(docChangesRoutes, { prefix: '/api/documents' });
   app.register(orchestrationRoutes, { prefix: '/api/orchestration' });
   app.register(observabilityRoutes, { prefix: '/api/observability' });
+  app.register(deliverableRoutes, { prefix: '/api/documents' });
+  app.register(deliverableSingleRoutes, { prefix: '/api/deliverables' });
+  app.register(searchRoutes, { prefix: '/api/search' });
   app.register(voiceRoutes, { prefix: '/api/voice' });
   app.register(voiceTranscriptionRoutes, { prefix: '/api/voice' });
   app.register(voiceDocumentRoutes, { prefix: '/api/voice' });
   app.register(voiceWebhookRoutes, { prefix: '/api/voice' });
+  app.register(uploadRoutes, { prefix: '/api/documents' });
+  app.register(pcbRoutes, { prefix: '/api/documents' });
+  app.register(socialRoutes, { prefix: '/api/documents' });
+  app.register(billingRoutes, { prefix: '/api/billing' });
+  app.register(planRoutes, { prefix: '/api/plan' });
+  app.register(creditRoutes, { prefix: '/api/credits' });
 
   return app;
 }
