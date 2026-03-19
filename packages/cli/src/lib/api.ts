@@ -11,10 +11,18 @@ export async function apiRequest<T>(
   const baseUrl = getBaseUrl();
   const url = `${baseUrl}${path}`;
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  const apiKey = process.env.NYX_API_KEY;
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+
   const res = await fetch(url, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...headers,
       ...options.headers,
     },
   });

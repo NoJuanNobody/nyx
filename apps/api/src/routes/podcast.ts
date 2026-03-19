@@ -1,4 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { db } from '../db/index.js';
+import { documents } from '../db/schema.js';
+import { inArray } from 'drizzle-orm';
 import { aiService } from '../services/ai.service.js';
 
 export interface PodcastScript {
@@ -35,9 +38,19 @@ export const podcastRoutes: FastifyPluginAsync = async (app) => {
       return { error: 'documentIds must be a non-empty array' };
     }
 
-    // For MVP, use placeholder content since we don't have DB access in this route.
-    // In production, fetch documents by ID from the database.
-    const concatenatedContent = `Documents: ${documentIds.join(', ')}`;
+    const docs = await db
+      .select({ id: documents.id, title: documents.title, content: documents.content })
+      .from(documents)
+      .where(inArray(documents.id, documentIds));
+
+    if (docs.length === 0) {
+      reply.code(404);
+      return { error: 'No documents found for the given IDs' };
+    }
+
+    const concatenatedContent = docs
+      .map((d) => `# ${d.title}\n\n${d.content}`)
+      .join('\n\n---\n\n');
 
     const result = await aiService.generatePodcastScript(concatenatedContent, title);
 
