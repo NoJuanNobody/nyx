@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useUIStore } from '../stores/ui.store';
 import { useAuthStore } from '../stores/auth.store';
 import { FileTree } from './FileTree';
 import { FeedbackModal } from './FeedbackModal';
+import { getCreditsBalance } from '../lib/api';
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -137,6 +139,38 @@ function UserSection({ collapsed }: { collapsed: boolean }) {
           </svg>
         </button>
       </div>
+    </div>
+  );
+}
+
+function CreditBalance({ collapsed }: { collapsed: boolean }) {
+  const { data } = useQuery({
+    queryKey: ['credits-balance'],
+    queryFn: getCreditsBalance,
+    refetchInterval: 60_000,
+  });
+
+  if (data == null) return null;
+
+  if (collapsed) {
+    return (
+      <div className="border-t border-slate-200 px-2 py-2 flex justify-center" title={`${data.balance} credits`}>
+        <span className="flex items-center gap-1 text-xs text-slate-500">
+          <svg className="h-3.5 w-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.798 7.45c.512-.67 1.135-.95 1.702-.95s1.19.28 1.702.95a.75.75 0 0 0 1.192-.91C12.637 5.55 11.5 5 10.5 5s-2.137.55-2.894 1.54a.75.75 0 0 0 1.192.91ZM10 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z" />
+          </svg>
+          {data.balance}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-slate-200 px-4 py-2 flex items-center gap-2">
+      <svg className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.798 7.45c.512-.67 1.135-.95 1.702-.95s1.19.28 1.702.95a.75.75 0 0 0 1.192-.91C12.637 5.55 11.5 5 10.5 5s-2.137.55-2.894 1.54a.75.75 0 0 0 1.192.91ZM10 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z" />
+      </svg>
+      <span className="text-xs text-slate-500">{data.balance} credits</span>
     </div>
   );
 }
@@ -292,6 +326,9 @@ export function Sidebar() {
           </div>
         )}
         {sidebarCollapsed && <div className="flex-1" />}
+
+        {/* Credit balance */}
+        <CreditBalance collapsed={sidebarCollapsed} />
 
         {/* User section */}
         <UserSection collapsed={sidebarCollapsed} />

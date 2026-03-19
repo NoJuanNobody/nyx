@@ -63,6 +63,25 @@ export const creditRoutes: FastifyPluginAsync = async (fastify) => {
     return result;
   });
 
+  // ── POST /purchase — add credits to user account ────
+  fastify.post('/purchase', async (request, reply) => {
+    const userId = request.user?.id;
+    if (!userId) {
+      reply.code(401);
+      return { error: 'Authentication required' };
+    }
+
+    const { amount } = request.body as { amount?: number };
+    if (!amount || amount <= 0 || !Number.isInteger(amount)) {
+      reply.code(400);
+      return { error: 'amount must be a positive integer' };
+    }
+
+    // In production, this would verify a Stripe payment first
+    const { balance } = await addCredits(userId, amount, `Purchased ${amount} credits`);
+    return { balance, added: amount };
+  });
+
   // ── GET /costs — returns credit cost configuration ──
   fastify.get('/costs', async () => {
     return { costs: CREDIT_COSTS };

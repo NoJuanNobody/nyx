@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { eq, and, desc, ilike, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { marketplaceListings, marketplaceReviews, users } from '../db/schema.js';
+import { deductCredits } from '../services/credits.service.js';
 
 export const marketplaceRoutes: FastifyPluginAsync = async (app) => {
   // GET / — list published listings with optional type/category/search filters
@@ -66,6 +67,62 @@ export const marketplaceRoutes: FastifyPluginAsync = async (app) => {
     if (!listing) { reply.code(404); return { error: 'Listing not found' }; }
     await db.update(marketplaceListings).set({ downloadCount: listing.downloadCount + 1 }).where(eq(marketplaceListings.id, id));
     return { content: listing.content, title: listing.title };
+  });
+
+  // POST /:id/purchase — purchase a paid listing with credits
+  app.post('/:id/purchase', async (request, reply) => {
+    const userId = (request as any).user?.id;
+    if (!userId) {
+      reply.code(401);
+      return { error: 'Authentication required' };
+    }
+
+    const { id } = request.params as { id: string };
+
+    // Fetch listing
+    const [listing] = await db.select().from(marketplaceListings).where(eq(marketplaceListings.id, id));
+    if (!listing || !listing.published) {
+      reply.code(404);
+      return { error: 'Listing not found' };
+    }
+
+    // Free listings don't need purchase
+    if (listing.priceType === 'free' || !listing.priceAmountCents) {
+      reply.code(400);
+      return { error: 'This listing is free. Use the download endpoint instead.' };
+    }
+
+    // Convert cents to credits (1 credit = 1 cent for simplicity)
+    const creditCost = listing.priceAmountCents;
+
+    // Deduct credits (throws 402 if insufficient)
+    try {
+      const { balance } = await deductCredits(
+        userId,
+        creditCost,
+        'marketplace_purchase',
+        `Purchased "${listing.title}" (${listing.type})`,
+      );
+
+      // Increment download count
+      await db.update(marketplaceListings)
+        .set({ downloadCount: sql`${marketplaceListings.downloadCount} + 1` })
+        .where(eq(marketplaceListings.id, id));
+
+      // Return the content + new balance
+      return {
+        content: listing.content,
+        title: listing.title,
+        balance,
+        message: `Successfully purchased "${listing.title}" for ${creditCost} credits`,
+      };
+    } catch (err: any) {
+      if (err?.statusCode === 402) {
+        reply.code(402);
+        return { error: 'Insufficient credits', required: creditCost };
+      }
+      throw err;
+    }
   });
 
   // DELETE /:id — delete own listing
