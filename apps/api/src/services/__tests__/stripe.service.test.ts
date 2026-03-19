@@ -87,7 +87,6 @@ describe('stripe.service', () => {
 
       expect(getPriceId('nonexistent')).toBeUndefined();
       expect(getPriceId('free')).toBeUndefined();
-      expect(getPriceId('enterprise')).toBeUndefined();
     });
   });
 

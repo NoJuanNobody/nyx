@@ -14,7 +14,7 @@ import {
   fetchCreditCosts,
   fetchCreditBalance,
   fetchCreditPacks,
-  purchaseCredits,
+  purchaseCreditPack,
   deductCredits,
   checkSprintCapacity,
   getCreditsBalance,
@@ -1399,7 +1399,7 @@ function BuyCreditsModal({ onClose }: { onClose: () => void }) {
   const packs = packsData?.packs ?? [];
 
   const mutation = useMutation({
-    mutationFn: (packId: string) => purchaseCredits(packId),
+    mutationFn: (packId: string) => purchaseCreditPack(packId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['credit-balance'] });
       queryClient.invalidateQueries({ queryKey: ['credit-transactions'] });

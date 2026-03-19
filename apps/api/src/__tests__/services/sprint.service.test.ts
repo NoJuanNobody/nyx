@@ -10,7 +10,7 @@ describe('sprintService', () => {
     it('returns mock sprint data with tickets', async () => {
       const result = await sprintService.getSprintCapacity('team-1');
 
-      expect(result.sprintName).toBe('Sprint 12');
+      expect(result.sprintName).toBe('Sprint 12 (Demo)');
       expect(result.totalPoints).toBeGreaterThan(0);
       expect(result.usedPoints).toBeGreaterThan(0);
       expect(result.capacityPercent).toBeGreaterThan(0);

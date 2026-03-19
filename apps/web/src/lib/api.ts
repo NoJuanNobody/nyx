@@ -1321,7 +1321,7 @@ export function deductCredits(data: { amount: number; taskType: string; descript
   return request<{ balance: number }>('/credits/deduct', { method: 'POST', body: JSON.stringify(data) });
 }
 
-export function purchaseCredits(packId: string): Promise<{ balance: number; pack: CreditPack }> {
+export function purchaseCreditPack(packId: string): Promise<{ balance: number; pack: CreditPack }> {
   return request<{ balance: number; pack: CreditPack }>('/credits/purchase', { method: 'POST', body: JSON.stringify({ packId }) });
 }
 
