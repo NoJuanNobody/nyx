@@ -4,6 +4,7 @@ import {
   getSprintCapacity,
   checkSprintCapacity,
   deferSprintTicket,
+  scheduleNextSprint,
   type SprintTicket,
   type SprintCapacityData,
   type SprintCheckResult,
@@ -33,6 +34,7 @@ export function SprintGatekeeper() {
   const [selectedDefer, setSelectedDefer] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [deferring, setDeferring] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadCapacity = useCallback(async () => {
@@ -81,6 +83,20 @@ export function SprintGatekeeper() {
       setError(err instanceof Error ? err.message : 'Failed to defer tickets');
     } finally {
       setDeferring(false);
+    }
+  };
+
+  const handleScheduleNextSprint = async () => {
+    if (!currentTeamId || selectedDefer.size === 0) return;
+    setScheduling(true);
+    try {
+      await scheduleNextSprint({ teamId: currentTeamId, ticketKeys: Array.from(selectedDefer) });
+      setSelectedDefer(new Set());
+      await loadCapacity();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to schedule tickets');
+    } finally {
+      setScheduling(false);
     }
   };
 
@@ -133,7 +149,14 @@ export function SprintGatekeeper() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">{capacity.sprintName}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-slate-900">{capacity.sprintName}</h2>
+            {capacity.source === 'github' ? (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">GitHub Projects</span>
+            ) : (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">Demo Data</span>
+            )}
+          </div>
           <p className="text-sm text-slate-500">
             {capacity.usedWeight} / {capacity.totalWeight} decision weight used
           </p>
@@ -233,10 +256,12 @@ export function SprintGatekeeper() {
             </button>
             <button
               type="button"
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              onClick={handleScheduleNextSprint}
+              disabled={selectedDefer.size === 0 || scheduling}
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
               data-testid="schedule-next-sprint-button"
             >
-              Schedule for Next Sprint
+              {scheduling ? 'Scheduling...' : `Schedule for Next Sprint (${selectedDefer.size})`}
             </button>
           </div>
         </div>

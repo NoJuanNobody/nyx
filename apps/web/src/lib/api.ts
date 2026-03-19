@@ -974,6 +974,7 @@ export interface SprintCapacityData {
   totalPoints: number;
   usedPoints: number;
   tickets: SprintTicket[];
+  source: 'github' | 'mock';
 }
 
 export interface SprintCheckResult {
@@ -1004,6 +1005,16 @@ export function deferSprintTicket(data: {
   ticketKey: string;
 }): Promise<{ deferred: boolean }> {
   return request<{ deferred: boolean }>('/sprint/defer', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function scheduleNextSprint(data: {
+  teamId: string;
+  ticketKeys: string[];
+}): Promise<{ scheduled: string[] }> {
+  return request<{ scheduled: string[] }>('/sprint/schedule-next', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -1213,6 +1224,7 @@ export interface MarketplaceListing {
   content: string;
   priceType: 'free' | 'paid';
   priceAmountCents: number | null;
+  creditPrice: number | null;
   category: string | null;
   tags: string[];
   stage: string | null;
@@ -1277,12 +1289,40 @@ export function fetchMarketplaceListing(id: string): Promise<MarketplaceListing>
   return request<MarketplaceListing>(`/marketplace/${id}`);
 }
 
-export function createMarketplaceListing(data: { type: string; title: string; description: string; content: string; priceType?: string; category?: string; tags?: string[]; stage?: string }): Promise<MarketplaceListing> {
+export function createMarketplaceListing(data: { type: string; title: string; description: string; content: string; priceType?: string; creditPrice?: number; category?: string; tags?: string[]; stage?: string }): Promise<MarketplaceListing> {
   return request<MarketplaceListing>('/marketplace', { method: 'POST', body: JSON.stringify(data) });
 }
 
 export function downloadMarketplaceListing(id: string): Promise<{ content: string; title: string }> {
   return request<{ content: string; title: string }>(`/marketplace/${id}/download`, { method: 'POST' });
+}
+
+export function fetchCreditCosts(): Promise<{ costs: Record<string, number> }> {
+  return request<{ costs: Record<string, number> }>('/credits/costs');
+}
+
+export function fetchCreditBalance(): Promise<{ balance: number }> {
+  return request<{ balance: number }>('/credits/balance');
+}
+
+export interface CreditPack {
+  id: string;
+  name: string;
+  credits: number;
+  priceUsd: number;
+  popular: boolean;
+}
+
+export function fetchCreditPacks(): Promise<{ packs: CreditPack[] }> {
+  return request<{ packs: CreditPack[] }>('/credits/packs');
+}
+
+export function deductCredits(data: { amount: number; taskType: string; description: string }): Promise<{ balance: number }> {
+  return request<{ balance: number }>('/credits/deduct', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function purchaseCredits(packId: string): Promise<{ balance: number; pack: CreditPack }> {
+  return request<{ balance: number; pack: CreditPack }>('/credits/purchase', { method: 'POST', body: JSON.stringify({ packId }) });
 }
 
 export function reviewMarketplaceListing(id: string, data: { rating: number; comment?: string }): Promise<MarketplaceReview> {

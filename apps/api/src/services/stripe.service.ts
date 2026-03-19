@@ -10,6 +10,7 @@ import { config } from '../lib/config.js';
 const PLAN_PRICES: Record<string, string> = {
   pro: process.env.STRIPE_PRICE_PRO || 'price_pro_placeholder',
   team: process.env.STRIPE_PRICE_TEAM || 'price_team_placeholder',
+  enterprise: process.env.STRIPE_PRICE_ENTERPRISE || 'price_enterprise_placeholder',
 };
 
 // ── Stripe client (lazy, nullable) ──────────────────────

@@ -1,9 +1,14 @@
-// Sprint capacity service: fetches active sprint data from Jira/Linear,
-// checks capacity, and supports deferring tickets to backlog.
+// Sprint capacity service: fetches sprint data from GitHub Projects v2,
+// checks capacity, and supports deferring tickets.
 //
 // Capacity is measured in DECISION WEIGHT — the human judgment cost to
 // review, validate, and integrate work — not story points or dev-days.
 // See issue #145 for the rationale behind this model.
+
+import { githubService } from './github.service.js';
+import { eq, and } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { integrations } from '../db/schema.js';
 
 export interface SprintTicket {
   id: string;
@@ -28,6 +33,8 @@ export interface SprintCapacity {
   totalPoints: number;
   usedPoints: number;
   tickets: SprintTicket[];
+  /** Source of data: 'github' or 'mock' */
+  source: 'github' | 'mock';
 }
 
 export interface SprintCheckResult {
@@ -36,48 +43,189 @@ export interface SprintCheckResult {
   suggestions: string[];
 }
 
-// ── Mock data for when no integration is connected ──────────────────
+// ── Status mapping ──────────────────────────────────────────────────
+// GitHub Projects v2 status columns → normalized status values
 
-const MOCK_SPRINT: SprintCapacity = {
-  sprintName: 'Sprint 12',
-  totalWeight: 200,
-  usedWeight: 168,
-  capacityPercent: 84,
-  totalPoints: 40,
-  usedPoints: 34,
-  tickets: [
-    { id: 'MOCK-101', title: 'Implement user profile page', points: 5, decisionWeight: 28, reviewCycles: 2, status: 'in_progress' },
-    { id: 'MOCK-102', title: 'Fix login redirect bug', points: 3, decisionWeight: 12, reviewCycles: 1, status: 'done' },
-    { id: 'MOCK-103', title: 'Add export CSV feature', points: 8, decisionWeight: 42, reviewCycles: 3, status: 'todo' },
-    { id: 'MOCK-104', title: 'Update API rate limiting', points: 5, decisionWeight: 35, reviewCycles: 2, status: 'in_progress' },
-    { id: 'MOCK-105', title: 'Refactor notification service', points: 8, decisionWeight: 22, reviewCycles: 2, status: 'todo' },
-    { id: 'MOCK-106', title: 'Write integration tests', points: 5, decisionWeight: 29, reviewCycles: 2, status: 'in_progress' },
-  ],
-};
+function normalizeStatus(ghStatus: string | null): string {
+  if (!ghStatus) return 'todo';
+  const lower = ghStatus.toLowerCase();
+  if (lower === 'done' || lower === 'closed' || lower === 'merged' || lower === 'complete') return 'done';
+  if (lower === 'in progress' || lower === 'in review' || lower === 'active') return 'in_progress';
+  return 'todo'; // Todo, Backlog, New, Triage, etc.
+}
 
+// ── Decision weight heuristic ───────────────────────────────────────
+// Estimate decision weight from issue labels and title when no explicit
+// weight field is present. This is a rough heuristic — teams can
+// override by adding a custom "Weight" field to their GitHub Project.
+
+function estimateDecisionWeight(title: string, labels: string[]): number {
+  let weight = 15; // baseline
+
+  // Label-based adjustments
+  for (const label of labels) {
+    const l = label.toLowerCase();
+    if (l.includes('bug') || l.includes('fix')) weight += 5;
+    if (l.includes('feature') || l.includes('enhancement')) weight += 12;
+    if (l.includes('security') || l.includes('auth')) weight += 15;
+    if (l.includes('refactor') || l.includes('chore')) weight -= 5;
+    if (l.includes('docs') || l.includes('documentation')) weight -= 8;
+    if (l.includes('critical') || l.includes('urgent')) weight += 10;
+    if (l.includes('good first issue') || l.includes('easy')) weight -= 10;
+  }
+
+  // Title-based adjustments
+  const t = title.toLowerCase();
+  if (t.includes('migration') || t.includes('breaking')) weight += 15;
+  if (t.includes('api') || t.includes('endpoint')) weight += 5;
+  if (t.includes('test') || t.includes('e2e')) weight += 3;
+
+  return Math.max(5, Math.min(weight, 80)); // clamp 5–80
+}
+
+function estimateReviewCycles(weight: number): number {
+  if (weight >= 40) return 3;
+  if (weight >= 25) return 2;
+  return 1;
+}
+
+// ── Default team capacity ───────────────────────────────────────────
+
+const DEFAULT_TOTAL_WEIGHT = 200;
 const CAPACITY_THRESHOLD = 80;
 
-// In-memory set of deferred ticket keys (MVP — no persistence needed)
-const deferredTickets = new Set<string>();
+// In-memory set of deferred item IDs
+const deferredItems = new Set<string>();
+
+// Cache project data + context for status updates
+let cachedProjectContext: {
+  projectId: string;
+  statusFieldId: string;
+  doneOptionId: string | null;
+  backlogOptionId: string | null;
+} | null = null;
+
+// ── GitHub integration helpers ──────────────────────────────────────
+
+async function getGitHubIntegration(teamId: string) {
+  const [integration] = await db
+    .select()
+    .from(integrations)
+    .where(and(eq(integrations.teamId, teamId), eq(integrations.type, 'github')));
+
+  if (!integration) return null;
+
+  const config = integration.config as {
+    accessToken?: string;
+    selectedRepos?: Array<{ owner: string; name: string; fullName: string }>;
+  };
+
+  if (!config.accessToken) return null;
+
+  return { token: config.accessToken, repos: config.selectedRepos ?? [] };
+}
+
+async function fetchFromGitHub(teamId: string): Promise<SprintCapacity | null> {
+  const gh = await getGitHubIntegration(teamId);
+  if (!gh || gh.repos.length === 0) return null;
+
+  const owner = gh.repos[0].owner;
+
+  try {
+    // Find a project board for this owner
+    const projects = await githubService.listProjects(gh.token, owner);
+    if (projects.length === 0) return null;
+
+    // Use the most recently updated project
+    const project = projects[0];
+    const projectData = await githubService.getProjectItems(gh.token, project.id);
+
+    // Cache project context for status mutations
+    const doneOption = projectData.statusField?.options.find(
+      (o) => normalizeStatus(o.name) === 'done',
+    );
+    const backlogOption = projectData.statusField?.options.find(
+      (o) => o.name.toLowerCase().includes('backlog'),
+    );
+    cachedProjectContext = {
+      projectId: project.id,
+      statusFieldId: projectData.statusField?.id ?? '',
+      doneOptionId: doneOption?.id ?? null,
+      backlogOptionId: backlogOption?.id ?? null,
+    };
+
+    // Convert project items to sprint tickets
+    const tickets: SprintTicket[] = projectData.items
+      .filter((item) => !deferredItems.has(item.id))
+      .map((item) => {
+        const status = normalizeStatus(item.status);
+        const weight = estimateDecisionWeight(item.title, item.labels);
+        return {
+          id: `#${item.number}`,
+          title: item.title,
+          points: 1, // not used for gating
+          decisionWeight: weight,
+          reviewCycles: estimateReviewCycles(weight),
+          status,
+        };
+      });
+
+    const usedWeight = tickets.reduce((sum, t) => sum + t.decisionWeight, 0);
+    const usedPoints = tickets.reduce((sum, t) => sum + t.points, 0);
+
+    return {
+      sprintName: projectData.title,
+      totalWeight: DEFAULT_TOTAL_WEIGHT,
+      usedWeight,
+      capacityPercent: Math.round((usedWeight / DEFAULT_TOTAL_WEIGHT) * 100),
+      totalPoints: tickets.length,
+      usedPoints,
+      tickets,
+      source: 'github',
+    };
+  } catch (err) {
+    console.warn('[sprint] GitHub Projects fetch failed, falling back to mock:', err);
+    return null;
+  }
+}
+
+// ── Mock fallback ───────────────────────────────────────────────────
+
+function getMockSprint(): SprintCapacity {
+  const tickets: SprintTicket[] = [
+    { id: 'NYX-212', title: 'Add credit prices to marketplace listings', points: 5, decisionWeight: 28, reviewCycles: 2, status: 'in_progress' },
+    { id: 'NYX-198', title: 'Fix Clerk auth redirect on expired session', points: 3, decisionWeight: 12, reviewCycles: 1, status: 'done' },
+    { id: 'NYX-215', title: 'Drift detection for GitHub-linked specs', points: 8, decisionWeight: 42, reviewCycles: 3, status: 'todo' },
+    { id: 'NYX-203', title: 'Rate-limit AI spec analysis endpoint', points: 5, decisionWeight: 35, reviewCycles: 2, status: 'in_progress' },
+    { id: 'NYX-218', title: 'Bulk ticket generation from PRD', points: 8, decisionWeight: 22, reviewCycles: 2, status: 'todo' },
+    { id: 'NYX-207', title: 'E2E tests for document version history', points: 5, decisionWeight: 29, reviewCycles: 2, status: 'in_progress' },
+  ].filter((t) => !deferredItems.has(t.id));
+
+  const usedWeight = tickets.reduce((sum, t) => sum + t.decisionWeight, 0);
+  const usedPoints = tickets.reduce((sum, t) => sum + t.points, 0);
+
+  return {
+    sprintName: 'Sprint 12 (Demo)',
+    totalWeight: DEFAULT_TOTAL_WEIGHT,
+    usedWeight,
+    capacityPercent: Math.round((usedWeight / DEFAULT_TOTAL_WEIGHT) * 100),
+    totalPoints: 40,
+    usedPoints,
+    tickets,
+    source: 'mock',
+  };
+}
 
 // ── Service ─────────────────────────────────────────────────────────
 
 export const sprintService = {
   /**
    * Fetch current sprint capacity for a team.
-   * Uses Jira integration if available, otherwise returns mock data.
+   * Pulls from GitHub Projects v2 if connected, otherwise mock data.
    */
-  async getSprintCapacity(_teamId: string): Promise<SprintCapacity> {
-    // TODO: When Jira/Linear integration is connected, fetch real sprint data.
-    // For MVP, return mock data that simulates a near-capacity sprint.
-    const sprint = { ...MOCK_SPRINT };
-    // Filter out deferred tickets
-    sprint.tickets = sprint.tickets.filter((t) => !deferredTickets.has(t.id));
-    sprint.usedPoints = sprint.tickets.reduce((sum, t) => sum + t.points, 0);
-    sprint.usedWeight = sprint.tickets.reduce((sum, t) => sum + t.decisionWeight, 0);
-    // Capacity is gated on decision weight, not story points
-    sprint.capacityPercent = Math.round((sprint.usedWeight / sprint.totalWeight) * 100);
-    return sprint;
+  async getSprintCapacity(teamId: string): Promise<SprintCapacity> {
+    const ghData = await fetchFromGitHub(teamId);
+    return ghData ?? getMockSprint();
   },
 
   /**
@@ -98,7 +246,6 @@ export const sprintService = {
 
     const suggestions: string[] = [];
     if (overThreshold) {
-      // Suggest deferring non-started tickets with highest decision weight first
       const deferrable = capacity.tickets
         .filter((t) => t.status === 'todo')
         .sort((a, b) => b.decisionWeight - a.decisionWeight);
@@ -121,16 +268,45 @@ export const sprintService = {
 
   /**
    * Defer a ticket — marks it as moved to backlog.
-   * In MVP this is tracked in-memory; with real integration it would
-   * call the Jira/Linear API to move the ticket.
+   * With GitHub integration, moves the item to Backlog column if available.
    */
-  async deferTicket(_teamId: string, ticketKey: string): Promise<{ deferred: boolean }> {
-    deferredTickets.add(ticketKey);
+  async deferTicket(teamId: string, ticketKey: string): Promise<{ deferred: boolean }> {
+    deferredItems.add(ticketKey);
+
+    // Attempt to move in GitHub Projects if we have context
+    if (cachedProjectContext?.backlogOptionId && cachedProjectContext.statusFieldId) {
+      try {
+        const gh = await getGitHubIntegration(teamId);
+        if (gh) {
+          await githubService.updateProjectItemStatus(
+            gh.token,
+            cachedProjectContext.projectId,
+            ticketKey,
+            cachedProjectContext.statusFieldId,
+            cachedProjectContext.backlogOptionId,
+          );
+        }
+      } catch {
+        // Non-fatal — local defer still works
+      }
+    }
+
     return { deferred: true };
+  },
+
+  /**
+   * Schedule deferred tickets for the next sprint.
+   */
+  async scheduleForNextSprint(_teamId: string, ticketKeys: string[]): Promise<{ scheduled: string[] }> {
+    for (const key of ticketKeys) {
+      deferredItems.delete(key);
+    }
+    return { scheduled: ticketKeys };
   },
 
   /** Reset deferred state (useful for testing) */
   _resetDeferred(): void {
-    deferredTickets.clear();
+    deferredItems.clear();
+    cachedProjectContext = null;
   },
 };

@@ -4,10 +4,12 @@ import {
   processIntake,
   clarifyIntake,
   createDocument,
+  checkSprintCapacity,
   type IntakeSpec,
+  type SprintCheckResult,
 } from '../lib/api';
 
-type Phase = 'input' | 'processing' | 'result' | 'clarifying' | 'saved';
+type Phase = 'input' | 'processing' | 'result' | 'clarifying' | 'saved' | 'sprint-warning';
 
 export function IntakePage() {
   const currentTeamId = useAuthStore((s) => s.currentTeamId);
@@ -17,6 +19,7 @@ export function IntakePage() {
   const [error, setError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<string[]>([]);
   const [savedDocId, setSavedDocId] = useState<string | null>(null);
+  const [sprintCheck, setSprintCheck] = useState<SprintCheckResult | null>(null);
 
   const handleProcess = async () => {
     if (!rawInput.trim() || !currentTeamId) return;
@@ -67,12 +70,32 @@ export function IntakePage() {
 
     setError(null);
     try {
+      // Check sprint capacity before saving
+      const check = await checkSprintCapacity({ teamId: currentTeamId, newTicketWeight: 15 });
+      if (check.overThreshold) {
+        setSprintCheck(check);
+        setPhase('sprint-warning');
+        return;
+      }
+
+      await saveDocument();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save document');
+    }
+  };
+
+  const saveDocument = async () => {
+    if (!spec || !currentTeamId) return;
+
+    setError(null);
+    try {
       const doc = await createDocument({
         title: spec.title,
         content: spec.markdown,
         teamId: currentTeamId,
       });
       setSavedDocId(doc.id);
+      setSprintCheck(null);
       setPhase('saved');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save document');
@@ -212,7 +235,7 @@ export function IntakePage() {
       )}
 
       {/* Result Phase */}
-      {(phase === 'result' || phase === 'saved') && spec && (
+      {(phase === 'result' || phase === 'saved' || phase === 'sprint-warning') && spec && (
         <div data-testid="intake-result-section">
           <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
             {/* Header */}
@@ -342,6 +365,32 @@ export function IntakePage() {
               )}
             </div>
 
+            {/* Sprint capacity warning */}
+            {phase === 'sprint-warning' && sprintCheck && (
+              <div className="border-t border-amber-200 bg-amber-50 px-6 py-4">
+                <div className="flex items-start gap-3">
+                  <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">
+                      Sprint at {sprintCheck.capacity.capacityPercent}% capacity
+                    </p>
+                    <p className="mt-1 text-sm text-amber-700">
+                      Adding this document may overload your team's review bandwidth.
+                    </p>
+                    {sprintCheck.suggestions.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {sprintCheck.suggestions.slice(0, 3).map((s, i) => (
+                          <li key={i} className="text-xs text-amber-600">{s}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4">
               <button
@@ -360,6 +409,23 @@ export function IntakePage() {
                 >
                   View Document
                 </a>
+              ) : phase === 'sprint-warning' ? (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPhase('result')}
+                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Go Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveDocument}
+                    className="rounded-lg bg-amber-600 px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-amber-700"
+                  >
+                    Save Anyway
+                  </button>
+                </div>
               ) : (
                 <button
                   type="button"

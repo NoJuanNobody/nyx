@@ -314,6 +314,187 @@ export const githubService = {
     }
   },
 
+  // ── GitHub Projects v2 (GraphQL) ──────────────────────
+
+  async graphql(token: string, query: string, variables?: Record<string, unknown>): Promise<unknown> {
+    const res = await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: { ...headers(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) throw new GitHubTokenExpiredError('graphql');
+      throw new Error(`GitHub GraphQL failed: ${res.status} ${res.statusText}`);
+    }
+
+    const data = (await res.json()) as { data?: unknown; errors?: Array<{ message: string }> };
+    if (data.errors?.length) {
+      throw new Error(`GitHub GraphQL error: ${data.errors[0].message}`);
+    }
+
+    return data.data;
+  },
+
+  /**
+   * List Projects v2 for a repository owner (user or org).
+   */
+  async listProjects(token: string, owner: string): Promise<Array<{ id: string; title: string; number: number }>> {
+    // Try org first, fall back to user
+    for (const ownerType of ['organization', 'user'] as const) {
+      const query = `
+        query($login: String!) {
+          ${ownerType}(login: $login) {
+            projectsV2(first: 20, orderBy: { field: UPDATED_AT, direction: DESC }) {
+              nodes { id title number }
+            }
+          }
+        }
+      `;
+
+      try {
+        const data = (await this.graphql(token, query, { login: owner })) as Record<string, { projectsV2: { nodes: Array<{ id: string; title: string; number: number }> } }>;
+        const result = data[ownerType];
+        if (result?.projectsV2?.nodes) {
+          return result.projectsV2.nodes;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    return [];
+  },
+
+  /**
+   * Fetch items from a GitHub Project v2 board with their field values.
+   * Returns issues/PRs with status, labels, and custom fields.
+   */
+  async getProjectItems(token: string, projectId: string): Promise<{
+    title: string;
+    items: Array<{
+      id: string;
+      contentId: string;
+      title: string;
+      number: number;
+      status: string | null;
+      labels: string[];
+      url: string;
+    }>;
+    statusField: { id: string; options: Array<{ id: string; name: string }> } | null;
+  }> {
+    const query = `
+      query($projectId: ID!) {
+        node(id: $projectId) {
+          ... on ProjectV2 {
+            title
+            fields(first: 30) {
+              nodes {
+                ... on ProjectV2SingleSelectField {
+                  id
+                  name
+                  options { id name }
+                }
+              }
+            }
+            items(first: 100) {
+              nodes {
+                id
+                fieldValues(first: 20) {
+                  nodes {
+                    ... on ProjectV2ItemFieldSingleSelectValue {
+                      name
+                      field { ... on ProjectV2SingleSelectField { name } }
+                    }
+                  }
+                }
+                content {
+                  ... on Issue {
+                    id title number url
+                    labels(first: 10) { nodes { name } }
+                  }
+                  ... on PullRequest {
+                    id title number url
+                    labels(first: 10) { nodes { name } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const data = (await this.graphql(token, query, { projectId })) as {
+      node: {
+        title: string;
+        fields: { nodes: Array<{ id?: string; name?: string; options?: Array<{ id: string; name: string }> }> };
+        items: { nodes: Array<{
+          id: string;
+          fieldValues: { nodes: Array<{ name?: string; field?: { name: string } }> };
+          content: { id: string; title: string; number: number; url: string; labels?: { nodes: Array<{ name: string }> } } | null;
+        }> };
+      };
+    };
+
+    const project = data.node;
+    const statusField = project.fields.nodes.find((f) => f.name === 'Status' && f.options);
+
+    const items = project.items.nodes
+      .filter((item) => item.content != null)
+      .map((item) => {
+        const statusValue = item.fieldValues.nodes.find((fv) => fv.field?.name === 'Status');
+        return {
+          id: item.id,
+          contentId: item.content!.id,
+          title: item.content!.title,
+          number: item.content!.number,
+          status: statusValue?.name ?? null,
+          labels: item.content!.labels?.nodes.map((l) => l.name) ?? [],
+          url: item.content!.url,
+        };
+      });
+
+    return {
+      title: project.title,
+      items,
+      statusField: statusField?.id && statusField?.options
+        ? { id: statusField.id, options: statusField.options }
+        : null,
+    };
+  },
+
+  /**
+   * Move a project item to a different status column.
+   */
+  async updateProjectItemStatus(
+    token: string,
+    projectId: string,
+    itemId: string,
+    statusFieldId: string,
+    optionId: string,
+  ): Promise<void> {
+    const query = `
+      mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+        updateProjectV2ItemFieldValue(input: {
+          projectId: $projectId
+          itemId: $itemId
+          fieldId: $fieldId
+          value: $value
+        }) {
+          projectV2Item { id }
+        }
+      }
+    `;
+
+    await this.graphql(token, query, {
+      projectId,
+      itemId,
+      fieldId: statusFieldId,
+      value: { singleSelectOptionId: optionId },
+    });
+  },
+
   handlePushWebhook(payload: unknown): PushWebhookResult {
     const p = payload as {
       ref?: string;
