@@ -1,5 +1,6 @@
 import { Command } from 'commander';
-import { apiRequest } from '../lib/api.js';
+import { writeFileSync } from 'node:fs';
+import { apiRequest, getBaseUrl } from '../lib/api.js';
 
 interface PodcastScriptResponse {
   id: string;
@@ -98,6 +99,42 @@ export function registerPodcastCommand(program: Command): void {
         );
 
         console.log(formatScriptOutput(result, opts.format));
+      } catch (err) {
+        console.error(
+          'Error:',
+          err instanceof Error ? err.message : String(err),
+        );
+        process.exit(1);
+      }
+    });
+
+  podcast
+    .command('audio')
+    .description('Generate audio MP3 from a podcast script')
+    .argument('<script-id>', 'Podcast script ID')
+    .option('--output <file>', 'Output file path', 'podcast.mp3')
+    .action(async (scriptId: string, opts: { output: string }) => {
+      try {
+        console.log('Generating audio... this may take a minute.');
+        const baseUrl = getBaseUrl();
+        const url = `${baseUrl}/api/podcast/${encodeURIComponent(scriptId)}/audio`;
+
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        const apiKey = process.env.NYX_API_KEY;
+        if (apiKey) {
+          headers['Authorization'] = `Bearer ${apiKey}`;
+        }
+
+        const res = await fetch(url, { method: 'POST', headers });
+
+        if (!res.ok) {
+          const body = await res.text();
+          throw new Error(`API request failed (${res.status}): ${body}`);
+        }
+
+        const arrayBuffer = await res.arrayBuffer();
+        writeFileSync(opts.output, Buffer.from(arrayBuffer));
+        console.log(`Audio saved to ${opts.output} (${(arrayBuffer.byteLength / 1024).toFixed(0)} KB)`);
       } catch (err) {
         console.error(
           'Error:',
