@@ -7,6 +7,13 @@ import {
   CREDIT_COSTS,
 } from '../services/credits.service.js';
 
+export const CREDIT_PACKS = [
+  { id: 'starter', name: 'Starter', credits: 50, priceUsd: 5, popular: false },
+  { id: 'growth', name: 'Growth', credits: 200, priceUsd: 15, popular: true },
+  { id: 'pro', name: 'Pro', credits: 500, priceUsd: 30, popular: false },
+  { id: 'enterprise', name: 'Enterprise', credits: 2000, priceUsd: 100, popular: false },
+];
+
 export const creditRoutes: FastifyPluginAsync = async (fastify) => {
   // ── GET /balance — returns current credit balance ───
   fastify.get('/balance', async (request) => {
@@ -56,7 +63,7 @@ export const creditRoutes: FastifyPluginAsync = async (fastify) => {
     return result;
   });
 
-  // ── POST /purchase — add credits to user account ────
+  // ── POST /purchase — purchase credits (by pack or amount) ──
   fastify.post('/purchase', async (request, reply) => {
     const userId = request.user?.id;
     if (!userId) {
@@ -64,19 +71,36 @@ export const creditRoutes: FastifyPluginAsync = async (fastify) => {
       return { error: 'Authentication required' };
     }
 
-    const { amount } = request.body as { amount?: number };
-    if (!amount || amount <= 0 || !Number.isInteger(amount)) {
-      reply.code(400);
-      return { error: 'amount must be a positive integer' };
+    const { packId, amount } = request.body as { packId?: string; amount?: number };
+
+    // Pack-based purchase
+    if (packId) {
+      const pack = CREDIT_PACKS.find((p) => p.id === packId);
+      if (!pack) {
+        reply.code(400);
+        return { error: 'Invalid credit pack' };
+      }
+      const result = await addCredits(userId, pack.credits, `Purchased ${pack.name} pack (${pack.credits} credits)`);
+      return { ...result, pack };
     }
 
-    // In production, this would verify a Stripe payment first
-    const { balance } = await addCredits(userId, amount, `Purchased ${amount} credits`);
-    return { balance, added: amount };
+    // Amount-based purchase
+    if (amount && amount > 0 && Number.isInteger(amount)) {
+      const { balance } = await addCredits(userId, amount, `Purchased ${amount} credits`);
+      return { balance, added: amount };
+    }
+
+    reply.code(400);
+    return { error: 'Provide either packId or a positive integer amount' };
   });
 
   // ── GET /costs — returns credit cost configuration ──
   fastify.get('/costs', async () => {
     return { costs: CREDIT_COSTS };
+  });
+
+  // ── GET /packs — returns available credit packs ──
+  fastify.get('/packs', async () => {
+    return { packs: CREDIT_PACKS };
   });
 };

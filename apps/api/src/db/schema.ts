@@ -528,6 +528,7 @@ export const marketplaceListings = pgTable('marketplace_listings', {
   content: text('content').notNull(),
   priceType: listingPriceTypeEnum('price_type').notNull().default('free'),
   priceAmountCents: integer('price_amount_cents'),
+  creditPrice: integer('credit_price'),
   category: text('category'),
   tags: jsonb('tags').notNull().default([]),
   stage: text('stage'),

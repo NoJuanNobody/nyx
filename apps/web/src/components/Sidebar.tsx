@@ -5,7 +5,6 @@ import { useUIStore } from '../stores/ui.store';
 import { useAuthStore } from '../stores/auth.store';
 import { FileTree } from './FileTree';
 import { FeedbackModal } from './FeedbackModal';
-import { getLifecycle } from '../lib/lifecycles';
 import { getCreditsBalance } from '../lib/api';
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -178,15 +177,6 @@ function CreditBalance({ collapsed }: { collapsed: boolean }) {
 
 const primaryNavItems = [
   {
-    to: '/lifecycle',
-    label: 'Lifecycle',
-    icon: (
-      <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-      </svg>
-    ),
-  },
-  {
     to: '/intake',
     label: 'Intake',
     icon: (
@@ -261,10 +251,9 @@ const primaryNavItems = [
 ];
 
 export function Sidebar() {
-  const { sidebarOpen, setSidebarOpen, sidebarCollapsed, toggleSidebarCollapsed, activeLifecycleSlug } =
+  const { sidebarOpen, setSidebarOpen, sidebarCollapsed, toggleSidebarCollapsed } =
     useUIStore();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const activeLifecycle = getLifecycle(activeLifecycleSlug);
 
   const navLinkClass = (isActive: boolean, collapsed: boolean) =>
     `flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors ${collapsed ? 'justify-center px-2' : ''} ${
@@ -347,10 +336,7 @@ export function Sidebar() {
         {/* Primary nav */}
         <div className="border-t border-slate-200">
           {primaryNavItems.map((item) => {
-            const displayLabel =
-              item.to === '/lifecycle'
-                ? `About ${activeLifecycle.label}`
-                : item.label;
+            const displayLabel = item.label;
             return (
               <NavLink
                 key={item.to}

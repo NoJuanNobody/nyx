@@ -11,12 +11,19 @@ import {
   fetchProjectShowcases,
   createProjectShowcase,
   fetchLifecycles,
+  fetchCreditCosts,
+  fetchCreditBalance,
+  fetchCreditPacks,
+  purchaseCreditPack,
+  deductCredits,
+  checkSprintCapacity,
   getCreditsBalance,
   purchaseMarketplaceListing,
   type MarketplaceListing,
   type FeatureRequest,
   type ProjectShowcase,
   type LifecycleResponse,
+  type CreditPack,
 } from '../lib/api';
 import { useUIStore } from '../stores/ui.store';
 
@@ -85,7 +92,7 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-function PriceBadge({ priceType, priceAmountCents }: { priceType: string; priceAmountCents: number | null }) {
+function PriceBadge({ priceType, priceAmountCents, creditPrice }: { priceType: string; priceAmountCents: number | null; creditPrice: number | null }) {
   if (priceType === 'free') {
     return (
       <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
@@ -93,10 +100,10 @@ function PriceBadge({ priceType, priceAmountCents }: { priceType: string; priceA
       </span>
     );
   }
-  const credits = priceAmountCents ?? 0;
+  const credits = creditPrice ?? priceAmountCents ?? 0;
   return (
     <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
-      {credits} credits
+      {credits} {credits === 1 ? 'credit' : 'credits'}
     </span>
   );
 }
@@ -508,6 +515,8 @@ function UseTemplateModal({
 }) {
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [path, setPath] = useState('/');
+  const [sprintWarning, setSprintWarning] = useState<{ percent: number; suggestions: string[] } | null>(null);
+  const [checking, setChecking] = useState(false);
 
   const { data: teams = [], isLoading: teamsLoading } = useQuery({
     queryKey: ['teams'],
@@ -530,6 +539,31 @@ function UseTemplateModal({
       onClose();
     },
   });
+
+  const handleCreate = async () => {
+    if (!selectedTeamId) return;
+
+    // If already warned, proceed directly
+    if (sprintWarning) {
+      mutation.mutate();
+      return;
+    }
+
+    setChecking(true);
+    try {
+      const check = await checkSprintCapacity({ teamId: selectedTeamId, newTicketWeight: 15 });
+      if (check.overThreshold) {
+        setSprintWarning({ percent: check.capacity.capacityPercent, suggestions: check.suggestions });
+      } else {
+        mutation.mutate();
+      }
+    } catch {
+      // If capacity check fails, don't block — just create
+      mutation.mutate();
+    } finally {
+      setChecking(false);
+    }
+  };
 
   return (
     <div
@@ -583,6 +617,24 @@ function UseTemplateModal({
           </div>
         </div>
 
+        {sprintWarning && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="text-sm font-medium text-amber-800">
+              Sprint at {sprintWarning.percent}% capacity
+            </p>
+            <p className="mt-1 text-xs text-amber-700">
+              Adding this may overload your team's review bandwidth.
+            </p>
+            {sprintWarning.suggestions.length > 0 && (
+              <ul className="mt-2 space-y-0.5">
+                {sprintWarning.suggestions.slice(0, 2).map((s, i) => (
+                  <li key={i} className="text-[10px] text-amber-600">{s}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
         {mutation.isError && (
           <p className="mt-3 text-xs text-red-600">
             {mutation.error instanceof Error
@@ -605,12 +657,14 @@ function UseTemplateModal({
           </button>
           <button
             type="button"
-            onClick={() => mutation.mutate()}
-            disabled={!selectedTeamId || mutation.isPending}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            onClick={handleCreate}
+            disabled={!selectedTeamId || mutation.isPending || checking}
+            className={`rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm disabled:opacity-50 transition-colors ${
+              sprintWarning ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'
+            }`}
             data-testid="confirm-use-template"
           >
-            {mutation.isPending ? 'Creating...' : 'Create Document'}
+            {checking ? 'Checking...' : mutation.isPending ? 'Creating...' : sprintWarning ? 'Create Anyway' : 'Create Document'}
           </button>
         </div>
       </div>
@@ -746,7 +800,7 @@ function ListingCard({
 
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-sm font-semibold text-slate-900 leading-snug line-clamp-1">{listing.title}</h3>
-        <PriceBadge priceType={listing.priceType} priceAmountCents={listing.priceAmountCents} />
+        <PriceBadge priceType={listing.priceType} priceAmountCents={listing.priceAmountCents} creditPrice={listing.creditPrice} />
       </div>
       <p className="mt-2 text-xs text-slate-500 leading-relaxed line-clamp-2">{listing.description}</p>
       <div className="mt-3 flex flex-wrap gap-1.5">
@@ -1104,10 +1158,24 @@ function ShowcaseTab() {
 
 // ── Pipeline Card ────────────────────────────────────────────────────
 
-function PipelineCard({ lifecycle }: { lifecycle: LifecycleResponse }) {
+function PipelineCard({ lifecycle, totalCreditCost }: { lifecycle: LifecycleResponse; totalCreditCost: number | null }) {
   const [expanded, setExpanded] = useState(false);
   const { activeLifecycleSlug, setActiveLifecycleSlug } = useUIStore();
   const isActive = activeLifecycleSlug === lifecycle.slug;
+  const queryClient = useQueryClient();
+
+  const deductMutation = useMutation({
+    mutationFn: () =>
+      deductCredits({
+        amount: totalCreditCost ?? 0,
+        taskType: 'pipeline_activation',
+        description: `Activated pipeline: ${lifecycle.label}`,
+      }),
+    onSuccess: () => {
+      setActiveLifecycleSlug(lifecycle.slug);
+      queryClient.invalidateQueries({ queryKey: ['credit-balance'] });
+    },
+  });
 
   return (
     <div className={`rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow ${isActive ? 'border-blue-400 ring-1 ring-blue-200' : 'border-slate-200'}`}>
@@ -1125,6 +1193,11 @@ function PipelineCard({ lifecycle }: { lifecycle: LifecycleResponse }) {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            {totalCreditCost != null && totalCreditCost > 0 && (
+              <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                {totalCreditCost} credits
+              </span>
+            )}
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
               {lifecycle.stages.length} stages
             </span>
@@ -1179,16 +1252,28 @@ function PipelineCard({ lifecycle }: { lifecycle: LifecycleResponse }) {
             Active Pipeline
           </span>
         ) : (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setActiveLifecycleSlug(lifecycle.slug);
-            }}
-            className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
-          >
-            Use Pipeline
-          </button>
+          <>
+            <button
+              type="button"
+              disabled={deductMutation.isPending}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (totalCreditCost && totalCreditCost > 0) {
+                  deductMutation.mutate();
+                } else {
+                  setActiveLifecycleSlug(lifecycle.slug);
+                }
+              }}
+              className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {deductMutation.isPending ? 'Activating...' : `Use Pipeline${totalCreditCost ? ` · ${totalCreditCost} cr` : ''}`}
+            </button>
+            {deductMutation.isError && (
+              <span className="text-[10px] font-medium text-red-600">
+                {deductMutation.error instanceof Error ? deductMutation.error.message : 'Insufficient credits'}
+              </span>
+            )}
+          </>
         )}
       </div>
 
@@ -1251,6 +1336,16 @@ function PipelinesTab() {
     queryFn: fetchLifecycles,
   });
 
+  const { data: creditCostsData } = useQuery({
+    queryKey: ['credit-costs'],
+    queryFn: fetchCreditCosts,
+  });
+
+  const creditCosts = creditCostsData?.costs ?? {};
+  const totalCreditCost = Object.keys(creditCosts).length > 0
+    ? Object.values(creditCosts).reduce((sum, c) => sum + c, 0)
+    : null;
+
   const filtered = search
     ? lifecycles.filter(
         (lc) =>
@@ -1283,10 +1378,109 @@ function PipelinesTab() {
       ) : (
         <div className="space-y-3">
           {filtered.map((lc) => (
-            <PipelineCard key={lc.id} lifecycle={lc} />
+            <PipelineCard key={lc.id} lifecycle={lc} totalCreditCost={totalCreditCost} />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Buy Credits Modal ────────────────────────────────────────────────
+
+function BuyCreditsModal({ onClose }: { onClose: () => void }) {
+  const queryClient = useQueryClient();
+
+  const { data: packsData, isLoading } = useQuery({
+    queryKey: ['credit-packs'],
+    queryFn: fetchCreditPacks,
+  });
+
+  const packs = packsData?.packs ?? [];
+
+  const mutation = useMutation({
+    mutationFn: (packId: string) => purchaseCreditPack(packId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['credit-balance'] });
+      queryClient.invalidateQueries({ queryKey: ['credit-transactions'] });
+    },
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div
+        className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="text-center mb-8">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50">
+            <svg className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Buy Credits</h2>
+          <p className="mt-1 text-sm text-slate-500">Power your AI workflows with credits</p>
+        </div>
+
+        {isLoading ? (
+          <Spinner />
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {packs.map((pack) => (
+              <button
+                key={pack.id}
+                type="button"
+                onClick={() => mutation.mutate(pack.id)}
+                disabled={mutation.isPending}
+                className={`relative flex flex-col items-center rounded-xl border p-5 text-center transition-all hover:scale-[1.02] hover:shadow-md ${
+                  pack.popular
+                    ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-200'
+                    : 'border-slate-200 bg-slate-50 hover:border-blue-300'
+                } ${mutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}
+              >
+                {pack.popular && (
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-0.5 text-[10px] font-bold text-white uppercase tracking-wide">
+                    Best Value
+                  </span>
+                )}
+                <span className="text-2xl font-bold text-slate-900">{pack.credits}</span>
+                <span className="mt-0.5 text-xs font-medium text-slate-500">credits</span>
+                <div className="mt-3 w-full rounded-lg bg-white px-3 py-2 border border-slate-200">
+                  <span className="text-lg font-bold text-green-700">${pack.priceUsd}</span>
+                  <span className="ml-0.5 text-[10px] font-medium text-slate-400">USD</span>
+                </div>
+                <span className="mt-2 text-[10px] font-medium text-slate-400">
+                  ${(pack.priceUsd / pack.credits).toFixed(2)}/credit
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {mutation.isSuccess && (
+          <div className="mt-5 rounded-lg border border-green-200 bg-green-50 p-3.5 text-center">
+            <p className="text-sm font-semibold text-green-700">
+              {mutation.data.pack.credits} credits added! New balance: {mutation.data.balance}
+            </p>
+          </div>
+        )}
+
+        {mutation.isError && (
+          <p className="mt-4 text-center text-xs font-medium text-red-600">
+            {mutation.error instanceof Error ? mutation.error.message : 'Purchase failed. Please try again.'}
+          </p>
+        )}
+
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-5 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+          >
+            {mutation.isSuccess ? 'Done' : 'Cancel'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1295,15 +1489,45 @@ function PipelinesTab() {
 
 export function Marketplace() {
   const [activeTab, setActiveTab] = useState<MarketplaceTab>('pipelines');
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
+
+  const { data: balanceData } = useQuery({
+    queryKey: ['credit-balance'],
+    queryFn: fetchCreditBalance,
+  });
+
+  const balance = balanceData?.balance ?? 0;
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Community Marketplace</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Discover and share templates, workflows, prompts, and projects
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Community Marketplace</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Discover and share templates, workflows, prompts, and projects
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5">
+            <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-lg font-bold text-amber-800">{balance.toLocaleString()}</span>
+              <span className="text-xs font-medium text-amber-600">credits</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowBuyCredits(true)}
+            className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
+          >
+            Buy Credits
+          </button>
+        </div>
       </div>
+
+      {showBuyCredits && <BuyCreditsModal onClose={() => setShowBuyCredits(false)} />}
 
       {/* Tab bar */}
       <div className="mb-6 border-b border-slate-200">

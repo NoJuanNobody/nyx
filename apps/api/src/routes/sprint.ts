@@ -44,4 +44,19 @@ export const sprintRoutes: FastifyPluginAsync = async (app) => {
 
     return sprintService.deferTicket(teamId, ticketKey);
   });
+
+  // POST /api/sprint/schedule-next — move deferred tickets to next sprint
+  app.post('/sprint/schedule-next', async (request, reply) => {
+    const { teamId, ticketKeys } = request.body as {
+      teamId?: string;
+      ticketKeys?: string[];
+    };
+
+    if (!teamId || !ticketKeys || ticketKeys.length === 0) {
+      reply.code(400);
+      return { error: 'teamId and ticketKeys are required' };
+    }
+
+    return sprintService.scheduleForNextSprint(teamId, ticketKeys);
+  });
 };

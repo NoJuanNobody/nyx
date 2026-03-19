@@ -8,7 +8,6 @@ import { Settings } from './pages/Settings';
 import { Landing } from './pages/Landing';
 import { Board } from './pages/Board';
 import { Repositories } from './pages/Repositories';
-import { LifecycleExplorerPage } from './pages/LifecycleExplorerPage';
 import { IntakePage } from './pages/IntakePage';
 import { SprintPage } from './pages/SprintPage';
 import { TracePage } from './pages/TracePage';
@@ -52,7 +51,6 @@ export function App() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/board" element={<Board />} />
             <Route path="/repositories" element={<Repositories />} />
-            <Route path="/lifecycle" element={<LifecycleExplorerPage />} />
             <Route path="/intake" element={<IntakePage />} />
             <Route path="/sprint" element={<SprintPage />} />
             <Route path="/marketplace" element={<Marketplace />} />

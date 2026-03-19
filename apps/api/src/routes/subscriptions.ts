@@ -131,8 +131,8 @@ export const subscriptionRoutes: FastifyPluginAsync = async (fastify) => {
       throw { statusCode: 400, message: 'plan, teamId, successUrl, and cancelUrl are required' };
     }
 
-    if (plan === 'free' || plan === 'enterprise') {
-      throw { statusCode: 400, message: `Cannot checkout for the ${plan} plan` };
+    if (plan === 'free') {
+      throw { statusCode: 400, message: 'Cannot checkout for the free plan' };
     }
 
     const priceId = getPriceId(plan);

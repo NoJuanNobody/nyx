@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../lib/config.js';
 
 const MODEL = 'claude-sonnet-4-20250514';
+const MODEL_FAST = 'claude-haiku-4-5-20251001';
 
 const client = config.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: config.ANTHROPIC_API_KEY })
@@ -179,7 +180,7 @@ export const aiService = {
     const ai = requireClient();
 
     const response = await ai.messages.create({
-      model: MODEL,
+      model: MODEL_FAST,
       max_tokens: 4096,
       system:
         'You are a technical documentation writer. Given a prompt, generate a well-structured document with a clear title and markdown content. Respond ONLY with valid JSON in this exact format: {"title": "<document title>", "content": "<full markdown content>"}',
@@ -225,7 +226,7 @@ export const aiService = {
     });
 
     const response = await ai.messages.create({
-      model: MODEL,
+      model: MODEL_FAST,
       max_tokens: 4096,
       system:
         'You are an expert document editor. Given a document and an editing instruction, return ONLY the updated markdown content. Do not wrap the output in code fences. Do not include any explanations — just the raw updated markdown.',
@@ -805,7 +806,7 @@ Respond ONLY with valid JSON in this exact format: {"score": <number>, "suggesti
       `Based on this ${fromStage} document, generate appropriate content for a ${toStage} stage document.`;
 
     const response = await ai.messages.create({
-      model: MODEL,
+      model: MODEL_FAST,
       max_tokens: 4096,
       system:
         `You are a technical documentation expert helping teams progress through their product lifecycle. ${seedPrompt} Write the output as a well-structured markdown document. Start with a # Title heading on the first line.`,

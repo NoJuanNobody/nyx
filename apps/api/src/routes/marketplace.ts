@@ -31,7 +31,7 @@ export const marketplaceRoutes: FastifyPluginAsync = async (app) => {
   // POST / — create listing (auth required)
   app.post('/', async (request) => {
     const userId = request.user.id;
-    const body = request.body as { type: string; title: string; description: string; content: string; priceType?: string; priceAmountCents?: number; category?: string; tags?: string[]; stage?: string; teamId?: string };
+    const body = request.body as { type: string; title: string; description: string; content: string; priceType?: string; priceAmountCents?: number; creditPrice?: number; category?: string; tags?: string[]; stage?: string; teamId?: string };
     const [listing] = await db.insert(marketplaceListings).values({
       type: body.type as any,
       title: body.title,
@@ -39,6 +39,7 @@ export const marketplaceRoutes: FastifyPluginAsync = async (app) => {
       content: body.content,
       priceType: (body.priceType || 'free') as any,
       priceAmountCents: body.priceAmountCents,
+      creditPrice: body.creditPrice,
       category: body.category,
       tags: body.tags || [],
       stage: body.stage as any,
