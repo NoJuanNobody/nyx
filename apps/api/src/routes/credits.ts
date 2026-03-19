@@ -63,7 +63,7 @@ export const creditRoutes: FastifyPluginAsync = async (fastify) => {
     return result;
   });
 
-  // ── POST /purchase — add credits to user account ────
+  // ── POST /purchase — purchase credits (by pack or amount) ──
   fastify.post('/purchase', async (request, reply) => {
     const userId = request.user?.id;
     if (!userId) {
@@ -71,15 +71,27 @@ export const creditRoutes: FastifyPluginAsync = async (fastify) => {
       return { error: 'Authentication required' };
     }
 
-    const { amount } = request.body as { amount?: number };
-    if (!amount || amount <= 0 || !Number.isInteger(amount)) {
-      reply.code(400);
-      return { error: 'amount must be a positive integer' };
+    const { packId, amount } = request.body as { packId?: string; amount?: number };
+
+    // Pack-based purchase
+    if (packId) {
+      const pack = CREDIT_PACKS.find((p) => p.id === packId);
+      if (!pack) {
+        reply.code(400);
+        return { error: 'Invalid credit pack' };
+      }
+      const result = await addCredits(userId, pack.credits, `Purchased ${pack.name} pack (${pack.credits} credits)`);
+      return { ...result, pack };
     }
 
-    // In production, this would verify a Stripe payment first
-    const { balance } = await addCredits(userId, amount, `Purchased ${amount} credits`);
-    return { balance, added: amount };
+    // Amount-based purchase
+    if (amount && amount > 0 && Number.isInteger(amount)) {
+      const { balance } = await addCredits(userId, amount, `Purchased ${amount} credits`);
+      return { balance, added: amount };
+    }
+
+    reply.code(400);
+    return { error: 'Provide either packId or a positive integer amount' };
   });
 
   // ── GET /costs — returns credit cost configuration ──
@@ -90,31 +102,5 @@ export const creditRoutes: FastifyPluginAsync = async (fastify) => {
   // ── GET /packs — returns available credit packs ──
   fastify.get('/packs', async () => {
     return { packs: CREDIT_PACKS };
-  });
-
-  // ── POST /purchase — purchase a credit pack ──
-  fastify.post<{
-    Body: { packId: string };
-  }>('/purchase', async (request) => {
-    const userId = request.user?.id;
-    if (!userId) {
-      throw { statusCode: 401, message: 'Authentication required' };
-    }
-
-    const { packId } = request.body;
-    const pack = CREDIT_PACKS.find((p) => p.id === packId);
-    if (!pack) {
-      throw { statusCode: 400, message: 'Invalid credit pack' };
-    }
-
-    // In production this would create a Stripe checkout session.
-    // For now, directly add credits (simulating a successful payment).
-    const result = await addCredits(
-      userId,
-      pack.credits,
-      `Purchased ${pack.name} pack (${pack.credits} credits)`,
-    );
-
-    return { ...result, pack };
   });
 };
