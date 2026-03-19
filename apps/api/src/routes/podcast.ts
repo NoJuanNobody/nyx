@@ -3,6 +3,7 @@ import { db } from '../db/index.js';
 import { documents } from '../db/schema.js';
 import { inArray } from 'drizzle-orm';
 import { aiService } from '../services/ai.service.js';
+import { ttsService } from '../services/tts.service.js';
 
 export interface PodcastScript {
   id: string;
@@ -67,6 +68,31 @@ export const podcastRoutes: FastifyPluginAsync = async (app) => {
 
     podcastScripts.push(script);
     return script;
+  });
+
+  // POST /api/podcast/:id/audio — generate audio for a podcast script
+  app.post('/podcast/:id/audio', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const script = podcastScripts.find((s) => s.id === id);
+    if (!script) {
+      reply.code(404);
+      return { error: 'Podcast script not found' };
+    }
+
+    if (!script.script || script.script.length === 0) {
+      reply.code(400);
+      return { error: 'Podcast script has no segments' };
+    }
+
+    const audioBuffer = await ttsService.generatePodcastAudio(script.script);
+
+    reply
+      .header('Content-Type', 'audio/mpeg')
+      .header('Content-Disposition', `attachment; filename="${script.id}.mp3"`)
+      .header('Content-Length', audioBuffer.length);
+
+    return reply.send(audioBuffer);
   });
 
   // GET /api/podcast/scripts?teamId=X — list generated podcast scripts
