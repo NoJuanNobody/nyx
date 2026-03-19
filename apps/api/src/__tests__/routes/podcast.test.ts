@@ -1,14 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
 
-const { mockAiService } = vi.hoisted(() => ({
+const { mockAiService, mockDb } = vi.hoisted(() => ({
   mockAiService: {
     generatePodcastScript: vi.fn(),
+  },
+  mockDb: {
+    select: vi.fn(),
   },
 }));
 
 vi.mock('../../services/ai.service.js', () => ({
   aiService: mockAiService,
+}));
+
+vi.mock('../../db/index.js', () => ({
+  db: mockDb,
 }));
 
 import { podcastRoutes, _resetPodcastScripts } from '../../routes/podcast.js';
@@ -46,6 +53,14 @@ describe('Podcast Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     _resetPodcastScripts();
+
+    // Default: db.select().from().where() returns matching docs
+    const mockWhere = vi.fn().mockResolvedValue([
+      { id: 'doc-1', title: 'Doc One', content: 'Content one' },
+      { id: 'doc-2', title: 'Doc Two', content: 'Content two' },
+    ]);
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    mockDb.select.mockReturnValue({ from: mockFrom });
   });
 
   describe('POST /api/podcast/generate', () => {
@@ -73,13 +88,19 @@ describe('Podcast Routes', () => {
       expect(body.teamId).toBe('team-1');
       expect(body.documentIds).toEqual(['doc-1', 'doc-2']);
       expect(mockAiService.generatePodcastScript).toHaveBeenCalledWith(
-        'Documents: doc-1, doc-2',
+        '# Doc One\n\nContent one\n\n---\n\n# Doc Two\n\nContent two',
         'My Podcast',
       );
     });
 
     it('works without optional title', async () => {
       mockAiService.generatePodcastScript.mockResolvedValue(mockScriptResult);
+
+      const mockWhere = vi.fn().mockResolvedValue([
+        { id: 'doc-1', title: 'Doc One', content: 'Content one' },
+      ]);
+      const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+      mockDb.select.mockReturnValue({ from: mockFrom });
 
       const app = await buildApp();
       const res = await app.inject({
@@ -93,7 +114,7 @@ describe('Podcast Routes', () => {
 
       expect(res.statusCode).toBe(200);
       expect(mockAiService.generatePodcastScript).toHaveBeenCalledWith(
-        'Documents: doc-1',
+        '# Doc One\n\nContent one',
         undefined,
       );
     });
@@ -141,6 +162,12 @@ describe('Podcast Routes', () => {
   describe('GET /api/podcast/scripts', () => {
     it('returns scripts filtered by teamId', async () => {
       mockAiService.generatePodcastScript.mockResolvedValue(mockScriptResult);
+
+      const mockWhere = vi.fn().mockResolvedValue([
+        { id: 'doc-1', title: 'Doc One', content: 'Content one' },
+      ]);
+      const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+      mockDb.select.mockReturnValue({ from: mockFrom });
 
       const app = await buildApp();
 
