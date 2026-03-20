@@ -42,6 +42,15 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     if (res.status === 401 && body.includes('github_token_expired')) {
       throw new GitHubTokenExpiredError('Your GitHub connection has expired. Please reconnect.');
     }
+    // Detect expired/invalid auth session — redirect to sign-in instead of looping
+    if (res.status === 401 || res.status === 403) {
+      const isAuthError = body.includes('Unauthorized') || body.includes('session') || body.includes('token');
+      if (isAuthError && typeof window !== 'undefined') {
+        console.error('Auth session expired, redirecting to sign-in');
+        window.location.href = '/sign-in';
+        throw new Error('Session expired. Redirecting to sign-in...');
+      }
+    }
     throw new Error(`API ${res.status}: ${body || res.statusText}`);
   }
 

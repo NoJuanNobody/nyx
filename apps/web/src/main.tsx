@@ -12,7 +12,7 @@ const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefine
 function Providers({ children }: { children: React.ReactNode }) {
   if (clerkKey) {
     return (
-      <ClerkProvider publishableKey={clerkKey}>
+      <ClerkProvider publishableKey={clerkKey} afterSignOutUrl="/sign-in">
         {children}
       </ClerkProvider>
     );
