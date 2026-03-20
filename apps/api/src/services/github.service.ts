@@ -495,6 +495,42 @@ export const githubService = {
     });
   },
 
+  async createRepo(
+    accessToken: string,
+    name: string,
+    description?: string,
+    isPrivate?: boolean,
+    autoInit?: boolean,
+  ): Promise<GitHubRepo> {
+    const res = await fetch(`${GITHUB_API}/user/repos`, {
+      method: 'POST',
+      headers: {
+        ...headers(accessToken),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name,
+        description: description ?? '',
+        private: isPrivate ?? true,
+        auto_init: autoInit ?? true,
+      }),
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw new GitHubTokenExpiredError('createRepo');
+      }
+      if (res.status === 422) {
+        const body = (await res.json()) as { message?: string; errors?: Array<{ message: string }> };
+        const detail = body.errors?.[0]?.message ?? body.message ?? 'Validation failed';
+        throw new Error(`GitHub createRepo failed: ${detail}`);
+      }
+      throw new Error(`GitHub createRepo failed: ${res.status} ${res.statusText}`);
+    }
+
+    return (await res.json()) as GitHubRepo;
+  },
+
   handlePushWebhook(payload: unknown): PushWebhookResult {
     const p = payload as {
       ref?: string;
