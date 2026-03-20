@@ -475,8 +475,8 @@ STRICT RULES:
   ): Promise<Array<{ title: string; description: string; labels: string[] }>> {
     const ai = requireClient();
 
-    const truncatedContent = content.slice(0, 8000);
-    const truncatedCode = codeContext ? codeContext.slice(0, 4000) : '';
+    const truncatedContent = content.slice(0, 20000);
+    const truncatedCode = codeContext ? codeContext.slice(0, 8000) : '';
 
     let stageFocus = '';
     if (stage && ['conception', 'definition'].includes(stage)) {
@@ -497,14 +497,14 @@ STRICT RULES:
 
     const response = await ai.messages.create({
       model: MODEL,
-      max_tokens: 4096,
+      max_tokens: 16384,
       system:
-        `You are a ticket suggestion engine for a documentation platform. Given a document and optional code context, generate 5-10 actionable ticket suggestions. ${stageFocus}${stageContext}
+        `You are a ticket suggestion engine for a documentation platform. Given a document and optional code context, generate at least 50 actionable ticket suggestions. Be thorough and exhaustive — cover every feature, requirement, edge case, test scenario, integration point, documentation gap, performance concern, security consideration, accessibility issue, and deployment task you can identify. ${stageFocus}${stageContext}
 
 Each ticket must have:
 - title: prefixed with [S], [M], or [L] for estimated scope (small/medium/large)
 - description: must include a "## Context" section citing the specific spec heading or section, an "## Affected Areas" section listing file paths or modules, and an "## Acceptance Criteria" section with a markdown checklist of verifiable conditions
-- labels: array of relevant labels (e.g., bug, enhancement, drift, spec-gap)
+- labels: array of relevant labels (e.g., bug, enhancement, drift, spec-gap, testing, security, performance, accessibility, documentation)
 
 Respond ONLY with a valid JSON array of objects with title, description, and labels fields.`,
       messages: [
