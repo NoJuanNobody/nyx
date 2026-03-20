@@ -1413,6 +1413,16 @@ export function generateBulkSuggestions(documentId: string): Promise<TicketSugge
   });
 }
 
+export function generateFolderTicketSuggestions(
+  teamId: string,
+  folderPath: string,
+): Promise<TicketSuggestion[]> {
+  return request<TicketSuggestion[]>('/folders/suggest-tickets', {
+    method: 'POST',
+    body: JSON.stringify({ teamId, folderPath }),
+  });
+}
+
 export function bulkApproveSuggestions(
   suggestionIds: string[],
   provider: 'github' | 'jira',
