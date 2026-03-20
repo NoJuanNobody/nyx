@@ -327,6 +327,63 @@ describe('AI Service', () => {
     expect(result).not.toContain('```');
   });
 
+  it('generateNewsArticle: returns parsed JSON on valid response', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse(
+        '{"headline": "Rats Take Over Subway — Again!", "content": "# Rats Take Over Subway\\n\\nCommuters were stunned...", "summary": "NYC subway riders face a furry new commute companion."}',
+      ),
+    );
+
+    const result = await aiService.generateNewsArticle('Rats in the NYC subway');
+    expect(result.headline).toBe('Rats Take Over Subway — Again!');
+    expect(result.content).toContain('Rats Take Over Subway');
+    expect(result.summary).toContain('subway');
+  });
+
+  it('generateNewsArticle: returns fallback on parse failure', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('Some raw article text about a breaking story'),
+    );
+
+    const result = await aiService.generateNewsArticle('Breaking story');
+    expect(result.headline).toBe('Breaking News');
+    expect(result.content).toBe('Some raw article text about a breaking story');
+    expect(result.summary).toBe('');
+  });
+
+  it('generateNewsArticle: includes context in prompt when provided', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('{"headline": "Test", "content": "# Test", "summary": "Test summary"}'),
+    );
+
+    await aiService.generateNewsArticle('Tech launch', 'Company raised $500M');
+    const callArgs = mockCreate.mock.calls[0][0];
+    expect(callArgs.messages[0].content).toContain('Company raised $500M');
+  });
+
+  it('generateNewsArticle: system prompt includes NY Post style guidance', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse('{"headline": "Test", "content": "# Test", "summary": "Test"}'),
+    );
+
+    await aiService.generateNewsArticle('Any topic');
+    const callArgs = mockCreate.mock.calls[0][0];
+    expect(callArgs.system).toContain('New York Post');
+    expect(callArgs.system).toContain('Inverted pyramid');
+    expect(callArgs.system).toContain('tabloid');
+  });
+
+  it('generateNewsArticle: strips code fences from response', async () => {
+    mockCreate.mockResolvedValueOnce(
+      makeResponse(
+        '```json\n{"headline": "Fenced Article", "content": "# Fenced", "summary": "Fenced summary"}\n```',
+      ),
+    );
+
+    const result = await aiService.generateNewsArticle('Fenced topic');
+    expect(result.headline).toBe('Fenced Article');
+  });
+
   it('refineJSXPreview: strips import statements', async () => {
     mockCreate.mockResolvedValueOnce(
       makeResponse('import React from "react";\nfunction App() { return <div/>; }'),
