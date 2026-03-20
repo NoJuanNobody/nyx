@@ -794,6 +794,65 @@ Respond ONLY with valid JSON in this exact format: {"score": <number>, "suggesti
     return text;
   },
 
+  async generateNewsArticle(
+    topic: string,
+    context?: string,
+  ): Promise<{ headline: string; content: string; summary: string }> {
+    const ai = requireClient();
+
+    const contextBlock = context
+      ? `\n\nAdditional research context and source material:\n${context}`
+      : '';
+
+    const response = await ai.messages.create({
+      model: MODEL_FAST,
+      max_tokens: 4096,
+      system:
+        `You are a seasoned tabloid news journalist writing for a major metropolitan newspaper like the New York Post. Your writing style is:
+
+- **Headlines**: Bold, punchy, attention-grabbing headlines using wordplay, puns, or dramatic flair. Short and impactful.
+- **Lead paragraph**: The most newsworthy fact in the first sentence. Who, what, when, where — front-loaded.
+- **Tone**: Direct, conversational, slightly irreverent. You write with personality and attitude. Use active voice throughout.
+- **Structure**: Inverted pyramid — most important information first, supporting details follow, background at the end.
+- **Paragraphs**: Keep paragraphs to 1-3 sentences maximum. Short, punchy, scannable.
+- **Quotes**: Include at least 2-3 attributed quotes (you may fabricate realistic placeholder quotes marked with [placeholder]).
+- **Word choice**: Vivid, concrete language. Prefer strong verbs over adverbs. Avoid jargon.
+- **Length**: 400-800 words for a standard article.
+
+Also provide a 1-2 sentence summary suitable for a social media post or article preview.
+
+Respond ONLY with valid JSON in this exact format:
+{"headline": "<attention-grabbing headline>", "content": "<full article in markdown>", "summary": "<1-2 sentence preview>"}`,
+      messages: [
+        {
+          role: 'user',
+          content: `Write a New York Post style news article about the following topic:\n\n${topic}${contextBlock}`,
+        },
+      ],
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Strip code fences
+    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+    try {
+      const parsed = JSON.parse(text) as {
+        headline: string;
+        content: string;
+        summary: string;
+      };
+      return {
+        headline: parsed.headline || 'Breaking News',
+        content: parsed.content || text,
+        summary: parsed.summary || '',
+      };
+    } catch {
+      return { headline: 'Breaking News', content: text, summary: '' };
+    }
+  },
+
   async seedNextStage(
     content: string,
     fromStage: string,

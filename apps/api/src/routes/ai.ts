@@ -135,6 +135,19 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
     return { content: result };
   });
 
+  // POST /api/ai/generate-news-article — generate a New York Post style news article
+  app.post('/generate-news-article', async (request, reply) => {
+    const { topic, context } = request.body as { topic: string; context?: string };
+
+    if (!topic) {
+      reply.code(400);
+      return { error: 'topic is required' };
+    }
+
+    const result = await aiService.generateNewsArticle(topic, context);
+    return result;
+  });
+
   // POST /api/ai/seed-from-stage — generate pre-filled content for the next lifecycle stage (document-based)
   app.post('/seed-from-stage', async (request, reply) => {
     const { documentId, fromStage, toStage } = request.body as {

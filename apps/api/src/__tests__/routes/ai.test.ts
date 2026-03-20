@@ -22,6 +22,7 @@ const mockAiService = vi.hoisted(() => ({
   seedNextStage: vi.fn(),
   analyzeMissingSections: vi.fn(),
   notificationReply: vi.fn(),
+  generateNewsArticle: vi.fn(),
 }));
 vi.mock('../../services/ai.service.js', () => ({ aiService: mockAiService }));
 vi.mock('../../middleware/permissions.js', () => ({ requireRole: () => async () => {} }));
@@ -167,6 +168,55 @@ describe('AI Routes', () => {
       payload: { notificationId: 'notif-1' },
     });
     expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /api/ai/generate-news-article returns generated article', async () => {
+    mockAiService.generateNewsArticle.mockResolvedValueOnce({
+      headline: 'City Goes Wild Over New Pizza Flavor',
+      content: '# City Goes Wild Over New Pizza Flavor\n\nNew Yorkers lined up...',
+      summary: 'A new pizza flavor has taken the city by storm.',
+    });
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/generate-news-article',
+      payload: { topic: 'A new pizza flavor taking NYC by storm' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.headline).toBe('City Goes Wild Over New Pizza Flavor');
+    expect(body.content).toContain('City Goes Wild');
+    expect(body.summary).toBeTruthy();
+  });
+
+  it('POST /api/ai/generate-news-article passes context when provided', async () => {
+    mockAiService.generateNewsArticle.mockResolvedValueOnce({
+      headline: 'Tech Giant Shakes Up Market',
+      content: '# Tech Giant Shakes Up Market\n\nIn a stunning move...',
+      summary: 'Major tech company announces disruptive product.',
+    });
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/generate-news-article',
+      payload: { topic: 'Tech company launch', context: 'The company raised $500M in funding' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mockAiService.generateNewsArticle).toHaveBeenCalledWith(
+      'Tech company launch',
+      'The company raised $500M in funding',
+    );
+  });
+
+  it('POST /api/ai/generate-news-article returns 400 without topic', async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/generate-news-article',
+      payload: {},
+    });
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body).error).toBe('topic is required');
   });
 
   it('POST /api/ai/generate-all returns 400 without teamId', async () => {
