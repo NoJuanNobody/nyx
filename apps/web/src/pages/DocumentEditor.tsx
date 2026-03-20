@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Document, DocumentVersion } from '@nyx/shared';
 
-import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage, exportJupyterNotebook } from '../lib/api';
+import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage, exportJupyterNotebook, exportPlainText, exportDocx, exportPdf } from '../lib/api';
 import { STAGE_MAP, STAGES, STAGE_ORDER, type DocumentStage } from '../lib/stages';
 import { getLifecycle, getNextStage as lifecycleGetNextStage, getStageInfo } from '../lib/lifecycles';
 import { useUIStore } from '../stores/ui.store';
@@ -42,6 +42,10 @@ export function DocumentEditor() {
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
   const [jupyterExporting, setJupyterExporting] = useState(false);
+  const [txtExporting, setTxtExporting] = useState(false);
+  const [docxExporting, setDocxExporting] = useState(false);
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [currentMockupJsx, setCurrentMockupJsx] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const splitContainerRef = useRef<HTMLDivElement>(null);
@@ -322,24 +326,103 @@ export function DocumentEditor() {
 
           <SaveAsTemplateButton content={content} stage={docStage} teamId={doc.teamId} />
 
-          <button
-            type="button"
-            onClick={async () => {
-              if (!id) return;
-              setJupyterExporting(true);
-              try {
-                await exportJupyterNotebook(id);
-              } catch (err) {
-                console.error('Jupyter export failed:', err);
-              } finally {
-                setJupyterExporting(false);
-              }
-            }}
-            disabled={jupyterExporting}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
-          >
-            {jupyterExporting ? 'Exporting...' : 'Export Jupyter'}
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              data-testid="export-menu-button"
+              onClick={() => setExportMenuOpen((prev) => !prev)}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              Export &#9662;
+            </button>
+            {exportMenuOpen && (
+              <div
+                data-testid="export-menu-dropdown"
+                className="absolute right-0 top-full z-20 mt-1 min-w-[160px] rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+              >
+                <button
+                  type="button"
+                  data-testid="export-pdf"
+                  onClick={async () => {
+                    if (!id) return;
+                    setPdfExporting(true);
+                    setExportMenuOpen(false);
+                    try {
+                      await exportPdf(id);
+                    } catch (err) {
+                      console.error('PDF export failed:', err);
+                    } finally {
+                      setPdfExporting(false);
+                    }
+                  }}
+                  disabled={pdfExporting}
+                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {pdfExporting ? 'Exporting...' : 'PDF (.pdf)'}
+                </button>
+                <button
+                  type="button"
+                  data-testid="export-txt"
+                  onClick={async () => {
+                    if (!id) return;
+                    setTxtExporting(true);
+                    setExportMenuOpen(false);
+                    try {
+                      await exportPlainText(id);
+                    } catch (err) {
+                      console.error('TXT export failed:', err);
+                    } finally {
+                      setTxtExporting(false);
+                    }
+                  }}
+                  disabled={txtExporting}
+                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {txtExporting ? 'Exporting...' : 'Plain Text (.txt)'}
+                </button>
+                <button
+                  type="button"
+                  data-testid="export-docx"
+                  onClick={async () => {
+                    if (!id) return;
+                    setDocxExporting(true);
+                    setExportMenuOpen(false);
+                    try {
+                      await exportDocx(id);
+                    } catch (err) {
+                      console.error('DOCX export failed:', err);
+                    } finally {
+                      setDocxExporting(false);
+                    }
+                  }}
+                  disabled={docxExporting}
+                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {docxExporting ? 'Exporting...' : 'Word (.docx)'}
+                </button>
+                <button
+                  type="button"
+                  data-testid="export-jupyter"
+                  onClick={async () => {
+                    if (!id) return;
+                    setJupyterExporting(true);
+                    setExportMenuOpen(false);
+                    try {
+                      await exportJupyterNotebook(id);
+                    } catch (err) {
+                      console.error('Jupyter export failed:', err);
+                    } finally {
+                      setJupyterExporting(false);
+                    }
+                  }}
+                  disabled={jupyterExporting}
+                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {jupyterExporting ? 'Exporting...' : 'Jupyter (.ipynb)'}
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
             type="button"

@@ -64,6 +64,29 @@ export const suggestionRoutes: FastifyPluginAsync = async (app) => {
     return results;
   });
 
+  // POST /api/folders/suggest-tickets — generate ticket suggestions from all docs in a folder
+  app.post('/folders/suggest-tickets', async (request, reply) => {
+    const { teamId, folderPath } = request.body as { teamId: string; folderPath: string };
+
+    if (!teamId) {
+      reply.code(400);
+      return { error: 'teamId is required' };
+    }
+    if (!folderPath) {
+      reply.code(400);
+      return { error: 'folderPath is required' };
+    }
+
+    try {
+      const suggestions = await suggestionService.generateFolderSuggestions(teamId, folderPath);
+      return suggestions;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(400);
+      return { error: message };
+    }
+  });
+
   // PATCH /api/ticket-suggestions/:id — edit a pending suggestion
   app.patch('/ticket-suggestions/:id', async (request, reply) => {
     const { id } = request.params as { id: string };

@@ -847,6 +847,16 @@ export function fetchSyncedRepos(integrationId: string): Promise<{ repos: Synced
   return request<{ repos: SyncedRepo[] }>(`/integrations/${integrationId}/github/synced-repos`);
 }
 
+export function createGitHubRepo(
+  integrationId: string,
+  data: { name: string; description?: string; isPrivate?: boolean; autoInit?: boolean },
+): Promise<{ repo: { id: number; name: string; full_name: string; private: boolean; html_url: string; default_branch: string } }> {
+  return request(`/integrations/${integrationId}/github/repos/create`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export function disconnectRepo(integrationId: string, repoFullName: string): Promise<{ ok: boolean }> {
   return request<{ ok: boolean }>(`/integrations/${integrationId}/github/repos/${encodeURIComponent(repoFullName)}`, {
     method: 'DELETE',
@@ -1413,6 +1423,16 @@ export function generateBulkSuggestions(documentId: string): Promise<TicketSugge
   });
 }
 
+export function generateFolderTicketSuggestions(
+  teamId: string,
+  folderPath: string,
+): Promise<TicketSuggestion[]> {
+  return request<TicketSuggestion[]>('/folders/suggest-tickets', {
+    method: 'POST',
+    body: JSON.stringify({ teamId, folderPath }),
+  });
+}
+
 export function bulkApproveSuggestions(
   suggestionIds: string[],
   provider: 'github' | 'jira',
@@ -1629,6 +1649,96 @@ export function purchaseMarketplaceListing(listingId: string): Promise<{ content
 
 export function getCreditCosts(): Promise<Record<string, number>> {
   return request<Record<string, number>>('/credits/costs');
+}
+
+// ── Export: Plain Text ─────────────────────────────────────────────
+
+export async function exportPlainText(documentId: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  const token = await resolveToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(
+    `${BASE}/export/documents/${encodeURIComponent(documentId)}/export/txt`,
+    { headers },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Failed to export plain text: ${body || res.statusText}`);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'document.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Export: DOCX ───────────────────────────────────────────────────
+
+export async function exportDocx(documentId: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  const token = await resolveToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(
+    `${BASE}/export/documents/${encodeURIComponent(documentId)}/export/docx`,
+    { headers },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Failed to export DOCX: ${body || res.statusText}`);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'document.docx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Export: PDF ────────────────────────────────────────────────────
+
+export async function exportPdf(documentId: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  const token = await resolveToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(
+    `${BASE}/export/documents/${encodeURIComponent(documentId)}/export/pdf`,
+    { headers },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Failed to export PDF: ${body || res.statusText}`);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'document.pdf';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ── Export: Jupyter Notebook ────────────────────────────────────────

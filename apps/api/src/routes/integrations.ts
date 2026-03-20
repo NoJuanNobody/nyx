@@ -272,6 +272,66 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
+  // POST /api/integrations/:id/github/repos/create — create a new GitHub repo
+  app.post('/:id/github/repos/create', { preHandler: [requireRole({ minimumRole: 'admin', source: 'integration' })] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { name, description, isPrivate, autoInit } = request.body as {
+      name: string;
+      description?: string;
+      isPrivate?: boolean;
+      autoInit?: boolean;
+    };
+
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      reply.code(400);
+      return { error: 'Repository name is required' };
+    }
+
+    // Validate repo name format (GitHub rules: alphanumeric, hyphens, underscores, dots)
+    if (!/^[a-zA-Z0-9._-]+$/.test(name)) {
+      reply.code(400);
+      return { error: 'Invalid repository name. Use only alphanumeric characters, hyphens, underscores, and dots.' };
+    }
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(eq(integrations.id, id));
+
+    if (!integration || integration.type !== 'github') {
+      reply.code(404);
+      return { error: 'GitHub integration not found' };
+    }
+
+    const cfg = integration.config as { accessToken?: string };
+
+    if (!cfg.accessToken) {
+      reply.code(400);
+      return { error: 'GitHub access token is missing. Please reconnect the integration.' };
+    }
+
+    try {
+      const repo = await githubService.createRepo(
+        cfg.accessToken,
+        name.trim(),
+        description,
+        isPrivate,
+        autoInit,
+      );
+
+      reply.code(201);
+      return { repo };
+    } catch (err) {
+      if (err instanceof GitHubTokenExpiredError) {
+        reply.code(401);
+        return { error: 'github_token_expired', message: err.message };
+      }
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(422);
+      return { error: message };
+    }
+  });
+
   // GET /api/integrations/:id/github/synced-repos — enriched synced repo data
   app.get('/:id/github/synced-repos', { preHandler: [requireRole({ minimumRole: 'viewer', source: 'integration' })] }, async (request, reply) => {
     const { id } = request.params as { id: string };

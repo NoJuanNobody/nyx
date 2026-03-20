@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockAiService, mockTicketService } = vi.hoisted(() => ({
+const { mockAiService, mockTicketService, mockGithubService } = vi.hoisted(() => ({
   mockAiService: {
     generateTicketFromDiff: vi.fn(),
+    generateBulkTicketSuggestions: vi.fn(),
   },
   mockTicketService: {
     createFromDocument: vi.fn(),
+  },
+  mockGithubService: {
+    getFileTree: vi.fn(),
   },
 }));
 
@@ -15,6 +19,10 @@ vi.mock('../../services/ai.service.js', () => ({
 
 vi.mock('../../services/ticket.service.js', () => ({
   ticketService: mockTicketService,
+}));
+
+vi.mock('../../services/github.service.js', () => ({
+  githubService: mockGithubService,
 }));
 
 import { mockDb } from '../helpers/setup.js';
@@ -240,6 +248,97 @@ describe('Suggestion Service', () => {
       await expect(suggestionService.dismiss('sug-1', 'user-1')).rejects.toThrow(
         'Suggestion already reviewed',
       );
+    });
+  });
+
+  describe('generateFolderSuggestions', () => {
+    it('fetches docs in folder, calls AI, and inserts suggestions', async () => {
+      const doc1 = makeDocument({ id: 'doc-1', path: '/specs', content: 'Spec A content', title: 'Spec A', stage: 'definition', teamId: 'team-1', status: 'draft' });
+      const doc2 = makeDocument({ id: 'doc-2', path: '/specs', content: 'Spec B content', title: 'Spec B', stage: 'architecture', teamId: 'team-1', status: 'draft' });
+
+      const aiResults = [
+        { title: '[M] Review API contracts', description: 'Review all API contracts', labels: ['spec-review'] },
+        { title: '[S] Add tests', description: 'Add unit tests', labels: ['enhancement'] },
+      ];
+
+      const createdSuggestions = aiResults.map((item, i) => ({
+        id: `sug-${i + 1}`,
+        documentId: 'doc-1',
+        title: item.title,
+        description: item.description,
+        labels: item.labels,
+        status: 'pending',
+      }));
+
+      // Select documents in folder
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([doc1, doc2]),
+        }),
+      } as any);
+
+      mockAiService.generateBulkTicketSuggestions.mockResolvedValue(aiResults);
+
+      // Insert suggestions
+      mockDb.insert.mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue(createdSuggestions),
+        }),
+      } as any);
+
+      const result = await suggestionService.generateFolderSuggestions('team-1', '/specs');
+      expect(result).toHaveLength(2);
+      expect(result[0].title).toBe('[M] Review API contracts');
+      expect(mockAiService.generateBulkTicketSuggestions).toHaveBeenCalledWith(
+        expect.stringContaining('Spec A'),
+        expect.stringContaining('Folder: specs'),
+        null,
+      );
+    });
+
+    it('throws when no documents found in folder', async () => {
+      // Select returns no matching docs
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([]),
+        }),
+      } as any);
+
+      await expect(
+        suggestionService.generateFolderSuggestions('team-1', '/empty-folder'),
+      ).rejects.toThrow('No documents found in this folder');
+    });
+
+    it('filters docs to only those in the specified folder path', async () => {
+      const docInFolder = makeDocument({ id: 'doc-1', path: '/specs', content: 'In folder', title: 'In', teamId: 'team-1', status: 'draft' });
+      const docInSubfolder = makeDocument({ id: 'doc-2', path: '/specs/api', content: 'In subfolder', title: 'Sub', teamId: 'team-1', status: 'draft' });
+      const docOutside = makeDocument({ id: 'doc-3', path: '/other', content: 'Outside', title: 'Out', teamId: 'team-1', status: 'draft' });
+
+      // Select returns all draft docs for the team
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([docInFolder, docInSubfolder, docOutside]),
+        }),
+      } as any);
+
+      const aiResults = [
+        { title: '[M] Fix something', description: 'Fix', labels: ['bug'] },
+      ];
+      mockAiService.generateBulkTicketSuggestions.mockResolvedValue(aiResults);
+
+      mockDb.insert.mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: 'sug-1', ...aiResults[0], status: 'pending', documentId: 'doc-1' }]),
+        }),
+      } as any);
+
+      await suggestionService.generateFolderSuggestions('team-1', '/specs');
+
+      // AI should receive content from docs in /specs and /specs/api, but NOT /other
+      const aiCall = mockAiService.generateBulkTicketSuggestions.mock.calls[0][0];
+      expect(aiCall).toContain('In folder');
+      expect(aiCall).toContain('In subfolder');
+      expect(aiCall).not.toContain('Outside');
     });
   });
 });

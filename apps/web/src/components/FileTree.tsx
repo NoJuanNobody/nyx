@@ -11,6 +11,8 @@ import {
   restoreDocument,
   fetchTeams,
   fetchTemplates,
+  generateFolderTicketSuggestions,
+  type TicketSuggestion,
 } from '../lib/api';
 import { STAGE_MAP, STAGES, type DocumentStage } from '../lib/stages';
 import { getLifecycle, getStageInfo, type StageInfo } from '../lib/lifecycles';
@@ -629,6 +631,8 @@ export function FileTree() {
   const [showTrash, setShowTrash] = useState(false);
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [folderSuggestions, setFolderSuggestions] = useState<TicketSuggestion[] | null>(null);
+  const [folderSuggestionsLoading, setFolderSuggestionsLoading] = useState(false);
   const seeding = useUIStore((s) => s.seeding);
   const activeLifecycleSlug = useUIStore((s) => s.activeLifecycleSlug);
   const activeLifecycle = getLifecycle(activeLifecycleSlug);
@@ -863,6 +867,20 @@ export function FileTree() {
     }
   };
 
+  const handleGenerateFolderSuggestions = async (folderPath: string) => {
+    if (!teamId || folderSuggestionsLoading) return;
+    setFolderSuggestionsLoading(true);
+    try {
+      const suggestions = await generateFolderTicketSuggestions(teamId, folderPath);
+      setFolderSuggestions(suggestions);
+    } catch (err) {
+      console.error('Failed to generate folder suggestions:', err);
+      setFolderSuggestions([]);
+    } finally {
+      setFolderSuggestionsLoading(false);
+    }
+  };
+
   // ── Menu item builders ────────────────────────────────
 
   function buildFolderMenuItems(
@@ -936,6 +954,11 @@ export function FileTree() {
 
     if (isFolder) {
       items.push(
+        { type: 'separator' },
+        {
+          label: 'Generate ticket suggestions',
+          action: () => handleGenerateFolderSuggestions(path),
+        },
         { type: 'separator' },
         { label: 'Rename folder', action: () => setRenamingFolderPath(path) },
         { label: 'Delete folder', danger: true, action: () => handleDeleteFolder(path) },
@@ -1257,6 +1280,85 @@ export function FileTree() {
             setShowTemplatePicker(false);
           }}
         />
+      )}
+
+      {/* Folder ticket suggestions loading indicator */}
+      {folderSuggestionsLoading && (
+        <div
+          data-testid="folder-suggestions-loading"
+          className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm"
+        >
+          <svg
+            className="h-6 w-6 animate-spin text-blue-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+          <span className="mt-2 text-xs font-medium text-slate-500">
+            Generating ticket suggestions...
+          </span>
+        </div>
+      )}
+
+      {/* Folder ticket suggestions panel */}
+      {folderSuggestions !== null && !folderSuggestionsLoading && (
+        <div
+          data-testid="folder-suggestions-panel"
+          className="absolute inset-0 z-30 flex flex-col bg-white"
+        >
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+            <span className="text-xs font-semibold text-slate-700">
+              Ticket Suggestions ({folderSuggestions.length})
+            </span>
+            <button
+              type="button"
+              onClick={() => setFolderSuggestions(null)}
+              className="rounded p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+            {folderSuggestions.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-4">
+                No suggestions generated.
+              </p>
+            ) : (
+              folderSuggestions.map((suggestion) => (
+                <div
+                  key={suggestion.id}
+                  className="rounded-md border border-slate-200 p-3 hover:border-blue-200 transition-colors"
+                >
+                  <p className="text-xs font-medium text-slate-800">{suggestion.title}</p>
+                  <p className="mt-1 text-[11px] text-slate-500 line-clamp-2">
+                    {suggestion.description}
+                  </p>
+                  {suggestion.labels && suggestion.labels.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {suggestion.labels.map((label) => (
+                        <span
+                          key={label}
+                          className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-500"
+                        >
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

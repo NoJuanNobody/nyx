@@ -1,4 +1,4 @@
-import { eq, and, desc, inArray } from 'drizzle-orm';
+import { eq, and, desc, inArray, like } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { ticketSuggestions, documents, documentVersions, integrations } from '../db/schema.js';
 import { aiService } from './ai.service.js';
@@ -208,6 +208,63 @@ export const suggestionService = {
     }
 
     return results;
+  },
+
+  async generateFolderSuggestions(teamId: string, folderPath: string) {
+    // Get all documents in this folder (and subfolders)
+    const prefix = folderPath === '/' ? '/' : `${folderPath}/`;
+    const folderDocs = await db
+      .select()
+      .from(documents)
+      .where(
+        and(
+          eq(documents.teamId, teamId),
+          eq(documents.status, 'draft'),
+        ),
+      );
+
+    // Filter to docs in this folder or subfolders (path equals folderPath or starts with prefix)
+    const matchingDocs = folderDocs.filter((doc) => {
+      const docPath = doc.path || '/';
+      return docPath === folderPath || docPath.startsWith(prefix);
+    });
+
+    if (matchingDocs.length === 0) {
+      throw new Error('No documents found in this folder');
+    }
+
+    // Build a combined summary of all documents for AI analysis
+    const docSummaries = matchingDocs.map((doc) => {
+      const truncatedContent = (doc.content ?? '').slice(0, 3000);
+      return `## ${doc.title} (${doc.stage ?? 'no stage'})\n${truncatedContent}`;
+    }).join('\n\n---\n\n');
+
+    const folderName = folderPath === '/' ? 'root' : folderPath.split('/').filter(Boolean).pop() ?? folderPath;
+
+    // Use AI to generate suggestions across all folder documents
+    const aiResults = await aiService.generateBulkTicketSuggestions(
+      docSummaries,
+      `Folder: ${folderName} (${matchingDocs.length} documents)`,
+      null,
+    );
+
+    // Insert all suggestions, linking each to the first document in the folder
+    // (since ticket_suggestions requires a documentId)
+    const primaryDocId = matchingDocs[0].id;
+    const created = await db
+      .insert(ticketSuggestions)
+      .values(
+        aiResults.map((item) => ({
+          documentId: primaryDocId,
+          title: item.title,
+          description: item.description,
+          labels: item.labels,
+          status: 'pending' as const,
+        })),
+      )
+      .returning();
+
+    return created;
   },
 
   async updateSuggestion(suggestionId: string, updates: { title?: string; description?: string; labels?: string[] }) {
