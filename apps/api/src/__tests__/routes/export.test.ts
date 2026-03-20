@@ -7,6 +7,8 @@ vi.mock('../../services/export.service.js', () => ({
   exportService: {
     toMarkdown: vi.fn(),
     toPdf: vi.fn(),
+    toPlainText: vi.fn(),
+    toDocx: vi.fn(),
   },
 }));
 
@@ -89,6 +91,74 @@ describe('GET /api/documents/:id/export/pdf', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/documents/missing/export/pdf',
+    });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: 'Document not found' });
+  });
+});
+
+describe('GET /api/documents/:id/export/txt', () => {
+  it('returns plain text content with correct headers', async () => {
+    vi.mocked(exportService.toPlainText).mockResolvedValue({
+      title: 'Test Doc',
+      content: 'Test Doc\n========\n\nHello world',
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/documents/doc-1/export/txt',
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toContain('text/plain');
+    expect(res.headers['content-disposition']).toContain('Test_Doc.txt');
+    expect(res.body).toBe('Test Doc\n========\n\nHello world');
+  });
+
+  it('returns 404 for missing document', async () => {
+    vi.mocked(exportService.toPlainText).mockResolvedValue(null as any);
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/documents/missing/export/txt',
+    });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: 'Document not found' });
+  });
+});
+
+describe('GET /api/documents/:id/export/docx', () => {
+  it('returns DOCX buffer with correct headers', async () => {
+    const docxBuffer = Buffer.from('fake-docx-content');
+    vi.mocked(exportService.toDocx).mockResolvedValue({
+      title: 'Test Doc',
+      buffer: docxBuffer,
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/documents/doc-1/export/docx',
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toContain(
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    );
+    expect(res.headers['content-disposition']).toContain('Test_Doc.docx');
+  });
+
+  it('returns 404 for missing document', async () => {
+    vi.mocked(exportService.toDocx).mockResolvedValue(null as any);
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/documents/missing/export/docx',
     });
 
     expect(res.statusCode).toBe(404);
