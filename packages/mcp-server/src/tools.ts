@@ -115,6 +115,78 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
+    name: 'nyx_list_teams',
+    description:
+      'List all teams the authenticated user belongs to. Returns team IDs, names, slugs, and roles.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'nyx_get_team',
+    description: 'Get details for a specific team by ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: { type: 'string', description: 'UUID of the team' },
+      },
+      required: ['team_id'],
+    },
+  },
+  {
+    name: 'nyx_create_team',
+    description: 'Create a new team in Nyx.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Team display name' },
+        slug: { type: 'string', description: 'URL-friendly team slug' },
+      },
+      required: ['name', 'slug'],
+    },
+  },
+  {
+    name: 'nyx_delete_doc',
+    description: 'Delete a document from Nyx by ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        document_id: { type: 'string', description: 'UUID of the document to delete' },
+      },
+      required: ['document_id'],
+    },
+  },
+  {
+    name: 'nyx_list_versions',
+    description: 'List version history for a document. Returns version numbers, messages, and timestamps.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        document_id: { type: 'string', description: 'UUID of the document' },
+      },
+      required: ['document_id'],
+    },
+  },
+  {
+    name: 'nyx_generate_podcast',
+    description:
+      'Generate a podcast script from one or more Nyx documents. Returns a two-host conversational script with quality score.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: { type: 'string', description: 'Team UUID' },
+        document_ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of document UUIDs to generate the podcast from',
+        },
+        title: { type: 'string', description: 'Optional podcast title' },
+      },
+      required: ['team_id', 'document_ids'],
+    },
+  },
+  {
     name: 'nyx_web_search',
     description:
       'Search the web for information relevant to documentation. Returns search results with titles, URLs, and snippets. Useful for finding API references, library documentation, changelogs, and technical articles.',
@@ -276,6 +348,39 @@ export async function executeTool(
         body: JSON.stringify({
           sessionId: args.session_id,
           teamId: args.team_id,
+        }),
+      });
+    }
+    case 'nyx_list_teams': {
+      return apiRequest('/api/teams');
+    }
+    case 'nyx_get_team': {
+      return apiRequest(`/api/teams/${args.team_id}`);
+    }
+    case 'nyx_create_team': {
+      return apiRequest('/api/teams', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: args.name,
+          slug: args.slug,
+        }),
+      });
+    }
+    case 'nyx_delete_doc': {
+      return apiRequest(`/api/documents/${args.document_id}`, {
+        method: 'DELETE',
+      });
+    }
+    case 'nyx_list_versions': {
+      return apiRequest(`/api/documents/${args.document_id}/versions`);
+    }
+    case 'nyx_generate_podcast': {
+      return apiRequest('/api/podcast/generate', {
+        method: 'POST',
+        body: JSON.stringify({
+          teamId: args.team_id,
+          documentIds: args.document_ids,
+          title: args.title,
         }),
       });
     }
