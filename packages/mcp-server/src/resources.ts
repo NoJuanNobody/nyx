@@ -30,7 +30,26 @@ export const RESOURCE_TEMPLATES: ResourceTemplate[] = [
     description: 'List version history for a document',
     mimeType: 'application/json',
   },
+  {
+    uriTemplate: 'nyx://teams',
+    name: 'All Teams',
+    description: 'List all teams the user belongs to',
+    mimeType: 'application/json',
+  },
+  {
+    uriTemplate: 'nyx://teams/{id}',
+    name: 'Team Details',
+    description: 'Get details for a specific team',
+    mimeType: 'application/json',
+  },
 ];
+
+interface TeamSummary {
+  id: string;
+  name: string;
+  slug: string;
+  role: string;
+}
 
 interface DocSummary {
   id: string;
@@ -58,6 +77,26 @@ interface DocVersion {
  * Resolve a resource URI to its content.
  */
 export async function resolveResource(uri: string): Promise<{ content: string; mimeType: string }> {
+  // nyx://teams
+  if (uri === 'nyx://teams') {
+    const teams = await apiRequest<TeamSummary[]>('/api/teams');
+    return {
+      content: JSON.stringify(teams, null, 2),
+      mimeType: 'application/json',
+    };
+  }
+
+  // nyx://teams/{id}
+  const teamMatch = uri.match(/^nyx:\/\/teams\/([^/]+)$/);
+  if (teamMatch) {
+    const teamId = teamMatch[1];
+    const team = await apiRequest<TeamSummary>(`/api/teams/${teamId}`);
+    return {
+      content: JSON.stringify(team, null, 2),
+      mimeType: 'application/json',
+    };
+  }
+
   // nyx://docs
   if (uri === 'nyx://docs') {
     // List all docs — we need a teamId; for MCP we use a broad listing
