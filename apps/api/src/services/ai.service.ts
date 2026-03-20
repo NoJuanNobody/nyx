@@ -682,6 +682,73 @@ Respond ONLY with valid JSON in this exact format:
     }
   },
 
+  async generateRadioShowScript(
+    segments: Array<{ title: string; content: string }>,
+    showName?: string,
+  ): Promise<{
+    title: string;
+    script: Array<{ speaker: 'Host A' | 'Host B'; text: string }>;
+    qualityScore: number;
+    suggestions: string[];
+  }> {
+    const ai = requireClient();
+
+    const showTitle = showName || 'The Nyx Radio Show';
+    const segmentList = segments
+      .map((s, i) => `--- SEGMENT ${i + 1}: ${s.title} ---\n${s.content}`)
+      .join('\n\n');
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 8192,
+      system: `You are a radio show script generator. You create engaging, professional radio show scripts with two co-hosts (Host A and Host B). Host A is the lead presenter and Host B is the color commentator who adds energy, asks questions, and reacts.
+
+The show is called "${showTitle}". Generate a full radio show script that includes:
+1. An exciting opening intro where the hosts welcome listeners and preview what's coming up
+2. Multiple segments based on the provided topics, each covering one document
+3. Smooth transitions between segments where hosts briefly recap and tease the next topic
+4. A closing outro where hosts wrap up highlights and sign off
+
+Make it feel like a real radio show — energetic, conversational, with natural banter between hosts. Each segment should feel distinct but the overall show should flow naturally.
+
+Respond ONLY with valid JSON in this exact format:
+{"title": "<show episode title>", "script": [{"speaker": "Host A", "text": "<dialogue>"}, {"speaker": "Host B", "text": "<dialogue>"}, ...], "qualityScore": <number 1-10>, "suggestions": ["suggestion1", "suggestion2", ...]}`,
+      messages: [
+        {
+          role: 'user',
+          content: `Generate a radio show script covering these ${segments.length} topics:\n\n${segmentList}`,
+        },
+      ],
+    });
+
+    let text =
+      response.content[0].type === 'text' ? response.content[0].text : '';
+
+    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+    try {
+      const parsed = JSON.parse(text) as {
+        title: string;
+        script: Array<{ speaker: 'Host A' | 'Host B'; text: string }>;
+        qualityScore: number;
+        suggestions: string[];
+      };
+      return {
+        title: parsed.title || showTitle,
+        script: Array.isArray(parsed.script) ? parsed.script : [],
+        qualityScore: typeof parsed.qualityScore === 'number' ? parsed.qualityScore : 5,
+        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+      };
+    } catch {
+      return {
+        title: showTitle,
+        script: [{ speaker: 'Host A', text }],
+        qualityScore: 5,
+        suggestions: [],
+      };
+    }
+  },
+
   async analyzeMeetingNoteQuality(
     content: string,
   ): Promise<{
