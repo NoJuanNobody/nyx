@@ -65,7 +65,7 @@ export const suggestionRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/folders/suggest-tickets — generate ticket suggestions from all docs in a folder
-  app.post('/folders/suggest-tickets', async (request, reply) => {
+  app.post('/folders/suggest-tickets', { config: { rawBody: false }, onRequest: async (request) => { request.raw.setTimeout?.(120_000); } }, async (request, reply) => {
     const { teamId, folderPath } = request.body as { teamId: string; folderPath: string };
 
     if (!teamId) {

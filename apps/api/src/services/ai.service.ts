@@ -496,7 +496,7 @@ STRICT RULES:
       : '';
 
     const response = await ai.messages.create({
-      model: MODEL,
+      model: MODEL_FAST,
       max_tokens: 16384,
       system:
         `You are a ticket suggestion engine for a documentation platform. Given a document and optional code context, generate at least 50 actionable ticket suggestions. Be thorough and exhaustive — cover every feature, requirement, edge case, test scenario, integration point, documentation gap, performance concern, security consideration, accessibility issue, and deployment task you can identify. ${stageFocus}${stageContext}
