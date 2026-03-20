@@ -144,7 +144,6 @@ export const podcastRoutes: FastifyPluginAsync = async (app) => {
     podcastScripts.push(script);
     return script;
   });
-
   // GET /api/podcast/scripts?teamId=X — list generated podcast scripts
   app.get('/podcast/scripts', async (request, reply) => {
     const { teamId } = request.query as { teamId?: string };
