@@ -97,4 +97,98 @@ describe('GitHub Service', () => {
     expect(callBody.config.url).toBe('https://example.com/webhook');
     expect(callBody.config.content_type).toBe('json');
   });
+
+  describe('createRepo', () => {
+    it('creates a repo with correct payload and returns repo data', async () => {
+      const repoResponse = {
+        id: 99,
+        name: 'new-repo',
+        full_name: 'testuser/new-repo',
+        private: true,
+        html_url: 'https://github.com/testuser/new-repo',
+        default_branch: 'main',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(repoResponse),
+      } as any);
+
+      const result = await githubService.createRepo(
+        'ghp_token',
+        'new-repo',
+        'A test repo',
+        true,
+        true,
+      );
+
+      expect(result).toEqual(repoResponse);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.github.com/user/repos',
+        expect.objectContaining({
+          method: 'POST',
+        }),
+      );
+
+      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(callBody.name).toBe('new-repo');
+      expect(callBody.description).toBe('A test repo');
+      expect(callBody.private).toBe(true);
+      expect(callBody.auto_init).toBe(true);
+    });
+
+    it('uses default values when optional params are omitted', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ id: 1, name: 'repo' }),
+      } as any);
+
+      await githubService.createRepo('ghp_token', 'repo');
+
+      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(callBody.private).toBe(true);
+      expect(callBody.auto_init).toBe(true);
+      expect(callBody.description).toBe('');
+    });
+
+    it('throws GitHubTokenExpiredError on 401', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+      } as any);
+
+      await expect(
+        githubService.createRepo('bad_token', 'repo'),
+      ).rejects.toThrow('GitHub token expired');
+    });
+
+    it('throws descriptive error on 422 validation failure', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        statusText: 'Unprocessable Entity',
+        json: vi.fn().mockResolvedValue({
+          message: 'Validation Failed',
+          errors: [{ message: 'name already exists on this account' }],
+        }),
+      } as any);
+
+      await expect(
+        githubService.createRepo('ghp_token', 'existing-repo'),
+      ).rejects.toThrow('name already exists on this account');
+    });
+
+    it('throws generic error on other failures', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      } as any);
+
+      await expect(
+        githubService.createRepo('ghp_token', 'repo'),
+      ).rejects.toThrow('GitHub createRepo failed: 500 Internal Server Error');
+    });
+  });
 });

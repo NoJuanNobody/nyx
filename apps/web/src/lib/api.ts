@@ -847,6 +847,16 @@ export function fetchSyncedRepos(integrationId: string): Promise<{ repos: Synced
   return request<{ repos: SyncedRepo[] }>(`/integrations/${integrationId}/github/synced-repos`);
 }
 
+export function createGitHubRepo(
+  integrationId: string,
+  data: { name: string; description?: string; isPrivate?: boolean; autoInit?: boolean },
+): Promise<{ repo: { id: number; name: string; full_name: string; private: boolean; html_url: string; default_branch: string } }> {
+  return request(`/integrations/${integrationId}/github/repos/create`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export function disconnectRepo(integrationId: string, repoFullName: string): Promise<{ ok: boolean }> {
   return request<{ ok: boolean }>(`/integrations/${integrationId}/github/repos/${encodeURIComponent(repoFullName)}`, {
     method: 'DELETE',
