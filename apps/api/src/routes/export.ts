@@ -65,6 +65,45 @@ export const exportRoutes: FastifyPluginAsync = async (app) => {
       .send(result.content);
   });
 
+  // GET /api/export/documents/:id/export/txt — download document as plain text
+  app.get('/documents/:id/export/txt', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const result = await exportService.toPlainText(id);
+    if (!result) {
+      reply.code(404);
+      return { error: 'Document not found' };
+    }
+
+    const filename = `${result.title.replace(/[^a-zA-Z0-9-_]/g, '_')}.txt`;
+
+    reply
+      .header('Content-Type', 'text/plain; charset=utf-8')
+      .header('Content-Disposition', `attachment; filename="${filename}"`)
+      .send(result.content);
+  });
+
+  // GET /api/export/documents/:id/export/docx — download document as DOCX
+  app.get('/documents/:id/export/docx', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const result = await exportService.toDocx(id);
+    if (!result) {
+      reply.code(404);
+      return { error: 'Document not found' };
+    }
+
+    const filename = `${result.title.replace(/[^a-zA-Z0-9-_]/g, '_')}.docx`;
+
+    reply
+      .header(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      )
+      .header('Content-Disposition', `attachment; filename="${filename}"`)
+      .send(result.buffer);
+  });
+
   // POST /api/documents/:id/export/jupyter — download document as Jupyter notebook
   app.post('/documents/:id/export/jupyter', async (request, reply) => {
     const { id } = request.params as { id: string };

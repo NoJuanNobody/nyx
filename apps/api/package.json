@@ -25,6 +25,7 @@
     "@google/genai": "^1.46.0",
     "@nyx/shared": "workspace:*",
     "archiver": "^7.0.1",
+    "docx": "^9.6.1",
     "dotenv": "^16",
     "drizzle-orm": "^0.38",
     "fastify": "^5",

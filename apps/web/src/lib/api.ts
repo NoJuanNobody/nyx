@@ -1641,6 +1641,96 @@ export function getCreditCosts(): Promise<Record<string, number>> {
   return request<Record<string, number>>('/credits/costs');
 }
 
+// ── Export: Plain Text ─────────────────────────────────────────────
+
+export async function exportPlainText(documentId: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  const token = await resolveToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(
+    `${BASE}/export/documents/${encodeURIComponent(documentId)}/export/txt`,
+    { headers },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Failed to export plain text: ${body || res.statusText}`);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'document.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Export: DOCX ───────────────────────────────────────────────────
+
+export async function exportDocx(documentId: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  const token = await resolveToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(
+    `${BASE}/export/documents/${encodeURIComponent(documentId)}/export/docx`,
+    { headers },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Failed to export DOCX: ${body || res.statusText}`);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'document.docx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Export: PDF ────────────────────────────────────────────────────
+
+export async function exportPdf(documentId: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  const token = await resolveToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(
+    `${BASE}/export/documents/${encodeURIComponent(documentId)}/export/pdf`,
+    { headers },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Failed to export PDF: ${body || res.statusText}`);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'document.pdf';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 // ── Export: Jupyter Notebook ────────────────────────────────────────
 
 export async function exportJupyterNotebook(documentId: string): Promise<void> {
