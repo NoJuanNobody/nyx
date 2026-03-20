@@ -95,6 +95,56 @@ export const podcastRoutes: FastifyPluginAsync = async (app) => {
     return reply.send(audioBuffer);
   });
 
+  // POST /api/podcast/radio-show — generate a radio show from multiple documents
+  app.post('/podcast/radio-show', async (request, reply) => {
+    const { documentIds, teamId, showName } = request.body as {
+      documentIds?: string[];
+      teamId?: string;
+      showName?: string;
+    };
+
+    if (!teamId) {
+      reply.code(400);
+      return { error: 'teamId is required' };
+    }
+
+    if (!documentIds || !Array.isArray(documentIds) || documentIds.length < 2) {
+      reply.code(400);
+      return { error: 'documentIds must be an array with at least 2 documents' };
+    }
+
+    const docs = await db
+      .select({ id: documents.id, title: documents.title, content: documents.content })
+      .from(documents)
+      .where(inArray(documents.id, documentIds));
+
+    if (docs.length === 0) {
+      reply.code(404);
+      return { error: 'No documents found for the given IDs' };
+    }
+
+    const segments = docs.map((d) => ({
+      title: d.title ?? 'Untitled',
+      content: d.content ?? '',
+    }));
+
+    const result = await aiService.generateRadioShowScript(segments, showName);
+
+    const script: PodcastScript = {
+      id: `podcast-${nextId++}`,
+      teamId,
+      title: result.title,
+      documentIds,
+      script: result.script,
+      qualityScore: result.qualityScore,
+      suggestions: result.suggestions,
+      createdAt: new Date().toISOString(),
+    };
+
+    podcastScripts.push(script);
+    return script;
+  });
+
   // GET /api/podcast/scripts?teamId=X — list generated podcast scripts
   app.get('/podcast/scripts', async (request, reply) => {
     const { teamId } = request.query as { teamId?: string };
