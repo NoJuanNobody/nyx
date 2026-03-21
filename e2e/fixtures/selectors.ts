@@ -17,6 +17,7 @@ export const SEL = {
     newDocButton: 'button[title="New document"]',
     newFolderButton: 'button[title="New folder"]',
     mobileToggle: 'button[aria-label="Toggle sidebar"]',
+    adminDocsLink: '[data-testid="admin-documents-link"]',
   },
 
   // ── File Tree ────────────────────────────────────────
