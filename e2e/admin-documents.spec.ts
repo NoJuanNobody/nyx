@@ -62,9 +62,10 @@ test.describe('Admin Documents', () => {
     await expect(page.locator('text=API Specification')).toBeVisible();
     await expect(page.locator('text=Second Team Doc')).toBeVisible();
 
-    // Team badges should show both teams
-    await expect(page.locator('text=Default Team').first()).toBeVisible();
-    await expect(page.locator('text=Second Team').first()).toBeVisible();
+    // Team badges should show both teams (scoped to table to avoid hidden <option> matches)
+    const table = page.locator('[data-testid="admin-docs-table"]');
+    await expect(table.locator('text=Default Team').first()).toBeVisible();
+    await expect(table.locator('text=Second Team').first()).toBeVisible();
   });
 
   test('admin can filter documents by team', async ({ authenticatedPage: page }) => {
