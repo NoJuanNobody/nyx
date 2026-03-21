@@ -83,9 +83,9 @@ describe('videoGenerationService', () => {
   });
 
   describe('generateBatchZip', () => {
-    it('returns a Buffer', async () => {
-      const buffer = await videoGenerationService.generateBatchZip([]);
-      expect(Buffer.isBuffer(buffer)).toBe(true);
+    it('returns null when no downloadable videos are found', async () => {
+      const result = await videoGenerationService.generateBatchZip([]);
+      expect(result).toBeNull();
     });
   });
 });
