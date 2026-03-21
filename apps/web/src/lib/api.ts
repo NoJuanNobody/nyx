@@ -1,4 +1,4 @@
-import type { Document, DocumentVersion, DocumentTemplate } from '@nyx/shared';
+import type { Document, DocumentVersion, DocumentTemplate, AdminDocumentsResponse } from '@nyx/shared';
 import type { DocumentStage } from './stages';
 
 const BASE = '/api';
@@ -68,6 +68,10 @@ export class GitHubTokenExpiredError extends Error {
 
 export function fetchDocuments(teamId: string): Promise<Document[]> {
   return request<Document[]>(`/documents?teamId=${encodeURIComponent(teamId)}`);
+}
+
+export function fetchAdminDocuments(): Promise<AdminDocumentsResponse> {
+  return request<AdminDocumentsResponse>('/admin/documents');
 }
 
 export function fetchRecentDocuments(teamId: string, limit = 5): Promise<Document[]> {

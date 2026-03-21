@@ -64,3 +64,24 @@ export const DocumentTemplateSchema = z.object({
 });
 
 export type DocumentTemplate = z.infer<typeof DocumentTemplateSchema>;
+
+export const AdminDocumentListItemSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  status: DocumentStatus,
+  stage: z.string().nullable(),
+  path: z.string(),
+  teamId: z.string().uuid(),
+  teamName: z.string(),
+  createdById: z.string().uuid(),
+  createdByName: z.string(),
+  createdAt: z.coerce.string(),
+  updatedAt: z.coerce.string(),
+});
+
+export type AdminDocumentListItem = z.infer<typeof AdminDocumentListItemSchema>;
+
+export interface AdminDocumentsResponse {
+  documents: AdminDocumentListItem[];
+  teams: Array<{ teamId: string; role: string; teamName: string }>;
+}
