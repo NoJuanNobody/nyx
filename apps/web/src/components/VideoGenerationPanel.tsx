@@ -163,7 +163,7 @@ export function VideoGenerationPanel({ documentId }: VideoGenerationPanelProps) 
                       </span>
                     )}
                   </div>
-                  {video.videoUrl && video.status === 'completed' && (
+                  {video.status === 'completed' && video.videoUrl && !video.videoUrl.includes('placeholder.test') ? (
                     <div className="mt-2">
                       <video
                         controls
@@ -173,7 +173,11 @@ export function VideoGenerationPanel({ documentId }: VideoGenerationPanelProps) 
                         Your browser does not support the video tag.
                       </video>
                     </div>
-                  )}
+                  ) : video.status === 'completed' && (!video.videoUrl || video.videoUrl.includes('placeholder.test')) ? (
+                    <p className="mt-1 text-[10px] text-amber-600">
+                      No video file — generated in stub mode (no API key configured)
+                    </p>
+                  ) : null}
                 </div>
               </div>
             ))}

@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { existsSync } from 'fs';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import archiver from 'archiver';
@@ -85,13 +86,27 @@ async function generateInBackground(
       const generatedVideo = operation.response.generatedVideos[0];
 
       if (generatedVideo.video?.uri) {
-        // Store the Google-hosted video URI directly (with API key for auth)
+        // Download and store the video locally so batch download works
         const downloadUrl = new URL(generatedVideo.video.uri);
         downloadUrl.searchParams.set('key', config.GOOGLE_AI_API_KEY!);
 
+        let videoUrl = downloadUrl.toString();
+        try {
+          await mkdir(VIDEO_OUTPUT_DIR, { recursive: true });
+          const res = await fetch(downloadUrl.toString());
+          if (res.ok) {
+            const buffer = Buffer.from(await res.arrayBuffer());
+            const fileName = `${id}.mp4`;
+            await writeFile(join(VIDEO_OUTPUT_DIR, fileName), buffer);
+            videoUrl = `/api/video/file/${fileName}`;
+          }
+        } catch {
+          // Fall back to remote URL if local save fails
+        }
+
         await db.update(generatedVideos).set({
           status: 'completed',
-          videoUrl: downloadUrl.toString(),
+          videoUrl,
         }).where(eq(generatedVideos.id, id));
 
         console.log(`[VideoGen] Video ${id} completed`);
@@ -158,28 +173,45 @@ export const videoGenerationService = {
     return rows.map(toGeneratedVideo);
   },
 
-  async generateBatchZip(videoIds: string[]): Promise<Buffer> {
-    return new Promise<Buffer>(async (resolve, reject) => {
+  async generateBatchZip(videoIds: string[]): Promise<Buffer | null> {
+    let included = 0;
+
+    return new Promise<Buffer | null>(async (resolve, reject) => {
       const archive = archiver('zip', { zlib: { level: 9 } });
       const chunks: Buffer[] = [];
 
       archive.on('data', (chunk: Buffer) => chunks.push(chunk));
-      archive.on('end', () => resolve(Buffer.concat(chunks)));
+      archive.on('end', () => resolve(included > 0 ? Buffer.concat(chunks) : null));
       archive.on('error', (err: Error) => reject(err));
 
       for (const videoId of videoIds) {
         const [video] = await db.select().from(generatedVideos).where(eq(generatedVideos.id, videoId));
-        if (video) {
-          if (video.videoUrl?.startsWith('/api/video/file/')) {
-            const fileName = video.videoUrl.replace('/api/video/file/', '');
-            const filePath = join(VIDEO_OUTPUT_DIR, fileName);
-            archive.file(filePath, { name: fileName });
-          } else {
-            const safeName = video.prompt.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60);
-            archive.append(
-              `Video: ${video.prompt}\nID: ${video.id}\nDuration: ${video.duration}s\nStatus: ${video.status}`,
-              { name: `${safeName}.txt` },
-            );
+        if (!video) continue;
+
+        const safeName = video.prompt.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60);
+
+        // Skip stub/placeholder videos — no real file exists
+        if (video.videoUrl?.includes('placeholder.test')) continue;
+
+        // Check for local file: either from videoUrl or by ID convention
+        const localFileName = video.videoUrl?.startsWith('/api/video/file/')
+          ? video.videoUrl.replace('/api/video/file/', '')
+          : `${video.id}.mp4`;
+        const localFilePath = join(VIDEO_OUTPUT_DIR, localFileName);
+
+        if (existsSync(localFilePath)) {
+          archive.file(localFilePath, { name: `${safeName}.mp4` });
+          included++;
+        } else if (video.videoUrl && video.status === 'completed') {
+          try {
+            const res = await fetch(video.videoUrl);
+            if (res.ok) {
+              const buffer = Buffer.from(await res.arrayBuffer());
+              archive.append(buffer, { name: `${safeName}.mp4` });
+              included++;
+            }
+          } catch {
+            // Skip unfetchable videos
           }
         }
       }
