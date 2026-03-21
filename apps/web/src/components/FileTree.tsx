@@ -639,6 +639,7 @@ export function FileTree() {
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [bulkApproving, setBulkApproving] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
   const seeding = useUIStore((s) => s.seeding);
   const activeLifecycleSlug = useUIStore((s) => s.activeLifecycleSlug);
   const activeLifecycle = getLifecycle(activeLifecycleSlug);
@@ -878,6 +879,7 @@ export function FileTree() {
     setFolderSuggestionsLoading(true);
     setApprovedIds(new Set());
     setDismissedIds(new Set());
+    setApproveError(null);
     try {
       const suggestions = await generateFolderTicketSuggestions(teamId, folderPath);
       setFolderSuggestions(suggestions);
@@ -891,11 +893,18 @@ export function FileTree() {
 
   const handleApproveSuggestion = async (suggestionId: string) => {
     setApprovingIds((prev) => new Set(prev).add(suggestionId));
+    setApproveError(null);
     try {
-      await bulkApproveSuggestions([suggestionId], 'github');
-      setApprovedIds((prev) => new Set(prev).add(suggestionId));
+      const results = await bulkApproveSuggestions([suggestionId], 'github');
+      const result = results?.[0];
+      if (result && result.success) {
+        setApprovedIds((prev) => new Set(prev).add(suggestionId));
+      } else {
+        setApproveError(result?.error ?? 'Failed to create ticket. Check your GitHub integration.');
+      }
     } catch (err) {
-      console.error('Failed to approve suggestion:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to create ticket';
+      setApproveError(msg);
     } finally {
       setApprovingIds((prev) => {
         const next = new Set(prev);
@@ -921,15 +930,24 @@ export function FileTree() {
       .map((s) => s.id);
     if (pendingIds.length === 0) return;
     setBulkApproving(true);
+    setApproveError(null);
     try {
-      await bulkApproveSuggestions(pendingIds, 'github');
-      setApprovedIds((prev) => {
-        const next = new Set(prev);
-        pendingIds.forEach((id) => next.add(id));
-        return next;
-      });
+      const results = await bulkApproveSuggestions(pendingIds, 'github');
+      const succeeded = results?.filter((r) => r.success).map((r) => r.suggestionId) ?? [];
+      const failed = results?.filter((r) => !r.success) ?? [];
+      if (succeeded.length > 0) {
+        setApprovedIds((prev) => {
+          const next = new Set(prev);
+          succeeded.forEach((id) => next.add(id));
+          return next;
+        });
+      }
+      if (failed.length > 0) {
+        setApproveError(`${failed.length} ticket(s) failed: ${failed[0].error ?? 'Check your GitHub integration.'}`);
+      }
     } catch (err) {
-      console.error('Failed to bulk approve:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to create tickets';
+      setApproveError(msg);
     } finally {
       setBulkApproving(false);
     }
@@ -1395,6 +1413,11 @@ export function FileTree() {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+            {approveError && (
+              <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2">
+                <p className="text-[10px] text-red-700">{approveError}</p>
+              </div>
+            )}
             {folderSuggestions.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-4">
                 No suggestions generated.
