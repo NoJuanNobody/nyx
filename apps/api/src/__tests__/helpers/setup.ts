@@ -65,6 +65,7 @@ vi.mock('../../lib/config.js', () => ({
     CLERK_SECRET_KEY: 'test-clerk-secret',
     CLERK_PUBLISHABLE_KEY: 'test-clerk-pub',
     WEBHOOK_BASE_URL: 'https://test.example.com',
+    BYOK_ENCRYPTION_SECRET: 'test-byok-encryption-secret-32chars!',
   },
 }));
 

@@ -8,6 +8,8 @@ import {
   updateProfile, deleteAccount,
   fetchPlans, fetchCurrentSubscription, createCheckoutSession, createPortalSession,
   type SubscriptionPlan, type Subscription,
+  fetchTeamAiKeyStatus, addTeamAiKey, rotateTeamAiKey, removeTeamAiKey,
+  fetchTeamAiUsage, type TeamAiKeyStatus, type AiUsageSummary,
 } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
 import { RepoPickerModal } from '../components/RepoPickerModal';
@@ -16,7 +18,7 @@ import { NotificationPreferences } from '../components/NotificationPreferences';
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type SettingsTab = 'team' | 'integrations' | 'api-keys' | 'notifications' | 'billing' | 'account';
+type SettingsTab = 'team' | 'integrations' | 'api-keys' | 'ai-config' | 'notifications' | 'billing' | 'account';
 
 interface TeamMember {
   id: string;
@@ -74,6 +76,15 @@ const TABS: { key: SettingsTab; label: string; icon: ReactElement }[] = [
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+      </svg>
+    ),
+  },
+  {
+    key: 'ai-config',
+    label: 'AI Configuration',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
       </svg>
     ),
   },
@@ -1043,6 +1054,298 @@ const PLAN_BADGE_COLORS: Record<string, string> = {
   enterprise: 'bg-amber-100 text-amber-700',
 };
 
+// ── AI Configuration Panel (BYOK) ─────────────────────────────────────
+
+function AiConfigPanel() {
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  const teamsQuery = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
+  const teamId = teamsQuery.data?.[0]?.id;
+  const userRole = teamsQuery.data?.[0]?.role;
+  const isAdmin = userRole === 'admin' || userRole === 'owner';
+
+  const keyStatusQuery = useQuery({
+    queryKey: ['ai-key-status', teamId],
+    queryFn: () => fetchTeamAiKeyStatus(teamId!),
+    enabled: !!teamId,
+  });
+
+  const usageQuery = useQuery({
+    queryKey: ['ai-usage', teamId],
+    queryFn: () => fetchTeamAiUsage(teamId!),
+    enabled: !!teamId,
+  });
+
+  const [showModal, setShowModal] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
+  const [modalProvider, setModalProvider] = useState('anthropic');
+  const [modalApiKey, setModalApiKey] = useState('');
+  const [modalError, setModalError] = useState('');
+  const [modalLoading, setModalLoading] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+
+  const handleAddOrRotate = useCallback(async () => {
+    if (!teamId || !modalApiKey.trim()) return;
+    setModalLoading(true);
+    setModalError('');
+    try {
+      if (isRotating) {
+        await rotateTeamAiKey(teamId, { apiKey: modalApiKey.trim() });
+      } else {
+        await addTeamAiKey(teamId, { provider: modalProvider, apiKey: modalApiKey.trim() });
+      }
+      queryClient.invalidateQueries({ queryKey: ['ai-key-status', teamId] });
+      setShowModal(false);
+      setModalApiKey('');
+      setIsRotating(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save key';
+      setModalError(message);
+    } finally {
+      setModalLoading(false);
+    }
+  }, [teamId, modalApiKey, modalProvider, isRotating, queryClient]);
+
+  const handleRemove = useCallback(async () => {
+    if (!teamId) return;
+    try {
+      await removeTeamAiKey(teamId);
+      queryClient.invalidateQueries({ queryKey: ['ai-key-status', teamId] });
+      setShowRemoveConfirm(false);
+    } catch {
+      // Ignore errors for now
+    }
+  }, [teamId, queryClient]);
+
+  const keyStatus = keyStatusQuery.data;
+  const usage = usageQuery.data;
+
+  const formatNumber = (n: number) => n.toLocaleString();
+
+  return (
+    <div data-testid="ai-config-panel" className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900">AI Configuration</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Manage your team's AI provider key and monitor usage.
+        </p>
+      </div>
+
+      {/* Key Status Card */}
+      <div className="rounded-lg border border-slate-200 bg-white p-5">
+        <h3 className="text-sm font-medium text-slate-700 mb-3">API Key Status</h3>
+        {keyStatus?.configured ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                Custom key active
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-slate-500">Provider:</span>{' '}
+                <span className="font-medium text-slate-900 capitalize">{keyStatus.provider}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Key:</span>{' '}
+                <span className="font-mono text-slate-900">****...{keyStatus.keySuffix}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Added:</span>{' '}
+                <span className="text-slate-900">
+                  {keyStatus.createdAt ? new Date(keyStatus.createdAt).toLocaleDateString() : '-'}
+                </span>
+              </div>
+              {keyStatus.rotatedAt && (
+                <div>
+                  <span className="text-slate-500">Last rotated:</span>{' '}
+                  <span className="text-slate-900">
+                    {new Date(keyStatus.rotatedAt).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
+            </div>
+            {isAdmin && (
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setIsRotating(true); setShowModal(true); setModalApiKey(''); setModalError(''); }}
+                  className="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                  data-testid="rotate-key-btn"
+                >
+                  Rotate Key
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowRemoveConfirm(true)}
+                  className="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-red-600 ring-1 ring-inset ring-red-200 hover:bg-red-50"
+                  data-testid="remove-key-btn"
+                >
+                  Remove Key
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-500">
+              Using SyncDocs-managed AI. Your team's AI requests use the platform's shared key.
+              Usage counts against your plan's AI quota.
+            </p>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => { setIsRotating(false); setShowModal(true); setModalApiKey(''); setModalError(''); }}
+                className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                data-testid="add-key-btn"
+              >
+                Add Your Own API Key
+              </button>
+            )}
+            {!isAdmin && (
+              <p className="text-xs text-slate-400 italic">
+                Only admins can manage AI keys.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Usage Summary */}
+      {usage && (
+        <div className="rounded-lg border border-slate-200 bg-white p-5">
+          <h3 className="text-sm font-medium text-slate-700 mb-3">Usage This Period (last 30 days)</h3>
+          <div className="grid grid-cols-3 gap-4 text-sm mb-4">
+            <div>
+              <p className="text-slate-500">Input tokens</p>
+              <p className="text-lg font-semibold text-slate-900">{formatNumber(usage.totalInputTokens)}</p>
+            </div>
+            <div>
+              <p className="text-slate-500">Output tokens</p>
+              <p className="text-lg font-semibold text-slate-900">{formatNumber(usage.totalOutputTokens)}</p>
+            </div>
+            <div>
+              <p className="text-slate-500">Key source</p>
+              <p className="text-lg font-semibold text-slate-900 uppercase">{usage.keySource ?? 'syncdocs'}</p>
+            </div>
+          </div>
+          {usage.byOperation.length > 0 && (
+            <div>
+              <h4 className="text-xs font-medium text-slate-500 uppercase mb-2">Operation Breakdown</h4>
+              <div className="divide-y divide-slate-100">
+                {usage.byOperation.map((op) => (
+                  <div key={op.operation} className="flex items-center justify-between py-2 text-sm">
+                    <span className="text-slate-700">{op.operation.replace(/_/g, ' ')}</span>
+                    <span className="font-mono text-slate-500">
+                      {formatNumber(op.inputTokens + op.outputTokens)} tokens
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add/Rotate Key Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" data-testid="ai-key-modal">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-900">
+                {isRotating ? 'Rotate API Key' : 'Add API Key'}
+              </h3>
+              <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {!isRotating && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Provider</label>
+                <select
+                  value={modalProvider}
+                  onChange={(e) => setModalProvider(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  data-testid="provider-select"
+                >
+                  <option value="anthropic">Anthropic</option>
+                  <option value="openai">OpenAI</option>
+                </select>
+              </div>
+            )}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-1">API Key</label>
+              <input
+                type="password"
+                value={modalApiKey}
+                onChange={(e) => setModalApiKey(e.target.value)}
+                placeholder="Paste your full API key"
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono"
+                data-testid="api-key-input"
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                It will be encrypted and never shown again.
+              </p>
+            </div>
+            {modalError && (
+              <p className="mb-3 text-sm text-red-600" data-testid="modal-error">{modalError}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddOrRotate}
+                disabled={modalLoading || !modalApiKey.trim()}
+                className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                data-testid="validate-save-btn"
+              >
+                {modalLoading ? 'Saving...' : 'Validate & Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Confirmation Dialog */}
+      {showRemoveConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" data-testid="remove-confirm-dialog">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Remove API Key</h3>
+            <p className="text-sm text-slate-500 mb-4">
+              Are you sure? Your team will fall back to SyncDocs-managed AI.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowRemoveConfirm(false)}
+                className="rounded-md bg-white px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRemove}
+                className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                data-testid="confirm-remove-btn"
+              >
+                Remove Key
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BillingPanel() {
   const { user } = useAuthStore();
   const teamsQuery = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
@@ -1271,6 +1574,7 @@ export function Settings() {
           {activeTab === 'team' && <TeamPanel />}
           {activeTab === 'integrations' && <IntegrationsPanel />}
           {activeTab === 'api-keys' && <ApiKeysPanel />}
+          {activeTab === 'ai-config' && <AiConfigPanel />}
           {activeTab === 'notifications' && <NotificationPreferences />}
           {activeTab === 'billing' && <BillingPanel />}
           {activeTab === 'account' && <AccountPanel />}

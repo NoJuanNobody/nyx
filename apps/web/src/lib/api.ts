@@ -1783,3 +1783,56 @@ export async function exportJupyterNotebook(documentId: string): Promise<void> {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// ── BYOK (Team AI Keys) ─────────────────────────────────────────────
+
+export interface TeamAiKeyStatus {
+  configured: boolean;
+  provider?: string;
+  keySuffix?: string;
+  isActive?: boolean;
+  createdAt?: string;
+  rotatedAt?: string | null;
+}
+
+export interface AiUsageSummary {
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  keySource: string | null;
+  byOperation: Array<{ operation: string; inputTokens: number; outputTokens: number }>;
+}
+
+export async function fetchTeamAiKeyStatus(teamId: string): Promise<TeamAiKeyStatus> {
+  return request<TeamAiKeyStatus>(`${BASE}/teams/${teamId}/ai-key`);
+}
+
+export async function addTeamAiKey(
+  teamId: string,
+  body: { provider: string; apiKey: string },
+): Promise<{ provider: string; keySuffix: string; isActive: boolean; createdAt: string }> {
+  return request(`${BASE}/teams/${teamId}/ai-key`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function rotateTeamAiKey(
+  teamId: string,
+  body: { apiKey: string },
+): Promise<{ provider: string; keySuffix: string; isActive: boolean; rotatedAt: string }> {
+  return request(`${BASE}/teams/${teamId}/ai-key`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function removeTeamAiKey(teamId: string): Promise<void> {
+  return request(`${BASE}/teams/${teamId}/ai-key`, { method: 'DELETE' });
+}
+
+export async function fetchTeamAiUsage(
+  teamId: string,
+  period = '30d',
+): Promise<AiUsageSummary> {
+  return request<AiUsageSummary>(`${BASE}/teams/${teamId}/ai-usage?period=${period}`);
+}

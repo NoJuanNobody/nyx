@@ -40,6 +40,7 @@ const envSchema = z.object({
   GOOGLE_AI_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   SUPER_ADMIN_EMAILS: z.string().optional(),
+  BYOK_ENCRYPTION_SECRET: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production' && !data.GITHUB_WEBHOOK_SECRET) {
     ctx.addIssue({
