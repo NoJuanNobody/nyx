@@ -25,6 +25,7 @@ export const mockDb = {
   insert: vi.fn(() => chainable()),
   update: vi.fn(() => chainable()),
   delete: vi.fn(() => chainable()),
+  execute: vi.fn().mockResolvedValue([{ '?column?': 1 }]),
   query: {},
 };
 
@@ -65,6 +66,8 @@ vi.mock('../../lib/config.js', () => ({
     CLERK_SECRET_KEY: 'test-clerk-secret',
     CLERK_PUBLISHABLE_KEY: 'test-clerk-pub',
     WEBHOOK_BASE_URL: 'https://test.example.com',
+    HEALTH_PROBE_TIMEOUT_MS: 3000,
+    HEALTH_LOG_FAILURES: false,
   },
 }));
 
