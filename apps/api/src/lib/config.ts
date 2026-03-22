@@ -47,6 +47,9 @@ const envSchema = z.object({
     .default('true')
     .transform((v) => v === 'true'),
   BYOK_ENCRYPTION_SECRET: z.string().optional(),
+  ATLASSIAN_CLIENT_ID: z.string().optional(),
+  ATLASSIAN_CLIENT_SECRET: z.string().optional(),
+  ENCRYPTION_SECRET: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production' && !data.GITHUB_WEBHOOK_SECRET) {
     ctx.addIssue({
