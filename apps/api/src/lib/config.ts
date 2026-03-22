@@ -46,6 +46,7 @@ const envSchema = z.object({
     .string()
     .default('true')
     .transform((v) => v === 'true'),
+  BYOK_ENCRYPTION_SECRET: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production' && !data.GITHUB_WEBHOOK_SECRET) {
     ctx.addIssue({

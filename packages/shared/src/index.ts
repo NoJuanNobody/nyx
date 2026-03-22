@@ -7,3 +7,4 @@ export * from './types/voice.js';
 export * from './types/meeting-intelligence.js';
 export * from './types/health.js';
 export * from './types/notification.js';
+export * from './types/byok.js';

@@ -68,6 +68,7 @@ vi.mock('../../lib/config.js', () => ({
     WEBHOOK_BASE_URL: 'https://test.example.com',
     HEALTH_PROBE_TIMEOUT_MS: 3000,
     HEALTH_LOG_FAILURES: false,
+    BYOK_ENCRYPTION_SECRET: 'test-byok-encryption-secret-32chars!',
   },
 }));
 
