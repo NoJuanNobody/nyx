@@ -876,6 +876,20 @@ export function disconnectRepo(integrationId: string, repoFullName: string): Pro
   });
 }
 
+// ── Onboarding / Repo Scan ──────────────────────────────────────────
+
+export interface ScanResult {
+  files: Array<{ path: string; content: string }>;
+  suggestedDocs: string;
+}
+
+export function scanRepository(owner: string, repo: string, teamId?: string): Promise<ScanResult> {
+  return request<ScanResult>('/onboarding/scan', {
+    method: 'POST',
+    body: JSON.stringify({ owner, repo, teamId }),
+  });
+}
+
 // ── User Profile ────────────────────────────────────────────────────
 
 export function updateProfile(data: { name?: string; email?: string }): Promise<{ id: string; name: string; email: string }> {
