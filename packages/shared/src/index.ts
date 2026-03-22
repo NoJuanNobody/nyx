@@ -5,3 +5,4 @@ export * from './types/ticket.js';
 export * from './types/integration.js';
 export * from './types/voice.js';
 export * from './types/meeting-intelligence.js';
+export * from './types/notification.js';

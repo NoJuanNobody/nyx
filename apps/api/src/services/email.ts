@@ -20,7 +20,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Nyx <noreply@nyx.dev>',
+        from: config.EMAIL_FROM || 'Nyx <noreply@nyx.dev>',
         to: options.to,
         subject: options.subject,
         html: options.html,

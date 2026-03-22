@@ -12,8 +12,14 @@ const EVENT_TYPES: { key: string; label: string; description: string }[] = [
   { key: 'drift.detected', label: 'Drift Detected', description: 'When code drifts from its linked spec.' },
   { key: 'ticket.created', label: 'Ticket Created', description: 'When a new ticket is created from a spec.' },
   { key: 'ticket.updated', label: 'Ticket Updated', description: 'When a linked ticket status changes.' },
-  { key: 'team.invite', label: 'Team Invitation', description: 'When you are invited to a team.' },
+  { key: 'change_proposal.submitted', label: 'Change Proposal Submitted', description: 'When a change proposal is submitted for review.' },
+  { key: 'change_proposal.approved', label: 'Change Proposal Approved', description: 'When your change proposal is approved.' },
+  { key: 'change_proposal.rejected', label: 'Change Proposal Rejected', description: 'When your change proposal is rejected.' },
+  { key: 'approval.requested', label: 'Approval Requested', description: 'When a review is requested on a doc branch.' },
   { key: 'document.shared', label: 'Document Shared', description: 'When a document is shared with you.' },
+  { key: 'team.invite', label: 'Team Invitation', description: 'When you are invited to a team.' },
+  { key: 'snapshot.created', label: 'Snapshot Published', description: 'When a named product snapshot is published.' },
+  { key: 'comment.mention', label: 'Comment Mention', description: 'When you are mentioned in a document comment.' },
 ];
 
 const EMAIL_MODES: { value: NotificationPreference['emailMode']; label: string }[] = [
