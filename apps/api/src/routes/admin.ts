@@ -54,7 +54,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
       allTeams = (await db
         .select({ teamId: teams.id, teamName: teams.name })
         .from(teams)
-      ).map((t) => ({ teamId: t.teamId, role: 'super_admin' as const, teamName: t.teamName }));
+      ).map((t) => ({ teamId: t.teamId, role: 'owner' as const, teamName: t.teamName }));
     }
 
     const teamIds = allTeams.map((t) => t.teamId);
