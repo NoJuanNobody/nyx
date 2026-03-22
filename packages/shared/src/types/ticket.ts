@@ -20,3 +20,17 @@ export const TicketSchema = z.object({
 });
 
 export type Ticket = z.infer<typeof TicketSchema>;
+
+// ── Claude Action Insights ────────────────────────────
+
+export const ClaudeInsightSchema = z.object({
+  title: z.string(),
+  summary: z.array(z.string()).max(10),
+  filesChanged: z.array(z.string()).max(20),
+  commentId: z.number(),
+  commentUrl: z.string(),
+  commentedAt: z.string(),
+  fetchedAt: z.string(),
+});
+
+export type ClaudeInsight = z.infer<typeof ClaudeInsightSchema>;
