@@ -85,6 +85,11 @@ export const videoGenerationRoutes: FastifyPluginAsync = async (app) => {
 
     const zipBuffer = await videoGenerationService.generateBatchZip(videoIds);
 
+    if (!zipBuffer) {
+      reply.code(404);
+      return { error: 'No downloadable videos found. Videos generated without an API key cannot be downloaded.' };
+    }
+
     reply
       .header('Content-Type', 'application/zip')
       .header('Content-Disposition', 'attachment; filename="nyx-videos.zip"');
