@@ -11,3 +11,4 @@ test-results/
 build.log
 .claude/worktrees/
 .vercel/
+generated-videos/

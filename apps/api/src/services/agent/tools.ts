@@ -120,6 +120,18 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
       required: ['document_id'],
     },
   },
+
+  web_search: {
+    name: 'web_search',
+    description: 'Search the web for information. Returns search results with titles, URLs, and snippets. Useful for finding API references, library documentation, technical articles, and general research.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'The search query' },
+      },
+      required: ['query'],
+    },
+  },
 };
 
 /**

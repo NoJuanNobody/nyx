@@ -671,6 +671,38 @@ export function FileTree() {
     staleTime: 5 * 60 * 1000, // 5 min
   });
 
+  // Sync folders from document paths — ensures folders appear even if localStorage is empty
+  useEffect(() => {
+    if (!documents) return;
+    const docPaths = new Set<string>();
+    for (const doc of documents) {
+      const p = doc.path || '/';
+      if (p !== '/') {
+        docPaths.add(p);
+        // Also add parent folders (e.g. "/a/b" → add "/a")
+        const parts = p.split('/').filter(Boolean);
+        for (let i = 1; i < parts.length; i++) {
+          docPaths.add('/' + parts.slice(0, i).join('/'));
+        }
+      }
+    }
+    if (docPaths.size === 0) return;
+    setFolders((prev) => {
+      const merged = new Set(prev);
+      let changed = false;
+      for (const p of docPaths) {
+        if (!merged.has(p)) {
+          merged.add(p);
+          changed = true;
+        }
+      }
+      if (!changed) return prev;
+      const next = [...merged];
+      saveFolders(next);
+      return next;
+    });
+  }, [documents]);
+
   // Group templates by stage for fast lookup (dynamic based on active lifecycle)
   const templatesByStage = useMemo(() => {
     const map: Record<string, DocumentTemplate[]> = {};
