@@ -1783,3 +1783,96 @@ export async function exportJupyterNotebook(documentId: string): Promise<void> {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// ── Atlassian Integration ────────────────────────────────────────────
+
+export interface AtlassianConnectionStatus {
+  status: 'connected' | 'token_expired' | 'disconnected' | 'error';
+  connection: {
+    id: string;
+    cloudId: string;
+    siteUrl: string;
+    scopes: string[];
+    status: string;
+    preferences: Record<string, unknown>;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+}
+
+export function fetchAtlassianStatus(): Promise<AtlassianConnectionStatus> {
+  return request<AtlassianConnectionStatus>('/integrations/atlassian/status');
+}
+
+export function disconnectAtlassian(): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>('/integrations/atlassian/connection', {
+    method: 'DELETE',
+  });
+}
+
+export interface JiraProjectItem {
+  id: string;
+  key: string;
+  name: string;
+  self: string;
+}
+
+export function fetchJiraProjects(): Promise<{ projects: JiraProjectItem[] }> {
+  return request<{ projects: JiraProjectItem[] }>('/integrations/atlassian/jira/projects');
+}
+
+export function createJiraIssue(payload: {
+  projectKey: string;
+  summary: string;
+  description: string;
+  issueType?: string;
+  labels?: string[];
+  specUrl?: string;
+}): Promise<{ issue: { id: string; key: string; self: string } }> {
+  return request<{ issue: { id: string; key: string; self: string } }>(
+    '/integrations/atlassian/jira/issues',
+    { method: 'POST', body: JSON.stringify(payload) },
+  );
+}
+
+export interface ConfluenceSpaceItem {
+  id: string;
+  key: string;
+  name: string;
+  type: string;
+}
+
+export function fetchConfluenceSpaces(): Promise<{ spaces: ConfluenceSpaceItem[] }> {
+  return request<{ spaces: ConfluenceSpaceItem[] }>('/integrations/atlassian/confluence/spaces');
+}
+
+export function exportToConfluence(payload: {
+  spaceId: string;
+  title: string;
+  content: string;
+  parentPageId?: string;
+  existingPageId?: string;
+}): Promise<{ page: { id: string; title: string; status: string } }> {
+  return request<{ page: { id: string; title: string; status: string } }>(
+    '/integrations/atlassian/confluence/export',
+    { method: 'POST', body: JSON.stringify(payload) },
+  );
+}
+
+export function importFromConfluence(pageId: string): Promise<{
+  imported: { title: string; content: string; pageId: string; spaceId: string };
+}> {
+  return request<{
+    imported: { title: string; content: string; pageId: string; spaceId: string };
+  }>('/integrations/atlassian/confluence/import', {
+    method: 'POST',
+    body: JSON.stringify({ pageId }),
+  });
+}
+
+export function updateAtlassianPreferences(preferences: Record<string, unknown>): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>('/integrations/atlassian/preferences', {
+    method: 'PUT',
+    body: JSON.stringify(preferences),
+  });
+}

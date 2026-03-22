@@ -12,6 +12,7 @@ import {
 import { useAuthStore } from '../stores/auth.store';
 import { RepoPickerModal } from '../components/RepoPickerModal';
 import { SlackIntegration } from '../components/SlackIntegration';
+import { AtlassianIntegration } from '../components/AtlassianIntegration';
 import { NotificationPreferences } from '../components/NotificationPreferences';
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -456,7 +457,15 @@ function IntegrationsPanel() {
       window.location.href = `/api/integrations/github/connect?teamId=${currentTeamId}`;
       return;
     }
-    // Future: jira, confluence OAuth flows
+    if (provider === 'jira' || provider === 'confluence') {
+      if (!currentTeamId) {
+        setConnectError('No team selected. Please refresh the page and try again.');
+        return;
+      }
+      setConnecting(provider);
+      window.location.href = `/api/integrations/atlassian/auth?teamId=${currentTeamId}`;
+      return;
+    }
     setConnecting(provider);
     setTimeout(() => setConnecting(null), 1500);
   }, [currentTeamId]);
@@ -633,6 +642,9 @@ function IntegrationsPanel() {
           </div>
         );
       })}
+
+      {/* Atlassian integration (Jira + Confluence) */}
+      <AtlassianIntegration />
 
       {/* Slack integration */}
       <SlackIntegration />

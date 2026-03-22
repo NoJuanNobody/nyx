@@ -647,3 +647,30 @@ export const creditTransactions = pgTable('credit_transactions', {
   taskType: text('task_type'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ── Atlassian Connections ─────────────────────────────────────
+
+export const atlassianConnectionStatusEnum = pgEnum('atlassian_connection_status', [
+  'connected',
+  'token_expired',
+  'disconnected',
+  'error',
+]);
+
+export const atlassianConnections = pgTable('atlassian_connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: uuid('organization_id').references(() => teams.id, { onDelete: 'cascade' }),
+  accessToken: text('access_token').notNull(),
+  refreshToken: text('refresh_token').notNull(),
+  tokenExpiresAt: timestamp('token_expires_at', { withTimezone: true }).notNull(),
+  cloudId: text('cloud_id').notNull(),
+  siteUrl: text('site_url').notNull(),
+  scopes: text('scopes').array().notNull().default([]),
+  status: atlassianConnectionStatusEnum('status').notNull().default('connected'),
+  preferences: jsonb('preferences').notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});

@@ -60,6 +60,7 @@ import { planRoutes } from './routes/plan.js';
 import { creditRoutes } from './routes/credits.js';
 import { videoGenerationRoutes } from './routes/video-generation.js';
 import { adminRoutes } from './routes/admin.js';
+import { atlassianRoutes } from './routes/integrations/atlassian.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export function buildApp() {
@@ -132,6 +133,7 @@ export function buildApp() {
   app.register(creditRoutes, { prefix: '/api/credits' });
   app.register(videoGenerationRoutes, { prefix: '/api/video' });
   app.register(adminRoutes, { prefix: '/api/admin' });
+  app.register(atlassianRoutes, { prefix: '/api/integrations' });
 
   return app;
 }
