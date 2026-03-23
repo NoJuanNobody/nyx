@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { fetchIntegrations, fetchSyncedRepos, disconnectRepo, createGitHubRepo, GitHubTokenExpiredError, type SyncedRepo } from '../lib/api';
+import { fetchIntegrations, fetchSyncedRepos, disconnectRepo, createGitHubRepo, GitHubTokenExpiredError, type SyncedRepo, type ScanResult } from '../lib/api';
 import { GitHubReconnectBanner } from '../components/GitHubReconnectBanner';
+import { ScanRepositoryModal, ScanResultView } from '../components/ScanRepositoryModal';
 import { useAuthStore } from '../stores/auth.store';
 
 function StatusBadge({ status }: { status: SyncedRepo['syncStatus'] }) {
@@ -171,6 +172,8 @@ export function Repositories() {
   const currentTeamId = useAuthStore((s) => s.currentTeamId);
   const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [scanTarget, setScanTarget] = useState<{ owner: string; repo: string } | null>(null);
+  const [scanResult, setScanResult] = useState<{ owner: string; repo: string; result: ScanResult } | null>(null);
 
   const { data: rawIntegrations, isLoading: integrationsLoading } = useQuery({
     queryKey: ['integrations', currentTeamId],
@@ -336,7 +339,7 @@ export function Repositories() {
       ) : (
         <div className="rounded-lg border border-slate-200 overflow-hidden">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_100px_120px_80px_100px] gap-4 border-b border-slate-100 bg-slate-50/70 px-4 py-2.5">
+          <div className="grid grid-cols-[1fr_100px_120px_80px_140px] gap-4 border-b border-slate-100 bg-slate-50/70 px-4 py-2.5">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Repository</span>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Status</span>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Last Push</span>
@@ -349,7 +352,7 @@ export function Repositories() {
             {repos.map((repo) => (
               <li
                 key={repo.fullName}
-                className="grid grid-cols-[1fr_100px_120px_80px_100px] gap-4 items-center px-4 py-3 hover:bg-slate-50/50 transition-colors"
+                className="grid grid-cols-[1fr_100px_120px_80px_140px] gap-4 items-center px-4 py-3 hover:bg-slate-50/50 transition-colors"
               >
                 {/* Repo name */}
                 <div className="min-w-0">
@@ -385,9 +388,9 @@ export function Repositories() {
                 </div>
 
                 {/* Actions */}
-                <div className="text-right">
+                <div className="flex items-center justify-end gap-1.5">
                   {confirmDisconnect === repo.fullName ? (
-                    <div className="flex items-center justify-end gap-1">
+                    <>
                       <button
                         type="button"
                         onClick={() => handleDisconnect(repo.fullName)}
@@ -403,15 +406,25 @@ export function Repositories() {
                       >
                         No
                       </button>
-                    </div>
+                    </>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleDisconnect(repo.fullName)}
-                      className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-medium text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
-                    >
-                      Remove
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setScanTarget({ owner: repo.owner, repo: repo.name })}
+                        className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-medium text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors"
+                        data-testid={`scan-repo-${repo.fullName}`}
+                      >
+                        Scan
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDisconnect(repo.fullName)}
+                        className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-medium text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </>
                   )}
                 </div>
               </li>
@@ -428,6 +441,26 @@ export function Repositories() {
             queryClient.invalidateQueries({ queryKey: ['synced-repos'] });
             queryClient.invalidateQueries({ queryKey: ['integrations'] });
           }}
+        />
+      )}
+
+      {scanTarget && (
+        <ScanRepositoryModal
+          owner={scanTarget.owner}
+          repo={scanTarget.repo}
+          onClose={() => setScanTarget(null)}
+          onResult={(result) => {
+            setScanResult({ owner: scanTarget.owner, repo: scanTarget.repo, result });
+          }}
+        />
+      )}
+
+      {scanResult && (
+        <ScanResultView
+          owner={scanResult.owner}
+          repo={scanResult.repo}
+          result={scanResult.result}
+          onClose={() => setScanResult(null)}
         />
       )}
     </>
