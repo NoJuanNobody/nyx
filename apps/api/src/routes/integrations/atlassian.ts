@@ -195,7 +195,10 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
       const issue = await atlassianService.createJiraIssue(
         tokenData.accessToken,
         tokenData.cloudId,
-        body,
+        {
+          ...body,
+          issueType: (body.issueType as 'Task' | 'Story' | 'Bug' | 'Epic') ?? 'Task',
+        },
       );
       reply.code(201);
       return { issue };

@@ -128,36 +128,40 @@ describe('parseClaudeComment', () => {
 describe('isClaudeComment', () => {
   const { isClaudeComment } = claudeInsightsService;
 
+  function comment(login: string, type: string) {
+    return { id: 1, html_url: '', body: '', created_at: '', user: { login, type } };
+  }
+
   it('recognises github-actions[bot]', () => {
-    expect(isClaudeComment({ user: { login: 'github-actions[bot]', type: 'Bot' } })).toBe(true);
+    expect(isClaudeComment(comment('github-actions[bot]', 'Bot'))).toBe(true);
   });
 
   it('recognises claude[bot]', () => {
-    expect(isClaudeComment({ user: { login: 'claude[bot]', type: 'Bot' } })).toBe(true);
+    expect(isClaudeComment(comment('claude[bot]', 'Bot'))).toBe(true);
   });
 
   it('recognises claude-code[bot]', () => {
-    expect(isClaudeComment({ user: { login: 'claude-code[bot]', type: 'Bot' } })).toBe(true);
+    expect(isClaudeComment(comment('claude-code[bot]', 'Bot'))).toBe(true);
   });
 
   it('recognises anthropic-claude[bot]', () => {
-    expect(isClaudeComment({ user: { login: 'anthropic-claude[bot]', type: 'Bot' } })).toBe(true);
+    expect(isClaudeComment(comment('anthropic-claude[bot]', 'Bot'))).toBe(true);
   });
 
   it('recognises any bot with "claude" in login', () => {
-    expect(isClaudeComment({ user: { login: 'my-claude-helper', type: 'Bot' } })).toBe(true);
+    expect(isClaudeComment(comment('my-claude-helper', 'Bot'))).toBe(true);
   });
 
   it('rejects non-claude bot user', () => {
-    expect(isClaudeComment({ user: { login: 'dependabot[bot]', type: 'Bot' } })).toBe(false);
+    expect(isClaudeComment(comment('dependabot[bot]', 'Bot'))).toBe(false);
   });
 
   it('rejects non-bot user even with claude in name', () => {
-    expect(isClaudeComment({ user: { login: 'claude-fan', type: 'User' } })).toBe(false);
+    expect(isClaudeComment(comment('claude-fan', 'User'))).toBe(false);
   });
 
   it('handles missing user gracefully', () => {
-    expect(isClaudeComment({ user: { login: '', type: '' } })).toBe(false);
+    expect(isClaudeComment(comment('', ''))).toBe(false);
   });
 });
 
