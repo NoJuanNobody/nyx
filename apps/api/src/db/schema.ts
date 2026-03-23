@@ -623,6 +623,46 @@ export const generatedVideos = pgTable('generated_videos', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── Team AI Keys (BYOK) ──────────────────────────────
+
+export const teamAiKeys = pgTable('team_ai_keys', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id, { onDelete: 'cascade' }),
+  provider: text('provider').notNull().default('anthropic'),
+  encryptedKey: text('encrypted_key').notNull(),
+  keyIv: text('key_iv').notNull(),
+  keySuffix: text('key_suffix').notNull(),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  rotatedAt: timestamp('rotated_at', { withTimezone: true }),
+  createdBy: uuid('created_by')
+    .notNull()
+    .references(() => users.id),
+}, (table) => [
+  uniqueIndex('team_ai_keys_team_provider_idx').on(table.teamId, table.provider),
+]);
+
+// ── AI Usage Log ─────────────────────────────────────
+
+export const aiUsageLog = pgTable('ai_usage_log', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
+  provider: text('provider').notNull(),
+  model: text('model').notNull(),
+  operation: text('operation').notNull(),
+  inputTokens: integer('input_tokens').notNull(),
+  outputTokens: integer('output_tokens').notNull(),
+  keySource: text('key_source').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ── Credit Ledger ─────────────────────────────────────
 
 export const creditTransactionTypeEnum = pgEnum('credit_transaction_type', [
@@ -646,4 +686,31 @@ export const creditTransactions = pgTable('credit_transactions', {
   description: text('description').notNull(),
   taskType: text('task_type'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Atlassian Connections ─────────────────────────────────────
+
+export const atlassianConnectionStatusEnum = pgEnum('atlassian_connection_status', [
+  'connected',
+  'token_expired',
+  'disconnected',
+  'error',
+]);
+
+export const atlassianConnections = pgTable('atlassian_connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: uuid('organization_id').references(() => teams.id, { onDelete: 'cascade' }),
+  accessToken: text('access_token').notNull(),
+  refreshToken: text('refresh_token').notNull(),
+  tokenExpiresAt: timestamp('token_expires_at', { withTimezone: true }).notNull(),
+  cloudId: text('cloud_id').notNull(),
+  siteUrl: text('site_url').notNull(),
+  scopes: text('scopes').array().notNull().default([]),
+  status: atlassianConnectionStatusEnum('status').notNull().default('connected'),
+  preferences: jsonb('preferences').notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

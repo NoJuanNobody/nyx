@@ -29,6 +29,7 @@ const envSchema = z.object({
   SLACK_CLIENT_SECRET: z.string().optional(),
   SLACK_SIGNING_SECRET: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
   APP_URL: z.string().url().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_PUBLISHABLE_KEY: z.string().optional(),
@@ -40,6 +41,15 @@ const envSchema = z.object({
   GOOGLE_AI_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   SUPER_ADMIN_EMAILS: z.string().optional(),
+  HEALTH_PROBE_TIMEOUT_MS: z.coerce.number().default(3000),
+  HEALTH_LOG_FAILURES: z
+    .string()
+    .default('true')
+    .transform((v) => v === 'true'),
+  BYOK_ENCRYPTION_SECRET: z.string().optional(),
+  ATLASSIAN_CLIENT_ID: z.string().optional(),
+  ATLASSIAN_CLIENT_SECRET: z.string().optional(),
+  ENCRYPTION_SECRET: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production' && !data.GITHUB_WEBHOOK_SECRET) {
     ctx.addIssue({

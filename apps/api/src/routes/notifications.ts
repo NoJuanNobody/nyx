@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { eq, and, desc, lt, isNull, isNotNull, sql } from 'drizzle-orm';
+import { eq, and, desc, lt, isNull, isNotNull, sql, like, or } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { notifications, notificationPreferences } from '../db/schema.js';
 
@@ -32,7 +32,21 @@ export const notificationRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (query.event_type) {
-      conditions.push(eq(notifications.eventType, query.event_type));
+      if (query.event_type === 'review') {
+        // Reviews filter covers approval.* and change_proposal.* events
+        conditions.push(
+          or(
+            like(notifications.eventType, 'approval.%'),
+            like(notifications.eventType, 'change_proposal.%'),
+          )!,
+        );
+      } else if (query.event_type.includes('.')) {
+        // Exact match for fully qualified event types
+        conditions.push(eq(notifications.eventType, query.event_type));
+      } else {
+        // Prefix match for category filters (e.g., "ticket" matches "ticket.*")
+        conditions.push(like(notifications.eventType, `${query.event_type}.%`));
+      }
     }
 
     if (cursor) {

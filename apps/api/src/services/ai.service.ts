@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { eq, and } from 'drizzle-orm';
 import { config } from '../lib/config.js';
+import { decrypt } from './encryption.service.js';
 
 const MODEL = 'claude-sonnet-4-20250514';
 const MODEL_FAST = 'claude-haiku-4-5-20251001';
@@ -7,6 +9,74 @@ const MODEL_FAST = 'claude-haiku-4-5-20251001';
 const client = config.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: config.ANTHROPIC_API_KEY })
   : null;
+
+// ── BYOK client cache ────────────────────────────────────────────────
+const teamClientCache = new Map<string, { client: Anthropic; expiresAt: number }>();
+const CLIENT_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Invalidate the cached AI client for a team (e.g., on key rotation or removal).
+ */
+export function invalidateTeamClient(teamId: string): void {
+  teamClientCache.delete(teamId);
+}
+
+/**
+ * Get or create a cached Anthropic client for a team's BYOK key.
+ */
+function getOrCreateCachedClient(teamId: string, apiKey: string): Anthropic {
+  const cached = teamClientCache.get(teamId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.client;
+  }
+  const teamClient = new Anthropic({ apiKey });
+  teamClientCache.set(teamId, { client: teamClient, expiresAt: Date.now() + CLIENT_TTL_MS });
+  return teamClient;
+}
+
+/**
+ * Resolve the Anthropic client — uses team BYOK key if available, else falls back
+ * to the platform-managed key.
+ */
+async function resolveClient(teamId?: string): Promise<Anthropic> {
+  if (teamId) {
+    try {
+      // Dynamic import to avoid circular deps at module load
+      const { db } = await import('../db/index.js');
+      const { teamAiKeys } = await import('../db/schema.js');
+
+      const [teamKey] = await db
+        .select({
+          encryptedKey: teamAiKeys.encryptedKey,
+          keyIv: teamAiKeys.keyIv,
+        })
+        .from(teamAiKeys)
+        .where(
+          and(
+            eq(teamAiKeys.teamId, teamId),
+            eq(teamAiKeys.provider, 'anthropic'),
+            eq(teamAiKeys.isActive, true),
+          ),
+        )
+        .limit(1);
+
+      if (teamKey && config.BYOK_ENCRYPTION_SECRET) {
+        const decryptedKey = decrypt(
+          { ciphertext: teamKey.encryptedKey, iv: teamKey.keyIv },
+          config.BYOK_ENCRYPTION_SECRET,
+        );
+        return getOrCreateCachedClient(teamId, decryptedKey);
+      }
+    } catch {
+      // Fall through to platform key on any error
+    }
+  }
+
+  if (!client) {
+    throw new Error('No AI key available. Configure ANTHROPIC_API_KEY or add a team key.');
+  }
+  return client;
+}
 
 function requireClient(): Anthropic {
   if (!client) {

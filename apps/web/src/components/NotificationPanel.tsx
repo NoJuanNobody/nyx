@@ -7,11 +7,10 @@ import {
   markAllNotificationsRead,
 } from '../lib/api';
 
-type FilterTab = 'all' | 'unread' | 'drift' | 'tickets';
+type FilterTab = 'all' | 'unread' | 'drift' | 'tickets' | 'reviews';
 
 interface NotificationItem {
   id: string;
-  read?: boolean;
   readAt?: string | null;
   eventType?: string;
   title?: string;
@@ -47,9 +46,11 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
       case 'unread':
         return { read: false, limit: 50 };
       case 'drift':
-        return { eventType: 'drift', limit: 50 };
+        return { eventType: 'drift.detected', limit: 50 };
       case 'tickets':
         return { eventType: 'ticket', limit: 50 };
+      case 'reviews':
+        return { eventType: 'review', limit: 50 };
       default:
         return { limit: 50 };
     }
@@ -75,7 +76,7 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
   });
 
   const handleItemClick = (item: NotificationItem) => {
-    if (!item.read) {
+    if (!item.readAt) {
       markReadMutation.mutate(item.id);
     }
     // Navigate based on metadata
@@ -93,6 +94,7 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
     { key: 'unread', label: 'Unread', testId: 'filter-unread' },
     { key: 'drift', label: 'Drift', testId: 'filter-drift' },
     { key: 'tickets', label: 'Tickets', testId: 'filter-tickets' },
+    { key: 'reviews', label: 'Reviews', testId: 'filter-reviews' },
   ];
 
   const items = data?.items ?? [];
@@ -168,11 +170,11 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
             {/* Unread indicator */}
             <div
               className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                !item.read ? 'bg-blue-500' : 'bg-transparent'
+                !item.readAt ? 'bg-blue-500' : 'bg-transparent'
               }`}
             />
             <div className="min-w-0 flex-1">
-              <p className={`text-sm truncate ${!item.read ? 'font-semibold text-slate-900' : 'font-medium text-slate-600'}`}>
+              <p className={`text-sm truncate ${!item.readAt ? 'font-semibold text-slate-900' : 'font-medium text-slate-600'}`}>
                 {item.title}
               </p>
               {item.body && (
