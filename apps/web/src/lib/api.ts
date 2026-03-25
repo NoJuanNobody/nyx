@@ -1374,6 +1374,36 @@ export function purchaseCreditPack(packId: string): Promise<{ balance: number; p
   return request<{ balance: number; pack: CreditPack }>('/credits/purchase', { method: 'POST', body: JSON.stringify({ packId }) });
 }
 
+// ── Pipeline Access ─────────────────────────────────────────────────
+
+export interface OwnedPipeline {
+  id: string;
+  pipelineId: string;
+  teamId: string | null;
+  activatedAt: string;
+  creditsPaid: number;
+}
+
+export function fetchOwnedPipelines(): Promise<{ pipelines: OwnedPipeline[] }> {
+  return request<{ pipelines: OwnedPipeline[] }>('/pipelines/owned');
+}
+
+export function activatePipeline(data: {
+  pipelineId: string;
+  pipelineLabel: string;
+  creditCost: number;
+  teamId?: string;
+}): Promise<{ alreadyOwned: boolean; creditsPaid: number; balance: number }> {
+  return request<{ alreadyOwned: boolean; creditsPaid: number; balance: number }>('/pipelines/activate', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function checkPipelineAccess(pipelineId: string): Promise<{ owned: boolean }> {
+  return request<{ owned: boolean }>(`/pipelines/check/${pipelineId}`);
+}
+
 export function reviewMarketplaceListing(id: string, data: { rating: number; comment?: string }): Promise<MarketplaceReview> {
   return request<MarketplaceReview>(`/marketplace/${id}/reviews`, { method: 'POST', body: JSON.stringify(data) });
 }

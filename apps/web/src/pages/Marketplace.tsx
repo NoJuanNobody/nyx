@@ -19,6 +19,8 @@ import {
   checkSprintCapacity,
   getCreditsBalance,
   purchaseMarketplaceListing,
+  fetchOwnedPipelines,
+  activatePipeline,
   type MarketplaceListing,
   type FeatureRequest,
   type ProjectShowcase,
@@ -1158,22 +1160,23 @@ function ShowcaseTab() {
 
 // ── Pipeline Card ────────────────────────────────────────────────────
 
-function PipelineCard({ lifecycle, totalCreditCost }: { lifecycle: LifecycleResponse; totalCreditCost: number | null }) {
+function PipelineCard({ lifecycle, totalCreditCost, isOwned }: { lifecycle: LifecycleResponse; totalCreditCost: number | null; isOwned: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const { activeLifecycleSlug, setActiveLifecycleSlug } = useUIStore();
   const isActive = activeLifecycleSlug === lifecycle.slug;
   const queryClient = useQueryClient();
 
-  const deductMutation = useMutation({
+  const activateMutation = useMutation({
     mutationFn: () =>
-      deductCredits({
-        amount: totalCreditCost ?? 0,
-        taskType: 'pipeline_activation',
-        description: `Activated pipeline: ${lifecycle.label}`,
+      activatePipeline({
+        pipelineId: lifecycle.slug,
+        pipelineLabel: lifecycle.label,
+        creditCost: totalCreditCost ?? 0,
       }),
     onSuccess: () => {
       setActiveLifecycleSlug(lifecycle.slug);
       queryClient.invalidateQueries({ queryKey: ['credit-balance'] });
+      queryClient.invalidateQueries({ queryKey: ['owned-pipelines'] });
     },
   });
 
@@ -1193,11 +1196,15 @@ function PipelineCard({ lifecycle, totalCreditCost }: { lifecycle: LifecycleResp
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            {totalCreditCost != null && totalCreditCost > 0 && (
+            {isOwned ? (
+              <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                Owned
+              </span>
+            ) : totalCreditCost != null && totalCreditCost > 0 ? (
               <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
                 {totalCreditCost} credits
               </span>
-            )}
+            ) : null}
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
               {lifecycle.stages.length} stages
             </span>
@@ -1255,22 +1262,27 @@ function PipelineCard({ lifecycle, totalCreditCost }: { lifecycle: LifecycleResp
           <>
             <button
               type="button"
-              disabled={deductMutation.isPending}
+              disabled={activateMutation.isPending}
               onClick={(e) => {
                 e.stopPropagation();
-                if (totalCreditCost && totalCreditCost > 0) {
-                  deductMutation.mutate();
-                } else {
+                if (isOwned || !totalCreditCost || totalCreditCost === 0) {
+                  // Free switch for owned pipelines or free pipelines
                   setActiveLifecycleSlug(lifecycle.slug);
+                } else {
+                  activateMutation.mutate();
                 }
               }}
               className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
-              {deductMutation.isPending ? 'Activating...' : `Use Pipeline${totalCreditCost ? ` · ${totalCreditCost} cr` : ''}`}
+              {activateMutation.isPending
+                ? 'Activating...'
+                : isOwned
+                  ? 'Switch Pipeline'
+                  : `Use Pipeline${totalCreditCost ? ` · ${totalCreditCost} cr` : ''}`}
             </button>
-            {deductMutation.isError && (
+            {activateMutation.isError && (
               <span className="text-[10px] font-medium text-red-600">
-                {deductMutation.error instanceof Error ? deductMutation.error.message : 'Insufficient credits'}
+                {activateMutation.error instanceof Error ? activateMutation.error.message : 'Insufficient credits'}
               </span>
             )}
           </>
@@ -1341,6 +1353,13 @@ function PipelinesTab() {
     queryFn: fetchCreditCosts,
   });
 
+  const { data: ownedData } = useQuery({
+    queryKey: ['owned-pipelines'],
+    queryFn: fetchOwnedPipelines,
+  });
+
+  const ownedSet = new Set((ownedData?.pipelines ?? []).map((p) => p.pipelineId));
+
   const creditCosts = creditCostsData?.costs ?? {};
   const totalCreditCost = Object.keys(creditCosts).length > 0
     ? Object.values(creditCosts).reduce((sum, c) => sum + c, 0)
@@ -1354,15 +1373,24 @@ function PipelinesTab() {
       )
     : lifecycles;
 
+  const ownedCount = filtered.filter((lc) => ownedSet.has(lc.slug)).length;
+
   return (
     <div>
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex-1 max-w-md">
           <SearchInput value={search} onChange={setSearch} placeholder="Search pipelines..." />
         </div>
-        <span className="text-xs text-slate-400">
-          {filtered.length} pipeline{filtered.length !== 1 ? 's' : ''} available
-        </span>
+        <div className="flex items-center gap-3">
+          {ownedCount > 0 && (
+            <span className="text-xs text-emerald-600 font-medium">
+              {ownedCount} owned
+            </span>
+          )}
+          <span className="text-xs text-slate-400">
+            {filtered.length} pipeline{filtered.length !== 1 ? 's' : ''} available
+          </span>
+        </div>
       </div>
 
       {isLoading ? (
@@ -1378,7 +1406,7 @@ function PipelinesTab() {
       ) : (
         <div className="space-y-3">
           {filtered.map((lc) => (
-            <PipelineCard key={lc.id} lifecycle={lc} totalCreditCost={totalCreditCost} />
+            <PipelineCard key={lc.id} lifecycle={lc} totalCreditCost={totalCreditCost} isOwned={ownedSet.has(lc.slug)} />
           ))}
         </div>
       )}

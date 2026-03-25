@@ -688,6 +688,19 @@ export const creditTransactions = pgTable('credit_transactions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── User Pipeline Access ──────────────────────────────────────
+
+export const userPipelineAccess = pgTable('user_pipeline_access', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull(),
+  teamId: uuid('team_id').references(() => teams.id),
+  pipelineId: text('pipeline_id').notNull(),
+  activatedAt: timestamp('activated_at', { withTimezone: true }).notNull().defaultNow(),
+  creditsPaid: integer('credits_paid').notNull().default(0),
+}, (table) => [
+  uniqueIndex('user_pipeline_access_user_pipeline_idx').on(table.userId, table.pipelineId),
+]);
+
 // ── Atlassian Connections ─────────────────────────────────────
 
 export const atlassianConnectionStatusEnum = pgEnum('atlassian_connection_status', [
