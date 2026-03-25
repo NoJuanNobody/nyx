@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import {
+  fetchIntegrations,
   fetchTicketSuggestions,
   generateBulkSuggestions,
   bulkApproveSuggestions,
@@ -10,6 +11,12 @@ import {
 } from '../lib/api';
 import type { TicketSuggestion, BulkApproveResult } from '../lib/api';
 
+interface RepoOption {
+  owner: string;
+  name: string;
+  fullName: string;
+}
+
 interface BulkTicketReviewProps {
   documentId: string;
   teamId: string;
@@ -17,7 +24,7 @@ interface BulkTicketReviewProps {
   onClose: () => void;
 }
 
-export function BulkTicketReview({ documentId, teamId: _teamId, open, onClose }: BulkTicketReviewProps) {
+export function BulkTicketReview({ documentId, teamId, open, onClose }: BulkTicketReviewProps) {
   const queryClient = useQueryClient();
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -25,6 +32,7 @@ export function BulkTicketReview({ documentId, teamId: _teamId, open, onClose }:
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [provider, setProvider] = useState<'github' | 'jira'>('github');
+  const [selectedRepo, setSelectedRepo] = useState<RepoOption | null>(null);
   const [results, setResults] = useState<BulkApproveResult[] | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -34,13 +42,36 @@ export function BulkTicketReview({ documentId, teamId: _teamId, open, onClose }:
     enabled: open,
   });
 
+  const { data: integrations } = useQuery({
+    queryKey: ['integrations', teamId],
+    queryFn: () => fetchIntegrations(teamId),
+    enabled: open,
+  });
+
+  const githubIntegration = (integrations ?? []).find((i) => i.type === 'github');
+  const availableRepos: RepoOption[] = githubIntegration
+    ? ((githubIntegration.config as { selectedRepos?: RepoOption[] }).selectedRepos ?? [])
+    : [];
+
+  // Set default repo when repos become available
+  useEffect(() => {
+    if (availableRepos.length > 0 && selectedRepo === null) {
+      setSelectedRepo(availableRepos[0]);
+    }
+  }, [availableRepos.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const generateMutation = useMutation({
     mutationFn: () => generateBulkSuggestions(documentId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ticket-suggestions', documentId] }),
   });
 
   const bulkApproveMutation = useMutation({
-    mutationFn: () => bulkApproveSuggestions([...selectedIds], provider),
+    mutationFn: () =>
+      bulkApproveSuggestions(
+        [...selectedIds],
+        provider,
+        provider === 'github' && selectedRepo ? selectedRepo : undefined,
+      ),
     onSuccess: (data) => {
       setResults(data);
       setSelectedIds(new Set());
@@ -138,6 +169,25 @@ export function BulkTicketReview({ documentId, teamId: _teamId, open, onClose }:
           <h2 className="text-lg font-semibold text-slate-900">Bulk Ticket Generation</h2>
 
           <div className="ml-auto flex items-center gap-3">
+            {/* Repo selector — shown only for GitHub when multiple repos are configured */}
+            {provider === 'github' && availableRepos.length > 0 && (
+              <select
+                value={selectedRepo?.fullName ?? ''}
+                onChange={(e) => {
+                  const repo = availableRepos.find((r) => r.fullName === e.target.value) ?? null;
+                  setSelectedRepo(repo);
+                }}
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                data-testid="bulk-repo-selector"
+              >
+                {availableRepos.map((r) => (
+                  <option key={r.fullName} value={r.fullName}>
+                    {r.fullName}
+                  </option>
+                ))}
+              </select>
+            )}
+
             {/* Provider selector */}
             <div className="flex rounded-lg border border-slate-200 p-0.5">
               <button

@@ -169,6 +169,48 @@ describe('Suggestion Service', () => {
         'Fix bug',
         'There is a bug',
         'user-1',
+        undefined,
+      );
+    });
+
+    it('forwards repo param to ticketService.createFromDocument', async () => {
+      const suggestion = {
+        id: 'sug-2',
+        documentId: 'doc-1',
+        title: 'Fix bug',
+        description: 'There is a bug',
+        labels: ['bug'],
+        status: 'pending',
+      };
+
+      const ticket = { id: 'ticket-2', title: 'Fix bug', externalId: '99' };
+      const updated = { ...suggestion, status: 'approved', reviewedById: 'user-1' };
+
+      mockDb.select.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([suggestion]),
+        }),
+      } as any);
+
+      mockTicketService.createFromDocument.mockResolvedValue(ticket);
+
+      mockDb.update.mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([updated]),
+          }),
+        }),
+      } as any);
+
+      await suggestionService.approve('sug-2', 'user-1', 'github', { owner: 'myorg', name: 'myrepo' });
+
+      expect(mockTicketService.createFromDocument).toHaveBeenCalledWith(
+        'doc-1',
+        'github',
+        'Fix bug',
+        'There is a bug',
+        'user-1',
+        { owner: 'myorg', name: 'myrepo' },
       );
     });
 

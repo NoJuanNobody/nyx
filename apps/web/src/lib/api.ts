@@ -771,7 +771,10 @@ export function syncAllTickets(teamId: string): Promise<{ synced: number }> {
   });
 }
 
-export function createTicket(documentId: string, data: { provider: 'github' | 'jira'; title: string; body: string }): Promise<Ticket> {
+export function createTicket(
+  documentId: string,
+  data: { provider: 'github' | 'jira'; title: string; body: string; repo?: { owner: string; name: string } },
+): Promise<Ticket> {
   return request<Ticket>(`/documents/${encodeURIComponent(documentId)}/tickets`, {
     method: 'POST',
     body: JSON.stringify(data),
@@ -1463,10 +1466,11 @@ export function generateFolderTicketSuggestions(
 export function bulkApproveSuggestions(
   suggestionIds: string[],
   provider: 'github' | 'jira',
+  repo?: { owner: string; name: string },
 ): Promise<BulkApproveResult[]> {
   return request<BulkApproveResult[]>('/ticket-suggestions/bulk-approve', {
     method: 'POST',
-    body: JSON.stringify({ suggestionIds, provider }),
+    body: JSON.stringify({ suggestionIds, provider, repo }),
   });
 }
 
