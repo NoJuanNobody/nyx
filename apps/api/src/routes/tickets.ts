@@ -121,14 +121,12 @@ export const ticketRoutes: FastifyPluginAsync = async (app) => {
     const { id } = request.params as { id: string };
     try {
       const insight = await claudeInsightsService.getForTicket(id);
-      if (!insight) {
-        reply.code(404);
-        return { error: 'No Claude insight found for this ticket' };
-      }
-      return insight;
+      // Return null with 200 instead of 404 when no insight exists,
+      // to avoid browser console "Failed to load resource: 404" errors
+      return insight ?? null;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      reply.code(404);
+      reply.code(500);
       return { error: message };
     }
   });

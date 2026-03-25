@@ -754,6 +754,8 @@ export interface Ticket {
   createdAt: string;
   updatedAt: string;
   documentTitle?: string;
+  repoName?: string;
+  repoUrl?: string;
   claudeInsights?: ClaudeInsight | null;
 }
 
