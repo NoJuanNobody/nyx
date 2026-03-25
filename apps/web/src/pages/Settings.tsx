@@ -32,7 +32,7 @@ interface TeamMember {
 
 interface Integration {
   id: string;
-  provider: 'github' | 'jira' | 'confluence';
+  provider: 'github' | 'gitlab' | 'bitbucket' | 'jira' | 'confluence';
   label: string;
   description: string;
   connected: boolean;
@@ -436,6 +436,8 @@ function IntegrationsPanel() {
   // Map API integrations to display format, merged with static provider info
   const STATIC_PROVIDERS: Integration[] = [
     { id: '', provider: 'github', label: 'GitHub', description: 'Sync repositories, detect code drift, and push tickets as issues.', connected: false },
+    { id: '', provider: 'gitlab', label: 'GitLab', description: 'Connect GitLab repos (cloud or self-hosted), create issues, and receive push webhooks.', connected: false },
+    { id: '', provider: 'bitbucket', label: 'Bitbucket', description: 'Connect Bitbucket Cloud repos, create issues, and receive push webhooks.', connected: false },
     { id: '', provider: 'jira', label: 'Jira', description: 'Push change proposal tickets directly to your Jira project boards.', connected: false },
     { id: '', provider: 'confluence', label: 'Confluence', description: 'Import existing documentation and keep Confluence pages in sync.', connected: false },
   ];
@@ -444,7 +446,8 @@ function IntegrationsPanel() {
     const found = rawIntegrations?.find((ri) => ri.type === sp.provider);
     if (found) {
       const cfg = found.config as Record<string, string>;
-      return { ...sp, id: found.id, connected: true, account: cfg.githubUsername ?? cfg.account, connectedAt: found.createdAt };
+      const account = cfg.githubUsername ?? cfg.gitlabUsername ?? cfg.bitbucketUsername ?? cfg.account;
+      return { ...sp, id: found.id, connected: true, account, connectedAt: found.createdAt };
     }
     return sp;
   });
@@ -456,23 +459,30 @@ function IntegrationsPanel() {
 
   const handleConnect = useCallback((provider: string) => {
     setConnectError(null);
-    
+
+    if (!currentTeamId) {
+      console.error(`[${provider} Connect] currentTeamId is missing:`, currentTeamId);
+      setConnectError('No team selected. Please refresh the page and try again.');
+      return;
+    }
+
     if (provider === 'github') {
-      if (!currentTeamId) {
-        console.error('[GitHub Connect] currentTeamId is missing:', currentTeamId);
-        setConnectError('No team selected. Please refresh the page and try again.');
-        return;
-      }
       console.log('[GitHub Connect] Redirecting with teamId:', currentTeamId);
       setConnecting(provider);
       window.location.href = `/api/integrations/github/connect?teamId=${currentTeamId}`;
       return;
     }
+    if (provider === 'gitlab') {
+      setConnecting(provider);
+      window.location.href = `/api/integrations/gitlab/connect?teamId=${currentTeamId}`;
+      return;
+    }
+    if (provider === 'bitbucket') {
+      setConnecting(provider);
+      window.location.href = `/api/integrations/bitbucket/connect?teamId=${currentTeamId}`;
+      return;
+    }
     if (provider === 'jira' || provider === 'confluence') {
-      if (!currentTeamId) {
-        setConnectError('No team selected. Please refresh the page and try again.');
-        return;
-      }
       setConnecting(provider);
       window.location.href = `/api/integrations/atlassian/auth?teamId=${currentTeamId}`;
       return;
