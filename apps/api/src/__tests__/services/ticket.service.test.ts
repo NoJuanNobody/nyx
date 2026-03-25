@@ -67,6 +67,44 @@ describe('Ticket Service', () => {
     expect(result.id).toBe(ticket.id);
   });
 
+  it('createFromDocument: explicit repo param overrides selectedRepos[0]', async () => {
+    const doc = makeDocument();
+    const integration = makeIntegration({
+      teamId: doc.teamId,
+      config: {
+        accessToken: 'ghp_token',
+        selectedRepos: [{ owner: 'myorg', name: 'defaultrepo', fullName: 'myorg/defaultrepo' }],
+      },
+    });
+    const ticket = makeTicket({ documentId: doc.id });
+
+    mockDb.select.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ teamId: doc.teamId }]),
+      }),
+    } as any);
+
+    mockDb.select.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([integration]),
+      }),
+    } as any);
+
+    mockDb.insert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([ticket]),
+      }),
+    } as any);
+
+    const { githubService } = await import('../../services/github.service.js');
+    await ticketService.createFromDocument(doc.id, 'github', 'Title', 'Body', 'user-1', {
+      owner: 'otherorg',
+      name: 'otherrepo',
+    });
+
+    expect(githubService.createIssue).toHaveBeenCalledWith('ghp_token', 'otherorg', 'otherrepo', 'Title', 'Body');
+  });
+
   it('createFromDocument: falls back to legacy owner/repo config fields', async () => {
     const doc = makeDocument();
     const integration = makeIntegration({

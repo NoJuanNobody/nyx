@@ -152,5 +152,30 @@ describe('Ticket Routes', () => {
     });
 
     expect(res.statusCode).toBe(404);
+  it('POST /api/documents/:docId/tickets passes repo param to service when provided', async () => {
+    const ticket = { id: 'ticket-2', title: 'With repo', externalUrl: 'https://github.com/issues/2' };
+    mockTicketService.createFromDocument.mockResolvedValue(ticket);
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/documents/doc-1/tickets',
+      payload: {
+        provider: 'github',
+        title: 'With repo',
+        body: 'Description',
+        repo: { owner: 'myorg', name: 'myrepo' },
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(mockTicketService.createFromDocument).toHaveBeenCalledWith(
+      'doc-1',
+      'github',
+      'With repo',
+      'Description',
+      'user-1',
+      { owner: 'myorg', name: 'myrepo' },
+    );
   });
 });

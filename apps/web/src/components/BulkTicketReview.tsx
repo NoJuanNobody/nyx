@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -8,8 +8,11 @@ import {
   bulkApproveSuggestions,
   updateTicketSuggestion,
   dismissTicketSuggestion,
+  fetchIntegrations,
 } from '../lib/api';
 import type { TicketSuggestion, BulkApproveResult } from '../lib/api';
+
+interface RepoOption { owner: string; name: string; fullName: string; }
 import { TicketSuggestionDetail } from './TicketSuggestionDetail';
 
 interface BulkTicketReviewProps {
@@ -28,12 +31,30 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
   const [provider, setProvider] = useState<'github' | 'jira'>('github');
   const [results, setResults] = useState<BulkApproveResult[] | null>(null);
   const [detailSuggestionId, setDetailSuggestionId] = useState<string | null>(null);
+  const [selectedRepo, setSelectedRepo] = useState<RepoOption | null>(null);
 
   const { data: suggestions = [], isLoading } = useQuery({
     queryKey: ['ticket-suggestions', documentId],
     queryFn: () => fetchTicketSuggestions(documentId),
     enabled: open,
   });
+
+  const { data: integrations } = useQuery({
+    queryKey: ['integrations', teamId],
+    queryFn: () => fetchIntegrations(teamId),
+    enabled: open,
+  });
+
+  const githubIntegration = (integrations ?? []).find((i: { type: string }) => i.type === 'github');
+  const availableRepos: RepoOption[] = githubIntegration
+    ? ((githubIntegration.config as { selectedRepos?: RepoOption[] }).selectedRepos ?? [])
+    : [];
+
+  useEffect(() => {
+    if (availableRepos.length > 0 && selectedRepo === null) {
+      setSelectedRepo(availableRepos[0]);
+    }
+  }, [availableRepos, selectedRepo]);
 
   const generateMutation = useMutation({
     mutationFn: () =>
@@ -44,7 +65,7 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
   });
 
   const bulkApproveMutation = useMutation({
-    mutationFn: () => bulkApproveSuggestions([...selectedIds], provider),
+    mutationFn: () => bulkApproveSuggestions([...selectedIds], provider, selectedRepo ? { owner: selectedRepo.owner, name: selectedRepo.name } : undefined),
     onSuccess: (data) => {
       setResults(data);
       setSelectedIds(new Set());
@@ -137,6 +158,25 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
             <h2 className="text-lg font-semibold text-slate-900">Bulk Ticket Generation</h2>
 
             <div className="ml-auto flex items-center gap-3">
+              {/* Repo selector — shown only for GitHub when multiple repos are configured */}
+              {provider === 'github' && availableRepos.length > 0 && (
+                <select
+                  value={selectedRepo?.fullName ?? ''}
+                  onChange={(e) => {
+                    const repo = availableRepos.find((r) => r.fullName === e.target.value) ?? null;
+                    setSelectedRepo(repo);
+                  }}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  data-testid="bulk-repo-selector"
+                >
+                  {availableRepos.map((r) => (
+                    <option key={r.fullName} value={r.fullName}>
+                      {r.fullName}
+                    </option>
+                  ))}
+                </select>
+              )}
+
               {/* Provider selector */}
               <div className="flex rounded-lg border border-slate-200 p-0.5">
                 <button

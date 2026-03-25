@@ -5,6 +5,12 @@ import { GitHubReconnectBanner } from './GitHubReconnectBanner';
 import { fetchIntegrations, createTicket, renderMockupJsx, GitHubTokenExpiredError } from '../lib/api';
 import type { Ticket } from '../lib/api';
 
+interface RepoOption {
+  owner: string;
+  name: string;
+  fullName: string;
+}
+
 interface CreateTicketModalProps {
   open: boolean;
   onClose: () => void;
@@ -29,6 +35,7 @@ export function CreateTicketModal({
   const [title, setTitle] = useState(documentTitle);
   const [body, setBody] = useState('');
   const [provider, setProvider] = useState<'github' | 'jira'>('github');
+  const [selectedRepo, setSelectedRepo] = useState<RepoOption | null>(null);
   const [createdTicket, setCreatedTicket] = useState<Ticket | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenExpired, setTokenExpired] = useState(false);
@@ -44,6 +51,7 @@ export function CreateTicketModal({
         initialBody += '\n\n---\n_A UI mockup will be attached as an image after ticket creation._';
       }
       setBody(initialBody);
+      setSelectedRepo(null);
       setCreatedTicket(null);
       setError(null);
       setTokenExpired(false);
@@ -60,6 +68,12 @@ export function CreateTicketModal({
     .map((i) => i.type)
     .filter((t): t is 'github' | 'jira' => t === 'github' || t === 'jira');
 
+  // Derive available GitHub repos from the GitHub integration config
+  const githubIntegration = (integrations ?? []).find((i) => i.type === 'github');
+  const availableRepos: RepoOption[] = githubIntegration
+    ? ((githubIntegration.config as { selectedRepos?: RepoOption[] }).selectedRepos ?? [])
+    : [];
+
   // Set initial provider when integrations load
   useEffect(() => {
     if (availableProviders.length > 0 && !availableProviders.includes(provider)) {
@@ -67,8 +81,21 @@ export function CreateTicketModal({
     }
   }, [availableProviders, provider]);
 
+  // Set default repo when GitHub repos load
+  useEffect(() => {
+    if (availableRepos.length > 0 && selectedRepo === null) {
+      setSelectedRepo(availableRepos[0]);
+    }
+  }, [availableRepos.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const mutation = useMutation({
-    mutationFn: () => createTicket(documentId, { provider, title, body }),
+    mutationFn: () =>
+      createTicket(documentId, {
+        provider,
+        title,
+        body,
+        repo: provider === 'github' && selectedRepo ? selectedRepo : undefined,
+      }),
     onSuccess: async (ticket) => {
       queryClient.invalidateQueries({ queryKey: ['tickets', documentId] });
       setCreatedTicket(ticket);
@@ -172,6 +199,30 @@ export function CreateTicketModal({
               ))}
             </div>
           </div>
+
+          {/* Repo selector — shown only for GitHub when multiple repos are configured */}
+          {provider === 'github' && availableRepos.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Repository
+              </label>
+              <select
+                value={selectedRepo?.fullName ?? ''}
+                onChange={(e) => {
+                  const repo = availableRepos.find((r) => r.fullName === e.target.value) ?? null;
+                  setSelectedRepo(repo);
+                }}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                data-testid="repo-selector"
+              >
+                {availableRepos.map((r) => (
+                  <option key={r.fullName} value={r.fullName}>
+                    {r.fullName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Title */}
           <div>

@@ -19,11 +19,14 @@ export const suggestionRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/ticket-suggestions/:id/approve — approve a suggestion and create a ticket
   app.post('/ticket-suggestions/:id/approve', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { provider } = request.body as { provider: 'github' | 'jira' };
+    const { provider, repo } = request.body as {
+      provider: 'github' | 'jira';
+      repo?: { owner: string; name: string };
+    };
     const userId = request.user.id;
 
     try {
-      const result = await suggestionService.approve(id, userId, provider);
+      const result = await suggestionService.approve(id, userId, provider, repo);
       return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -56,11 +59,15 @@ export const suggestionRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /api/ticket-suggestions/bulk-approve — approve multiple suggestions at once
   app.post('/ticket-suggestions/bulk-approve', async (request, reply) => {
-    const { suggestionIds, provider } = request.body as { suggestionIds: string[]; provider: 'github' | 'jira' };
+    const { suggestionIds, provider, repo } = request.body as {
+      suggestionIds: string[];
+      provider: 'github' | 'jira';
+      repo?: { owner: string; name: string };
+    };
     const userId = request.user.id;
     if (!suggestionIds?.length) { reply.code(400); return { error: 'No suggestions selected' }; }
     if (!['github', 'jira'].includes(provider)) { reply.code(400); return { error: 'Invalid provider' }; }
-    const results = await suggestionService.bulkApprove(suggestionIds, userId, provider);
+    const results = await suggestionService.bulkApprove(suggestionIds, userId, provider, repo);
     return results;
   });
 

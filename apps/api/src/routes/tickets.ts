@@ -44,10 +44,11 @@ export const ticketRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/documents/:documentId/tickets — create a ticket from a document
   app.post('/documents/:documentId/tickets', async (request, reply) => {
     const { documentId } = request.params as { documentId: string };
-    const { provider, title, body } = request.body as {
+    const { provider, title, body, repo } = request.body as {
       provider: 'github' | 'jira';
       title: string;
       body: string;
+      repo?: { owner: string; name: string };
     };
 
     const userId = request.user.id;
@@ -59,6 +60,7 @@ export const ticketRoutes: FastifyPluginAsync = async (app) => {
         title,
         body,
         userId,
+        repo,
       );
 
       // Fire-and-forget: record timeline event

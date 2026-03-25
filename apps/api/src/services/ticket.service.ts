@@ -43,6 +43,7 @@ export const ticketService = {
     title: string,
     body: string,
     createdById: string,
+    repo?: { owner: string; name: string },
   ) {
     // Derive teamId from document
     const [doc] = await db
@@ -72,10 +73,11 @@ export const ticketService = {
         repo?: string;
         selectedRepos?: Array<{ owner: string; name: string; fullName: string }>;
       };
-      const owner = cfg.selectedRepos?.[0]?.owner ?? cfg.owner ?? '';
-      const repo = cfg.selectedRepos?.[0]?.name ?? cfg.repo ?? '';
-      if (!owner || !repo) throw new Error('No GitHub repository configured for this team');
-      const issue = await githubService.createIssue(cfg.accessToken, owner, repo, title, body);
+      // Prefer explicit repo selection from the request, then fall back to selectedRepos[0], then legacy fields
+      const owner = repo?.owner ?? cfg.selectedRepos?.[0]?.owner ?? cfg.owner ?? '';
+      const repoName = repo?.name ?? cfg.selectedRepos?.[0]?.name ?? cfg.repo ?? '';
+      if (!owner || !repoName) throw new Error('No GitHub repository configured for this team');
+      const issue = await githubService.createIssue(cfg.accessToken, owner, repoName, title, body);
       externalId = String(issue.number);
       externalUrl = issue.html_url;
     } else {
