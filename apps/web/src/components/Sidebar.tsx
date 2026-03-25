@@ -222,29 +222,11 @@ const primaryNavItems = [
     ),
   },
   {
-    to: '/agent-map',
-    label: 'Agents',
+    to: '/operations',
+    label: 'Operations',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Z" />
-      </svg>
-    ),
-  },
-  {
-    to: '/voice',
-    label: 'Voice',
-    icon: (
-      <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
-      </svg>
-    ),
-  },
-  {
-    to: '/observability',
-    label: 'Observability',
-    icon: (
-      <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.049.58.025 1.193-.14 1.743ZM15 2.25a.75.75 0 0 1 .75.75v5.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75Z" />
       </svg>
     ),
   },
@@ -253,10 +235,7 @@ const primaryNavItems = [
 export function Sidebar() {
   const { sidebarOpen, setSidebarOpen, sidebarCollapsed, toggleSidebarCollapsed } =
     useUIStore();
-  const { teams } = useAuthStore();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-
-  const isAdminOnAnyTeam = teams.some((t) => t.role === 'admin' || t.role === 'owner');
 
   const navLinkClass = (isActive: boolean, collapsed: boolean) =>
     `flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors ${collapsed ? 'justify-center px-2' : ''} ${
@@ -354,24 +333,6 @@ export function Sidebar() {
             );
           })}
         </div>
-
-        {/* Admin nav — only shown to admins/owners */}
-        {isAdminOnAnyTeam && (
-          <div className="border-t border-slate-200">
-            <NavLink
-              to="/admin/documents"
-              onClick={() => setSidebarOpen(false)}
-              title={sidebarCollapsed ? 'All Documents (Admin)' : undefined}
-              data-testid="admin-documents-link"
-              className={({ isActive }) => navLinkClass(isActive, sidebarCollapsed)}
-            >
-              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
-              </svg>
-              {!sidebarCollapsed && 'All Documents'}
-            </NavLink>
-          </div>
-        )}
 
         {/* Utility nav — Getting Started + Settings + Feedback */}
         <div className="border-t border-slate-200 pt-1 pb-1">
