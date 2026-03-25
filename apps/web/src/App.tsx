@@ -12,11 +12,8 @@ import { IntakePage } from './pages/IntakePage';
 import { SprintPage } from './pages/SprintPage';
 import { TracePage } from './pages/TracePage';
 import { Marketplace } from './pages/Marketplace';
-import { AgentMapPage } from './pages/AgentMapPage';
-import { ObservabilityPage } from './pages/ObservabilityPage';
-import { VoicePage } from './pages/VoicePage';
+import { OperationsPage } from './pages/OperationsPage';
 import { GettingStarted } from './pages/GettingStarted';
-import { AdminDocuments } from './pages/AdminDocuments';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 import { AcceptInvite } from './pages/AcceptInvite';
@@ -55,11 +52,13 @@ export function App() {
             <Route path="/intake" element={<IntakePage />} />
             <Route path="/sprint" element={<SprintPage />} />
             <Route path="/marketplace" element={<Marketplace />} />
-            <Route path="/agent-map" element={<AgentMapPage />} />
-            <Route path="/observability" element={<ObservabilityPage />} />
-            <Route path="/voice" element={<VoicePage />} />
+            <Route path="/operations" element={<OperationsPage />} />
+            {/* Redirects from old routes */}
+            <Route path="/agent-map" element={<Navigate to="/operations?tab=agents" replace />} />
+            <Route path="/observability" element={<Navigate to="/operations?tab=observability" replace />} />
+            <Route path="/voice" element={<Navigate to="/operations?tab=voice" replace />} />
+            <Route path="/admin/documents" element={<Navigate to="/dashboard" replace />} />
             <Route path="/getting-started" element={<GettingStarted />} />
-            <Route path="/admin/documents" element={<AdminDocuments />} />
           </Route>
         </Route>
       </Routes>
