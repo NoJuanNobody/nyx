@@ -144,6 +144,7 @@ export const SEL = {
     removeButton: 'button:has-text("Remove")',
     confirmYes: 'button:has-text("Yes")',
     confirmNo: 'button:has-text("No")',
+    manageReposButton: '[data-testid="manage-repos-button"]',
   },
 
   // ── JSX Preview ───────────────────────────────────────

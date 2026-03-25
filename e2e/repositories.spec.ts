@@ -69,4 +69,34 @@ test.describe('Repositories', () => {
     const repoLink = page.locator('a[href="https://github.com/nyx/app"]');
     await expect(repoLink).toBeVisible({ timeout: 5_000 });
   });
+
+  test('237.1 — Manage Repos button is visible', async ({ authenticatedPage: page }) => {
+    const manageButton = page.locator(SEL.repositories.manageReposButton);
+    await expect(manageButton).toBeVisible({ timeout: 5_000 });
+    await expect(manageButton).toHaveText('Manage Repos');
+  });
+
+  test('237.2 — Manage Repos button opens repo picker modal', async ({ authenticatedPage: page }) => {
+    // Mock the GitHub repos endpoint that the RepoPickerModal fetches
+    await page.route('**/api/integrations/*/github/repos', (route) => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          repos: [
+            { id: 1, full_name: 'nyx/app', private: false, default_branch: 'main' },
+            { id: 2, full_name: 'nyx/docs', private: true, default_branch: 'main' },
+          ],
+        }),
+      });
+    });
+
+    const manageButton = page.locator(SEL.repositories.manageReposButton);
+    await manageButton.click();
+
+    // The RepoPickerModal should be visible with its header
+    await expect(page.locator('h2:has-text("Select Repositories")')).toBeVisible({ timeout: 5_000 });
+    // Should list the repos
+    await expect(page.locator('text=nyx/app')).toBeVisible({ timeout: 5_000 });
+  });
 });
