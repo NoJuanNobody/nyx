@@ -95,6 +95,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
         systemPrompt,
         userPrompt: fullPrompt,
         toolNames,
+        workflowId: workflowId ?? undefined,
         context,
       });
 

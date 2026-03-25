@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { generateDocument, editDocumentAI, fetchWorkflows } from '../lib/api';
 import { startAgentStream, type AgentStreamEvent, type SessionStatus } from '../lib/agent-stream';
 import { STAGE_SUGGESTIONS, type DocumentStage } from '../lib/stages';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MarkdownPreview } from './MarkdownPreview';
 
 interface ToolCallEntry {
@@ -69,6 +69,7 @@ export function UnifiedAIPanel({
   const [status, setStatus] = useState<SessionStatus>('idle');
   const [tokenUsage, setTokenUsage] = useState<{ inputTokens: number; outputTokens: number } | null>(null);
 
+  const queryClient = useQueryClient();
   const abortRef = useRef<(() => void) | null>(null);
   const streamingContentRef = useRef('');
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -154,9 +155,20 @@ export function UnifiedAIPanel({
         setStatus('completed');
         setTokenUsage(event.tokenUsage);
         commitStreamingContent();
+        // Refresh the sidebar credit balance after agent consumed credits
+        queryClient.invalidateQueries({ queryKey: ['credits-balance'] });
+        break;
+      case 'credits_depleted':
+        setStatus('failed');
+        commitStreamingContent();
+        appendMessage({
+          kind: 'assistant',
+          content: `Insufficient credits. Your balance is ${event.balance} but this operation requires ${event.required} credits. Please purchase more credits to continue.`,
+          timestamp: new Date(),
+        });
         break;
     }
-  }, [appendMessage, commitStreamingContent]);
+  }, [appendMessage, commitStreamingContent, queryClient]);
 
   const handleSubmit = useCallback(async () => {
     const trimmed = prompt.trim();
