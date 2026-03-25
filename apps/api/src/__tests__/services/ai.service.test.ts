@@ -74,8 +74,8 @@ describe('AI Service', () => {
 
     const result = await aiService.generateTicketFromDiff('some diff');
 
-    expect(result.title).toBe('Update implementation to match spec changes');
-    expect(result.labels).toEqual(['spec-change']);
+    expect(result.title).toBe('Implement code changes to match spec updates');
+    expect(result.labels).toEqual(['spec-change', 'implementation']);
   });
 
   it('requireClient throws when ANTHROPIC_API_KEY not configured', () => {
