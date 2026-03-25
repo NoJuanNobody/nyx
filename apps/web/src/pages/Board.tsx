@@ -38,6 +38,21 @@ function TicketCard({ ticket, onStatusChange }: { ticket: Ticket; onStatusChange
           {badge.label}
         </span>
       </div>
+      {ticket.repoName && (
+        <div className="mt-1.5 flex items-center gap-1">
+          <svg className="h-3 w-3 flex-shrink-0 text-slate-400" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M2 2.5A2.5 2.5 0 014.5 0h8.75a.75.75 0 01.75.75v12.5a.75.75 0 01-.75.75h-2.5a.75.75 0 110-1.5h1.75v-2h-8a1 1 0 00-.714 1.7.75.75 0 01-1.072 1.05A2.495 2.495 0 012 11.5v-9zm10.5-1h-8a1 1 0 00-1 1v6.708A2.486 2.486 0 014.5 9h8.5V1.5zm-8 11a1 1 0 100-2 1 1 0 000 2z" />
+          </svg>
+          <a
+            href={ticket.repoUrl || ticket.externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] font-medium text-slate-500 hover:text-blue-600 truncate transition-colors"
+          >
+            {ticket.repoName}
+          </a>
+        </div>
+      )}
       <div className="mt-2 flex items-center justify-between">
         <span className="text-[10px] text-slate-400">
           #{ticket.externalId}
