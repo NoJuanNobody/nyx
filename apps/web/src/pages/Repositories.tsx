@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { fetchIntegrations, fetchSyncedRepos, disconnectRepo, createGitHubRepo, GitHubTokenExpiredError, type SyncedRepo, type ScanResult } from '../lib/api';
 import { GitHubReconnectBanner } from '../components/GitHubReconnectBanner';
 import { ScanRepositoryModal, ScanResultView } from '../components/ScanRepositoryModal';
+import { RepoPickerModal } from '../components/RepoPickerModal';
 import { useAuthStore } from '../stores/auth.store';
 
 function StatusBadge({ status }: { status: SyncedRepo['syncStatus'] }) {
@@ -172,6 +173,7 @@ export function Repositories() {
   const currentTeamId = useAuthStore((s) => s.currentTeamId);
   const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showManageModal, setShowManageModal] = useState(false);
   const [scanTarget, setScanTarget] = useState<{ owner: string; repo: string } | null>(null);
   const [scanResult, setScanResult] = useState<{ owner: string; repo: string; result: ScanResult } | null>(null);
 
@@ -269,14 +271,24 @@ export function Repositories() {
             </p>
           </div>
           {githubIntegration && (
-            <button
-              type="button"
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 transition-colors"
-              data-testid="create-repo-button"
-            >
-              + New Repository
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowManageModal(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                data-testid="manage-repos-button"
+              >
+                Manage Repos
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(true)}
+                className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 transition-colors"
+                data-testid="create-repo-button"
+              >
+                + New Repository
+              </button>
+            </div>
           )}
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
@@ -306,6 +318,17 @@ export function Repositories() {
             }}
           />
         )}
+        {showManageModal && githubIntegration && (
+          <RepoPickerModal
+            integrationId={githubIntegration.id}
+            initialSelected={repos.map((r) => ({ owner: r.owner, name: r.name, fullName: r.fullName }))}
+            onClose={() => {
+              setShowManageModal(false);
+              queryClient.invalidateQueries({ queryKey: ['synced-repos'] });
+              queryClient.invalidateQueries({ queryKey: ['integrations'] });
+            }}
+          />
+        )}
       </>
     );
   }
@@ -320,14 +343,24 @@ export function Repositories() {
           </p>
         </div>
         {githubIntegration && (
-          <button
-            type="button"
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 transition-colors"
-            data-testid="create-repo-button"
-          >
-            + New Repository
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowManageModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+              data-testid="manage-repos-button"
+            >
+              Manage Repos
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 transition-colors"
+              data-testid="create-repo-button"
+            >
+              + New Repository
+            </button>
+          </div>
         )}
       </div>
 
@@ -461,6 +494,18 @@ export function Repositories() {
           repo={scanResult.repo}
           result={scanResult.result}
           onClose={() => setScanResult(null)}
+        />
+      )}
+
+      {showManageModal && githubIntegration && (
+        <RepoPickerModal
+          integrationId={githubIntegration.id}
+          initialSelected={repos.map((r) => ({ owner: r.owner, name: r.name, fullName: r.fullName }))}
+          onClose={() => {
+            setShowManageModal(false);
+            queryClient.invalidateQueries({ queryKey: ['synced-repos'] });
+            queryClient.invalidateQueries({ queryKey: ['integrations'] });
+          }}
         />
       )}
     </>
