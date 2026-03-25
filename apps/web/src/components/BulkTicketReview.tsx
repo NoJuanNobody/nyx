@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchTicketSuggestions,
   generateBulkSuggestions,
+  generateFolderTicketSuggestions,
   bulkApproveSuggestions,
   updateTicketSuggestion,
   dismissTicketSuggestion,
@@ -15,9 +16,11 @@ interface BulkTicketReviewProps {
   teamId: string;
   open: boolean;
   onClose: () => void;
+  /** When provided, generates suggestions for all documents in this folder instead of a single document */
+  folderPath?: string;
 }
 
-export function BulkTicketReview({ documentId, teamId: _teamId, open, onClose }: BulkTicketReviewProps) {
+export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath }: BulkTicketReviewProps) {
   const queryClient = useQueryClient();
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -35,7 +38,10 @@ export function BulkTicketReview({ documentId, teamId: _teamId, open, onClose }:
   });
 
   const generateMutation = useMutation({
-    mutationFn: () => generateBulkSuggestions(documentId),
+    mutationFn: () =>
+      folderPath
+        ? generateFolderTicketSuggestions(teamId, folderPath)
+        : generateBulkSuggestions(documentId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ticket-suggestions', documentId] }),
   });
 
