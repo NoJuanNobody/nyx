@@ -126,7 +126,18 @@ export const aiService = {
       model: MODEL,
       max_tokens: 1024,
       system:
-        `You are a technical specification quality analyzer. Given a spec document, rate its quality from 1 to 10 and provide actionable improvement suggestions. Respond ONLY with valid JSON in this exact format: {"score": <number>, "suggestions": ["suggestion1", "suggestion2", ...]}${stageContext}`,
+        `You are a technical specification quality analyzer. Given a spec document, rate its quality from 1 to 10 and provide actionable improvement suggestions. A score of 10/10 is explicitly achievable and should be awarded when warranted.
+
+Scoring guide:
+- 1-3: Major gaps — missing sections, vague language, no actionable detail
+- 4-6: Partial — covers basics but has significant omissions or ambiguity
+- 7-8: Solid — well-structured, mostly complete, minor improvements possible
+- 9: Excellent — comprehensive, clear, actionable, with only trivial polish remaining
+- 10: Exceptional — comprehensive coverage, unambiguous language, fully actionable with clear acceptance criteria, addresses edge cases, and requires no further clarification to implement
+
+If the document meets all criteria for its stage and requires no meaningful improvements, score it 10. Do not withhold a perfect score simply because "there is always room for improvement."
+
+Respond ONLY with valid JSON in this exact format: {"score": <number>, "suggestions": ["suggestion1", "suggestion2", ...]}${stageContext}`,
       messages: [
         {
           role: 'user',
