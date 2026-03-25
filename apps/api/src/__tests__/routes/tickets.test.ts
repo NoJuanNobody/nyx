@@ -152,6 +152,8 @@ describe('Ticket Routes', () => {
     });
 
     expect(res.statusCode).toBe(404);
+  });
+
   it('POST /api/documents/:docId/tickets passes repo param to service when provided', async () => {
     const ticket = { id: 'ticket-2', title: 'With repo', externalUrl: 'https://github.com/issues/2' };
     mockTicketService.createFromDocument.mockResolvedValue(ticket);
