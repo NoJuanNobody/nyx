@@ -141,6 +141,31 @@ export function SprintGatekeeper() {
 
   if (!capacity) return null;
 
+  // Empty state: no integration connected or no tickets
+  if (capacity.source === 'none') {
+    return (
+      <div className="rounded-lg border border-slate-200 bg-white p-8 text-center" data-testid="sprint-gatekeeper">
+        <svg
+          className="mx-auto h-12 w-12 text-slate-300"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
+          />
+        </svg>
+        <h3 className="mt-3 text-sm font-semibold text-slate-900">No sprint data available</h3>
+        <p className="mt-1 text-sm text-slate-500">
+          Connect a GitHub or Jira integration to view sprint capacity and manage trade-offs.
+        </p>
+      </div>
+    );
+  }
+
   const isOverThreshold = checkResult?.overThreshold ?? false;
   const deferrableTickets = capacity.tickets.filter((t) => t.status === 'todo');
 
@@ -151,10 +176,11 @@ export function SprintGatekeeper() {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold text-slate-900">{capacity.sprintName}</h2>
-            {capacity.source === 'github' ? (
+            {capacity.source === 'github' && (
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">GitHub Projects</span>
-            ) : (
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">Demo Data</span>
+            )}
+            {capacity.source === 'jira' && (
+              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">Jira</span>
             )}
           </div>
           <p className="text-sm text-slate-500">

@@ -6,6 +6,7 @@
 // See issue #145 for the rationale behind this model.
 
 import { githubService } from './github.service.js';
+import { jiraService } from './jira.service.js';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { integrations } from '../db/schema.js';
@@ -33,8 +34,8 @@ export interface SprintCapacity {
   totalPoints: number;
   usedPoints: number;
   tickets: SprintTicket[];
-  /** Source of data: 'github' or 'mock' */
-  source: 'github' | 'mock';
+  /** Source of data: 'github', 'jira', or 'none' (no integration connected) */
+  source: 'github' | 'jira' | 'none';
 }
 
 export interface SprintCheckResult {
@@ -189,30 +190,94 @@ async function fetchFromGitHub(teamId: string): Promise<SprintCapacity | null> {
   }
 }
 
-// ── Mock fallback ───────────────────────────────────────────────────
+// ── Jira integration helpers ────────────────────────────────────────
 
-function getMockSprint(): SprintCapacity {
-  const tickets: SprintTicket[] = [
-    { id: 'NYX-212', title: 'Add credit prices to marketplace listings', points: 5, decisionWeight: 28, reviewCycles: 2, status: 'in_progress' },
-    { id: 'NYX-198', title: 'Fix Clerk auth redirect on expired session', points: 3, decisionWeight: 12, reviewCycles: 1, status: 'done' },
-    { id: 'NYX-215', title: 'Drift detection for GitHub-linked specs', points: 8, decisionWeight: 42, reviewCycles: 3, status: 'todo' },
-    { id: 'NYX-203', title: 'Rate-limit AI spec analysis endpoint', points: 5, decisionWeight: 35, reviewCycles: 2, status: 'in_progress' },
-    { id: 'NYX-218', title: 'Bulk ticket generation from PRD', points: 8, decisionWeight: 22, reviewCycles: 2, status: 'todo' },
-    { id: 'NYX-207', title: 'E2E tests for document version history', points: 5, decisionWeight: 29, reviewCycles: 2, status: 'in_progress' },
-  ].filter((t) => !deferredItems.has(t.id));
+async function getJiraIntegration(teamId: string) {
+  const [integration] = await db
+    .select()
+    .from(integrations)
+    .where(and(eq(integrations.teamId, teamId), eq(integrations.type, 'jira')));
 
-  const usedWeight = tickets.reduce((sum, t) => sum + t.decisionWeight, 0);
-  const usedPoints = tickets.reduce((sum, t) => sum + t.points, 0);
+  if (!integration) return null;
 
+  const config = integration.config as {
+    baseUrl?: string;
+    email?: string;
+    apiToken?: string;
+    projectKey?: string;
+  };
+
+  if (!config.baseUrl || !config.email || !config.apiToken) return null;
+
+  return config as { baseUrl: string; email: string; apiToken: string; projectKey?: string };
+}
+
+function normalizeJiraStatus(statusName: string): string {
+  const lower = statusName.toLowerCase();
+  if (lower === 'done' || lower === 'closed' || lower === 'resolved') return 'done';
+  if (lower === 'in progress' || lower === 'in review') return 'in_progress';
+  return 'todo';
+}
+
+async function fetchFromJira(teamId: string): Promise<SprintCapacity | null> {
+  const jira = await getJiraIntegration(teamId);
+  if (!jira) return null;
+
+  try {
+    const issues = await jiraService.searchIssues(
+      jira.baseUrl,
+      jira.email,
+      jira.apiToken,
+      jira.projectKey,
+    );
+
+    const tickets: SprintTicket[] = issues
+      .filter((issue) => !deferredItems.has(issue.key))
+      .map((issue) => {
+        const status = normalizeJiraStatus(issue.fields.status.name);
+        const labels: string[] = [];
+        const weight = estimateDecisionWeight(issue.fields.summary, labels);
+        return {
+          id: issue.key,
+          title: issue.fields.summary,
+          points: 1,
+          decisionWeight: weight,
+          reviewCycles: estimateReviewCycles(weight),
+          status,
+        };
+      });
+
+    const usedWeight = tickets.reduce((sum, t) => sum + t.decisionWeight, 0);
+    const usedPoints = tickets.reduce((sum, t) => sum + t.points, 0);
+
+    return {
+      sprintName: jira.projectKey ? `${jira.projectKey} Sprint` : 'Jira Sprint',
+      totalWeight: DEFAULT_TOTAL_WEIGHT,
+      usedWeight,
+      capacityPercent: Math.round((usedWeight / DEFAULT_TOTAL_WEIGHT) * 100),
+      totalPoints: tickets.length,
+      usedPoints,
+      tickets,
+      source: 'jira',
+    };
+  } catch (err) {
+    console.warn('[sprint] Jira fetch failed:', err);
+    return null;
+  }
+}
+
+// ── Empty fallback (no integration connected) ───────────────────────
+
+function getEmptySprint(): SprintCapacity {
   return {
-    sprintName: 'Sprint 12 (Demo)',
+    sprintName: 'No Sprint',
     totalWeight: DEFAULT_TOTAL_WEIGHT,
-    usedWeight,
-    capacityPercent: Math.round((usedWeight / DEFAULT_TOTAL_WEIGHT) * 100),
-    totalPoints: 40,
-    usedPoints,
-    tickets,
-    source: 'mock',
+    usedWeight: 0,
+    capacityPercent: 0,
+    totalPoints: 0,
+    usedPoints: 0,
+    tickets: [],
+    source: 'none',
   };
 }
 
@@ -221,11 +286,17 @@ function getMockSprint(): SprintCapacity {
 export const sprintService = {
   /**
    * Fetch current sprint capacity for a team.
-   * Pulls from GitHub Projects v2 if connected, otherwise mock data.
+   * Pulls from GitHub Projects v2 if connected, then tries Jira.
+   * Returns an empty sprint when no integration is available.
    */
   async getSprintCapacity(teamId: string): Promise<SprintCapacity> {
     const ghData = await fetchFromGitHub(teamId);
-    return ghData ?? getMockSprint();
+    if (ghData) return ghData;
+
+    const jiraData = await fetchFromJira(teamId);
+    if (jiraData) return jiraData;
+
+    return getEmptySprint();
   },
 
   /**

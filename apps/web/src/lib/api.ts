@@ -1011,7 +1011,7 @@ export interface SprintCapacityData {
   totalPoints: number;
   usedPoints: number;
   tickets: SprintTicket[];
-  source: 'github' | 'mock';
+  source: 'github' | 'jira' | 'none';
 }
 
 export interface SprintCheckResult {
