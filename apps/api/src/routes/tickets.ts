@@ -102,6 +102,27 @@ export const ticketRoutes: FastifyPluginAsync = async (app) => {
     }
   });
 
+  // PATCH /api/tickets/:id/status — manually update ticket status
+  app.patch('/tickets/:id/status', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { status } = request.body as { status?: string };
+
+    const validStatuses = ['open', 'in_progress', 'closed'];
+    if (!status || !validStatuses.includes(status)) {
+      reply.code(400);
+      return { error: `status must be one of: ${validStatuses.join(', ')}` };
+    }
+
+    try {
+      const ticket = await ticketService.updateStatus(id, status as 'open' | 'in_progress' | 'closed');
+      return ticket;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(404);
+      return { error: message };
+    }
+  });
+
   // POST /api/tickets/:id/sync — sync ticket status from external provider
   app.post('/tickets/:id/sync', async (request, reply) => {
     const { id } = request.params as { id: string };

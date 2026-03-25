@@ -778,6 +778,13 @@ export function createTicket(documentId: string, data: { provider: 'github' | 'j
   });
 }
 
+export function updateTicketStatus(ticketId: string, status: 'open' | 'in_progress' | 'closed'): Promise<Ticket> {
+  return request<Ticket>(`/tickets/${encodeURIComponent(ticketId)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
 export function fetchDocumentTickets(documentId: string): Promise<Ticket[]> {
   return request<Ticket[]>(`/documents/${encodeURIComponent(documentId)}/tickets`);
 }

@@ -9,6 +9,7 @@ const { mockTicketService } = vi.hoisted(() => ({
     listByDocument: vi.fn(),
     createFromDocument: vi.fn(),
     syncStatus: vi.fn(),
+    updateStatus: vi.fn(),
   },
 }));
 
@@ -108,5 +109,48 @@ describe('Ticket Routes', () => {
     expect(res.statusCode).toBe(201);
     const body = JSON.parse(res.body);
     expect(body.id).toBe('ticket-1');
+  });
+
+  it('PATCH /api/tickets/:id/status updates ticket status', async () => {
+    const ticket = { id: 'ticket-1', title: 'Fix bug', status: 'closed' };
+    mockTicketService.updateStatus.mockResolvedValue(ticket);
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/tickets/ticket-1/status',
+      payload: { status: 'closed' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.status).toBe('closed');
+    expect(mockTicketService.updateStatus).toHaveBeenCalledWith('ticket-1', 'closed');
+  });
+
+  it('PATCH /api/tickets/:id/status rejects invalid status', async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/tickets/ticket-1/status',
+      payload: { status: 'invalid' },
+    });
+
+    expect(res.statusCode).toBe(400);
+    const body = JSON.parse(res.body);
+    expect(body.error).toContain('status must be one of');
+  });
+
+  it('PATCH /api/tickets/:id/status returns 404 for missing ticket', async () => {
+    mockTicketService.updateStatus.mockRejectedValue(new Error('Ticket not found'));
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/tickets/nonexistent/status',
+      payload: { status: 'closed' },
+    });
+
+    expect(res.statusCode).toBe(404);
   });
 });
