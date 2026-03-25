@@ -212,7 +212,7 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
     };
 
     // If stage is changing, enforce gatekeeper rules
-    if (body.stage !== undefined) {
+    if ('stage' in body && body.stage !== undefined) {
       // Fetch the current document to evaluate the gate
       const [current] = await db.select().from(documents).where(eq(documents.id, id));
       if (!current) {
@@ -240,11 +240,11 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
     const updates: Partial<typeof documents.$inferInsert> = {
       updatedAt: new Date(),
     };
-    if (body.title !== undefined) updates.title = body.title;
-    if (body.content !== undefined) updates.content = body.content;
-    if (body.path !== undefined) updates.path = body.path;
-    if (body.status !== undefined) updates.status = body.status;
-    if (body.stage !== undefined) updates.stage = body.stage;
+    if ('title' in body) updates.title = body.title;
+    if ('content' in body) updates.content = body.content;
+    if ('path' in body) updates.path = body.path;
+    if ('status' in body) updates.status = body.status;
+    if ('stage' in body) updates.stage = body.stage;
 
     const [doc] = await db
       .update(documents)
