@@ -221,4 +221,28 @@ export const ticketService = {
 
     return updated;
   },
+
+  async updateStatus(ticketId: string, status: 'open' | 'in_progress' | 'closed') {
+    const [updated] = await db
+      .update(tickets)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(tickets.id, ticketId))
+      .returning();
+
+    if (!updated) {
+      throw new Error('Ticket not found');
+    }
+
+    return updated;
+  },
+
+  async updateStatusByExternalId(externalId: string, provider: 'github' | 'jira', status: 'open' | 'in_progress' | 'closed') {
+    const [updated] = await db
+      .update(tickets)
+      .set({ status, updatedAt: new Date() })
+      .where(and(eq(tickets.externalId, externalId), eq(tickets.provider, provider)))
+      .returning();
+
+    return updated ?? null;
+  },
 };

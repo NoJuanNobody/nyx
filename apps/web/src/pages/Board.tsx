@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/auth.store';
-import { fetchTickets, syncAllTickets, type Ticket } from '../lib/api';
+import { fetchTickets, syncAllTickets, updateTicketStatus, type Ticket } from '../lib/api';
 import { ClaudeInsightCard } from '../components/ClaudeInsightCard';
 
 type ColumnStatus = 'open' | 'in_progress' | 'closed';
@@ -17,7 +17,7 @@ const PROVIDER_BADGE: Record<string, { label: string; className: string }> = {
   jira: { label: 'Jira', className: 'bg-blue-600 text-white' },
 };
 
-function TicketCard({ ticket }: { ticket: Ticket }) {
+function TicketCard({ ticket, onStatusChange }: { ticket: Ticket; onStatusChange: (ticketId: string, status: ColumnStatus) => void }) {
   const badge = PROVIDER_BADGE[ticket.provider] ?? { label: ticket.provider, className: 'bg-slate-200 text-slate-700' };
 
   return (
@@ -51,6 +51,18 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
           Open externally &rarr;
         </a>
       </div>
+      <div className="mt-2">
+        <select
+          value={ticket.status}
+          onChange={(e) => onStatusChange(ticket.id, e.target.value as ColumnStatus)}
+          className="w-full rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-600 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+          data-testid={`ticket-status-select-${ticket.id}`}
+        >
+          {COLUMNS.map((col) => (
+            <option key={col.key} value={col.key}>{col.label}</option>
+          ))}
+        </select>
+      </div>
       {ticket.provider === 'github' && (
         <ClaudeInsightCard ticketId={ticket.id} insight={ticket.claudeInsights ?? null} />
       )}
@@ -73,6 +85,16 @@ export function Board() {
     mutationFn: () => syncAllTickets(currentTeamId!),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tickets', currentTeamId] }),
   });
+
+  const statusMutation = useMutation({
+    mutationFn: ({ ticketId, status }: { ticketId: string; status: ColumnStatus }) =>
+      updateTicketStatus(ticketId, status),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tickets', currentTeamId] }),
+  });
+
+  const handleStatusChange = (ticketId: string, status: ColumnStatus) => {
+    statusMutation.mutate({ ticketId, status });
+  };
 
   const grouped: Record<ColumnStatus, Ticket[]> = {
     open: [],
@@ -155,7 +177,7 @@ export function Board() {
                   <p className="py-8 text-center text-xs text-slate-400">No tickets</p>
                 ) : (
                   grouped[col.key].map((ticket) => (
-                    <TicketCard key={ticket.id} ticket={ticket} />
+                    <TicketCard key={ticket.id} ticket={ticket} onStatusChange={handleStatusChange} />
                   ))
                 )}
               </div>
