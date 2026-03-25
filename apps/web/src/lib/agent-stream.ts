@@ -7,7 +7,8 @@ export type AgentStreamEvent =
   | { type: 'text'; text: string }
   | { type: 'tool_call'; toolName: string; input: Record<string, unknown>; sequence: number }
   | { type: 'tool_result'; sequence: number; output: unknown; durationMs: number; error?: string }
-  | { type: 'done'; tokenUsage: { inputTokens: number; outputTokens: number } };
+  | { type: 'done'; tokenUsage: { inputTokens: number; outputTokens: number }; creditsUsed?: number; creditBalance?: number }
+  | { type: 'credits_depleted'; balance: number; required: number };
 
 export interface AgentStreamOptions {
   teamId: string;

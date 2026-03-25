@@ -84,7 +84,70 @@ describe('credits.service', () => {
         drift_detection: 2,
         ticket_generation: 2,
         voice_agent_minute: 5,
+        agent_full_spec_review: 5,
+        agent_change_impact_analysis: 4,
+        agent_codebase_sync_check: 4,
+        agent_doc_generation: 5,
+        agent_meeting_review: 3,
+        agent_custom: 3,
       });
+    });
+  });
+
+  describe('getAgentCost', () => {
+    it('should return the cost for a known workflow', async () => {
+      const { getAgentCost } = await import('../credits.service.js');
+      expect(getAgentCost('full_spec_review')).toBe(5);
+      expect(getAgentCost('meeting_review')).toBe(3);
+    });
+
+    it('should return agent_custom cost for unknown workflow', async () => {
+      const { getAgentCost } = await import('../credits.service.js');
+      expect(getAgentCost('nonexistent_workflow')).toBe(3);
+    });
+
+    it('should return agent_custom cost when no workflow specified', async () => {
+      const { getAgentCost } = await import('../credits.service.js');
+      expect(getAgentCost()).toBe(3);
+      expect(getAgentCost(undefined)).toBe(3);
+    });
+  });
+
+  describe('checkCredits', () => {
+    it('should return allowed=true when balance is sufficient', async () => {
+      selectResults = [[{ balance: 10 }]];
+
+      const { checkCredits } = await import('../credits.service.js');
+      const result = await checkCredits('user-1', 5);
+
+      expect(result).toEqual({ allowed: true, balance: 10, required: 5 });
+    });
+
+    it('should return allowed=false when balance is insufficient', async () => {
+      selectResults = [[{ balance: 2 }]];
+
+      const { checkCredits } = await import('../credits.service.js');
+      const result = await checkCredits('user-1', 5);
+
+      expect(result).toEqual({ allowed: false, balance: 2, required: 5 });
+    });
+
+    it('should return allowed=false when no balance exists', async () => {
+      selectResults = [[]];
+
+      const { checkCredits } = await import('../credits.service.js');
+      const result = await checkCredits('user-1', 3);
+
+      expect(result).toEqual({ allowed: false, balance: 0, required: 3 });
+    });
+
+    it('should return allowed=true when balance exactly meets requirement', async () => {
+      selectResults = [[{ balance: 5 }]];
+
+      const { checkCredits } = await import('../credits.service.js');
+      const result = await checkCredits('user-1', 5);
+
+      expect(result).toEqual({ allowed: true, balance: 5, required: 5 });
     });
   });
 

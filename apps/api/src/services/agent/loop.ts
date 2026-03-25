@@ -5,6 +5,7 @@ import { agentSessions, agentToolCalls } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { executeTool } from './executor.js';
 import { getToolDefinitions } from './tools.js';
+import { checkCredits, deductCredits, getAgentCost } from '../credits.service.js';
 import type { AgentContext, TokenUsage, ToolCallRecord } from './types.js';
 
 const MODEL = 'claude-sonnet-4-20250514';
@@ -21,6 +22,7 @@ export interface AgentLoopOptions {
   systemPrompt: string;
   userPrompt: string;
   toolNames?: string[];
+  workflowId?: string;
   context: AgentContext;
 }
 
@@ -37,7 +39,26 @@ export interface AgentLoopResult {
  * 3. Repeat until end_turn or max iterations
  */
 export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoopResult> {
-  const { systemPrompt, userPrompt, toolNames, context } = options;
+  const { systemPrompt, userPrompt, toolNames, workflowId, context } = options;
+
+  // ── Credit gate: verify the user can afford this run ──
+  const creditCost = getAgentCost(workflowId);
+  const creditCheck = await checkCredits(context.userId, creditCost);
+  if (!creditCheck.allowed) {
+    await db.update(agentSessions).set({ status: 'failed', result: 'Insufficient credits' })
+      .where(eq(agentSessions.id, context.sessionId));
+    context.onEvent?.({ type: 'status', status: 'failed' });
+    context.onEvent?.({
+      type: 'credits_depleted',
+      balance: creditCheck.balance,
+      required: creditCheck.required,
+    });
+    throw {
+      statusCode: 402,
+      message: `Insufficient credits. Balance: ${creditCheck.balance}, required: ${creditCheck.required}`,
+    };
+  }
+
   const client = requireClient();
   const tools = getToolDefinitions(toolNames);
 
@@ -158,6 +179,15 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
     // No tool uses — we're done
     const finalResult = textOutput || 'Agent completed without text output.';
 
+    // ── Deduct credits after successful completion ──
+    const workflowLabel = workflowId ?? 'custom';
+    const deductResult = await deductCredits(
+      context.userId,
+      creditCost,
+      `agent_${workflowLabel}`,
+      `Agent workflow "${workflowLabel}" (session ${context.sessionId})`,
+    );
+
     // Update session
     await db.update(agentSessions).set({
       status: 'completed',
@@ -171,12 +201,22 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
       result: finalResult,
       toolCallCount: allToolCalls.length,
       tokenUsage,
+      creditsUsed: creditCost,
+      creditBalance: deductResult.balance,
     });
 
     return { result: finalResult, toolCalls: allToolCalls, tokenUsage };
   }
 
-  // Max iterations reached
+  // Max iterations reached — still deduct credits since compute was consumed
+  const workflowLabel = workflowId ?? 'custom';
+  const deductResult = await deductCredits(
+    context.userId,
+    creditCost,
+    `agent_${workflowLabel}`,
+    `Agent workflow "${workflowLabel}" max iterations (session ${context.sessionId})`,
+  );
+
   const maxResult = 'Agent reached maximum iteration limit.';
   await db.update(agentSessions).set({
     status: 'completed',
@@ -190,6 +230,8 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
     result: maxResult,
     toolCallCount: allToolCalls.length,
     tokenUsage,
+    creditsUsed: creditCost,
+    creditBalance: deductResult.balance,
   });
 
   return { result: maxResult, toolCalls: allToolCalls, tokenUsage };

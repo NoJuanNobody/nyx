@@ -9,7 +9,34 @@ export const CREDIT_COSTS: Record<string, number> = {
   drift_detection: 2,
   ticket_generation: 2,
   voice_agent_minute: 5,
+  agent_full_spec_review: 5,
+  agent_change_impact_analysis: 4,
+  agent_codebase_sync_check: 4,
+  agent_doc_generation: 5,
+  agent_meeting_review: 3,
+  agent_custom: 3,
 };
+
+/**
+ * Returns the credit cost for a given agent workflow.
+ * Falls back to the generic `agent_custom` cost for unknown workflows.
+ */
+export function getAgentCost(workflowId?: string): number {
+  const key = workflowId ? `agent_${workflowId}` : 'agent_custom';
+  return CREDIT_COSTS[key] ?? CREDIT_COSTS.agent_custom;
+}
+
+/**
+ * Check whether a user has enough credits for the given amount.
+ * Returns `{ allowed: true, balance }` or `{ allowed: false, balance, required }`.
+ */
+export async function checkCredits(
+  userId: string,
+  required: number,
+): Promise<{ allowed: boolean; balance: number; required: number }> {
+  const balance = await getBalance(userId);
+  return { allowed: balance >= required, balance, required };
+}
 
 // ── Service functions ─────────────────────────────────
 
