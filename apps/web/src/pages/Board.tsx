@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/auth.store';
-import { fetchTickets, syncAllTickets, type Ticket } from '../lib/api';
+import { fetchTickets, syncAllTickets, updateTicketStatus, type Ticket } from '../lib/api';
 import { ClaudeInsightCard } from '../components/ClaudeInsightCard';
 
 type ColumnStatus = 'open' | 'in_progress' | 'closed';
@@ -17,7 +17,7 @@ const PROVIDER_BADGE: Record<string, { label: string; className: string }> = {
   jira: { label: 'Jira', className: 'bg-blue-600 text-white' },
 };
 
-function TicketCard({ ticket }: { ticket: Ticket }) {
+function TicketCard({ ticket, onStatusChange }: { ticket: Ticket; onStatusChange: (ticketId: string, status: ColumnStatus) => void }) {
   const badge = PROVIDER_BADGE[ticket.provider] ?? { label: ticket.provider, className: 'bg-slate-200 text-slate-700' };
 
   return (
@@ -38,6 +38,21 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
           {badge.label}
         </span>
       </div>
+      {ticket.repoName && (
+        <div className="mt-1.5 flex items-center gap-1">
+          <svg className="h-3 w-3 flex-shrink-0 text-slate-400" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M2 2.5A2.5 2.5 0 014.5 0h8.75a.75.75 0 01.75.75v12.5a.75.75 0 01-.75.75h-2.5a.75.75 0 110-1.5h1.75v-2h-8a1 1 0 00-.714 1.7.75.75 0 01-1.072 1.05A2.495 2.495 0 012 11.5v-9zm10.5-1h-8a1 1 0 00-1 1v6.708A2.486 2.486 0 014.5 9h8.5V1.5zm-8 11a1 1 0 100-2 1 1 0 000 2z" />
+          </svg>
+          <a
+            href={ticket.repoUrl || ticket.externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] font-medium text-slate-500 hover:text-blue-600 truncate transition-colors"
+          >
+            {ticket.repoName}
+          </a>
+        </div>
+      )}
       <div className="mt-2 flex items-center justify-between">
         <span className="text-[10px] text-slate-400">
           #{ticket.externalId}
@@ -50,6 +65,18 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
         >
           Open externally &rarr;
         </a>
+      </div>
+      <div className="mt-2">
+        <select
+          value={ticket.status}
+          onChange={(e) => onStatusChange(ticket.id, e.target.value as ColumnStatus)}
+          className="w-full rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-600 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+          data-testid={`ticket-status-select-${ticket.id}`}
+        >
+          {COLUMNS.map((col) => (
+            <option key={col.key} value={col.key}>{col.label}</option>
+          ))}
+        </select>
       </div>
       {ticket.provider === 'github' && (
         <ClaudeInsightCard ticketId={ticket.id} insight={ticket.claudeInsights ?? null} />
@@ -73,6 +100,16 @@ export function Board() {
     mutationFn: () => syncAllTickets(currentTeamId!),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tickets', currentTeamId] }),
   });
+
+  const statusMutation = useMutation({
+    mutationFn: ({ ticketId, status }: { ticketId: string; status: ColumnStatus }) =>
+      updateTicketStatus(ticketId, status),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tickets', currentTeamId] }),
+  });
+
+  const handleStatusChange = (ticketId: string, status: ColumnStatus) => {
+    statusMutation.mutate({ ticketId, status });
+  };
 
   const grouped: Record<ColumnStatus, Ticket[]> = {
     open: [],
@@ -102,6 +139,7 @@ export function Board() {
           <select
             value={providerFilter}
             onChange={(e) => setProviderFilter(e.target.value)}
+            data-testid="provider-filter"
             className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-600 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
           >
             <option value="">All providers</option>
@@ -142,7 +180,7 @@ export function Board() {
         <div className="grid grid-cols-3 gap-4" style={{ minHeight: 400 }}>
           {COLUMNS.map((col) => (
             <div key={col.key} className="flex flex-col rounded-lg border border-slate-200 bg-slate-50/50">
-              <div className={`flex items-center justify-between rounded-t-lg px-4 py-2.5 ${col.bg}`}>
+              <div className={`flex items-center justify-between rounded-t-lg px-4 py-2.5 ${col.bg}`} data-testid={`board-column-${col.key}`}>
                 <span className={`text-xs font-semibold uppercase tracking-wider ${col.color}`}>
                   {col.label}
                 </span>
@@ -155,7 +193,7 @@ export function Board() {
                   <p className="py-8 text-center text-xs text-slate-400">No tickets</p>
                 ) : (
                   grouped[col.key].map((ticket) => (
-                    <TicketCard key={ticket.id} ticket={ticket} />
+                    <TicketCard key={ticket.id} ticket={ticket} onStatusChange={handleStatusChange} />
                   ))
                 )}
               </div>

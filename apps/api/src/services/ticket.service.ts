@@ -7,6 +7,35 @@ import { githubService, GitHubTokenExpiredError } from './github.service.js';
 import { jiraService } from './jira.service.js';
 import { auditService } from './audit.service.js';
 
+/** Extract "owner/repo" from a ticket's external URL */
+function extractRepoName(externalUrl: string, provider: string): string {
+  if (provider === 'github') {
+    // GitHub URLs: https://github.com/owner/repo/issues/123
+    const match = externalUrl.match(/github\.com\/([^/]+\/[^/]+)/);
+    return match ? match[1] : '';
+  }
+  if (provider === 'jira') {
+    // Jira URLs: https://yoursite.atlassian.net/browse/PROJ-123
+    const match = externalUrl.match(/\/browse\/([A-Z][A-Z0-9_]+-)\d+/);
+    return match ? match[1].replace(/-$/, '') : '';
+  }
+  return '';
+}
+
+/** Extract the repository/project URL from a ticket's external URL */
+function extractRepoUrl(externalUrl: string, provider: string): string {
+  if (provider === 'github') {
+    const match = externalUrl.match(/(https?:\/\/github\.com\/[^/]+\/[^/]+)/);
+    return match ? match[1] : '';
+  }
+  if (provider === 'jira') {
+    // Return the Jira project URL
+    const match = externalUrl.match(/(https?:\/\/[^/]+)/);
+    return match ? match[1] : '';
+  }
+  return '';
+}
+
 export const ticketService = {
   async createFromDocument(
     documentId: string,
@@ -14,6 +43,7 @@ export const ticketService = {
     title: string,
     body: string,
     createdById: string,
+    repo?: { owner: string; name: string },
   ) {
     // Derive teamId from document
     const [doc] = await db
@@ -43,10 +73,11 @@ export const ticketService = {
         repo?: string;
         selectedRepos?: Array<{ owner: string; name: string; fullName: string }>;
       };
-      const owner = cfg.selectedRepos?.[0]?.owner ?? cfg.owner ?? '';
-      const repo = cfg.selectedRepos?.[0]?.name ?? cfg.repo ?? '';
-      if (!owner || !repo) throw new Error('No GitHub repository configured for this team');
-      const issue = await githubService.createIssue(cfg.accessToken, owner, repo, title, body);
+      // Prefer explicit repo selection from the request, then fall back to selectedRepos[0], then legacy fields
+      const owner = repo?.owner ?? cfg.selectedRepos?.[0]?.owner ?? cfg.owner ?? '';
+      const repoName = repo?.name ?? cfg.selectedRepos?.[0]?.name ?? cfg.repo ?? '';
+      if (!owner || !repoName) throw new Error('No GitHub repository configured for this team');
+      const issue = await githubService.createIssue(cfg.accessToken, owner, repoName, title, body);
       externalId = String(issue.number);
       externalUrl = issue.html_url;
     } else {
@@ -122,7 +153,12 @@ export const ticketService = {
       rows = rows.filter((t) => t.provider === filters.provider);
     }
 
-    return rows.map((t) => ({ ...t, documentTitle: docTitleMap.get(t.documentId) ?? '' }));
+    return rows.map((t) => ({
+      ...t,
+      documentTitle: docTitleMap.get(t.documentId) ?? '',
+      repoName: extractRepoName(t.externalUrl, t.provider),
+      repoUrl: extractRepoUrl(t.externalUrl, t.provider),
+    }));
   },
 
   async syncAllForTeam(teamId: string): Promise<number> {
@@ -220,5 +256,29 @@ export const ticketService = {
       .returning();
 
     return updated;
+  },
+
+  async updateStatus(ticketId: string, status: 'open' | 'in_progress' | 'closed') {
+    const [updated] = await db
+      .update(tickets)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(tickets.id, ticketId))
+      .returning();
+
+    if (!updated) {
+      throw new Error('Ticket not found');
+    }
+
+    return updated;
+  },
+
+  async updateStatusByExternalId(externalId: string, provider: 'github' | 'jira', status: 'open' | 'in_progress' | 'closed') {
+    const [updated] = await db
+      .update(tickets)
+      .set({ status, updatedAt: new Date() })
+      .where(and(eq(tickets.externalId, externalId), eq(tickets.provider, provider)))
+      .returning();
+
+    return updated ?? null;
   },
 };

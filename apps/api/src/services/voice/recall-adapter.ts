@@ -67,6 +67,12 @@ async function createBot(meetingUrl: string): Promise<RecallBotResponse> {
   const botConfig: Record<string, unknown> = {
     meeting_url: meetingUrl,
     output_media: { camera: { kind: 'default' }, speaker: { kind: 'default' } },
+    chat: { on_bot_join: { send_to: 'everyone', message: 'Nyx AI assistant has joined.' } },
+    output_audio: {
+      tts: {
+        provider: 'default',
+      },
+    },
   };
 
   if (webhookUrl) {

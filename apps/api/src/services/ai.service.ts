@@ -126,7 +126,18 @@ export const aiService = {
       model: MODEL,
       max_tokens: 1024,
       system:
-        `You are a technical specification quality analyzer. Given a spec document, rate its quality from 1 to 10 and provide actionable improvement suggestions. Respond ONLY with valid JSON in this exact format: {"score": <number>, "suggestions": ["suggestion1", "suggestion2", ...]}${stageContext}`,
+        `You are a technical specification quality analyzer. Given a spec document, rate its quality from 1 to 10 and provide actionable improvement suggestions. A score of 10/10 is explicitly achievable and should be awarded when warranted.
+
+Scoring guide:
+- 1-3: Major gaps — missing sections, vague language, no actionable detail
+- 4-6: Partial — covers basics but has significant omissions or ambiguity
+- 7-8: Solid — well-structured, mostly complete, minor improvements possible
+- 9: Excellent — comprehensive, clear, actionable, with only trivial polish remaining
+- 10: Exceptional — comprehensive coverage, unambiguous language, fully actionable with clear acceptance criteria, addresses edge cases, and requires no further clarification to implement
+
+If the document meets all criteria for its stage and requires no meaningful improvements, score it 10. Do not withhold a perfect score simply because "there is always room for improvement."
+
+Respond ONLY with valid JSON in this exact format: {"score": <number>, "suggestions": ["suggestion1", "suggestion2", ...]}${stageContext}`,
       messages: [
         {
           role: 'user',
@@ -217,7 +228,26 @@ export const aiService = {
       model: MODEL,
       max_tokens: 1024,
       system:
-        'You are a ticket generator. Given a diff between specification versions, generate a well-formatted ticket. Respond ONLY with valid JSON in this exact format: {"title": "<short title>", "description": "<detailed markdown description>", "labels": ["label1", "label2", ...]}',
+        `You are a ticket generator for a software engineering team. Given a diff between specification versions, generate a well-formatted ticket that describes **concrete code implementation work** — NOT documentation tasks.
+
+CRITICAL RULES:
+- Tickets must describe code changes: new features, bug fixes, refactors, API changes, database migrations, test additions, or infrastructure work.
+- NEVER generate tickets whose primary goal is to "create documentation", "update docs", "write a guide", or "add README". Documentation-only tickets are acceptable ONLY when the spec explicitly identifies a missing doc as the sole gap.
+- Titles must be action-oriented toward code: "Implement ...", "Add ...", "Fix ...", "Refactor ...", "Migrate ...", etc.
+
+GOOD ticket titles:
+- "Implement rate limiting on /api/projects endpoint"
+- "Add input validation for team invitation flow"
+- "Fix race condition in document version save"
+- "Refactor auth middleware to support BYOK keys"
+
+BAD ticket titles (do NOT generate these):
+- "Create documentation for the API"
+- "Update README with setup instructions"
+- "Document the new authentication flow"
+- "Write user guide for dashboard features"
+
+Respond ONLY with valid JSON in this exact format: {"title": "<short title>", "description": "<detailed markdown description>", "labels": ["label1", "label2", ...]}`,
       messages: [
         {
           role: 'user',
@@ -237,9 +267,9 @@ export const aiService = {
       return parsed;
     } catch {
       return {
-        title: 'Update implementation to match spec changes',
+        title: 'Implement code changes to match spec updates',
         description: text,
-        labels: ['spec-change'],
+        labels: ['spec-change', 'implementation'],
       };
     }
   },
@@ -326,7 +356,14 @@ export const aiService = {
       model: MODEL,
       max_tokens: 2048,
       system:
-        'You are a change analyst for a documentation platform. Given a set of document version changes, analyze them and suggest ticket groupings. Group related changes into logical tickets. Respond ONLY with valid JSON in this exact format: {"title": "<proposal title>", "description": "<summary of all changes>", "suggestedTickets": [{"title": "<ticket title>", "description": "<detailed description>", "priority": "high|medium|low", "labels": ["label1"]}]}',
+        `You are a change analyst for a software engineering team. Given a set of document version changes, analyze them and suggest ticket groupings. Group related changes into logical tickets that describe **concrete code implementation work**.
+
+CRITICAL RULES:
+- Each suggested ticket must describe actionable engineering work: new features, bug fixes, refactors, API changes, database migrations, test additions, or infrastructure tasks.
+- NEVER suggest tickets whose primary goal is to "create documentation", "update docs", or "write a guide". Documentation-only tickets are acceptable ONLY when the change explicitly identifies a missing doc as the sole gap.
+- Ticket titles must be action-oriented toward code changes: "Implement ...", "Add ...", "Fix ...", "Refactor ...", "Migrate ...", etc.
+
+Respond ONLY with valid JSON in this exact format: {"title": "<proposal title>", "description": "<summary of all changes>", "suggestedTickets": [{"title": "<ticket title>", "description": "<detailed description>", "priority": "high|medium|low", "labels": ["label1"]}]}`,
       messages: [
         {
           role: 'user',
@@ -550,11 +587,11 @@ STRICT RULES:
 
     let stageFocus = '';
     if (stage && ['conception', 'definition'].includes(stage)) {
-      stageFocus = 'Focus on requirement gaps, missing user stories, and unanswered questions.';
+      stageFocus = 'Focus on requirement gaps, missing user stories, and unanswered questions that need code solutions — e.g., building prototypes, implementing validation logic, or creating API endpoints to address gaps.';
     } else if (stage && ['architecture', 'implementation'].includes(stage)) {
       stageFocus = 'Focus on code changes, API contracts, migration tasks, and test coverage.';
     } else if (stage === 'execution') {
-      stageFocus = 'Focus on drift remediation and documentation updates.';
+      stageFocus = 'Focus on drift remediation — code fixes to bring implementation back in sync with specs, not documentation updates.';
     }
 
     const stageContext = stage && STAGE_QUALITY_PROMPTS[stage]
@@ -569,12 +606,29 @@ STRICT RULES:
       model: MODEL_FAST,
       max_tokens: 16384,
       system:
-        `You are a ticket suggestion engine for a documentation platform. Given a document and optional code context, generate at least 50 actionable ticket suggestions. Be thorough and exhaustive — cover every feature, requirement, edge case, test scenario, integration point, documentation gap, performance concern, security consideration, accessibility issue, and deployment task you can identify. ${stageFocus}${stageContext}
+        `You are a ticket suggestion engine for a software engineering team. Given a document and optional code context, generate at least 50 actionable ticket suggestions. Be thorough and exhaustive — cover every feature, requirement, edge case, test scenario, integration point, performance concern, security consideration, accessibility issue, and deployment task you can identify. ${stageFocus}${stageContext}
+
+CRITICAL RULES:
+- Every ticket must describe **concrete code implementation work**: building features, fixing bugs, writing tests, refactoring modules, adding API endpoints, creating database migrations, improving performance, hardening security, etc.
+- NEVER generate tickets whose primary goal is to "create documentation", "update docs", "write a guide", or "add README". Documentation-only tickets are acceptable ONLY when the spec explicitly identifies a missing doc as the sole deliverable.
+- Titles must be action-oriented toward code: "Implement ...", "Add ...", "Fix ...", "Refactor ...", "Migrate ...", etc.
+
+GOOD ticket titles:
+- "[M] Implement rate limiting middleware for public API routes"
+- "[S] Add unit tests for team invitation service"
+- "[L] Build real-time collaboration WebSocket layer"
+- "[S] Fix missing null check in document version resolver"
+
+BAD ticket titles (do NOT generate these):
+- "[M] Create API documentation for endpoints"
+- "[S] Update README with deployment instructions"
+- "[M] Document the authentication flow"
+- "[L] Write comprehensive user guide"
 
 Each ticket must have:
 - title: prefixed with [S], [M], or [L] for estimated scope (small/medium/large)
 - description: must include a "## Context" section citing the specific spec heading or section, an "## Affected Areas" section listing file paths or modules, and an "## Acceptance Criteria" section with a markdown checklist of verifiable conditions
-- labels: array of relevant labels (e.g., bug, enhancement, drift, spec-gap, testing, security, performance, accessibility, documentation)
+- labels: array of relevant labels (e.g., bug, enhancement, drift, spec-gap, testing, security, performance, accessibility)
 
 Respond ONLY with a valid JSON array of objects with title, description, and labels fields.`,
       messages: [

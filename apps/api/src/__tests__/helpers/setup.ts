@@ -69,6 +69,11 @@ vi.mock('../../lib/config.js', () => ({
     HEALTH_PROBE_TIMEOUT_MS: 3000,
     HEALTH_LOG_FAILURES: false,
     BYOK_ENCRYPTION_SECRET: 'test-byok-encryption-secret-32chars!',
+    GITLAB_CLIENT_ID: 'test-gl-client',
+    GITLAB_CLIENT_SECRET: 'test-gl-secret',
+    GITLAB_BASE_URL: undefined,
+    BITBUCKET_CLIENT_ID: 'test-bb-client',
+    BITBUCKET_CLIENT_SECRET: 'test-bb-secret',
   },
 }));
 

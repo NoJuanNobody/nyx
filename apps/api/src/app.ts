@@ -58,6 +58,7 @@ import { socialRoutes } from './routes/social.js';
 import { billingRoutes } from './routes/billing.js';
 import { planRoutes } from './routes/plan.js';
 import { creditRoutes } from './routes/credits.js';
+import { pipelineRoutes } from './routes/pipelines.js';
 import { videoGenerationRoutes } from './routes/video-generation.js';
 import { adminRoutes } from './routes/admin.js';
 import { aiKeyRoutes } from './routes/ai-keys.js';
@@ -132,6 +133,7 @@ export function buildApp() {
   app.register(billingRoutes, { prefix: '/api/billing' });
   app.register(planRoutes, { prefix: '/api/plan' });
   app.register(creditRoutes, { prefix: '/api/credits' });
+  app.register(pipelineRoutes, { prefix: '/api/pipelines' });
   app.register(videoGenerationRoutes, { prefix: '/api/video' });
   app.register(adminRoutes, { prefix: '/api/admin' });
   app.register(aiKeyRoutes, { prefix: '/api/teams' });

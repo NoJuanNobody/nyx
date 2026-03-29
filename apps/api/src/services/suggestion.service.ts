@@ -56,7 +56,12 @@ export const suggestionService = {
       .orderBy(desc(ticketSuggestions.createdAt));
   },
 
-  async approve(suggestionId: string, userId: string, provider: 'github' | 'jira') {
+  async approve(
+    suggestionId: string,
+    userId: string,
+    provider: 'github' | 'jira',
+    repo?: { owner: string; name: string },
+  ) {
     const [suggestion] = await db
       .select()
       .from(ticketSuggestions)
@@ -72,6 +77,7 @@ export const suggestionService = {
       suggestion.title,
       suggestion.description,
       userId,
+      repo,
     );
 
     // Mark suggestion as approved
@@ -166,7 +172,12 @@ export const suggestionService = {
     return created;
   },
 
-  async bulkApprove(suggestionIds: string[], userId: string, provider: 'github' | 'jira') {
+  async bulkApprove(
+    suggestionIds: string[],
+    userId: string,
+    provider: 'github' | 'jira',
+    repo?: { owner: string; name: string },
+  ) {
     // Fetch all suggestions by IDs
     const suggestions = await db
       .select()
@@ -189,6 +200,7 @@ export const suggestionService = {
           suggestion.title,
           suggestion.description,
           userId,
+          repo,
         );
 
         // Mark as approved

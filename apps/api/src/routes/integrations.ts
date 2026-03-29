@@ -4,6 +4,8 @@ import { randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
 import { db } from '../db/index.js';
 import { integrations, documents, timelineEvents, teams, teamMembers } from '../db/schema.js';
 import { githubService, GitHubTokenExpiredError } from '../services/github.service.js';
+import { gitlabService, GitLabTokenExpiredError } from '../services/gitlab.service.js';
+import { bitbucketService, BitbucketTokenExpiredError } from '../services/bitbucket.service.js';
 import { jiraService } from '../services/jira.service.js';
 import { otterService } from '../services/integrations/otter.service.js';
 import { requireRole } from '../middleware/permissions.js';
@@ -160,6 +162,318 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
 
     // Redirect back to settings
     reply.redirect('/settings?tab=integrations&github=connected');
+  });
+
+  // ── GitLab OAuth flow ──────────────────────────────────────────────
+
+  // GET /api/integrations/gitlab/connect — initiate GitLab OAuth
+  app.get('/gitlab/connect', async (request, reply) => {
+    let { teamId } = request.query as { teamId?: string };
+
+    if (!teamId) {
+      const userId = request.user.id;
+      let userTeams = await db
+        .select({ id: teams.id })
+        .from(teamMembers)
+        .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+        .where(eq(teamMembers.userId, userId))
+        .limit(1);
+
+      if (userTeams.length === 0) {
+        const slug = `personal-${userId.slice(0, 8)}`;
+        const [team] = await db.insert(teams).values({ name: 'My Workspace', slug }).returning();
+        await db.insert(teamMembers).values({ teamId: team.id, userId, role: 'owner' });
+        teamId = team.id;
+      } else {
+        teamId = userTeams[0].id;
+      }
+    }
+
+    if (!config.GITLAB_CLIENT_ID || !config.GITLAB_CLIENT_SECRET) {
+      reply.code(500);
+      return { error: 'GitLab OAuth not configured: GITLAB_CLIENT_ID and GITLAB_CLIENT_SECRET required' };
+    }
+
+    // Configure self-hosted GitLab base URL if provided
+    if (config.GITLAB_BASE_URL) {
+      gitlabService.setBaseUrl(config.GITLAB_BASE_URL);
+    }
+
+    const statePayload = JSON.stringify({ teamId, nonce: randomBytes(16).toString('hex') });
+    const state = signState(statePayload);
+
+    reply.setCookie('gitlab_oauth_state', state, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: config.NODE_ENV === 'production',
+      maxAge: 600,
+      path: '/',
+    });
+
+    const origin = request.headers.referer
+      ? new URL(request.headers.referer).origin
+      : `${request.protocol}://${request.host}`;
+
+    const glBase = config.GITLAB_BASE_URL || 'https://gitlab.com';
+    const params = new URLSearchParams({
+      client_id: config.GITLAB_CLIENT_ID,
+      redirect_uri: `${origin}/api/integrations/gitlab/callback`,
+      response_type: 'code',
+      scope: 'api read_user read_repository',
+      state,
+    });
+
+    reply.redirect(`${glBase}/oauth/authorize?${params.toString()}`);
+  });
+
+  // GET /api/integrations/gitlab/callback — handle GitLab OAuth callback
+  app.get('/gitlab/callback', async (request, reply) => {
+    const { code, state } = request.query as { code?: string; state?: string };
+
+    if (!code || !state) {
+      reply.code(400);
+      return { error: 'Missing code or state parameter' };
+    }
+
+    const cookieState = request.cookies.gitlab_oauth_state;
+    if (!cookieState || cookieState !== state) {
+      reply.code(403);
+      return { error: 'Invalid OAuth state — possible CSRF attack' };
+    }
+
+    const payload = verifyState(state);
+    if (!payload) {
+      reply.code(403);
+      return { error: 'State signature verification failed' };
+    }
+
+    const { teamId } = JSON.parse(payload) as { teamId: string };
+    reply.clearCookie('gitlab_oauth_state', { path: '/' });
+
+    if (config.GITLAB_BASE_URL) {
+      gitlabService.setBaseUrl(config.GITLAB_BASE_URL);
+    }
+
+    const origin = request.headers.referer
+      ? new URL(request.headers.referer).origin
+      : `${request.protocol}://${request.host}`;
+
+    const tokenData = await gitlabService.exchangeCodeForToken(
+      config.GITLAB_CLIENT_ID!,
+      config.GITLAB_CLIENT_SECRET!,
+      code,
+      `${origin}/api/integrations/gitlab/callback`,
+    );
+
+    const glUser = await gitlabService.getAuthenticatedUser(tokenData.access_token);
+
+    const [existing] = await db
+      .select()
+      .from(integrations)
+      .where(and(eq(integrations.teamId, teamId), eq(integrations.type, 'gitlab')));
+
+    const configData = {
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      gitlabUsername: glUser.login,
+      avatarUrl: glUser.avatarUrl,
+      baseUrl: config.GITLAB_BASE_URL || null,
+    };
+
+    if (existing) {
+      await db
+        .update(integrations)
+        .set({ config: configData, updatedAt: new Date() })
+        .where(eq(integrations.id, existing.id));
+    } else {
+      await db.insert(integrations).values({
+        teamId,
+        type: 'gitlab',
+        config: configData,
+      });
+    }
+
+    reply.redirect('/settings?tab=integrations&gitlab=connected');
+  });
+
+  // GET /api/integrations/:id/gitlab/repos — list repos for a connected GitLab integration
+  app.get('/:id/gitlab/repos', { preHandler: [requireRole({ minimumRole: 'viewer', source: 'integration' })] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(eq(integrations.id, id));
+
+    if (!integration || integration.type !== 'gitlab') {
+      reply.code(404);
+      return { error: 'GitLab integration not found' };
+    }
+
+    const cfg = integration.config as { accessToken?: string; baseUrl?: string };
+    if (!cfg.accessToken) {
+      reply.code(400);
+      return { error: 'GitLab access token is missing. Please reconnect the integration.' };
+    }
+
+    if (cfg.baseUrl) gitlabService.setBaseUrl(cfg.baseUrl);
+
+    try {
+      const repos = await gitlabService.listRepos(cfg.accessToken);
+      return { repos };
+    } catch (err) {
+      if (err instanceof GitLabTokenExpiredError) {
+        reply.code(401);
+        return { error: 'gitlab_token_expired', message: err.message };
+      }
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(502);
+      return { error: message };
+    }
+  });
+
+  // ── Bitbucket OAuth flow ──────────────────────────────────────────────
+
+  // GET /api/integrations/bitbucket/connect — initiate Bitbucket OAuth
+  app.get('/bitbucket/connect', async (request, reply) => {
+    let { teamId } = request.query as { teamId?: string };
+
+    if (!teamId) {
+      const userId = request.user.id;
+      let userTeams = await db
+        .select({ id: teams.id })
+        .from(teamMembers)
+        .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+        .where(eq(teamMembers.userId, userId))
+        .limit(1);
+
+      if (userTeams.length === 0) {
+        const slug = `personal-${userId.slice(0, 8)}`;
+        const [team] = await db.insert(teams).values({ name: 'My Workspace', slug }).returning();
+        await db.insert(teamMembers).values({ teamId: team.id, userId, role: 'owner' });
+        teamId = team.id;
+      } else {
+        teamId = userTeams[0].id;
+      }
+    }
+
+    if (!config.BITBUCKET_CLIENT_ID || !config.BITBUCKET_CLIENT_SECRET) {
+      reply.code(500);
+      return { error: 'Bitbucket OAuth not configured: BITBUCKET_CLIENT_ID and BITBUCKET_CLIENT_SECRET required' };
+    }
+
+    const statePayload = JSON.stringify({ teamId, nonce: randomBytes(16).toString('hex') });
+    const state = signState(statePayload);
+
+    reply.setCookie('bitbucket_oauth_state', state, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: config.NODE_ENV === 'production',
+      maxAge: 600,
+      path: '/',
+    });
+
+    const params = new URLSearchParams({
+      client_id: config.BITBUCKET_CLIENT_ID,
+      response_type: 'code',
+      state,
+    });
+
+    reply.redirect(`https://bitbucket.org/site/oauth2/authorize?${params.toString()}`);
+  });
+
+  // GET /api/integrations/bitbucket/callback — handle Bitbucket OAuth callback
+  app.get('/bitbucket/callback', async (request, reply) => {
+    const { code, state } = request.query as { code?: string; state?: string };
+
+    if (!code || !state) {
+      reply.code(400);
+      return { error: 'Missing code or state parameter' };
+    }
+
+    const cookieState = request.cookies.bitbucket_oauth_state;
+    if (!cookieState || cookieState !== state) {
+      reply.code(403);
+      return { error: 'Invalid OAuth state — possible CSRF attack' };
+    }
+
+    const payload = verifyState(state);
+    if (!payload) {
+      reply.code(403);
+      return { error: 'State signature verification failed' };
+    }
+
+    const { teamId } = JSON.parse(payload) as { teamId: string };
+    reply.clearCookie('bitbucket_oauth_state', { path: '/' });
+
+    const tokenData = await bitbucketService.exchangeCodeForToken(
+      config.BITBUCKET_CLIENT_ID!,
+      config.BITBUCKET_CLIENT_SECRET!,
+      code,
+    );
+
+    const bbUser = await bitbucketService.getAuthenticatedUser(tokenData.access_token);
+
+    const [existing] = await db
+      .select()
+      .from(integrations)
+      .where(and(eq(integrations.teamId, teamId), eq(integrations.type, 'bitbucket')));
+
+    const configData = {
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      bitbucketUsername: bbUser.login,
+      avatarUrl: bbUser.avatarUrl,
+    };
+
+    if (existing) {
+      await db
+        .update(integrations)
+        .set({ config: configData, updatedAt: new Date() })
+        .where(eq(integrations.id, existing.id));
+    } else {
+      await db.insert(integrations).values({
+        teamId,
+        type: 'bitbucket',
+        config: configData,
+      });
+    }
+
+    reply.redirect('/settings?tab=integrations&bitbucket=connected');
+  });
+
+  // GET /api/integrations/:id/bitbucket/repos — list repos for a connected Bitbucket integration
+  app.get('/:id/bitbucket/repos', { preHandler: [requireRole({ minimumRole: 'viewer', source: 'integration' })] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(eq(integrations.id, id));
+
+    if (!integration || integration.type !== 'bitbucket') {
+      reply.code(404);
+      return { error: 'Bitbucket integration not found' };
+    }
+
+    const cfg = integration.config as { accessToken?: string };
+    if (!cfg.accessToken) {
+      reply.code(400);
+      return { error: 'Bitbucket access token is missing. Please reconnect the integration.' };
+    }
+
+    try {
+      const repos = await bitbucketService.listRepos(cfg.accessToken);
+      return { repos };
+    } catch (err) {
+      if (err instanceof BitbucketTokenExpiredError) {
+        reply.code(401);
+        return { error: 'bitbucket_token_expired', message: err.message };
+      }
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(502);
+      return { error: message };
+    }
   });
 
   // GET /api/integrations/:id/github/repos — list repos for a connected GitHub integration
@@ -566,7 +880,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
   app.post('/', { preHandler: [requireRole({ minimumRole: 'admin', source: 'request' })] }, async (request, reply) => {
     const { teamId, type, config } = request.body as {
       teamId: string;
-      type: 'github' | 'jira' | 'confluence';
+      type: 'github' | 'gitlab' | 'bitbucket' | 'jira' | 'confluence';
       config: Record<string, unknown>;
     };
 
@@ -620,6 +934,17 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
         return { ok: true, message: `Connected. Found ${repos.length} repos.` };
       }
 
+      if (integration.type === 'gitlab') {
+        if (config.baseUrl) gitlabService.setBaseUrl(config.baseUrl as string);
+        const repos = await gitlabService.listRepos(config.accessToken as string);
+        return { ok: true, message: `Connected. Found ${repos.length} repos.` };
+      }
+
+      if (integration.type === 'bitbucket') {
+        const repos = await bitbucketService.listRepos(config.accessToken as string);
+        return { ok: true, message: `Connected. Found ${repos.length} repos.` };
+      }
+
       if (integration.type === 'jira') {
         const projects = await jiraService.listProjects(
           config.baseUrl as string,
@@ -634,6 +959,14 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       if (err instanceof GitHubTokenExpiredError) {
         reply.code(401);
         return { ok: false, error: 'github_token_expired', message: err.message };
+      }
+      if (err instanceof GitLabTokenExpiredError) {
+        reply.code(401);
+        return { ok: false, error: 'gitlab_token_expired', message: err.message };
+      }
+      if (err instanceof BitbucketTokenExpiredError) {
+        reply.code(401);
+        return { ok: false, error: 'bitbucket_token_expired', message: err.message };
       }
       const message = err instanceof Error ? err.message : 'Unknown error';
       reply.code(502);

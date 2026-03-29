@@ -4,7 +4,7 @@ export const userRoleEnum = pgEnum('user_role', ['owner', 'admin', 'developer', 
 export const documentStatusEnum = pgEnum('document_status', ['draft', 'published', 'archived']);
 export const ticketProviderEnum = pgEnum('ticket_provider', ['github', 'jira']);
 export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'closed']);
-export const integrationTypeEnum = pgEnum('integration_type', ['github', 'jira', 'confluence']);
+export const integrationTypeEnum = pgEnum('integration_type', ['github', 'gitlab', 'bitbucket', 'jira', 'confluence']);
 export const proposalStatusEnum = pgEnum('proposal_status', ['pending', 'approved', 'rejected', 'pushed']);
 export const auditEventTypeEnum = pgEnum('audit_event_type', [
   'doc_edit', 'snapshot_created', 'ticket_created', 'ticket_updated',
@@ -687,6 +687,19 @@ export const creditTransactions = pgTable('credit_transactions', {
   taskType: text('task_type'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ── User Pipeline Access ──────────────────────────────────────
+
+export const userPipelineAccess = pgTable('user_pipeline_access', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull(),
+  teamId: uuid('team_id').references(() => teams.id),
+  pipelineId: text('pipeline_id').notNull(),
+  activatedAt: timestamp('activated_at', { withTimezone: true }).notNull().defaultNow(),
+  creditsPaid: integer('credits_paid').notNull().default(0),
+}, (table) => [
+  uniqueIndex('user_pipeline_access_user_pipeline_idx').on(table.userId, table.pipelineId),
+]);
 
 // ── Atlassian Connections ─────────────────────────────────────
 

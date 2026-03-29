@@ -754,6 +754,8 @@ export interface Ticket {
   createdAt: string;
   updatedAt: string;
   documentTitle?: string;
+  repoName?: string;
+  repoUrl?: string;
   claudeInsights?: ClaudeInsight | null;
 }
 
@@ -771,10 +773,20 @@ export function syncAllTickets(teamId: string): Promise<{ synced: number }> {
   });
 }
 
-export function createTicket(documentId: string, data: { provider: 'github' | 'jira'; title: string; body: string }): Promise<Ticket> {
+export function createTicket(
+  documentId: string,
+  data: { provider: 'github' | 'jira'; title: string; body: string; repo?: { owner: string; name: string } },
+): Promise<Ticket> {
   return request<Ticket>(`/documents/${encodeURIComponent(documentId)}/tickets`, {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+export function updateTicketStatus(ticketId: string, status: 'open' | 'in_progress' | 'closed'): Promise<Ticket> {
+  return request<Ticket>(`/tickets/${encodeURIComponent(ticketId)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
   });
 }
 
@@ -1011,7 +1023,7 @@ export interface SprintCapacityData {
   totalPoints: number;
   usedPoints: number;
   tickets: SprintTicket[];
-  source: 'github' | 'mock';
+  source: 'github' | 'jira' | 'none';
 }
 
 export interface SprintCheckResult {
@@ -1362,6 +1374,36 @@ export function purchaseCreditPack(packId: string): Promise<{ balance: number; p
   return request<{ balance: number; pack: CreditPack }>('/credits/purchase', { method: 'POST', body: JSON.stringify({ packId }) });
 }
 
+// ── Pipeline Access ─────────────────────────────────────────────────
+
+export interface OwnedPipeline {
+  id: string;
+  pipelineId: string;
+  teamId: string | null;
+  activatedAt: string;
+  creditsPaid: number;
+}
+
+export function fetchOwnedPipelines(): Promise<{ pipelines: OwnedPipeline[] }> {
+  return request<{ pipelines: OwnedPipeline[] }>('/pipelines/owned');
+}
+
+export function activatePipeline(data: {
+  pipelineId: string;
+  pipelineLabel: string;
+  creditCost: number;
+  teamId?: string;
+}): Promise<{ alreadyOwned: boolean; creditsPaid: number; balance: number }> {
+  return request<{ alreadyOwned: boolean; creditsPaid: number; balance: number }>('/pipelines/activate', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function checkPipelineAccess(pipelineId: string): Promise<{ owned: boolean }> {
+  return request<{ owned: boolean }>(`/pipelines/check/${pipelineId}`);
+}
+
 export function reviewMarketplaceListing(id: string, data: { rating: number; comment?: string }): Promise<MarketplaceReview> {
   return request<MarketplaceReview>(`/marketplace/${id}/reviews`, { method: 'POST', body: JSON.stringify(data) });
 }
@@ -1463,10 +1505,11 @@ export function generateFolderTicketSuggestions(
 export function bulkApproveSuggestions(
   suggestionIds: string[],
   provider: 'github' | 'jira',
+  repo?: { owner: string; name: string },
 ): Promise<BulkApproveResult[]> {
   return request<BulkApproveResult[]>('/ticket-suggestions/bulk-approve', {
     method: 'POST',
-    body: JSON.stringify({ suggestionIds, provider }),
+    body: JSON.stringify({ suggestionIds, provider, repo }),
   });
 }
 

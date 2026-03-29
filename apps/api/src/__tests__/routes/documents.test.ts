@@ -107,6 +107,31 @@ describe('Document Routes', () => {
     expect(body.title).toBe('Updated Title');
   });
 
+  it('PUT /api/documents/:id does not clear stage when stage is not in payload', async () => {
+    const doc = makeDocument({ title: 'Updated Content', stage: 'design' });
+
+    const mockSet = vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([doc]),
+      }),
+    });
+    mockDb.update.mockReturnValue({ set: mockSet } as any);
+
+    const app = await buildDocApp();
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/documents/${doc.id}`,
+      payload: { content: '# Updated content' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    // Verify that the set() call did NOT include a stage key
+    const setArg = mockSet.mock.calls[0][0];
+    expect(setArg).not.toHaveProperty('stage');
+    expect(setArg).toHaveProperty('updatedAt');
+    expect(setArg).toHaveProperty('content', '# Updated content');
+  });
+
   it('DELETE /api/documents/:id soft-deletes (archives)', async () => {
     const doc = makeDocument({ status: 'archived' });
 

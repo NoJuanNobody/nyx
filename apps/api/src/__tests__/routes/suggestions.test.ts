@@ -9,9 +9,13 @@ vi.mock('../../middleware/permissions.js', () => ({
 const { mockSuggestionService } = vi.hoisted(() => ({
   mockSuggestionService: {
     generateSuggestions: vi.fn(),
+    generateBulkSuggestions: vi.fn(),
+    generateFolderSuggestions: vi.fn(),
     listByDocument: vi.fn(),
     approve: vi.fn(),
     dismiss: vi.fn(),
+    bulkApprove: vi.fn(),
+    updateSuggestion: vi.fn(),
   },
 }));
 
@@ -84,6 +88,25 @@ describe('Suggestion Routes', () => {
     expect(body.status).toBe('approved');
   });
 
+  it('POST /api/ticket-suggestions/:id/approve passes repo to service', async () => {
+    const result = { id: 'sug-1', status: 'approved', ticketId: 'ticket-1' };
+    mockSuggestionService.approve.mockResolvedValue(result);
+
+    const app = await buildApp();
+    await app.inject({
+      method: 'POST',
+      url: '/api/ticket-suggestions/sug-1/approve',
+      payload: { provider: 'github', repo: { owner: 'myorg', name: 'myrepo' } },
+    });
+
+    expect(mockSuggestionService.approve).toHaveBeenCalledWith(
+      'sug-1',
+      'user-1',
+      'github',
+      { owner: 'myorg', name: 'myrepo' },
+    );
+  });
+
   it('POST /api/ticket-suggestions/:id/dismiss dismisses suggestion', async () => {
     const result = { id: 'sug-1', status: 'dismissed' };
     mockSuggestionService.dismiss.mockResolvedValue(result);
@@ -94,5 +117,40 @@ describe('Suggestion Routes', () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.status).toBe('dismissed');
+  });
+
+  it('POST /api/ticket-suggestions/bulk-approve passes repo to service', async () => {
+    const results = [{ suggestionId: 'sug-1', success: true }];
+    mockSuggestionService.bulkApprove.mockResolvedValue(results);
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ticket-suggestions/bulk-approve',
+      payload: {
+        suggestionIds: ['sug-1'],
+        provider: 'github',
+        repo: { owner: 'myorg', name: 'myrepo' },
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSuggestionService.bulkApprove).toHaveBeenCalledWith(
+      ['sug-1'],
+      'user-1',
+      'github',
+      { owner: 'myorg', name: 'myrepo' },
+    );
+  });
+
+  it('POST /api/ticket-suggestions/bulk-approve returns 400 when no suggestions', async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ticket-suggestions/bulk-approve',
+      payload: { suggestionIds: [], provider: 'github' },
+    });
+
+    expect(res.statusCode).toBe(400);
   });
 });

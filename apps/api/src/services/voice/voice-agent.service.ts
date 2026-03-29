@@ -94,11 +94,14 @@ async function processTranscript(state: AgentState): Promise<void> {
     if (text && text !== '__SKIP__') {
       state.conversationHistory.push({ role: 'assistant', content: text });
 
-      // Send response via chat into the call
+      // Send response as spoken audio via TTS into the call
       try {
-        await callIntegrationService.sendChat(state.sessionId, text);
-      } catch {
-        // Session may have ended
+        await callIntegrationService.speak(state.sessionId, text);
+      } catch (speakErr) {
+        const speakMsg = speakErr instanceof Error ? speakErr.message : 'Unknown speak error';
+        console.error(
+          `[VoiceAgent:${state.sessionId.slice(0, 8)}] Failed to speak: ${speakMsg}`,
+        );
       }
 
       console.log(`[VoiceAgent:${state.sessionId.slice(0, 8)}] Response: ${text}`);

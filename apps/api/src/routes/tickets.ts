@@ -44,10 +44,11 @@ export const ticketRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/documents/:documentId/tickets — create a ticket from a document
   app.post('/documents/:documentId/tickets', async (request, reply) => {
     const { documentId } = request.params as { documentId: string };
-    const { provider, title, body } = request.body as {
+    const { provider, title, body, repo } = request.body as {
       provider: 'github' | 'jira';
       title: string;
       body: string;
+      repo?: { owner: string; name: string };
     };
 
     const userId = request.user.id;
@@ -59,6 +60,7 @@ export const ticketRoutes: FastifyPluginAsync = async (app) => {
         title,
         body,
         userId,
+        repo,
       );
 
       // Fire-and-forget: record timeline event
@@ -102,6 +104,27 @@ export const ticketRoutes: FastifyPluginAsync = async (app) => {
     }
   });
 
+  // PATCH /api/tickets/:id/status — manually update ticket status
+  app.patch('/tickets/:id/status', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { status } = request.body as { status?: string };
+
+    const validStatuses = ['open', 'in_progress', 'closed'];
+    if (!status || !validStatuses.includes(status)) {
+      reply.code(400);
+      return { error: `status must be one of: ${validStatuses.join(', ')}` };
+    }
+
+    try {
+      const ticket = await ticketService.updateStatus(id, status as 'open' | 'in_progress' | 'closed');
+      return ticket;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(404);
+      return { error: message };
+    }
+  });
+
   // POST /api/tickets/:id/sync — sync ticket status from external provider
   app.post('/tickets/:id/sync', async (request, reply) => {
     const { id } = request.params as { id: string };
@@ -121,14 +144,12 @@ export const ticketRoutes: FastifyPluginAsync = async (app) => {
     const { id } = request.params as { id: string };
     try {
       const insight = await claudeInsightsService.getForTicket(id);
-      if (!insight) {
-        reply.code(404);
-        return { error: 'No Claude insight found for this ticket' };
-      }
-      return insight;
+      // Return null with 200 instead of 404 when no insight exists,
+      // to avoid browser console "Failed to load resource: 404" errors
+      return insight ?? null;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      reply.code(404);
+      reply.code(500);
       return { error: message };
     }
   });

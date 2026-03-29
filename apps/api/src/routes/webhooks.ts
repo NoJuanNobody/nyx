@@ -6,6 +6,7 @@ import { documents, integrations } from '../db/schema.js';
 import { config } from '../lib/config.js';
 import { aiService } from '../services/ai.service.js';
 import { githubService } from '../services/github.service.js';
+import { ticketService } from '../services/ticket.service.js';
 import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
 import { claudeInsightsService } from '../services/claude-insights.service.js';
@@ -155,6 +156,38 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return { ok: true, ...result };
+    }
+
+    if (event === 'issues') {
+      const body = request.body as {
+        action?: string;
+        issue?: { number: number; state: string };
+      };
+
+      if (body.issue) {
+        const externalId = String(body.issue.number);
+        let newStatus: 'open' | 'in_progress' | 'closed';
+
+        if (body.action === 'closed') {
+          newStatus = 'closed';
+        } else if (body.action === 'reopened' || body.action === 'opened') {
+          newStatus = 'open';
+        } else {
+          // For other actions (labeled, assigned, etc.), derive from state
+          newStatus = body.issue.state === 'closed' ? 'closed' : 'open';
+        }
+
+        // Fire-and-forget: update matching ticket
+        setImmediate(async () => {
+          try {
+            await ticketService.updateStatusByExternalId(externalId, 'github', newStatus);
+          } catch {
+            // Best-effort
+          }
+        });
+      }
+
+      return { ok: true, event };
     }
 
     if (event === 'issue_comment') {

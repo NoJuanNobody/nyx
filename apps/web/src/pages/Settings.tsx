@@ -32,7 +32,7 @@ interface TeamMember {
 
 interface Integration {
   id: string;
-  provider: 'github' | 'jira' | 'confluence';
+  provider: 'github' | 'gitlab' | 'bitbucket' | 'jira' | 'confluence';
   label: string;
   description: string;
   connected: boolean;
@@ -144,14 +144,34 @@ function ConfluenceIcon({ className }: { className?: string }) {
   );
 }
 
+function GitLabIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="m23.6 9.593-1.248-3.856-2.478-7.643a.455.455 0 0 0-.862 0l-2.478 7.643H7.466L4.988-1.906a.454.454 0 0 0-.862 0L1.648 5.737.4 9.593a.906.906 0 0 0 .328 1.013L12 18.9l11.272-8.294a.906.906 0 0 0 .328-1.013" />
+    </svg>
+  );
+}
+
+function BitbucketIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M.778 1.213a.768.768 0 0 0-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 0 0 .77-.646l3.27-20.03a.768.768 0 0 0-.768-.892L.778 1.213zM14.52 15.53H9.522L8.17 8.466h7.561l-1.21 7.064z" />
+    </svg>
+  );
+}
+
 const PROVIDER_ICON: Record<string, (props: { className?: string }) => ReactElement> = {
   github: GitHubIcon,
+  gitlab: GitLabIcon,
+  bitbucket: BitbucketIcon,
   jira: JiraIcon,
   confluence: ConfluenceIcon,
 };
 
 const PROVIDER_COLORS: Record<string, { bg: string; text: string; ring: string; btn: string }> = {
   github: { bg: 'bg-slate-900', text: 'text-white', ring: 'ring-slate-300', btn: 'bg-slate-900 hover:bg-slate-800 text-white' },
+  gitlab: { bg: 'bg-orange-600', text: 'text-white', ring: 'ring-orange-200', btn: 'bg-orange-600 hover:bg-orange-700 text-white' },
+  bitbucket: { bg: 'bg-blue-700', text: 'text-white', ring: 'ring-blue-200', btn: 'bg-blue-700 hover:bg-blue-800 text-white' },
   jira: { bg: 'bg-blue-600', text: 'text-white', ring: 'ring-blue-200', btn: 'bg-blue-600 hover:bg-blue-700 text-white' },
   confluence: { bg: 'bg-blue-500', text: 'text-white', ring: 'ring-blue-200', btn: 'bg-blue-500 hover:bg-blue-600 text-white' },
 };
@@ -436,6 +456,8 @@ function IntegrationsPanel() {
   // Map API integrations to display format, merged with static provider info
   const STATIC_PROVIDERS: Integration[] = [
     { id: '', provider: 'github', label: 'GitHub', description: 'Sync repositories, detect code drift, and push tickets as issues.', connected: false },
+    { id: '', provider: 'gitlab', label: 'GitLab', description: 'Connect GitLab repos (cloud or self-hosted), create issues, and receive push webhooks.', connected: false },
+    { id: '', provider: 'bitbucket', label: 'Bitbucket', description: 'Connect Bitbucket Cloud repos, create issues, and receive push webhooks.', connected: false },
     { id: '', provider: 'jira', label: 'Jira', description: 'Push change proposal tickets directly to your Jira project boards.', connected: false },
     { id: '', provider: 'confluence', label: 'Confluence', description: 'Import existing documentation and keep Confluence pages in sync.', connected: false },
   ];
@@ -444,7 +466,8 @@ function IntegrationsPanel() {
     const found = rawIntegrations?.find((ri) => ri.type === sp.provider);
     if (found) {
       const cfg = found.config as Record<string, string>;
-      return { ...sp, id: found.id, connected: true, account: cfg.githubUsername ?? cfg.account, connectedAt: found.createdAt };
+      const account = cfg.githubUsername ?? cfg.gitlabUsername ?? cfg.bitbucketUsername ?? cfg.account;
+      return { ...sp, id: found.id, connected: true, account, connectedAt: found.createdAt };
     }
     return sp;
   });
@@ -456,23 +479,30 @@ function IntegrationsPanel() {
 
   const handleConnect = useCallback((provider: string) => {
     setConnectError(null);
-    
+
+    if (!currentTeamId) {
+      console.error(`[${provider} Connect] currentTeamId is missing:`, currentTeamId);
+      setConnectError('No team selected. Please refresh the page and try again.');
+      return;
+    }
+
     if (provider === 'github') {
-      if (!currentTeamId) {
-        console.error('[GitHub Connect] currentTeamId is missing:', currentTeamId);
-        setConnectError('No team selected. Please refresh the page and try again.');
-        return;
-      }
       console.log('[GitHub Connect] Redirecting with teamId:', currentTeamId);
       setConnecting(provider);
       window.location.href = `/api/integrations/github/connect?teamId=${currentTeamId}`;
       return;
     }
+    if (provider === 'gitlab') {
+      setConnecting(provider);
+      window.location.href = `/api/integrations/gitlab/connect?teamId=${currentTeamId}`;
+      return;
+    }
+    if (provider === 'bitbucket') {
+      setConnecting(provider);
+      window.location.href = `/api/integrations/bitbucket/connect?teamId=${currentTeamId}`;
+      return;
+    }
     if (provider === 'jira' || provider === 'confluence') {
-      if (!currentTeamId) {
-        setConnectError('No team selected. Please refresh the page and try again.');
-        return;
-      }
       setConnecting(provider);
       window.location.href = `/api/integrations/atlassian/auth?teamId=${currentTeamId}`;
       return;
