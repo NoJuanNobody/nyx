@@ -28,7 +28,9 @@
   "pnpm": {
     "overrides": {
       "flatted": ">=3.4.2",
-      "undici": ">=7.24.0"
+      "undici": ">=7.24.0",
+      "path-to-regexp": ">=8.4.0",
+      "picomatch": ">=4.0.4"
     }
   }
 }

@@ -86,7 +86,7 @@ export function CreateTicketModal({
     if (availableRepos.length > 0 && selectedRepo === null) {
       setSelectedRepo(availableRepos[0]);
     }
-  }, [availableRepos.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [availableRepos.length]);
 
   const mutation = useMutation({
     mutationFn: () =>
