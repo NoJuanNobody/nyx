@@ -95,8 +95,9 @@ test.describe('Repositories', () => {
     await manageButton.click();
 
     // The RepoPickerModal should be visible with its header
-    await expect(page.locator('h2:has-text("Select Repositories")')).toBeVisible({ timeout: 5_000 });
-    // Should list the repos
-    await expect(page.locator('text=nyx/app')).toBeVisible({ timeout: 5_000 });
+    const modal = page.locator('.fixed.inset-0');
+    await expect(modal.locator('h2:has-text("Select Repositories")')).toBeVisible({ timeout: 5_000 });
+    // Should list the repos inside the modal
+    await expect(modal.locator('text=nyx/app')).toBeVisible({ timeout: 5_000 });
   });
 });

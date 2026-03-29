@@ -116,11 +116,11 @@ export const SEL = {
   // ── Board ────────────────────────────────────────────
   board: {
     title: 'h1:has-text("Board")',
-    providerFilter: 'main select',
+    providerFilter: '[data-testid="provider-filter"]',
     syncAllButton: 'button:has-text("Sync All")',
-    columnOpen: 'text=Open',
-    columnInProgress: 'text=In Progress',
-    columnClosed: 'text=Closed',
+    columnOpen: '[data-testid="board-column-open"]',
+    columnInProgress: '[data-testid="board-column-in_progress"]',
+    columnClosed: '[data-testid="board-column-closed"]',
     ticketCard: 'div.rounded-lg.border',
   },
 
