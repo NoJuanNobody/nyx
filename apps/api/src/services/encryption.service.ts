@@ -1,15 +1,14 @@
-import { createCipheriv, createDecipheriv, randomBytes, createHmac } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes, hkdfSync } from 'node:crypto';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
 
 /**
- * Derive a 32-byte encryption key from the BYOK_ENCRYPTION_SECRET using HMAC-SHA256.
- * This provides key derivation without pulling in HKDF directly.
+ * Derive a 32-byte encryption key from the BYOK_ENCRYPTION_SECRET using HKDF (SHA-256).
  */
 function deriveKey(secret: string): Buffer {
-  return createHmac('sha256', 'byok-key-derivation').update(secret).digest();
+  return Buffer.from(hkdfSync('sha256', secret, 'nyx-salt', 'nyx-byok-encryption', 32));
 }
 
 export interface EncryptedPayload {
