@@ -123,6 +123,7 @@ export function buildApp() {
       reply.code(400).send({ error: error.message });
       return;
     }
+    app.log.error(error, 'Unhandled error');
     reply.code(500).send({ error: 'Internal server error' });
   });
 
