@@ -111,6 +111,11 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
           if (job.status === 'completed' && job.result) {
             clearInterval(poll);
             setResults(job.result);
+            // Update folder suggestions to reflect approved status
+            const approvedIds = new Set(job.result.filter(r => r.success).map(r => r.suggestionId));
+            setFolderSuggestions(prev => prev.map(s =>
+              approvedIds.has(s.id) ? { ...s, status: 'approved' as const } : s
+            ));
             setSelectedIds(new Set());
             setApproveJobId(null);
             queryClient.invalidateQueries({ queryKey: ['ticket-suggestions', documentId] });
