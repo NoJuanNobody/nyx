@@ -617,21 +617,61 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       return { error: 'GitHub integration not found' };
     }
 
-    const cfg = integration.config as { accessToken?: string };
+    const cfg = integration.config as Record<string, unknown>;
+    const accessToken = cfg.accessToken as string | undefined;
 
-    if (!cfg.accessToken) {
+    if (!accessToken) {
       reply.code(400);
       return { error: 'GitHub access token is missing. Please reconnect the integration.' };
     }
 
     try {
       const repo = await githubService.createRepo(
-        cfg.accessToken,
+        accessToken,
         name.trim(),
         description,
         isPrivate,
         autoInit,
       );
+
+      // Auto-add created repo to selectedRepos and register webhook
+      const selectedRepos = (cfg.selectedRepos as Array<{ owner: string; name: string; fullName: string }>) ?? [];
+      const webhookIds = (cfg.webhookIds as Record<string, number>) ?? {};
+      const webhookSecret = (cfg.webhookSecret as string) ?? randomBytes(32).toString('hex');
+      const webhookBaseUrl = config.WEBHOOK_BASE_URL;
+
+      const [owner, repoName] = repo.full_name.split('/');
+      const newEntry = { owner, name: repoName, fullName: repo.full_name };
+
+      const updatedRepos = selectedRepos.some((r) => r.fullName === repo.full_name)
+        ? selectedRepos
+        : [...selectedRepos, newEntry];
+
+      const updatedWebhookIds = { ...webhookIds };
+
+      // Register webhook for the new repo
+      if (webhookBaseUrl && !webhookIds[repo.full_name]) {
+        try {
+          const hook = await githubService.createWebhook(
+            accessToken,
+            owner,
+            repoName,
+            `${webhookBaseUrl}/api/webhooks/github`,
+            webhookSecret,
+          );
+          updatedWebhookIds[repo.full_name] = hook.id;
+        } catch (webhookErr) {
+          request.log.warn({ repo: repo.full_name, err: webhookErr }, 'Failed to create webhook for newly created repo');
+        }
+      }
+
+      await db
+        .update(integrations)
+        .set({
+          config: { ...cfg, selectedRepos: updatedRepos, webhookSecret, webhookIds: updatedWebhookIds },
+          updatedAt: new Date(),
+        })
+        .where(eq(integrations.id, id));
 
       reply.code(201);
       return { repo };
