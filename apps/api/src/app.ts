@@ -111,7 +111,7 @@ export function buildApp() {
   });
 
   // Global error handler — Zod validation errors → 400
-  app.setErrorHandler((error: Error & { validation?: unknown }, _request, reply) => {
+  app.setErrorHandler((error: Error & { validation?: unknown }, request, reply) => {
     if (error instanceof ZodError) {
       reply.code(400).send({
         error: 'Validation failed',
@@ -123,7 +123,7 @@ export function buildApp() {
       reply.code(400).send({ error: error.message });
       return;
     }
-    app.log.error(error, 'Unhandled error');
+    request.log.error({ err: error, stack: error.stack }, 'Unhandled error');
     reply.code(500).send({ error: 'Internal server error' });
   });
 
