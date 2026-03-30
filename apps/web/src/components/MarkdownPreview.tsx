@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { codeToHtml, type BundledLanguage } from 'shiki';
+import DOMPurify from 'dompurify';
 
 interface MarkdownPreviewProps {
   content: string;
@@ -64,7 +65,10 @@ function CodeBlock({ className, children }: { className?: string; children?: Rea
         {/* Highlighted code */}
         <div
           className="overflow-x-auto text-[13px] leading-relaxed [&>pre]:!m-0 [&>pre]:!rounded-none [&>pre]:!border-0 [&>pre]:px-4 [&>pre]:py-3"
-          dangerouslySetInnerHTML={{ __html: html }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html, {
+            ALLOWED_TAGS: ['pre', 'code', 'span', 'div', 'br'],
+            ALLOWED_ATTR: ['class', 'style'],
+          }) }}
         />
       </div>
     );
