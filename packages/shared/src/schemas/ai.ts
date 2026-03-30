@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const analyzeSpecBody = z.object({
   content: z.string().min(1),
-  stage: z.string().optional(),
+  stage: z.string().nullable().optional(),
 });
 
 export const detectDriftBody = z.object({
@@ -63,7 +63,7 @@ export const seedFromStageBody = z.object({
 
 export const missingSectionsBody = z.object({
   content: z.string().min(1),
-  stage: z.string().optional(),
+  stage: z.string().nullable().optional(),
 });
 
 export const notificationReplyBody = z.object({
@@ -75,7 +75,7 @@ export const notificationReplyBody = z.object({
 
 export const decisionWeightBody = z.object({
   content: z.string().min(1),
-  stage: z.string().optional(),
+  stage: z.string().nullable().optional(),
 });
 
 export const seedNextStageBody = z.object({
