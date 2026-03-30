@@ -7,7 +7,7 @@ const VIDEO_OUTPUT_DIR = join(process.cwd(), 'generated-videos');
 
 export const videoGenerationRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/video/generate — generate a video from prompt
-  app.post('/generate', async (request, reply) => {
+  app.post('/generate', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { prompt, documentId, duration, aspectRatio } = request.body as {
       prompt?: string;
       documentId?: string;
@@ -75,7 +75,7 @@ export const videoGenerationRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/video/batch-download — accepts { videoIds: string[] }, returns zip
-  app.post('/batch-download', async (request, reply) => {
+  app.post('/batch-download', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { videoIds } = request.body as { videoIds?: string[] };
 
     if (!videoIds || !Array.isArray(videoIds) || videoIds.length === 0) {

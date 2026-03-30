@@ -23,6 +23,7 @@
     "@fastify/cors": "^11",
     "@fastify/helmet": "^13.0.2",
     "@fastify/multipart": "^9.4.0",
+    "@fastify/rate-limit": "^10.3.0",
     "@google/genai": "^1.46.0",
     "@nyx/shared": "workspace:*",
     "archiver": "^7.0.1",

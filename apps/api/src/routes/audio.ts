@@ -13,7 +13,7 @@ export const audioRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/intake/audio — upload audio file, transcribe, and structure into a spec
-  app.post('/audio', async (request, reply) => {
+  app.post('/audio', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const data = await request.file();
 
     if (!data) {
@@ -67,7 +67,7 @@ export const audioRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/intake/transcript — accept a pasted transcript and structure it
-  app.post('/transcript', async (request, reply) => {
+  app.post('/transcript', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { transcript } = request.body as { transcript?: string };
 
     if (!transcript || !transcript.trim()) {
