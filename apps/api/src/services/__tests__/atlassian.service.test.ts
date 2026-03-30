@@ -300,7 +300,7 @@ describe('atlassianService', () => {
           },
         ],
       };
-      expect(adfToText(adf)).toBe('- Item A\n- Item B');
+      expect(adfToText(adf as any)).toBe('- Item A\n- Item B');
     });
 
     it('converts ordered lists back to markdown', () => {
@@ -315,7 +315,7 @@ describe('atlassianService', () => {
           },
         ],
       };
-      expect(adfToText(adf)).toBe('1. First\n2. Second');
+      expect(adfToText(adf as any)).toBe('1. First\n2. Second');
     });
 
     it('handles blocks without content', () => {
