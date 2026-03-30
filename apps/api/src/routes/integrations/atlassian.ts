@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { atlassianConnections, tickets, documents } from '../../db/schema.js';
-import { atlassianService, AtlassianTokenExpiredError } from '../../services/atlassian.service.js';
+import { atlassianService, AtlassianTokenExpiredError, validateJiraWebhookSignature } from '../../services/atlassian.service.js';
 import { config } from '../../lib/config.js';
 import type { JiraWebhookPayload } from '@nyx/shared';
 
@@ -35,7 +35,7 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
 
     const redirectUri = `${origin}/api/integrations/atlassian/callback`;
 
-    const authUrl = atlassianService.buildAuthUrl(redirectUri, userId, teamId);
+    const authUrl = await atlassianService.buildAuthUrl(redirectUri, userId, teamId);
     reply.redirect(authUrl);
   });
 
@@ -57,8 +57,8 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
       return { error: 'Missing code or state parameter' };
     }
 
-    // Validate state and retrieve PKCE data
-    const pkceData = atlassianService.getPkceData(state);
+    // Validate state and retrieve PKCE data (now async, DB-backed)
+    const pkceData = await atlassianService.getPkceData(state);
     if (!pkceData) {
       reply.code(400);
       return { error: 'Invalid or expired state parameter — possible CSRF attack' };
@@ -95,7 +95,7 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
         .where(eq(atlassianConnections.userId, pkceData.userId));
 
       // Store the new connection with encrypted tokens
-      await atlassianService.storeConnection({
+      const connection = await atlassianService.storeConnection({
         userId: pkceData.userId,
         teamId: pkceData.teamId,
         accessToken: tokenData.access_token,
@@ -105,6 +105,16 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
         siteUrl: site.url,
         scopes: tokenData.scope.split(' '),
       });
+
+      // Auto-register Jira webhook for status sync
+      const webhookBaseUrl = config.WEBHOOK_BASE_URL ?? `${origin}`;
+      const webhookUrl = `${webhookBaseUrl}/api/integrations/jira/webhook`;
+      await atlassianService.registerJiraWebhook(
+        tokenData.access_token,
+        site.id,
+        connection.id,
+        webhookUrl,
+      );
 
       reply.redirect('/settings?tab=integrations&atlassian=connected');
     } catch (err) {
@@ -323,6 +333,15 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /api/integrations/jira/webhook — handle Jira webhook events
   app.post('/jira/webhook', async (request, reply) => {
+    // Validate webhook signature if JIRA_WEBHOOK_SECRET is configured
+    const signature = request.headers['x-hub-signature'] as string | undefined;
+    const rawBody = JSON.stringify(request.body);
+
+    if (!validateJiraWebhookSignature(rawBody, signature)) {
+      reply.code(401);
+      return { error: 'Invalid webhook signature' };
+    }
+
     const payload = request.body as JiraWebhookPayload;
 
     if (!payload?.webhookEvent || !payload?.issue) {

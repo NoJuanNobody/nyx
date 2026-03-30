@@ -1,7 +1,7 @@
 import { randomBytes, createHash } from 'node:crypto';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, lt } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { atlassianConnections } from '../db/schema.js';
+import { atlassianConnections, pkceChallenges } from '../db/schema.js';
 import { config } from '../lib/config.js';
 import { encrypt, decrypt } from '../lib/encryption.js';
 import type {
@@ -29,9 +29,7 @@ const SCOPES = [
   'offline_access',
 ];
 
-// In-memory PKCE state store (keyed by state token)
-// In production, this should use Redis or a DB table with TTL.
-const pkceStore = new Map<string, { codeVerifier: string; userId: string; teamId: string }>();
+const PKCE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 export function generateCodeVerifier(): string {
   return randomBytes(32).toString('base64url');
@@ -56,13 +54,95 @@ function isTokenExpiringSoon(expiresAt: Date): boolean {
 // ── ADF Conversion ───────────────────────────────────────────────
 
 /**
- * Convert plain/markdown text to a minimal Atlassian Document Format (ADF) structure.
+ * Convert markdown-style text to Atlassian Document Format (ADF).
+ * Supports: headings (h1-h6), bullet/numbered lists, code blocks,
+ * inline code, bold, italic, links, and plain paragraphs.
  */
 export function textToAdf(text: string, appendUrl?: string): object {
-  const content: object[] = text.split('\n\n').map((paragraph) => ({
-    type: 'paragraph',
-    content: [{ type: 'text', text: paragraph }],
-  }));
+  const content: object[] = [];
+  const lines = text.split('\n');
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Skip empty lines
+    if (line.trim() === '') {
+      i++;
+      continue;
+    }
+
+    // Fenced code block
+    const codeBlockMatch = line.match(/^```(\w*)/);
+    if (codeBlockMatch) {
+      const language = codeBlockMatch[1] || undefined;
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith('```')) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      i++; // skip closing ```
+      const attrs: Record<string, unknown> = {};
+      if (language) attrs.language = language;
+      content.push({
+        type: 'codeBlock',
+        attrs,
+        content: [{ type: 'text', text: codeLines.join('\n') }],
+      });
+      continue;
+    }
+
+    // Heading (# through ######)
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      content.push({
+        type: 'heading',
+        attrs: { level },
+        content: parseInlineMarks(headingMatch[2]),
+      });
+      i++;
+      continue;
+    }
+
+    // Bullet list (-, *, +)
+    if (/^[\-\*\+]\s+/.test(line)) {
+      const items: object[] = [];
+      while (i < lines.length && /^[\-\*\+]\s+/.test(lines[i])) {
+        const itemText = lines[i].replace(/^[\-\*\+]\s+/, '');
+        items.push({
+          type: 'listItem',
+          content: [{ type: 'paragraph', content: parseInlineMarks(itemText) }],
+        });
+        i++;
+      }
+      content.push({ type: 'bulletList', content: items });
+      continue;
+    }
+
+    // Numbered list (1. 2. etc.)
+    if (/^\d+\.\s+/.test(line)) {
+      const items: object[] = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i])) {
+        const itemText = lines[i].replace(/^\d+\.\s+/, '');
+        items.push({
+          type: 'listItem',
+          content: [{ type: 'paragraph', content: parseInlineMarks(itemText) }],
+        });
+        i++;
+      }
+      content.push({ type: 'orderedList', content: items });
+      continue;
+    }
+
+    // Regular paragraph
+    content.push({
+      type: 'paragraph',
+      content: parseInlineMarks(line),
+    });
+    i++;
+  }
 
   if (appendUrl) {
     content.push({
@@ -86,14 +166,82 @@ export function textToAdf(text: string, appendUrl?: string): object {
 }
 
 /**
+ * Parse inline markdown marks: **bold**, *italic*, `code`, [text](url)
+ */
+export function parseInlineMarks(text: string): object[] {
+  const nodes: object[] = [];
+  // Regex matches: **bold**, *italic*, `code`, [text](url), or plain text
+  const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`(.+?)`)|(\[(.+?)\]\((.+?)\))/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    // Add plain text before this match
+    if (match.index > lastIndex) {
+      nodes.push({ type: 'text', text: text.slice(lastIndex, match.index) });
+    }
+
+    if (match[2]) {
+      // Bold
+      nodes.push({ type: 'text', text: match[2], marks: [{ type: 'strong' }] });
+    } else if (match[4]) {
+      // Italic
+      nodes.push({ type: 'text', text: match[4], marks: [{ type: 'em' }] });
+    } else if (match[6]) {
+      // Inline code
+      nodes.push({ type: 'text', text: match[6], marks: [{ type: 'code' }] });
+    } else if (match[8] && match[9]) {
+      // Link
+      nodes.push({
+        type: 'text',
+        text: match[8],
+        marks: [{ type: 'link', attrs: { href: match[9] } }],
+      });
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining plain text
+  if (lastIndex < text.length) {
+    nodes.push({ type: 'text', text: text.slice(lastIndex) });
+  }
+
+  // If no matches found, return the whole text as a single node
+  if (nodes.length === 0) {
+    nodes.push({ type: 'text', text });
+  }
+
+  return nodes;
+}
+
+/**
  * Convert ADF content back to plain text (simplified).
  */
-export function adfToText(adf: { content?: Array<{ content?: Array<{ text?: string }> }> }): string {
+export function adfToText(adf: { content?: Array<{ type?: string; content?: Array<{ text?: string }>; attrs?: Record<string, unknown> }> }): string {
   if (!adf?.content) return '';
   return adf.content
-    .map((block) =>
-      block.content?.map((inline) => inline.text ?? '').join('') ?? '',
-    )
+    .map((block) => {
+      if (block.type === 'heading') {
+        const level = (block.attrs?.level as number) ?? 1;
+        const text = block.content?.map((inline) => inline.text ?? '').join('') ?? '';
+        return '#'.repeat(level) + ' ' + text;
+      }
+      if (block.type === 'codeBlock') {
+        const lang = (block.attrs?.language as string) ?? '';
+        const text = block.content?.map((inline) => inline.text ?? '').join('') ?? '';
+        return '```' + lang + '\n' + text + '\n```';
+      }
+      if (block.type === 'bulletList' || block.type === 'orderedList') {
+        const items = block.content as Array<{ content?: Array<{ content?: Array<{ text?: string }> }> }> | undefined;
+        if (!items) return '';
+        return items.map((item, idx) => {
+          const itemText = item.content?.[0]?.content?.map((inline) => inline.text ?? '').join('') ?? '';
+          return block.type === 'orderedList' ? `${idx + 1}. ${itemText}` : `- ${itemText}`;
+        }).join('\n');
+      }
+      return block.content?.map((inline) => inline.text ?? '').join('') ?? '';
+    })
     .join('\n\n');
 }
 
@@ -104,8 +252,9 @@ export const atlassianService = {
 
   /**
    * Build the Atlassian OAuth authorization URL with PKCE.
+   * Stores PKCE data in the database for multi-instance safety.
    */
-  buildAuthUrl(redirectUri: string, userId: string, teamId: string): string {
+  async buildAuthUrl(redirectUri: string, userId: string, teamId: string): Promise<string> {
     if (!config.ATLASSIAN_CLIENT_ID) {
       throw new Error('ATLASSIAN_CLIENT_ID is not configured');
     }
@@ -114,11 +263,17 @@ export const atlassianService = {
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = generateCodeChallenge(codeVerifier);
 
-    // Store PKCE data keyed by state
-    pkceStore.set(state, { codeVerifier, userId, teamId });
+    // Store PKCE data in DB with TTL
+    await db.insert(pkceChallenges).values({
+      state,
+      codeVerifier,
+      userId,
+      teamId,
+      expiresAt: new Date(Date.now() + PKCE_TTL_MS),
+    });
 
-    // Auto-expire after 10 minutes
-    setTimeout(() => pkceStore.delete(state), 10 * 60 * 1000);
+    // Clean up expired challenges opportunistically
+    await db.delete(pkceChallenges).where(lt(pkceChallenges.expiresAt, new Date())).catch(() => {});
 
     const params = new URLSearchParams({
       audience: 'api.atlassian.com',
@@ -137,12 +292,27 @@ export const atlassianService = {
 
   /**
    * Retrieve and validate the stored PKCE data for a given state token.
+   * Reads from the database and deletes after retrieval (one-time use).
    */
-  getPkceData(state: string): { codeVerifier: string; userId: string; teamId: string } | null {
-    const data = pkceStore.get(state);
-    if (!data) return null;
-    pkceStore.delete(state);
-    return data;
+  async getPkceData(state: string): Promise<{ codeVerifier: string; userId: string; teamId: string } | null> {
+    const [row] = await db
+      .select()
+      .from(pkceChallenges)
+      .where(eq(pkceChallenges.state, state));
+
+    if (!row) return null;
+
+    // Delete the challenge (one-time use)
+    await db.delete(pkceChallenges).where(eq(pkceChallenges.state, state));
+
+    // Check expiration
+    if (new Date() > row.expiresAt) return null;
+
+    return {
+      codeVerifier: row.codeVerifier,
+      userId: row.userId,
+      teamId: row.teamId,
+    };
   },
 
   /**
@@ -352,6 +522,7 @@ export const atlassianService = {
 
   /**
    * Disconnect and revoke an Atlassian connection.
+   * Also cleans up any registered Jira webhooks.
    */
   async disconnect(userId: string): Promise<boolean> {
     const [connection] = await db
@@ -361,9 +532,15 @@ export const atlassianService = {
 
     if (!connection) return false;
 
-    // Best-effort revoke the access token
+    // Best-effort revoke the access token and delete webhook
     try {
       const accessToken = decrypt(connection.accessToken);
+
+      // Delete registered Jira webhook if it exists
+      if (connection.webhookId) {
+        await this.deleteJiraWebhook(accessToken, connection.cloudId, connection.webhookId).catch(() => {});
+      }
+
       await this.revokeToken(accessToken);
     } catch {
       // Revocation is best-effort
@@ -448,6 +625,82 @@ export const atlassianService = {
    */
   mapJiraStatusToNyx(statusCategory: string): NyxTicketStatus {
     return JIRA_STATUS_TO_NYX[statusCategory] ?? 'pending';
+  },
+
+  // ── Jira Webhook Management ────────────────────────────────
+
+  /**
+   * Register a Jira webhook for status change events.
+   * Stores the webhook ID on the connection for cleanup on disconnect.
+   */
+  async registerJiraWebhook(
+    accessToken: string,
+    cloudId: string,
+    connectionId: string,
+    webhookUrl: string,
+  ): Promise<string | null> {
+    try {
+      const res = await fetch(
+        `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/webhook`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: webhookUrl,
+            webhooks: [
+              {
+                events: ['jira:issue_updated', 'jira:issue_deleted'],
+                jqlFilter: '',
+              },
+            ],
+          }),
+        },
+      );
+
+      if (!res.ok) {
+        return null;
+      }
+
+      const data = (await res.json()) as { webhookRegistrationResult?: Array<{ createdWebhookId?: number }> };
+      const webhookId = data.webhookRegistrationResult?.[0]?.createdWebhookId?.toString();
+
+      if (webhookId) {
+        await db
+          .update(atlassianConnections)
+          .set({ webhookId, updatedAt: new Date() })
+          .where(eq(atlassianConnections.id, connectionId));
+      }
+
+      return webhookId ?? null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Delete a registered Jira webhook.
+   */
+  async deleteJiraWebhook(
+    accessToken: string,
+    cloudId: string,
+    webhookId: string,
+  ): Promise<void> {
+    await fetch(
+      `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/webhook`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ webhookIds: [parseInt(webhookId, 10)] }),
+      },
+    );
   },
 
   // ── Confluence Operations ──────────────────────────────────
@@ -587,6 +840,39 @@ export const atlassianService = {
     };
   },
 };
+
+// ── Webhook Signature Validation ────────────────────────────────
+
+import { createHmac, timingSafeEqual } from 'node:crypto';
+
+/**
+ * Validate an incoming Jira webhook request using HMAC-SHA256 signature.
+ * Returns true if the signature is valid, false otherwise.
+ */
+export function validateJiraWebhookSignature(
+  rawBody: string | Buffer,
+  signature: string | undefined,
+): boolean {
+  const secret = config.JIRA_WEBHOOK_SECRET;
+  if (!secret) {
+    // If no secret is configured, skip validation (dev mode)
+    return true;
+  }
+
+  if (!signature) {
+    return false;
+  }
+
+  const expected = createHmac('sha256', secret)
+    .update(typeof rawBody === 'string' ? rawBody : rawBody.toString('utf8'))
+    .digest('hex');
+
+  try {
+    return timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
 
 // ── Custom Errors ────────────────────────────────────────────────
 
