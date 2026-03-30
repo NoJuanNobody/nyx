@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -33,11 +34,15 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
   const [detailSuggestionId, setDetailSuggestionId] = useState<string | null>(null);
   const [selectedRepo, setSelectedRepo] = useState<RepoOption | null>(null);
 
-  const { data: suggestions = [], isLoading } = useQuery({
+  const [folderSuggestions, setFolderSuggestions] = useState<TicketSuggestion[]>([]);
+
+  const { data: docSuggestions = [], isLoading } = useQuery({
     queryKey: ['ticket-suggestions', documentId],
     queryFn: () => fetchTicketSuggestions(documentId),
-    enabled: open,
+    enabled: open && !folderPath,
   });
+
+  const suggestions = folderPath ? folderSuggestions : docSuggestions;
 
   const { data: integrations } = useQuery({
     queryKey: ['integrations', teamId],
@@ -61,7 +66,13 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
       folderPath
         ? generateFolderTicketSuggestions(teamId, folderPath)
         : generateBulkSuggestions(documentId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ticket-suggestions', documentId] }),
+    onSuccess: (data) => {
+      if (folderPath && Array.isArray(data)) {
+        setFolderSuggestions(data);
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['ticket-suggestions', documentId] });
+      }
+    },
   });
 
   const bulkApproveMutation = useMutation({
@@ -144,7 +155,7 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose} />
@@ -486,6 +497,7 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
           isSaving={updateMutation.isPending}
         />
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
