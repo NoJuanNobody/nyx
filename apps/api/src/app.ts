@@ -74,6 +74,35 @@ export function buildApp() {
   // Auth middleware — decorates request.user on every request
   app.register(authMiddleware);
 
+  // ── Global auth enforcement ────────────────────────────
+  // Safety-net hook: after the auth middleware has had a chance to populate
+  // request.user, reject any non-public route that still has no user.
+  const PUBLIC_PREFIXES = [
+    '/health',
+    '/api/webhooks/',
+    '/api/waitlist',
+    '/api/slack/callback',
+    '/api/slack/command',
+    '/api/slack/events',
+    '/api/integrations/github/callback',
+    '/api/integrations/gitlab/callback',
+    '/api/integrations/bitbucket/callback',
+    '/api/integrations/atlassian/callback',
+  ];
+
+  app.addHook('onRequest', async (request, reply) => {
+    const url = request.routeOptions?.url ?? request.url;
+
+    if (PUBLIC_PREFIXES.some(prefix => url.startsWith(prefix))) {
+      return;
+    }
+
+    // If no user after auth middleware ran, reject
+    if (!request.user) {
+      reply.code(401).send({ error: 'Authentication required' });
+    }
+  });
+
   app.register(healthRoutes);
   app.register(authRoutes, { prefix: '/api/auth' });
   app.register(documentRoutes, { prefix: '/api/documents' });
