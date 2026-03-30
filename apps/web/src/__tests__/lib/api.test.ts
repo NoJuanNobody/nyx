@@ -49,7 +49,7 @@ describe('API Client', () => {
   it('request throws with error message on non-OK response', async () => {
     mockFetch.mockResolvedValueOnce(mockResponse({ error: 'Not found' }, false, 404));
 
-    await expect(fetchDocuments('team-1')).rejects.toThrow('API 404');
+    await expect(fetchDocuments('team-1')).rejects.toThrow('Not found');
   });
 
   it('fetchDocuments calls correct URL with teamId', async () => {

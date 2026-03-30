@@ -50,11 +50,13 @@ const envSchema = z.object({
   ATLASSIAN_CLIENT_ID: z.string().optional(),
   ATLASSIAN_CLIENT_SECRET: z.string().optional(),
   ENCRYPTION_SECRET: z.string().optional(),
+  JIRA_WEBHOOK_SECRET: z.string().optional(),
   GITLAB_CLIENT_ID: z.string().optional(),
   GITLAB_CLIENT_SECRET: z.string().optional(),
   GITLAB_BASE_URL: z.string().optional(),
   BITBUCKET_CLIENT_ID: z.string().optional(),
   BITBUCKET_CLIENT_SECRET: z.string().optional(),
+  CORS_ORIGINS: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production' && !data.GITHUB_WEBHOOK_SECRET) {
     ctx.addIssue({

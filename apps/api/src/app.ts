@@ -1,6 +1,9 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import cookie from '@fastify/cookie';
+import rateLimit from '@fastify/rate-limit';
+import { ZodError } from 'zod';
 import { healthRoutes } from './routes/health.js';
 import { authRoutes } from './routes/auth.js';
 import { documentRoutes } from './routes/documents.js';
@@ -64,15 +67,96 @@ import { adminRoutes } from './routes/admin.js';
 import { aiKeyRoutes } from './routes/ai-keys.js';
 import { atlassianRoutes } from './routes/integrations/atlassian.js';
 import { authMiddleware } from './middleware/auth.js';
+import { config } from './lib/config.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
 
-  app.register(cors, { origin: true, credentials: true });
+  const allowedOrigins = config.CORS_ORIGINS
+    ? config.CORS_ORIGINS.split(',').map(o => o.trim())
+    : ['http://localhost:5173'];
+
+  app.register(cors, {
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS: origin not allowed'), false);
+      }
+    },
+    credentials: true,
+  });
+  app.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://unpkg.com/", "https://cdn.tailwindcss.com/"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com/"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com/"],
+        connectSrc: ["'self'", "https://api.anthropic.com/", "https://fonts.googleapis.com/"],
+        imgSrc: ["'self'", "data:", "https:"],
+        frameSrc: ["'self'", "blob:"],
+      },
+    },
+  });
   app.register(cookie);
+
+  // Global rate limiting — 100 requests per minute per user (or IP for unauthenticated)
+  app.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+    keyGenerator: (request) => {
+      return (request as any).user?.id ?? request.ip;
+    },
+  });
+
+  // Global error handler — Zod validation errors → 400
+  app.setErrorHandler((error: Error & { validation?: unknown }, _request, reply) => {
+    if (error instanceof ZodError) {
+      reply.code(400).send({
+        error: 'Validation failed',
+        details: error.errors.map((e) => ({ path: e.path.join('.'), message: e.message })),
+      });
+      return;
+    }
+    if (error.validation) {
+      reply.code(400).send({ error: error.message });
+      return;
+    }
+    reply.code(500).send({ error: 'Internal server error' });
+  });
 
   // Auth middleware — decorates request.user on every request
   app.register(authMiddleware);
+
+  // ── Global auth enforcement ────────────────────────────
+  // Safety-net hook: after the auth middleware has had a chance to populate
+  // request.user, reject any non-public route that still has no user.
+  const PUBLIC_PREFIXES = [
+    '/health',
+    '/api/webhooks/',
+    '/api/waitlist',
+    '/api/slack/callback',
+    '/api/slack/command',
+    '/api/slack/events',
+    '/api/integrations/github/callback',
+    '/api/integrations/gitlab/callback',
+    '/api/integrations/bitbucket/callback',
+    '/api/integrations/atlassian/callback',
+  ];
+
+  app.addHook('onRequest', async (request, reply) => {
+    const url = request.routeOptions?.url ?? request.url;
+
+    if (PUBLIC_PREFIXES.some(prefix => url.startsWith(prefix))) {
+      return;
+    }
+
+    // If no user after auth middleware ran, reject
+    if (!request.user) {
+      reply.code(401).send({ error: 'Authentication required' });
+    }
+  });
 
   app.register(healthRoutes);
   app.register(authRoutes, { prefix: '/api/auth' });

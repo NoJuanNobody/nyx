@@ -11,6 +11,7 @@ vi.mock('../../middleware/permissions.js', () => ({
 
 // Mock github service
 const mockCreateRepo = vi.fn();
+const mockCreateWebhook = vi.fn();
 vi.mock('../../services/github.service.js', () => {
   class GitHubTokenExpiredError extends Error {
     constructor(method: string) {
@@ -24,7 +25,7 @@ vi.mock('../../services/github.service.js', () => {
       listRepos: vi.fn(),
       exchangeCodeForToken: vi.fn(),
       getAuthenticatedUser: vi.fn(),
-      createWebhook: vi.fn(),
+      createWebhook: (...args: unknown[]) => mockCreateWebhook(...args),
       deleteWebhook: vi.fn(),
       createRepo: (...args: unknown[]) => mockCreateRepo(...args),
     },
@@ -234,5 +235,149 @@ describe('POST /api/integrations/:id/github/repos/create', () => {
     expect(res.statusCode).toBe(401);
     const body = JSON.parse(res.body);
     expect(body.error).toBe('github_token_expired');
+  });
+
+  it('adds created repo to selectedRepos and registers webhook', async () => {
+    const integration = makeIntegration({
+      id: 'int-5',
+      type: 'github',
+      config: { accessToken: 'ghp_valid_token', selectedRepos: [], webhookIds: {} },
+    });
+
+    const createdRepo = {
+      id: 99,
+      name: 'new-repo',
+      full_name: 'testuser/new-repo',
+      private: true,
+      html_url: 'https://github.com/testuser/new-repo',
+      default_branch: 'main',
+    };
+
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([integration]),
+      }),
+    } as any);
+
+    mockCreateRepo.mockResolvedValue(createdRepo);
+    mockCreateWebhook.mockResolvedValue({ id: 42 });
+
+    const app = await buildIntegrationApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/integrations/int-5/github/repos/create',
+      payload: { name: 'new-repo' },
+    });
+
+    expect(res.statusCode).toBe(201);
+
+    // Verify webhook was registered
+    expect(mockCreateWebhook).toHaveBeenCalledWith(
+      'ghp_valid_token',
+      'testuser',
+      'new-repo',
+      'https://test.example.com/api/webhooks/github',
+      expect.any(String),
+    );
+
+    // Verify DB was updated with selectedRepos and webhookIds
+    expect(mockDb.update).toHaveBeenCalled();
+    const setCall = mockDb.update.mock.results[0]?.value?.set;
+    expect(setCall).toBeDefined();
+    const setArg = setCall.mock.calls[0][0];
+    expect(setArg.config.selectedRepos).toEqual([
+      { owner: 'testuser', name: 'new-repo', fullName: 'testuser/new-repo' },
+    ]);
+    expect(setArg.config.webhookIds).toEqual({ 'testuser/new-repo': 42 });
+  });
+
+  it('still adds repo to selectedRepos when webhook registration fails', async () => {
+    const integration = makeIntegration({
+      id: 'int-6',
+      type: 'github',
+      config: { accessToken: 'ghp_valid_token', selectedRepos: [], webhookIds: {} },
+    });
+
+    const createdRepo = {
+      id: 100,
+      name: 'another-repo',
+      full_name: 'testuser/another-repo',
+      private: false,
+      html_url: 'https://github.com/testuser/another-repo',
+      default_branch: 'main',
+    };
+
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([integration]),
+      }),
+    } as any);
+
+    mockCreateRepo.mockResolvedValue(createdRepo);
+    mockCreateWebhook.mockRejectedValue(new Error('Webhook creation failed'));
+
+    const app = await buildIntegrationApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/integrations/int-6/github/repos/create',
+      payload: { name: 'another-repo' },
+    });
+
+    expect(res.statusCode).toBe(201);
+
+    // Verify DB was still updated with selectedRepos (but no webhookId)
+    expect(mockDb.update).toHaveBeenCalled();
+    const setCall = mockDb.update.mock.results[0]?.value?.set;
+    const setArg = setCall.mock.calls[0][0];
+    expect(setArg.config.selectedRepos).toEqual([
+      { owner: 'testuser', name: 'another-repo', fullName: 'testuser/another-repo' },
+    ]);
+    expect(setArg.config.webhookIds).toEqual({});
+  });
+
+  it('does not duplicate repo in selectedRepos if already present', async () => {
+    const integration = makeIntegration({
+      id: 'int-7',
+      type: 'github',
+      config: {
+        accessToken: 'ghp_valid_token',
+        selectedRepos: [{ owner: 'testuser', name: 'new-repo', fullName: 'testuser/new-repo' }],
+        webhookIds: { 'testuser/new-repo': 10 },
+      },
+    });
+
+    const createdRepo = {
+      id: 99,
+      name: 'new-repo',
+      full_name: 'testuser/new-repo',
+      private: true,
+      html_url: 'https://github.com/testuser/new-repo',
+      default_branch: 'main',
+    };
+
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([integration]),
+      }),
+    } as any);
+
+    mockCreateRepo.mockResolvedValue(createdRepo);
+
+    const app = await buildIntegrationApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/integrations/int-7/github/repos/create',
+      payload: { name: 'new-repo' },
+    });
+
+    expect(res.statusCode).toBe(201);
+
+    // Should not register another webhook since one already exists
+    expect(mockCreateWebhook).not.toHaveBeenCalled();
+
+    // Verify selectedRepos still has only one entry
+    const setCall = mockDb.update.mock.results[0]?.value?.set;
+    const setArg = setCall.mock.calls[0][0];
+    expect(setArg.config.selectedRepos).toHaveLength(1);
   });
 });

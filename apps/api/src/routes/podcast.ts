@@ -22,7 +22,7 @@ let nextId = 1;
 
 export const podcastRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/podcast/generate — generate a podcast script from documents
-  app.post('/podcast/generate', async (request, reply) => {
+  app.post('/podcast/generate', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { documentIds, teamId, title } = request.body as {
       documentIds?: string[];
       teamId?: string;
@@ -71,7 +71,7 @@ export const podcastRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/podcast/:id/audio — generate audio for a podcast script
-  app.post('/podcast/:id/audio', async (request, reply) => {
+  app.post('/podcast/:id/audio', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { id } = request.params as { id: string };
 
     const script = podcastScripts.find((s) => s.id === id);
@@ -96,7 +96,7 @@ export const podcastRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/podcast/radio-show — generate a radio show from multiple documents
-  app.post('/podcast/radio-show', async (request, reply) => {
+  app.post('/podcast/radio-show', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { documentIds, teamId, showName } = request.body as {
       documentIds?: string[];
       teamId?: string;

@@ -21,7 +21,7 @@ export async function resolveToken(): Promise<string | null> {
   return authToken;
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {};
   if (options?.body) {
     headers['Content-Type'] = 'application/json';
@@ -51,7 +51,15 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
         throw new Error('Session expired. Redirecting to sign-in...');
       }
     }
-    throw new Error(`API ${res.status}: ${body || res.statusText}`);
+    let userMessage = `Request failed (${res.status})`;
+    try {
+      const parsed = JSON.parse(body);
+      if (parsed.error && typeof parsed.error === 'string') {
+        userMessage = parsed.error;
+      }
+    } catch {}
+    console.error(`API ${res.status}:`, body);
+    throw new Error(userMessage);
   }
 
   return res.json() as Promise<T>;
@@ -891,8 +899,9 @@ export function disconnectRepo(integrationId: string, repoFullName: string): Pro
 // ── Onboarding / Repo Scan ──────────────────────────────────────────
 
 export interface ScanResult {
-  files: Array<{ path: string; content: string }>;
-  suggestedDocs: string;
+  documents: Array<{ id: string; title: string; path: string }>;
+  moduleCount: number;
+  fileCount: number;
 }
 
 export function scanRepository(owner: string, repo: string, teamId?: string): Promise<ScanResult> {
@@ -1170,7 +1179,15 @@ export async function uploadAudioForIntake(file: File): Promise<IntakeResult> {
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`API ${res.status}: ${body || res.statusText}`);
+    let userMessage = `Request failed (${res.status})`;
+    try {
+      const parsed = JSON.parse(body);
+      if (parsed.error && typeof parsed.error === 'string') {
+        userMessage = parsed.error;
+      }
+    } catch {}
+    console.error(`API ${res.status}:`, body);
+    throw new Error(userMessage);
   }
 
   return res.json() as Promise<IntakeResult>;

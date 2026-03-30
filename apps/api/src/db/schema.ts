@@ -723,7 +723,19 @@ export const atlassianConnections = pgTable('atlassian_connections', {
   siteUrl: text('site_url').notNull(),
   scopes: text('scopes').array().notNull().default([]),
   status: atlassianConnectionStatusEnum('status').notNull().default('connected'),
+  webhookId: text('webhook_id'),
   preferences: jsonb('preferences').notNull().default({}),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── PKCE Challenges (DB-backed PKCE store for Atlassian OAuth) ───
+
+export const pkceChallenges = pgTable('pkce_challenges', {
+  state: text('state').primaryKey(),
+  codeVerifier: text('code_verifier').notNull(),
+  userId: text('user_id').notNull(),
+  teamId: text('team_id').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

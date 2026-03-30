@@ -35,7 +35,11 @@ export function SlackIntegration() {
   const connectMutation = useMutation({
     mutationFn: () => getSlackInstallUrl(currentTeamId!),
     onSuccess: (data) => {
-      window.location.href = data.url;
+      if (typeof data.url === 'string' && data.url.startsWith('https://') && data.url.includes('slack.com')) {
+        window.location.href = data.url;
+      } else {
+        console.warn('Blocked redirect to untrusted URL:', data.url);
+      }
     },
   });
 

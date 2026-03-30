@@ -6,6 +6,11 @@ import { db } from '../db/index.js';
 import { users, teamMembers, apiKeys, teamInvitations } from '../db/schema.js';
 import { config } from '../lib/config.js';
 
+// ── Production safety check ──────────────────────────────
+if (config.NODE_ENV === 'production' && config.DEV_AUTH_BYPASS === 'true') {
+  throw new Error('FATAL: DEV_AUTH_BYPASS must not be set in production');
+}
+
 // ── Types ────────────────────────────────────────────────
 
 export interface AuthUser {

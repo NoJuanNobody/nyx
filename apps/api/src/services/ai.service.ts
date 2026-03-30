@@ -494,6 +494,71 @@ STRICT RULES:
     return text;
   },
 
+  async bootstrapModuleDocs(
+    moduleName: string,
+    files: Array<{ path: string; content: string }>,
+  ): Promise<string> {
+    const ai = requireClient();
+
+    const filesSummary = files
+      .map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``)
+      .join('\n\n');
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 2048,
+      system: `You are a technical documentation generator focused on the "${moduleName}" module of a codebase. Analyze the provided source files and generate focused documentation in Markdown format. Include:
+- **Purpose**: What this module does and its responsibilities
+- **Key workflows**: Step-by-step data flows
+- **API surface**: Exported functions, endpoints, type signatures
+- **Dependencies**: What it imports, what depends on it
+- **Configuration**: Relevant env vars, feature flags
+
+Be concise but thorough. Use code references where helpful.`,
+      messages: [
+        {
+          role: 'user',
+          content: `Generate documentation for the "${moduleName}" module from these files:\n\n${filesSummary}`,
+        },
+      ],
+    });
+
+    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    return text;
+  },
+
+  async mergeModuleDocs(
+    moduleDocs: Array<{ module: string; docs: string }>,
+    repoName: string,
+  ): Promise<string> {
+    const ai = requireClient();
+
+    const sections = moduleDocs
+      .map((m) => `## Module: ${m.module}\n\n${m.docs}`)
+      .join('\n\n---\n\n');
+
+    const response = await ai.messages.create({
+      model: MODEL,
+      max_tokens: 8192,
+      system: `You are a technical documentation editor. You are given per-module documentation for the "${repoName}" repository. Merge them into a single, well-structured document with:
+1. A project overview section (synthesized from all modules)
+2. Architecture overview (how modules connect)
+3. Each module as a section with its documentation
+4. End-to-end workflows that cross modules
+
+Preserve the technical detail from each module doc. Use clean Markdown formatting with headers, lists, and code blocks.`,
+      messages: [
+        {
+          role: 'user',
+          content: `Merge these module docs into a structured document for ${repoName}:\n\n${sections}`,
+        },
+      ],
+    });
+
+    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    return text;
+  },
+
   async analyzeMissingSections(
     content: string,
     stage?: string | null,

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Modal } from './Modal';
 import { GitHubReconnectBanner } from './GitHubReconnectBanner';
-import { fetchIntegrations, createTicket, renderMockupJsx, GitHubTokenExpiredError } from '../lib/api';
+import { fetchIntegrations, createTicket, renderMockupJsx, GitHubTokenExpiredError, request } from '../lib/api';
 import type { Ticket } from '../lib/api';
 
 interface RepoOption {
@@ -106,9 +106,8 @@ export function CreateTicketModal({
         try {
           const { screenshot } = await renderMockupJsx(mockupJsx);
           // Attach as image comment via mockups/attach endpoint
-          await fetch('/api/mockups/attach-image', {
+          await request('/mockups/attach-image', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               screenshot,
               provider,

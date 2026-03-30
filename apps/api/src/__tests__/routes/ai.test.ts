@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockDb } from '../helpers/setup.js';
 import Fastify from 'fastify';
+import { ZodError } from 'zod';
 import { aiRoutes } from '../../routes/ai.js';
 
 vi.mock('../../db/schema.js', () => ({
@@ -29,6 +30,16 @@ vi.mock('../../middleware/permissions.js', () => ({ requireRole: () => async () 
 
 async function buildApp() {
   const app = Fastify({ logger: false });
+  app.setErrorHandler((error: Error, _request, reply) => {
+    if (error instanceof ZodError) {
+      reply.code(400).send({
+        error: 'Validation failed',
+        details: error.errors.map((e) => ({ path: e.path.join('.'), message: e.message })),
+      });
+      return;
+    }
+    reply.code(500).send({ error: 'Internal server error' });
+  });
   app.decorateRequest('user', null as any);
   app.addHook('preHandler', async (request) => {
     request.user = { id: 'user-1', clerkId: 'clerk_1', email: 'test@test.com', name: 'Test User', avatarUrl: null, role: 'admin' } as any;
@@ -216,7 +227,7 @@ describe('AI Routes', () => {
       payload: {},
     });
     expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).error).toBe('topic is required');
+    expect(JSON.parse(res.body).error).toBe('Validation failed');
   });
 
   it('POST /api/ai/generate-all returns 400 without teamId', async () => {
@@ -227,7 +238,7 @@ describe('AI Routes', () => {
       payload: {},
     });
     expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).error).toBe('teamId is required');
+    expect(JSON.parse(res.body).error).toBe('Validation failed');
   });
 
   it('POST /api/ai/generate-all returns empty results when no documents', async () => {

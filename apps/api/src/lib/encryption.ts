@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes, hkdfSync } from 'node:crypto';
 import { config } from './config.js';
 
 const ALGORITHM = 'aes-256-gcm';
@@ -6,15 +6,14 @@ const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
 
 /**
- * Derive a 32-byte encryption key from the ENCRYPTION_SECRET using SHA-256.
- * In production, HKDF or similar KDF should be used.
+ * Derive a 32-byte encryption key from the ENCRYPTION_SECRET using HKDF (SHA-256).
  */
 function getKey(): Buffer {
   const secret = config.ENCRYPTION_SECRET;
   if (!secret) {
     throw new Error('ENCRYPTION_SECRET is not configured');
   }
-  return createHash('sha256').update(secret).digest();
+  return Buffer.from(hkdfSync('sha256', secret, 'nyx-salt', 'nyx-integration-encryption', 32));
 }
 
 /**
