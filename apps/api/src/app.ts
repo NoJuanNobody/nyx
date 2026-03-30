@@ -90,10 +90,10 @@ export function buildApp() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://unpkg.com/", "https://cdn.tailwindcss.com/"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com/", "https://cdn.tailwindcss.com/", "https://*.clerk.accounts.dev/"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com/"],
         fontSrc: ["'self'", "https://fonts.gstatic.com/"],
-        connectSrc: ["'self'", "https://api.anthropic.com/", "https://fonts.googleapis.com/"],
+        connectSrc: ["'self'", "https://api.anthropic.com/", "https://fonts.googleapis.com/", "https://*.clerk.accounts.dev/"],
         imgSrc: ["'self'", "data:", "https:"],
         frameSrc: ["'self'", "blob:"],
       },
