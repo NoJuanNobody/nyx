@@ -145,7 +145,7 @@ export function buildApp() {
     '/api/integrations/atlassian/callback',
   ];
 
-  app.addHook('onRequest', async (request, reply) => {
+  app.addHook('preHandler', async (request, reply) => {
     const url = request.routeOptions?.url ?? request.url;
 
     if (PUBLIC_PREFIXES.some(prefix => url.startsWith(prefix))) {
