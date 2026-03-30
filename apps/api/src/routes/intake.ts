@@ -3,16 +3,12 @@ import { eq, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { intakeSessions } from '../db/schema.js';
 import { intakeService } from '../services/intake.service.js';
+import { intakeProcessBody, intakeClarifyBody, intakeHistoryQuery } from '@nyx/shared';
 
 export const intakeRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/intake/process — transform raw input into structured spec
   app.post('/process', async (request, reply) => {
-    const { rawInput, teamId } = request.body as { rawInput: string; teamId: string };
-
-    if (!rawInput || !teamId) {
-      reply.code(400);
-      return { error: 'rawInput and teamId are required' };
-    }
+    const { rawInput, teamId } = intakeProcessBody.parse(request.body);
 
     const userId = (request as unknown as { user?: { id: string } }).user?.id;
     if (!userId) {
@@ -39,17 +35,7 @@ export const intakeRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /api/intake/clarify — re-process with clarifications
   app.post('/clarify', async (request, reply) => {
-    const { rawInput, questions, answers, teamId } = request.body as {
-      rawInput: string;
-      questions: string[];
-      answers: string[];
-      teamId: string;
-    };
-
-    if (!rawInput || !questions || !answers || !teamId) {
-      reply.code(400);
-      return { error: 'rawInput, questions, answers, and teamId are required' };
-    }
+    const { rawInput, questions, answers, teamId } = intakeClarifyBody.parse(request.body);
 
     const userId = (request as unknown as { user?: { id: string } }).user?.id;
     if (!userId) {
@@ -81,13 +67,8 @@ export const intakeRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // GET /api/intake/history — list past intake sessions for a team
-  app.get('/history', async (request, reply) => {
-    const { teamId } = request.query as { teamId?: string };
-
-    if (!teamId) {
-      reply.code(400);
-      return { error: 'teamId query parameter is required' };
-    }
+  app.get('/history', async (request, _reply) => {
+    const { teamId } = intakeHistoryQuery.parse(request.query);
 
     const sessions = await db
       .select()

@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
+import { ZodError } from 'zod';
 import { healthRoutes } from './routes/health.js';
 import { authRoutes } from './routes/auth.js';
 import { documentRoutes } from './routes/documents.js';
@@ -107,6 +108,22 @@ export function buildApp() {
     keyGenerator: (request) => {
       return (request as any).user?.id ?? request.ip;
     },
+  });
+
+  // Global error handler — Zod validation errors → 400
+  app.setErrorHandler((error: Error & { validation?: unknown }, _request, reply) => {
+    if (error instanceof ZodError) {
+      reply.code(400).send({
+        error: 'Validation failed',
+        details: error.errors.map((e) => ({ path: e.path.join('.'), message: e.message })),
+      });
+      return;
+    }
+    if (error.validation) {
+      reply.code(400).send({ error: error.message });
+      return;
+    }
+    reply.code(500).send({ error: 'Internal server error' });
   });
 
   // Auth middleware — decorates request.user on every request
