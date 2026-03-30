@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
+import rateLimit from '@fastify/rate-limit';
 import { healthRoutes } from './routes/health.js';
 import { authRoutes } from './routes/auth.js';
 import { documentRoutes } from './routes/documents.js';
@@ -70,6 +71,15 @@ export function buildApp() {
 
   app.register(cors, { origin: true, credentials: true });
   app.register(cookie);
+
+  // Global rate limiting — 100 requests per minute per user (or IP for unauthenticated)
+  app.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+    keyGenerator: (request) => {
+      return (request as any).user?.id ?? request.ip;
+    },
+  });
 
   // Auth middleware — decorates request.user on every request
   app.register(authMiddleware);

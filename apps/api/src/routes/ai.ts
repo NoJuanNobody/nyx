@@ -6,7 +6,7 @@ import { aiService } from '../services/ai.service.js';
 
 export const aiRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/ai/analyze — analyze spec quality (stage-aware)
-  app.post('/analyze', async (request, reply) => {
+  app.post('/analyze', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { content, stage } = request.body as { content: string; stage?: string };
 
     if (!content) {
@@ -19,7 +19,7 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/ai/detect-drift — detect spec-code drift
-  app.post('/detect-drift', async (request, reply) => {
+  app.post('/detect-drift', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { specContent, codeContent } = request.body as {
       specContent: string;
       codeContent: string;
@@ -35,7 +35,7 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/ai/generate-document — generate a document from a prompt
-  app.post('/generate-document', async (request, reply) => {
+  app.post('/generate-document', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { prompt } = request.body as { prompt: string };
 
     if (!prompt) {
@@ -48,7 +48,7 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/ai/edit-document — edit a document with AI
-  app.post('/edit-document', async (request, reply) => {
+  app.post('/edit-document', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { content, instruction, history } = request.body as {
       content: string;
       instruction: string;
@@ -65,7 +65,7 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/ai/generate-ticket — generate a ticket from a spec diff
-  app.post('/generate-ticket', async (request, reply) => {
+  app.post('/generate-ticket', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { diff, context } = request.body as {
       diff: string;
       context?: string;
@@ -81,7 +81,7 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/ai/jsx-preview — generate a self-contained JSX component from a prompt
-  app.post('/jsx-preview', async (request, reply) => {
+  app.post('/jsx-preview', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { prompt, context, allStates } = request.body as { prompt: string; context?: string; allStates?: boolean };
 
     if (!prompt) {
@@ -94,7 +94,7 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/ai/jsx-preview/refine — refine an existing JSX component
-  app.post('/jsx-preview/refine', async (request, reply) => {
+  app.post('/jsx-preview/refine', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { currentJSX, prompt } = request.body as { currentJSX: string; prompt: string };
 
     if (!currentJSX || !prompt) {
@@ -136,7 +136,7 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/ai/generate-news-article — generate a New York Post style news article
-  app.post('/generate-news-article', async (request, reply) => {
+  app.post('/generate-news-article', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { topic, context } = request.body as { topic: string; context?: string };
 
     if (!topic) {
@@ -223,7 +223,7 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/ai/seed-next-stage — generate content for the next lifecycle stage
-  app.post('/seed-next-stage', async (request, reply) => {
+  app.post('/seed-next-stage', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { content, fromStage, toStage } = request.body as {
       content: string;
       fromStage: string;
@@ -240,7 +240,7 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/ai/generate-all — batch-generate AI content for all documents in a team
-  app.post('/generate-all', async (request, reply) => {
+  app.post('/generate-all', { config: { rateLimit: { max: 2, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { teamId } = request.body as { teamId: string };
 
     if (!teamId) {
