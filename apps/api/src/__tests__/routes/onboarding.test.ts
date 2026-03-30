@@ -38,6 +38,16 @@ async function buildApp() {
   return app;
 }
 
+// Helper to make mockDb.insert().values().returning() resolve with given docs
+function mockDbInsertReturning(doc: { id: string; title: string; path: string }) {
+  const chain: Record<string, unknown> = {};
+  chain.values = vi.fn(() => chain);
+  chain.returning = vi.fn(() => Promise.resolve([{ ...doc, content: '', teamId: 'team-1', createdById: 'user-1' }]));
+  chain.then = (resolve: (v: unknown) => void) =>
+    Promise.resolve([{ ...doc, content: '', teamId: 'team-1', createdById: 'user-1' }]).then(resolve);
+  return chain;
+}
+
 describe('Onboarding Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -65,16 +75,45 @@ describe('Onboarding Routes', () => {
     await app.close();
   });
 
-  it('POST /api/onboarding/scan with x-github-token scans repo', async () => {
-    mockOnboardingService.scanRepository.mockResolvedValueOnce({
-      files: [],
-      suggestedDocs: '',
-    });
+  it('POST /api/onboarding/scan returns 400 without teamId', async () => {
     const app = await buildApp();
     const res = await app.inject({
       method: 'POST',
       url: '/api/onboarding/scan',
       payload: { owner: 'test', repo: 'repo' },
+      headers: { 'x-github-token': 'ghp_test' },
+    });
+    expect(res.statusCode).toBe(400);
+    const body = JSON.parse(res.body);
+    expect(body.error).toBe('teamId is required');
+    await app.close();
+  });
+
+  it('POST /api/onboarding/scan with x-github-token scans repo and saves docs', async () => {
+    mockOnboardingService.scanRepository.mockResolvedValueOnce({
+      files: [],
+      suggestedDocs: '',
+      moduleDocs: [],
+      moduleCount: 0,
+      fileCount: 0,
+    });
+
+    // Mock db.insert for the overview doc
+    let insertCallCount = 0;
+    mockDb.insert.mockImplementation(() => {
+      insertCallCount++;
+      return mockDbInsertReturning({
+        id: `doc-${insertCallCount}`,
+        title: 'test/repo Overview',
+        path: '/repos/test/repo',
+      });
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/onboarding/scan',
+      payload: { owner: 'test', repo: 'repo', teamId: 'team-1' },
       headers: { 'x-github-token': 'ghp_test' },
     });
     expect(res.statusCode).toBe(200);
@@ -83,26 +122,50 @@ describe('Onboarding Routes', () => {
       'test',
       'repo',
     );
+    const body = JSON.parse(res.body);
+    expect(body.documents).toBeDefined();
+    expect(body.moduleCount).toBe(0);
+    expect(body.fileCount).toBe(0);
     await app.close();
   });
 
-  it('POST /api/onboarding/scan returns scanned result', async () => {
+  it('POST /api/onboarding/scan returns saved documents with module docs', async () => {
     const scanResult = {
-      files: [{ path: 'README.md', content: '# Hello' }],
-      suggestedDocs: 'Some AI-generated docs',
+      files: [{ path: 'src/index.ts', content: 'export const main = () => {}' }],
+      suggestedDocs: 'Merged docs',
+      moduleDocs: [
+        { module: 'Services', docs: 'Service docs' },
+        { module: 'Components', docs: 'Component docs' },
+      ],
+      moduleCount: 2,
+      fileCount: 1,
     };
     mockOnboardingService.scanRepository.mockResolvedValueOnce(scanResult);
+
+    let insertCallCount = 0;
+    mockDb.insert.mockImplementation(() => {
+      insertCallCount++;
+      const titles = ['Services', 'Components', 'myorg/myrepo Overview'];
+      return mockDbInsertReturning({
+        id: `doc-${insertCallCount}`,
+        title: titles[insertCallCount - 1] ?? `Doc ${insertCallCount}`,
+        path: '/repos/myorg/myrepo',
+      });
+    });
+
     const app = await buildApp();
     const res = await app.inject({
       method: 'POST',
       url: '/api/onboarding/scan',
-      payload: { owner: 'myorg', repo: 'myrepo' },
+      payload: { owner: 'myorg', repo: 'myrepo', teamId: 'team-1' },
       headers: { 'x-github-token': 'ghp_abc123' },
     });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body.files).toHaveLength(1);
-    expect(body.suggestedDocs).toBe('Some AI-generated docs');
+    // 2 module docs + 1 overview = 3 documents
+    expect(body.documents).toHaveLength(3);
+    expect(body.moduleCount).toBe(2);
+    expect(body.fileCount).toBe(1);
     await app.close();
   });
 });

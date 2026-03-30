@@ -891,8 +891,9 @@ export function disconnectRepo(integrationId: string, repoFullName: string): Pro
 // ── Onboarding / Repo Scan ──────────────────────────────────────────
 
 export interface ScanResult {
-  files: Array<{ path: string; content: string }>;
-  suggestedDocs: string;
+  documents: Array<{ id: string; title: string; path: string }>;
+  moduleCount: number;
+  fileCount: number;
 }
 
 export function scanRepository(owner: string, repo: string, teamId?: string): Promise<ScanResult> {
