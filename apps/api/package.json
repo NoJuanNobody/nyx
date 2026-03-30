@@ -21,6 +21,7 @@
     "@clerk/backend": "^1",
     "@fastify/cookie": "^11",
     "@fastify/cors": "^11",
+    "@fastify/helmet": "^13.0.2",
     "@fastify/multipart": "^9.4.0",
     "@google/genai": "^1.46.0",
     "@nyx/shared": "workspace:*",
