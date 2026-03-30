@@ -8,6 +8,15 @@ vi.mock('../../middleware/auth.js', () => ({
   authMiddleware: async () => {},
 }));
 
+vi.mock('../../middleware/permissions.js', () => ({
+  requireRole: () => async () => {},
+}));
+
+vi.mock('../../lib/encryption.js', () => ({
+  encrypt: vi.fn((plaintext: string) => `encrypted:${plaintext}`),
+  decrypt: vi.fn((ciphertext: string) => ciphertext.replace('encrypted:', '')),
+}));
+
 vi.mock('../../lib/config.js', () => ({
   config: {
     DATABASE_URL: 'postgresql://test:test@localhost:5432/test',
@@ -44,6 +53,16 @@ function slackSign(timestamp: string, body: string): string {
 async function buildSlackApp() {
   const app = Fastify({ logger: false });
   app.decorateRequest('user', null as any);
+  app.addHook('preHandler', async (request) => {
+    request.user = {
+      id: 'user-1',
+      clerkId: null,
+      email: 'test@test.com',
+      name: 'Test User',
+      avatarUrl: null,
+      role: 'admin',
+    } as any;
+  });
   app.register(slackRoutes, { prefix: '/api/slack' });
   await app.ready();
   return app;

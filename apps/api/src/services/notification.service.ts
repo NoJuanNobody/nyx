@@ -1,6 +1,7 @@
 import { eq, and, isNull, gt } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { notifications, notificationPreferences } from '../db/schema.js';
+import { notifications, notificationPreferences, slackConnections } from '../db/schema.js';
+import { slackService } from './slack.service.js';
 
 export interface CreateNotificationInput {
   userId: string;
@@ -84,7 +85,38 @@ class NotificationService {
       })
       .returning();
 
+    // Fire-and-forget: deliver to Slack if the team has a connection
+    this.deliverToSlack(input).catch(() => {
+      // Best-effort — don't fail the notification creation
+    });
+
     return notification;
+  }
+
+  /**
+   * Attempt to deliver a notification to Slack if the team has an active
+   * Slack connection with monitored channels configured.
+   */
+  private async deliverToSlack(input: CreateNotificationInput): Promise<void> {
+    const connections = await db
+      .select()
+      .from(slackConnections)
+      .where(eq(slackConnections.teamId, input.teamId));
+
+    if (connections.length === 0) {
+      return;
+    }
+
+    const connection = connections[0];
+    const channels = (connection.monitoredChannels as string[]) ?? [];
+
+    // Send to the first monitored channel (primary notification channel)
+    if (channels.length === 0) {
+      return;
+    }
+
+    const slackText = `*${input.title}*${input.body ? `\n${input.body}` : ''}`;
+    await slackService.sendSlackChannelMessage(input.teamId, channels[0], slackText);
   }
 }
 

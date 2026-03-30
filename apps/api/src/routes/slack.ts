@@ -3,6 +3,8 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { slackConnections } from '../db/schema.js';
 import { config } from '../lib/config.js';
+import { encrypt, decrypt } from '../lib/encryption.js';
+import { requireRole } from '../middleware/permissions.js';
 import { slackService } from '../services/slack.service.js';
 
 export const slackRoutes: FastifyPluginAsync = async (app) => {
@@ -194,7 +196,7 @@ export const slackRoutes: FastifyPluginAsync = async (app) => {
   /**
    * GET /api/slack/install?teamId=X — returns Slack OAuth install URL
    */
-  app.get('/install', async (request, reply) => {
+  app.get('/install', { preHandler: [requireRole({ minimumRole: 'admin', source: 'request' })] }, async (request, reply) => {
     const { teamId } = request.query as { teamId?: string };
 
     if (!teamId) {
@@ -262,6 +264,9 @@ export const slackRoutes: FastifyPluginAsync = async (app) => {
       return { error: tokenData.error ?? 'Failed to complete Slack OAuth' };
     }
 
+    // Encrypt the bot token before storing
+    const encryptedToken = encrypt(tokenData.access_token);
+
     // Upsert connection
     const existing = await db
       .select()
@@ -273,14 +278,14 @@ export const slackRoutes: FastifyPluginAsync = async (app) => {
         .update(slackConnections)
         .set({
           slackTeamId: tokenData.team.id,
-          slackBotToken: tokenData.access_token,
+          slackBotToken: encryptedToken,
         })
         .where(eq(slackConnections.teamId, teamId));
     } else {
       await db.insert(slackConnections).values({
         teamId,
         slackTeamId: tokenData.team.id,
-        slackBotToken: tokenData.access_token,
+        slackBotToken: encryptedToken,
       });
     }
 
@@ -291,7 +296,7 @@ export const slackRoutes: FastifyPluginAsync = async (app) => {
   /**
    * GET /api/slack/connection?teamId=X — returns the Slack connection for a team
    */
-  app.get('/connection', async (request, reply) => {
+  app.get('/connection', { preHandler: [requireRole({ minimumRole: 'viewer', source: 'request' })] }, async (request, reply) => {
     const { teamId } = request.query as { teamId?: string };
 
     if (!teamId) {
@@ -320,7 +325,7 @@ export const slackRoutes: FastifyPluginAsync = async (app) => {
   /**
    * PATCH /api/slack/connection?teamId=X — update Slack connection settings
    */
-  app.patch('/connection', async (request, reply) => {
+  app.patch('/connection', { preHandler: [requireRole({ minimumRole: 'admin', source: 'request' })] }, async (request, reply) => {
     const { teamId } = request.query as { teamId?: string };
 
     if (!teamId) {
@@ -366,7 +371,7 @@ export const slackRoutes: FastifyPluginAsync = async (app) => {
   /**
    * DELETE /api/slack/connection?teamId=X — disconnect Slack
    */
-  app.delete('/connection', async (request, reply) => {
+  app.delete('/connection', { preHandler: [requireRole({ minimumRole: 'admin', source: 'request' })] }, async (request, reply) => {
     const { teamId } = request.query as { teamId?: string };
 
     if (!teamId) {
