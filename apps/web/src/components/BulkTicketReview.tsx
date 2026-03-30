@@ -307,20 +307,8 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
                   />
                 </svg>
                 <p className="mt-3 text-sm font-medium text-slate-700">
-                  {jobStatus?.progressMessage ?? 'Starting job...'}
+                  {jobStatus?.progressMessage ?? 'Generating suggestions...'}
                 </p>
-                {/* Progress bar */}
-                <div className="mt-4 w-64">
-                  <div className="h-2 w-full rounded-full bg-slate-200">
-                    <div
-                      className="h-2 rounded-full bg-blue-500 transition-all duration-300"
-                      style={{ width: `${jobStatus?.progress ?? 0}%` }}
-                    />
-                  </div>
-                  <p className="mt-1 text-center text-xs text-slate-500">
-                    {jobStatus?.progress ?? 0}%
-                  </p>
-                </div>
               </div>
             ) : isLoading ? (
               /* Loading state */
