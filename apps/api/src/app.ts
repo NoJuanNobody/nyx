@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import cookie from '@fastify/cookie';
 import { healthRoutes } from './routes/health.js';
 import { authRoutes } from './routes/auth.js';
@@ -82,6 +83,19 @@ export function buildApp() {
       }
     },
     credentials: true,
+  });
+  app.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://unpkg.com/", "https://cdn.tailwindcss.com/"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com/"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com/"],
+        connectSrc: ["'self'", "https://api.anthropic.com/", "https://fonts.googleapis.com/"],
+        imgSrc: ["'self'", "data:", "https:"],
+        frameSrc: ["'self'", "blob:"],
+      },
+    },
   });
   app.register(cookie);
 
