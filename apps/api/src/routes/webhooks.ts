@@ -76,11 +76,8 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
       }
       verified = true;
     } else if (!verified) {
-      if (config.NODE_ENV === 'production') {
-        reply.code(401);
-        return { error: 'Webhook signature verification is required in production' };
-      }
-      request.log.warn('Webhook secret not configured — skipping signature verification');
+      reply.code(401);
+      return { error: 'Webhook secret not configured. Set GITHUB_WEBHOOK_SECRET or configure per-integration webhook secrets.' };
     }
 
     if (event === 'push') {
