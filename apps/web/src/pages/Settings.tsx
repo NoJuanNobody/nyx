@@ -1403,14 +1403,22 @@ function BillingPanel() {
   const checkoutMutation = useMutation({
     mutationFn: createCheckoutSession,
     onSuccess: (data) => {
-      if (data.url) window.location.href = data.url;
+      if (data.url && typeof data.url === 'string' && data.url.startsWith('https://') && data.url.includes('stripe.com')) {
+        window.location.href = data.url;
+      } else if (data.url) {
+        console.warn('Blocked redirect to untrusted URL:', data.url);
+      }
     },
   });
 
   const portalMutation = useMutation({
     mutationFn: createPortalSession,
     onSuccess: (data) => {
-      if (data.url) window.location.href = data.url;
+      if (data.url && typeof data.url === 'string' && data.url.startsWith('https://') && data.url.includes('stripe.com')) {
+        window.location.href = data.url;
+      } else if (data.url) {
+        console.warn('Blocked redirect to untrusted URL:', data.url);
+      }
     },
   });
 
