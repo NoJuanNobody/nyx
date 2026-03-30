@@ -64,11 +64,25 @@ import { adminRoutes } from './routes/admin.js';
 import { aiKeyRoutes } from './routes/ai-keys.js';
 import { atlassianRoutes } from './routes/integrations/atlassian.js';
 import { authMiddleware } from './middleware/auth.js';
+import { config } from './lib/config.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
 
-  app.register(cors, { origin: true, credentials: true });
+  const allowedOrigins = config.CORS_ORIGINS
+    ? config.CORS_ORIGINS.split(',').map(o => o.trim())
+    : ['http://localhost:5173'];
+
+  app.register(cors, {
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS: origin not allowed'), false);
+      }
+    },
+    credentials: true,
+  });
   app.register(cookie);
 
   // Auth middleware — decorates request.user on every request

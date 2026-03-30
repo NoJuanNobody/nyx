@@ -55,6 +55,7 @@ const envSchema = z.object({
   GITLAB_BASE_URL: z.string().optional(),
   BITBUCKET_CLIENT_ID: z.string().optional(),
   BITBUCKET_CLIENT_SECRET: z.string().optional(),
+  CORS_ORIGINS: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production' && !data.GITHUB_WEBHOOK_SECRET) {
     ctx.addIssue({
