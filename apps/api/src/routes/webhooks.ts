@@ -10,6 +10,7 @@ import { ticketService } from '../services/ticket.service.js';
 import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
 import { claudeInsightsService } from '../services/claude-insights.service.js';
+import { githubPushPayload, githubIssuesPayload, githubIssueCommentPayload } from '@nyx/shared';
 
 function verifyGitHubSignature(payload: string, signature: string, secret: string): boolean {
   const expected = 'sha256=' + createHmac('sha256', secret).update(payload).digest('hex');
@@ -84,6 +85,7 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (event === 'push') {
+      githubPushPayload.parse(request.body);
       const result = githubService.handlePushWebhook(request.body);
       request.log.info(
         { ref: result.ref, changedFiles: result.changedFiles, commitCount: result.commits.length },
@@ -159,10 +161,7 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (event === 'issues') {
-      const body = request.body as {
-        action?: string;
-        issue?: { number: number; state: string };
-      };
+      const body = githubIssuesPayload.parse(request.body);
 
       if (body.issue) {
         const externalId = String(body.issue.number);
@@ -191,18 +190,7 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (event === 'issue_comment') {
-      const body = request.body as {
-        action?: string;
-        comment?: {
-          id: number;
-          html_url: string;
-          body: string;
-          created_at: string;
-          user: { login: string; type: string };
-        };
-        issue?: { number: number };
-        repository?: { owner?: { login?: string }; name?: string };
-      };
+      const body = githubIssueCommentPayload.parse(request.body);
 
       // Only process newly created comments
       if (body.action === 'created' && body.comment && body.issue && body.repository) {
