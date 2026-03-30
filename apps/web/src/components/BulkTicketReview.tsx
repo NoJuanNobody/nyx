@@ -10,6 +10,7 @@ import {
   updateTicketSuggestion,
   dismissTicketSuggestion,
   fetchIntegrations,
+  fetchJobStatus,
 } from '../lib/api';
 import type { TicketSuggestion, BulkApproveResult } from '../lib/api';
 
@@ -35,6 +36,7 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
   const [selectedRepo, setSelectedRepo] = useState<RepoOption | null>(null);
 
   const [folderSuggestions, setFolderSuggestions] = useState<TicketSuggestion[]>([]);
+  const [jobId, setJobId] = useState<string | null>(null);
 
   const { data: docSuggestions = [], isLoading } = useQuery({
     queryKey: ['ticket-suggestions', documentId],
@@ -67,13 +69,34 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
         ? generateFolderTicketSuggestions(teamId, folderPath)
         : generateBulkSuggestions(documentId),
     onSuccess: (data) => {
-      if (folderPath && Array.isArray(data)) {
-        setFolderSuggestions(data);
+      if (folderPath && data && 'jobId' in data) {
+        setJobId(data.jobId);
       } else {
         queryClient.invalidateQueries({ queryKey: ['ticket-suggestions', documentId] });
       }
     },
   });
+
+  const { data: jobStatus } = useQuery({
+    queryKey: ['job-status', jobId],
+    queryFn: () => fetchJobStatus<TicketSuggestion[]>(jobId!),
+    enabled: !!jobId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status === 'completed' || status === 'failed') return false;
+      return 2000;
+    },
+  });
+
+  useEffect(() => {
+    if (!jobStatus || !jobId) return;
+    if (jobStatus.status === 'completed' && jobStatus.result) {
+      setFolderSuggestions(jobStatus.result);
+      setJobId(null);
+    } else if (jobStatus.status === 'failed') {
+      setJobId(null);
+    }
+  }, [jobStatus, jobId]);
 
   const bulkApproveMutation = useMutation({
     mutationFn: () => bulkApproveSuggestions([...selectedIds], provider, selectedRepo ? { owner: selectedRepo.owner, name: selectedRepo.name } : undefined),
@@ -218,10 +241,10 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
               <button
                 type="button"
                 onClick={() => generateMutation.mutate()}
-                disabled={generateMutation.isPending}
+                disabled={generateMutation.isPending || !!jobId}
                 className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
               >
-                {generateMutation.isPending && (
+                {(generateMutation.isPending || !!jobId) && (
                   <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path
@@ -231,7 +254,7 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
                     />
                   </svg>
                 )}
-                {generateMutation.isPending ? 'Generating...' : 'Generate Suggestions'}
+                {generateMutation.isPending ? 'Generating...' : jobId ? 'Processing...' : 'Generate Suggestions'}
               </button>
 
               {/* Close button */}
@@ -249,7 +272,34 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
 
           {/* Content area */}
           <div className="flex-1 overflow-y-auto p-6">
-            {isLoading ? (
+            {jobId && (!jobStatus || jobStatus.status === 'pending' || jobStatus.status === 'running') ? (
+              /* Job progress state */
+              <div className="flex flex-col items-center justify-center py-20">
+                <svg className="h-8 w-8 animate-spin text-blue-500" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                <p className="mt-3 text-sm font-medium text-slate-700">
+                  {jobStatus?.progressMessage ?? 'Starting job...'}
+                </p>
+                {/* Progress bar */}
+                <div className="mt-4 w-64">
+                  <div className="h-2 w-full rounded-full bg-slate-200">
+                    <div
+                      className="h-2 rounded-full bg-blue-500 transition-all duration-300"
+                      style={{ width: `${jobStatus?.progress ?? 0}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-center text-xs text-slate-500">
+                    {jobStatus?.progress ?? 0}%
+                  </p>
+                </div>
+              </div>
+            ) : isLoading ? (
               /* Loading state */
               <div className="flex flex-col items-center justify-center py-20">
                 <svg className="h-8 w-8 animate-spin text-blue-500" viewBox="0 0 24 24" fill="none">
@@ -439,6 +489,13 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
             {generateMutation.isError && (
               <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                 Failed to generate suggestions. Please try again.
+              </div>
+            )}
+
+            {/* Job failure error */}
+            {jobStatus?.status === 'failed' && (
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {jobStatus.error ?? 'Background job failed. Please try again.'}
               </div>
             )}
           </div>

@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { suggestionService } from '../services/suggestion.service.js';
+import { jobService } from '../services/job.service.js';
 import { requireRole } from '../middleware/permissions.js';
 
 export const suggestionRoutes: FastifyPluginAsync = async (app) => {
@@ -71,8 +72,8 @@ export const suggestionRoutes: FastifyPluginAsync = async (app) => {
     return results;
   });
 
-  // POST /api/folders/suggest-tickets — generate ticket suggestions from all docs in a folder
-  app.post('/folders/suggest-tickets', { config: { rawBody: false }, onRequest: async (request) => { request.raw.setTimeout?.(120_000); } }, async (request, reply) => {
+  // POST /api/folders/suggest-tickets — generate ticket suggestions from all docs in a folder (async)
+  app.post('/folders/suggest-tickets', async (request, reply) => {
     const { teamId, folderPath } = request.body as { teamId: string; folderPath: string };
 
     if (!teamId) {
@@ -84,14 +85,22 @@ export const suggestionRoutes: FastifyPluginAsync = async (app) => {
       return { error: 'folderPath is required' };
     }
 
-    try {
-      const suggestions = await suggestionService.generateFolderSuggestions(teamId, folderPath);
-      return suggestions;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      reply.code(400);
-      return { error: message };
-    }
+    const userId = request.user.id;
+    const job = await jobService.create(teamId, userId, 'folder-suggest-tickets', { teamId, folderPath });
+
+    setImmediate(async () => {
+      try {
+        await jobService.markRunning(job.id);
+        const suggestions = await suggestionService.generateFolderSuggestions(teamId, folderPath);
+        await jobService.markCompleted(job.id, suggestions);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        await jobService.markFailed(job.id, message);
+      }
+    });
+
+    reply.code(202);
+    return { jobId: job.id };
   });
 
   // PATCH /api/ticket-suggestions/:id — edit a pending suggestion

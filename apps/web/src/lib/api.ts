@@ -1477,6 +1477,22 @@ export function fetchPipelineHealth(): Promise<Array<{ stage: string; avgLatency
   return request('/observability/pipeline-health');
 }
 
+// ── Background Jobs ─────────────────────────────────────────────────
+
+export interface JobStatus<T = unknown> {
+  id: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  progress: number;
+  progressMessage: string | null;
+  result: T | null;
+  error: string | null;
+  createdAt: string;
+}
+
+export function fetchJobStatus<T = unknown>(jobId: string): Promise<JobStatus<T>> {
+  return request<JobStatus<T>>(`/jobs/${jobId}`);
+}
+
 // ── Ticket Suggestions (Bulk) ───────────────────────────────────────
 
 export interface TicketSuggestion {
@@ -1512,8 +1528,8 @@ export function generateBulkSuggestions(documentId: string): Promise<TicketSugge
 export function generateFolderTicketSuggestions(
   teamId: string,
   folderPath: string,
-): Promise<TicketSuggestion[]> {
-  return request<TicketSuggestion[]>('/folders/suggest-tickets', {
+): Promise<{ jobId: string }> {
+  return request<{ jobId: string }>('/folders/suggest-tickets', {
     method: 'POST',
     body: JSON.stringify({ teamId, folderPath }),
   });

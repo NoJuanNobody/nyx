@@ -12,6 +12,7 @@ export const auditEventTypeEnum = pgEnum('audit_event_type', [
   'agent_workflow',
 ]);
 export const agentSessionStatusEnum = pgEnum('agent_session_status', ['running', 'completed', 'failed', 'cancelled']);
+export const jobStatusEnum = pgEnum('job_status', ['pending', 'running', 'completed', 'failed']);
 export const notificationEmailModeEnum = pgEnum('notification_email_mode', ['instant', 'daily', 'weekly', 'off']);
 export const emailDeliveryStatusEnum = pgEnum('email_delivery_status', ['queued', 'sent', 'failed', 'bounced']);
 export const documentStageEnum = pgEnum('document_stage', [
@@ -737,5 +738,27 @@ export const pkceChallenges = pgTable('pkce_challenges', {
   userId: text('user_id').notNull(),
   teamId: text('team_id').notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Background Jobs ───────────────────────────────────
+
+export const backgroundJobs = pgTable('background_jobs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
+  type: text('type').notNull(),
+  status: jobStatusEnum('status').notNull().default('pending'),
+  input: jsonb('input').notNull().default({}),
+  result: jsonb('result'),
+  error: text('error'),
+  progress: integer('progress').notNull().default(0),
+  progressMessage: text('progress_message'),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
