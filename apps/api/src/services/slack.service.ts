@@ -1,4 +1,8 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { eq } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { slackConnections } from '../db/schema.js';
+import { decrypt } from '../lib/encryption.js';
 
 /**
  * Verify a Slack request signature using the signing secret.
@@ -27,18 +31,41 @@ export function verifySlackSignature(
 }
 
 /**
- * Process a Slack message through intake. Returns a structured summary.
- * This is a placeholder that formats the message for processing.
- * A real implementation would route through the Chaos Ingestion pipeline.
+ * Process a Slack message through intake. Logs the message, creates a
+ * structured summary, and returns a result that callers can relay back
+ * to Slack or store for auditing.
  */
 export async function processSlackMessage(
   text: string,
   teamId: string,
   userId: string,
   channelId: string,
-): Promise<{ summary: string; source: string }> {
+): Promise<{ summary: string; source: string; documentId?: string }> {
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    return {
+      summary: 'Empty message — nothing to process.',
+      source: 'slack',
+    };
+  }
+
+  // Log the inbound message for observability
+  console.info('[slack-intake]', {
+    teamId,
+    userId,
+    channelId,
+    textLength: trimmed.length,
+    preview: trimmed.substring(0, 80),
+  });
+
+  // Build a structured summary from the Slack message.
+  // Future enhancement: route through intakeService.processRawInput() to
+  // generate a full structured spec via AI when the Anthropic key is available.
+  const summary = `Slack message from user ${userId} in channel ${channelId}: "${trimmed.substring(0, 120)}"`;
+
   return {
-    summary: `Received from Slack user ${userId} in channel ${channelId}: ${text}`,
+    summary,
     source: 'slack',
   };
 }
@@ -57,8 +84,55 @@ export async function sendSlackResponse(
   });
 }
 
+/**
+ * Send a message to a Slack channel using the Bot token stored for a team.
+ * Decrypts the stored token before calling the Slack API.
+ */
+export async function sendSlackChannelMessage(
+  teamId: string,
+  channel: string,
+  text: string,
+): Promise<boolean> {
+  const connections = await db
+    .select()
+    .from(slackConnections)
+    .where(eq(slackConnections.teamId, teamId));
+
+  if (connections.length === 0) {
+    return false;
+  }
+
+  const connection = connections[0];
+
+  let botToken: string;
+  try {
+    botToken = decrypt(connection.slackBotToken);
+  } catch {
+    console.error('[slack] Failed to decrypt bot token for team', teamId);
+    return false;
+  }
+
+  const response = await fetch('https://slack.com/api/chat.postMessage', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${botToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ channel, text }),
+  });
+
+  const data = (await response.json()) as { ok: boolean; error?: string };
+  if (!data.ok) {
+    console.error('[slack] chat.postMessage failed:', data.error);
+    return false;
+  }
+
+  return true;
+}
+
 export const slackService = {
   verifySlackSignature,
   processSlackMessage,
   sendSlackResponse,
+  sendSlackChannelMessage,
 };
