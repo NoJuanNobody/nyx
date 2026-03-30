@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { scanRepository, type ScanResult } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
 
@@ -12,13 +12,17 @@ interface ScanRepositoryModalProps {
 
 export function ScanRepositoryModal({ owner, repo, onClose, onResult }: ScanRepositoryModalProps) {
   const currentTeamId = useAuthStore((s) => s.currentTeamId);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
   const scanMutation = useMutation({
     mutationFn: () => scanRepository(owner, repo, currentTeamId ?? undefined),
     onSuccess: (data) => {
+      // Invalidate documents query so file explorer refreshes
+      if (currentTeamId) {
+        queryClient.invalidateQueries({ queryKey: ['documents', currentTeamId] });
+      }
       onResult(data);
-      onClose();
     },
     onError: (err: Error) => {
       setError(err.message);
@@ -43,8 +47,9 @@ export function ScanRepositoryModal({ owner, repo, onClose, onResult }: ScanRepo
           <p>This will:</p>
           <ul className="mt-1 list-disc pl-4 text-xs space-y-0.5">
             <li>Fetch the repository file tree from GitHub</li>
-            <li>Analyze up to 20 doc-relevant source files</li>
-            <li>Generate a documentation draft using AI</li>
+            <li>Analyze source files grouped by module</li>
+            <li>Generate documentation per module using AI</li>
+            <li>Save documents to your file explorer automatically</li>
           </ul>
         </div>
 
@@ -61,6 +66,17 @@ export function ScanRepositoryModal({ owner, repo, onClose, onResult }: ScanRepo
           </div>
         )}
 
+        {scanMutation.isSuccess && scanMutation.data && (
+          <div className="mt-4 rounded-md bg-green-50 p-3 text-sm text-green-700" data-testid="scan-repo-success">
+            <p className="font-medium">Documents saved!</p>
+            <p className="mt-1 text-xs">
+              {scanMutation.data.documents.length} document{scanMutation.data.documents.length !== 1 ? 's' : ''} created
+              from {scanMutation.data.fileCount} file{scanMutation.data.fileCount !== 1 ? 's' : ''} across{' '}
+              {scanMutation.data.moduleCount} module{scanMutation.data.moduleCount !== 1 ? 's' : ''}.
+            </p>
+          </div>
+        )}
+
         <div className="mt-6 flex justify-end gap-3">
           <button
             type="button"
@@ -68,20 +84,22 @@ export function ScanRepositoryModal({ owner, repo, onClose, onResult }: ScanRepo
             disabled={scanMutation.isPending}
             className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors"
           >
-            Cancel
+            {scanMutation.isSuccess ? 'Close' : 'Cancel'}
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setError(null);
-              scanMutation.mutate();
-            }}
-            disabled={scanMutation.isPending}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 disabled:opacity-50 transition-colors"
-            data-testid="scan-repo-submit"
-          >
-            {scanMutation.isPending ? 'Scanning...' : 'Start Scan'}
-          </button>
+          {!scanMutation.isSuccess && (
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                scanMutation.mutate();
+              }}
+              disabled={scanMutation.isPending}
+              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 disabled:opacity-50 transition-colors"
+              data-testid="scan-repo-submit"
+            >
+              {scanMutation.isPending ? 'Scanning...' : 'Start Scan'}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -96,14 +114,6 @@ interface ScanResultViewProps {
 }
 
 export function ScanResultView({ owner, repo, result, onClose }: ScanResultViewProps) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(result.suggestedDocs);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
@@ -112,31 +122,43 @@ export function ScanResultView({ owner, repo, result, onClose }: ScanResultViewP
       }}
       data-testid="scan-result-modal-backdrop"
     >
-      <div className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-xl bg-white shadow-2xl" data-testid="scan-result-modal">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl" data-testid="scan-result-modal">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+            <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Scan Results</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Scan Complete</h2>
             <p className="text-sm text-slate-500">
-              {owner}/{repo} — {result.files.length} file{result.files.length !== 1 ? 's' : ''} analyzed
+              {owner}/{repo}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-            data-testid="scan-result-copy"
-          >
-            {copied ? 'Copied!' : 'Copy Markdown'}
-          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          <pre className="whitespace-pre-wrap text-sm text-slate-700 leading-relaxed font-mono">
-            {result.suggestedDocs}
-          </pre>
+        <div className="mt-4 rounded-md bg-green-50 p-3">
+          <p className="text-sm font-medium text-green-800">
+            {result.documents.length} document{result.documents.length !== 1 ? 's' : ''} saved to file explorer
+          </p>
+          <p className="mt-1 text-xs text-green-700">
+            Analyzed {result.fileCount} file{result.fileCount !== 1 ? 's' : ''} across{' '}
+            {result.moduleCount} module{result.moduleCount !== 1 ? 's' : ''}.
+          </p>
         </div>
 
-        <div className="border-t border-slate-100 px-6 py-4 flex justify-end">
+        {result.documents.length > 0 && (
+          <div className="mt-3 max-h-48 overflow-y-auto rounded-md border border-slate-200 divide-y divide-slate-100">
+            {result.documents.map((doc) => (
+              <div key={doc.id} className="px-3 py-2 text-sm text-slate-700">
+                <span className="font-medium">{doc.title}</span>
+                <span className="ml-2 text-xs text-slate-400">{doc.path}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-6 flex justify-end">
           <button
             type="button"
             onClick={onClose}
