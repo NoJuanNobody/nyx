@@ -104,31 +104,26 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
     mutationFn: () => bulkApproveSuggestions([...selectedIds], provider, selectedRepo ? { owner: selectedRepo.owner, name: selectedRepo.name } : undefined),
     onSuccess: (data) => {
       setApproveJobId(data.jobId);
+      // Poll until completed
+      const poll = setInterval(async () => {
+        try {
+          const job = await fetchJobStatus<BulkApproveResult[]>(data.jobId);
+          if (job.status === 'completed' && job.result) {
+            clearInterval(poll);
+            setResults(job.result);
+            setSelectedIds(new Set());
+            setApproveJobId(null);
+            queryClient.invalidateQueries({ queryKey: ['ticket-suggestions', documentId] });
+          } else if (job.status === 'failed') {
+            clearInterval(poll);
+            setApproveJobId(null);
+          }
+        } catch {
+          // keep polling on network errors
+        }
+      }, 2000);
     },
   });
-
-  const { data: approveJobStatus } = useQuery({
-    queryKey: ['job-status', approveJobId],
-    queryFn: () => fetchJobStatus<BulkApproveResult[]>(approveJobId!),
-    enabled: !!approveJobId,
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      if (status === 'completed' || status === 'failed') return false;
-      return 2000;
-    },
-  });
-
-  useEffect(() => {
-    if (!approveJobId || !approveJobStatus) return;
-    if (approveJobStatus.status === 'completed' && approveJobStatus.result) {
-      setResults(approveJobStatus.result);
-      setSelectedIds(new Set());
-      setApproveJobId(null);
-      queryClient.invalidateQueries({ queryKey: ['ticket-suggestions', documentId] });
-    } else if (approveJobStatus.status === 'failed') {
-      setApproveJobId(null);
-    }
-  }, [approveJobStatus, approveJobId, documentId, queryClient]);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: { title?: string; description?: string } }) =>
