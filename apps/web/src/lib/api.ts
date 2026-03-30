@@ -1539,8 +1539,8 @@ export function bulkApproveSuggestions(
   suggestionIds: string[],
   provider: 'github' | 'jira',
   repo?: { owner: string; name: string },
-): Promise<BulkApproveResult[]> {
-  return request<BulkApproveResult[]>('/ticket-suggestions/bulk-approve', {
+): Promise<{ jobId: string }> {
+  return request<{ jobId: string }>('/ticket-suggestions/bulk-approve', {
     method: 'POST',
     body: JSON.stringify({ suggestionIds, provider, repo }),
   });

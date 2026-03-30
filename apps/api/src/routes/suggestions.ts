@@ -58,18 +58,38 @@ export const suggestionRoutes: FastifyPluginAsync = async (app) => {
     return suggestions;
   });
 
-  // POST /api/ticket-suggestions/bulk-approve — approve multiple suggestions at once
+  // POST /api/ticket-suggestions/bulk-approve — approve multiple suggestions at once (async)
   app.post('/ticket-suggestions/bulk-approve', async (request, reply) => {
-    const { suggestionIds, provider, repo } = request.body as {
+    const { suggestionIds, provider, repo, teamId } = request.body as {
       suggestionIds: string[];
       provider: 'github' | 'jira';
       repo?: { owner: string; name: string };
+      teamId?: string;
     };
     const userId = request.user.id;
     if (!suggestionIds?.length) { reply.code(400); return { error: 'No suggestions selected' }; }
     if (!['github', 'jira'].includes(provider)) { reply.code(400); return { error: 'Invalid provider' }; }
-    const results = await suggestionService.bulkApprove(suggestionIds, userId, provider, repo);
-    return results;
+
+    const job = await jobService.create(
+      teamId || null,
+      userId,
+      'bulk-approve-tickets',
+      { suggestionIds, provider, repo },
+    );
+
+    setImmediate(async () => {
+      try {
+        await jobService.markRunning(job.id);
+        const results = await suggestionService.bulkApprove(suggestionIds, userId, provider, repo);
+        await jobService.markCompleted(job.id, results);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        await jobService.markFailed(job.id, message);
+      }
+    });
+
+    reply.code(202);
+    return { jobId: job.id };
   });
 
   // POST /api/folders/suggest-tickets — generate ticket suggestions from all docs in a folder (async)

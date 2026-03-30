@@ -3,7 +3,7 @@ import { db } from '../db/index.js';
 import { backgroundJobs } from '../db/schema.js';
 
 export const jobService = {
-  async create(teamId: string, userId: string, type: string, input: Record<string, unknown> = {}) {
+  async create(teamId: string | null, userId: string, type: string, input: Record<string, unknown> = {}) {
     const [job] = await db
       .insert(backgroundJobs)
       .values({ teamId, userId, type, input })

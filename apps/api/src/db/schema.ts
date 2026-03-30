@@ -746,7 +746,6 @@ export const pkceChallenges = pgTable('pkce_challenges', {
 export const backgroundJobs = pgTable('background_jobs', {
   id: uuid('id').primaryKey().defaultRandom(),
   teamId: uuid('team_id')
-    .notNull()
     .references(() => teams.id),
   userId: uuid('user_id')
     .notNull()

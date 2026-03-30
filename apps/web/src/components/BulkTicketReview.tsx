@@ -98,14 +98,37 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
     }
   }, [jobStatus, jobId]);
 
+  const [approveJobId, setApproveJobId] = useState<string | null>(null);
+
   const bulkApproveMutation = useMutation({
     mutationFn: () => bulkApproveSuggestions([...selectedIds], provider, selectedRepo ? { owner: selectedRepo.owner, name: selectedRepo.name } : undefined),
     onSuccess: (data) => {
-      setResults(data);
-      setSelectedIds(new Set());
-      queryClient.invalidateQueries({ queryKey: ['ticket-suggestions', documentId] });
+      setApproveJobId(data.jobId);
     },
   });
+
+  const { data: approveJobStatus } = useQuery({
+    queryKey: ['job-status', approveJobId],
+    queryFn: () => fetchJobStatus<BulkApproveResult[]>(approveJobId!),
+    enabled: !!approveJobId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status === 'completed' || status === 'failed') return false;
+      return 2000;
+    },
+  });
+
+  useEffect(() => {
+    if (!approveJobId || !approveJobStatus) return;
+    if (approveJobStatus.status === 'completed' && approveJobStatus.result) {
+      setResults(approveJobStatus.result);
+      setSelectedIds(new Set());
+      setApproveJobId(null);
+      queryClient.invalidateQueries({ queryKey: ['ticket-suggestions', documentId] });
+    } else if (approveJobStatus.status === 'failed') {
+      setApproveJobId(null);
+    }
+  }, [approveJobStatus, approveJobId, documentId, queryClient]);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: { title?: string; description?: string } }) =>
@@ -523,10 +546,10 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
               <button
                 type="button"
                 onClick={() => bulkApproveMutation.mutate()}
-                disabled={selectedIds.size === 0 || bulkApproveMutation.isPending}
+                disabled={selectedIds.size === 0 || bulkApproveMutation.isPending || !!approveJobId}
                 className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
               >
-                {bulkApproveMutation.isPending && (
+                {(bulkApproveMutation.isPending || approveJobId) && (
                   <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path
@@ -536,8 +559,8 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
                     />
                   </svg>
                 )}
-                {bulkApproveMutation.isPending
-                  ? `Creating ${selectedIds.size} ticket${selectedIds.size !== 1 ? 's' : ''}...`
+                {bulkApproveMutation.isPending || approveJobId
+                  ? `Creating tickets...`
                   : `Create ${selectedIds.size} Ticket${selectedIds.size !== 1 ? 's' : ''}`}
               </button>
             </div>
