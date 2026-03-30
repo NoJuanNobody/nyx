@@ -1,20 +1,23 @@
-import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes, hkdfSync } from 'node:crypto';
 import { config } from './config.js';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
+const HKDF_SALT = 'nyx-atlassian-token-encryption';
+const HKDF_INFO = 'aes-256-gcm-key';
 
 /**
- * Derive a 32-byte encryption key from the ENCRYPTION_SECRET using SHA-256.
- * In production, HKDF or similar KDF should be used.
+ * Derive a 32-byte encryption key from the ENCRYPTION_SECRET using HKDF.
+ * Uses SHA-256 as the underlying hash with a fixed salt and info string.
  */
 function getKey(): Buffer {
   const secret = config.ENCRYPTION_SECRET;
   if (!secret) {
     throw new Error('ENCRYPTION_SECRET is not configured');
   }
-  return createHash('sha256').update(secret).digest();
+  const derived = hkdfSync('sha256', secret, HKDF_SALT, HKDF_INFO, 32);
+  return Buffer.from(derived);
 }
 
 /**

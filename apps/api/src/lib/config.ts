@@ -50,6 +50,7 @@ const envSchema = z.object({
   ATLASSIAN_CLIENT_ID: z.string().optional(),
   ATLASSIAN_CLIENT_SECRET: z.string().optional(),
   ENCRYPTION_SECRET: z.string().optional(),
+  JIRA_WEBHOOK_SECRET: z.string().optional(),
   GITLAB_CLIENT_ID: z.string().optional(),
   GITLAB_CLIENT_SECRET: z.string().optional(),
   GITLAB_BASE_URL: z.string().optional(),
