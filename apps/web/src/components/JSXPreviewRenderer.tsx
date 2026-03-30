@@ -128,6 +128,8 @@ export function JSXPreviewRenderer({ jsx }: JSXPreviewRendererProps) {
 
     // Register error handler BEFORE setting iframe src to avoid race condition
     const handleMessage = (event: MessageEvent) => {
+      // blob: iframes send origin 'null' (string)
+      if (event.origin !== 'null' && event.origin !== window.location.origin) return;
       if (event.data?.type === 'jsx-preview-error') {
         setError(event.data.error as string);
         setIsLoading(false);
