@@ -1,16 +1,64 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-const COLS = 40;
-const ROWS = 18;
-const TICK_MS = 100;
-const GRAVITY = 1;
-const JUMP_FORCE = -3;
-const BARREL_SPEED = 1;
-const BARREL_SPAWN_RATE = 45; // ticks between barrels
+// ── Side-scrolling Mario runner ─────────────────────────
+// Viewport scrolls with the player. Procedurally generated world.
+// Coins, goombas, pipes, gaps, question blocks, and a flagpole goal.
 
-interface Barrel {
+const VIEW_COLS = 50;
+const VIEW_ROWS = 20;
+const TICK_MS = 80;
+const GRAVITY = 1;
+const JUMP_FORCE = -4;
+const WORLD_LENGTH = 300;
+const GROUND_Y = 18;
+
+type Point = { x: number; y: number };
+
+interface Enemy {
   x: number;
   y: number;
+  type: 'goomba' | 'koopa';
+  dir: -1 | 1;
+  alive: boolean;
+}
+
+interface Coin {
+  x: number;
+  y: number;
+  collected: boolean;
+}
+
+interface Block {
+  x: number;
+  y: number;
+  type: '?' | 'brick';
+  hit: boolean;
+}
+
+interface Pipe {
+  x: number;
+  height: number; // 2 or 3
+}
+
+interface Gap {
+  xStart: number;
+  xEnd: number;
+}
+
+interface Platform {
+  xStart: number;
+  xEnd: number;
+  y: number;
+}
+
+interface World {
+  enemies: Enemy[];
+  coins: Coin[];
+  blocks: Block[];
+  pipes: Pipe[];
+  gaps: Gap[];
+  platforms: Platform[];
+  flagX: number;
 }
 
 interface Player {
@@ -18,36 +66,132 @@ interface Player {
   y: number;
   vy: number;
   onGround: boolean;
+  lives: number;
+  invincible: number; // ticks remaining
+  facingRight: boolean;
 }
 
-// Platform layout: [y, xStart, xEnd]
-const PLATFORMS: [number, number, number][] = [
-  [16, 0, 39],     // ground
-  [13, 5, 20],     // platform 1
-  [13, 25, 38],    // platform 1b
-  [10, 0, 15],     // platform 2
-  [10, 20, 35],    // platform 2b
-  [7, 8, 30],      // platform 3
-  [4, 2, 18],      // platform 4 (top)
-];
+// ── World generation ────────────────────────────────────
+function generateWorld(): World {
+  const enemies: Enemy[] = [];
+  const coins: Coin[] = [];
+  const blocks: Block[] = [];
+  const pipes: Pipe[] = [];
+  const gaps: Gap[] = [];
+  const platforms: Platform[] = [];
 
-const KONG_X = 3;
-const KONG_Y = 1;
-const PRINCESS_X = 15;
-const PRINCESS_Y = 3;
+  let nextGapOk = 30; // don't place gaps too early
 
-function isPlatform(x: number, y: number): boolean {
-  return PLATFORMS.some(([py, sx, ex]) => y === py && x >= sx && x <= ex);
+  for (let x = 15; x < WORLD_LENGTH - 20; x++) {
+    const r = Math.random();
+
+    // Gaps in the ground (pits)
+    if (x > nextGapOk && r < 0.015) {
+      const width = 3 + Math.floor(Math.random() * 2);
+      gaps.push({ xStart: x, xEnd: x + width });
+      nextGapOk = x + width + 12;
+      x += width + 2;
+      continue;
+    }
+
+    // Pipes
+    if (r < 0.04 && x > 10) {
+      const h = 2 + Math.floor(Math.random() * 2);
+      pipes.push({ x, height: h });
+      // Sometimes an enemy near a pipe
+      if (Math.random() < 0.5) {
+        enemies.push({ x: x + 3, y: GROUND_Y - 1, type: 'goomba', dir: -1, alive: true });
+      }
+      x += 4;
+      continue;
+    }
+
+    // Question blocks with coins
+    if (r < 0.07) {
+      const bx = x;
+      const by = GROUND_Y - 4 - Math.floor(Math.random() * 2);
+      blocks.push({ x: bx, y: by, type: '?', hit: false });
+      // Coin above block
+      coins.push({ x: bx, y: by - 1, collected: false });
+      continue;
+    }
+
+    // Brick clusters
+    if (r < 0.09) {
+      const count = 2 + Math.floor(Math.random() * 4);
+      const by = GROUND_Y - 4;
+      for (let i = 0; i < count; i++) {
+        blocks.push({ x: x + i, y: by, type: 'brick', hit: false });
+      }
+      // Coins on top of bricks
+      if (Math.random() < 0.6) {
+        for (let i = 0; i < count; i += 2) {
+          coins.push({ x: x + i, y: by - 1, collected: false });
+        }
+      }
+      x += count;
+      continue;
+    }
+
+    // Floating platforms
+    if (r < 0.11) {
+      const len = 4 + Math.floor(Math.random() * 5);
+      const py = GROUND_Y - 5 - Math.floor(Math.random() * 3);
+      platforms.push({ xStart: x, xEnd: x + len, y: py });
+      // Coins on platform
+      for (let i = 1; i < len; i += 2) {
+        coins.push({ x: x + i, y: py - 1, collected: false });
+      }
+      x += len;
+      continue;
+    }
+
+    // Ground-level goombas
+    if (r < 0.14) {
+      enemies.push({ x, y: GROUND_Y - 1, type: Math.random() < 0.7 ? 'goomba' : 'koopa', dir: -1, alive: true });
+    }
+
+    // Ground-level coins
+    if (r < 0.2) {
+      coins.push({ x, y: GROUND_Y - 1, collected: false });
+    }
+
+    // Coin arcs in the air
+    if (r < 0.22) {
+      for (let i = 0; i < 5; i++) {
+        const arcY = GROUND_Y - 3 - Math.round(Math.sin(i / 4 * Math.PI) * 2);
+        coins.push({ x: x + i, y: arcY, collected: false });
+      }
+      x += 5;
+    }
+  }
+
+  return { enemies, coins, blocks, pipes, gaps, platforms, flagX: WORLD_LENGTH - 10 };
 }
 
-function isOnPlatform(x: number, y: number): boolean {
-  return isPlatform(x, y + 1);
+// ── Collision helpers ───────────────────────────────────
+function isSolid(x: number, y: number, world: World): boolean {
+  // Ground (unless it's a gap)
+  if (y === GROUND_Y) {
+    const inGap = world.gaps.some(g => x >= g.xStart && x <= g.xEnd);
+    return !inGap;
+  }
+  // Pipes
+  if (world.pipes.some(p => (x === p.x || x === p.x + 1) && y >= GROUND_Y - p.height && y < GROUND_Y)) return true;
+  // Blocks
+  if (world.blocks.some(b => b.x === x && b.y === y)) return true;
+  // Platforms
+  if (world.platforms.some(p => x >= p.xStart && x <= p.xEnd && y === p.y)) return true;
+  return false;
 }
 
 export function ArcadeGame() {
-  const [player, setPlayer] = useState<Player>({ x: 2, y: 15, vy: 0, onGround: true });
-  const [barrels, setBarrels] = useState<Barrel[]>([]);
-  const [score, setScore] = useState(0);
+  const [world, setWorld] = useState<World>(() => generateWorld());
+  const [player, setPlayer] = useState<Player>({
+    x: 3, y: GROUND_Y - 1, vy: 0, onGround: true, lives: 3, invincible: 0, facingRight: true,
+  });
+  const [camera, setCamera] = useState(0);
+  const [coinCount, setCoinCount] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
   const [started, setStarted] = useState(false);
@@ -55,15 +199,18 @@ export function ArcadeGame() {
   const keysRef = useRef<Set<string>>(new Set());
 
   const reset = useCallback(() => {
-    setPlayer({ x: 2, y: 15, vy: 0, onGround: true });
-    setBarrels([]);
-    setScore(0);
+    const w = generateWorld();
+    setWorld(w);
+    setPlayer({ x: 3, y: GROUND_Y - 1, vy: 0, onGround: true, lives: 3, invincible: 0, facingRight: true });
+    setCamera(0);
+    setCoinCount(0);
     setGameOver(false);
     setWon(false);
     setStarted(true);
     setTick(0);
   }, []);
 
+  // Key handling
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
@@ -81,18 +228,27 @@ export function ArcadeGame() {
     };
   }, [started, gameOver, won]);
 
+  // Game loop
   useEffect(() => {
     if (!started || gameOver || won) return;
     const interval = setInterval(() => {
       setTick(t => t + 1);
 
+      // ── Update player ──────────────────
       setPlayer(prev => {
-        let { x, y, vy, onGround } = prev;
+        let { x, y, vy, onGround, lives, invincible, facingRight } = prev;
         const keys = keysRef.current;
 
-        // Horizontal movement
-        if (keys.has('ArrowLeft') || keys.has('a')) x = Math.max(0, x - 1);
-        if (keys.has('ArrowRight') || keys.has('d')) x = Math.min(COLS - 1, x + 1);
+        // Horizontal
+        const speed = 1;
+        if (keys.has('ArrowLeft') || keys.has('a')) {
+          const nx = x - speed;
+          if (nx >= 0 && !isSolid(nx, y, world)) { x = nx; facingRight = false; }
+        }
+        if (keys.has('ArrowRight') || keys.has('d')) {
+          const nx = x + speed;
+          if (!isSolid(nx, y, world)) { x = nx; facingRight = true; }
+        }
 
         // Jump
         if ((keys.has('ArrowUp') || keys.has('w') || keys.has(' ')) && onGround) {
@@ -100,169 +256,288 @@ export function ArcadeGame() {
           onGround = false;
         }
 
-        // Apply gravity
-        vy += GRAVITY;
-        y += vy;
+        // Gravity
+        vy = Math.min(vy + GRAVITY, 4); // terminal velocity
+        const newY = y + vy;
 
-        // Platform collision (falling down)
-        if (vy >= 0) {
-          for (let checkY = y - Math.abs(vy); checkY <= y; checkY++) {
-            if (isOnPlatform(x, checkY)) {
-              y = checkY;
+        if (vy > 0) {
+          // Falling — check for landing
+          let landed = false;
+          for (let checkY = y + 1; checkY <= newY; checkY++) {
+            if (isSolid(x, checkY, world)) {
+              y = checkY - 1;
               vy = 0;
               onGround = true;
+              landed = true;
               break;
             }
           }
-        }
-
-        // Floor / ceiling bounds
-        if (y >= ROWS - 1) { y = ROWS - 2; vy = 0; onGround = true; }
-        if (y < 0) { y = 0; vy = 1; }
-
-        // Check if on ground
-        onGround = isOnPlatform(x, y);
-
-        return { x, y, vy, onGround };
-      });
-
-      // Move barrels
-      setBarrels(prev => {
-        const moved = prev
-          .map(b => ({ ...b, x: b.x + BARREL_SPEED }))
-          .filter(b => b.x < COLS);
-
-        // Barrels fall if no platform
-        return moved.map(b => {
-          if (!isPlatform(b.x, b.y + 1)) {
-            return { ...b, y: Math.min(ROWS - 2, b.y + 1) };
+          if (!landed) {
+            y = newY;
+            onGround = false;
           }
-          return b;
-        });
-      });
-
-      // Spawn barrels from Kong
-      setTick(t => {
-        if (t % BARREL_SPAWN_RATE === 0 && t > 0) {
-          setBarrels(prev => [...prev, { x: KONG_X + 3, y: KONG_Y + 2 }]);
+        } else if (vy < 0) {
+          // Rising — check for head bonk
+          if (isSolid(x, newY, world)) {
+            vy = 0;
+            // Hit a question block?
+            setWorld(w => ({
+              ...w,
+              blocks: w.blocks.map(b =>
+                b.x === x && b.y === newY && b.type === '?' && !b.hit
+                  ? { ...b, hit: true }
+                  : b
+              ),
+            }));
+          } else {
+            y = newY;
+            onGround = false;
+          }
         }
-        return t;
+
+        // Fell into pit
+        if (y > VIEW_ROWS + 3) {
+          lives--;
+          if (lives <= 0) {
+            setGameOver(true);
+            return { ...prev, lives: 0 };
+          }
+          // Respawn at camera position
+          return { x: camera + 5, y: GROUND_Y - 1, vy: 0, onGround: true, lives, invincible: 30, facingRight: true };
+        }
+
+        // Invincibility countdown
+        if (invincible > 0) invincible--;
+
+        return { x, y, vy, onGround, lives, invincible, facingRight };
       });
 
-      // Score
-      setScore(s => s + 1);
+      // ── Update enemies ─────────────────
+      setWorld(w => ({
+        ...w,
+        enemies: w.enemies.map(e => {
+          if (!e.alive) return e;
+          let { x, y, dir } = e;
+          x += dir;
+          // Turn around at edges or walls
+          if (isSolid(x, y, w) || !isSolid(x, y + 1, w)) {
+            dir = (dir === 1 ? -1 : 1) as -1 | 1;
+            x = e.x; // revert
+          }
+          return { ...e, x, dir };
+        }),
+      }));
+
+      // ── Coin collection ────────────────
+      setWorld(w => {
+        let collected = false;
+        const coins = w.coins.map(c => {
+          if (!c.collected && c.x === player.x && c.y === player.y) {
+            collected = true;
+            return { ...c, collected: true };
+          }
+          return c;
+        });
+        if (collected) setCoinCount(n => n + 1);
+        return { ...w, coins };
+      });
+
+      // ── Enemy collision ────────────────
+      setPlayer(prev => {
+        if (prev.invincible > 0) return prev;
+        const hitEnemy = world.enemies.find(
+          e => e.alive && Math.abs(e.x - prev.x) < 1 && Math.abs(e.y - prev.y) < 1
+        );
+        if (hitEnemy) {
+          // Stomp from above
+          if (prev.vy > 0 && prev.y < hitEnemy.y) {
+            setWorld(w => ({
+              ...w,
+              enemies: w.enemies.map(e =>
+                e === hitEnemy ? { ...e, alive: false } : e
+              ),
+            }));
+            setCoinCount(n => n + 2);
+            return { ...prev, vy: JUMP_FORCE / 2 };
+          }
+          // Hit from side — lose a life
+          const newLives = prev.lives - 1;
+          if (newLives <= 0) {
+            setGameOver(true);
+            return { ...prev, lives: 0 };
+          }
+          return { ...prev, lives: newLives, invincible: 30 };
+        }
+        return prev;
+      });
+
+      // ── Camera follows player ──────────
+      setCamera(prev => {
+        const target = player.x - Math.floor(VIEW_COLS / 3);
+        if (target > prev) return target;
+        return prev;
+      });
+
+      // ── Win check ──────────────────────
+      if (player.x >= world.flagX) {
+        setWon(true);
+      }
     }, TICK_MS);
     return () => clearInterval(interval);
-  }, [started, gameOver, won]);
+  }, [started, gameOver, won, world, player, camera]);
 
-  // Collision detection
-  useEffect(() => {
-    if (gameOver || won) return;
-    // Barrel collision
-    if (barrels.some(b => Math.abs(b.x - player.x) < 2 && Math.abs(b.y - player.y) < 2)) {
-      setGameOver(true);
+  // ── Render ────────────────────────────────────────────
+  const grid: string[][] = Array.from({ length: VIEW_ROWS }, () => Array(VIEW_COLS).fill(' '));
+
+  // Sky background — clouds
+  for (let x = 0; x < VIEW_COLS; x++) {
+    const wx = x + camera;
+    if (wx % 20 === 5) { grid[1][x] = '~'; if (x + 1 < VIEW_COLS) grid[1][x + 1] = '~'; }
+    if (wx % 25 === 10) { grid[2][x] = '~'; if (x + 1 < VIEW_COLS) grid[2][x + 1] = '~'; }
+  }
+
+  // Ground
+  for (let x = 0; x < VIEW_COLS; x++) {
+    const wx = x + camera;
+    const inGap = world.gaps.some(g => wx >= g.xStart && wx <= g.xEnd);
+    if (!inGap) {
+      grid[GROUND_Y][x] = '#';
+      if (GROUND_Y - 1 >= 0) { /* sub-ground decoration */ }
     }
-    // Win condition — reach princess
-    if (Math.abs(player.x - PRINCESS_X) < 2 && Math.abs(player.y - PRINCESS_Y) < 2) {
-      setWon(true);
+  }
+
+  // Hills (decorative)
+  for (let x = 0; x < VIEW_COLS; x++) {
+    const wx = x + camera;
+    if (wx % 30 >= 10 && wx % 30 <= 16) {
+      const mid = 13;
+      const dist = Math.abs((wx % 30) - mid);
+      const hillH = 3 - dist;
+      if (hillH > 0) {
+        for (let h = 0; h < hillH; h++) {
+          const hy = GROUND_Y - 1 - h;
+          if (hy >= 0 && hy < VIEW_ROWS && grid[hy][x] === ' ') grid[hy][x] = '.';
+        }
+      }
     }
-  }, [player, barrels, gameOver, won]);
+  }
 
-  // Render ASCII grid
-  const grid: string[][] = Array.from({ length: ROWS }, () => Array(COLS).fill(' '));
-
-  // Draw platforms
-  PLATFORMS.forEach(([py, sx, ex]) => {
-    for (let x = sx; x <= ex; x++) {
-      grid[py][x] = '=';
-    }
-  });
-
-  // Draw ladders between platforms
-  const ladderPositions = [12, 22, 8, 28, 15];
-  ladderPositions.forEach(lx => {
-    for (let y = 0; y < ROWS; y++) {
-      if (grid[y][lx] === ' ') {
-        // Only draw ladder between platforms
-        const abovePlatform = PLATFORMS.some(([py]) => py < y && py > y - 4);
-        if (abovePlatform) grid[y][lx] = 'H';
+  // Platforms
+  world.platforms.forEach(p => {
+    for (let wx = p.xStart; wx <= p.xEnd; wx++) {
+      const sx = wx - camera;
+      if (sx >= 0 && sx < VIEW_COLS && p.y >= 0 && p.y < VIEW_ROWS) {
+        grid[p.y][sx] = '-';
       }
     }
   });
 
-  // Draw Kong (3x3)
-  const kong = [
-    ' /\\\\ ',
-    '{@@}',
-    '/||\\',
-  ];
-  kong.forEach((row, dy) => {
-    [...row].forEach((ch, dx) => {
-      const ky = KONG_Y + dy;
-      const kx = KONG_X + dx - 1;
-      if (ky >= 0 && ky < ROWS && kx >= 0 && kx < COLS) {
-        grid[ky][kx] = ch;
+  // Pipes
+  world.pipes.forEach(p => {
+    for (let h = 0; h < p.height; h++) {
+      const py = GROUND_Y - 1 - h;
+      const sx1 = p.x - camera;
+      const sx2 = p.x + 1 - camera;
+      if (py >= 0 && py < VIEW_ROWS) {
+        if (sx1 >= 0 && sx1 < VIEW_COLS) grid[py][sx1] = h === p.height - 1 ? '[' : '|';
+        if (sx2 >= 0 && sx2 < VIEW_COLS) grid[py][sx2] = h === p.height - 1 ? ']' : '|';
       }
-    });
-  });
-
-  // Draw princess
-  if (PRINCESS_Y >= 0 && PRINCESS_Y < ROWS && PRINCESS_X >= 0 && PRINCESS_X < COLS) {
-    grid[PRINCESS_Y][PRINCESS_X] = '\u2665'; // heart
-  }
-
-  // Draw barrels
-  barrels.forEach(b => {
-    if (b.y >= 0 && b.y < ROWS && b.x >= 0 && b.x < COLS) {
-      grid[b.y][b.x] = 'O';
     }
   });
 
-  // Draw player (Mario)
-  if (player.y >= 0 && player.y < ROWS && player.x >= 0 && player.x < COLS) {
-    grid[player.y][player.x] = gameOver ? 'X' : 'M';
+  // Blocks
+  world.blocks.forEach(b => {
+    const sx = b.x - camera;
+    if (sx >= 0 && sx < VIEW_COLS && b.y >= 0 && b.y < VIEW_ROWS) {
+      if (b.type === '?') grid[b.y][sx] = b.hit ? '.' : '?';
+      else grid[b.y][sx] = b.hit ? ' ' : '#';
+    }
+  });
+
+  // Coins
+  world.coins.forEach(c => {
+    if (c.collected) return;
+    const sx = c.x - camera;
+    if (sx >= 0 && sx < VIEW_COLS && c.y >= 0 && c.y < VIEW_ROWS) {
+      grid[c.y][sx] = 'o';
+    }
+  });
+
+  // Enemies
+  world.enemies.forEach(e => {
+    if (!e.alive) return;
+    const sx = e.x - camera;
+    if (sx >= 0 && sx < VIEW_COLS && e.y >= 0 && e.y < VIEW_ROWS) {
+      grid[e.y][sx] = e.type === 'goomba' ? 'G' : 'K';
+    }
+  });
+
+  // Flag
+  const flagSx = world.flagX - camera;
+  if (flagSx >= 0 && flagSx < VIEW_COLS) {
+    for (let fy = GROUND_Y - 6; fy < GROUND_Y; fy++) {
+      if (fy >= 0 && fy < VIEW_ROWS) grid[fy][flagSx] = fy === GROUND_Y - 6 ? 'P' : '|';
+    }
+    if (GROUND_Y - 5 >= 0 && flagSx + 1 < VIEW_COLS) grid[GROUND_Y - 5][flagSx + 1] = '>';
   }
 
-  const border = '+' + '-'.repeat(COLS) + '+';
+  // Player
+  const psx = player.x - camera;
+  if (psx >= 0 && psx < VIEW_COLS && player.y >= 0 && player.y < VIEW_ROWS) {
+    const blink = player.invincible > 0 && tick % 4 < 2;
+    if (!blink) {
+      grid[player.y][psx] = gameOver ? 'X' : player.facingRight ? 'M' : 'W';
+    }
+  }
+
+  const border = '+' + '-'.repeat(VIEW_COLS) + '+';
   const rows = grid.map(row => '|' + row.join('') + '|');
+  const livesStr = '\u2665'.repeat(player.lives) + '\u2661'.repeat(Math.max(0, 3 - player.lives));
+  const progressPct = Math.min(100, Math.round((player.x / world.flagX) * 100));
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="flex items-center gap-4 text-xs text-slate-500">
-        <span>Score: {score}</span>
-        <span className="text-slate-600">|</span>
-        <span>
-          <span className="text-yellow-400">M</span>=You{' '}
-          <span className="text-red-400">O</span>=Barrel{' '}
-          <span className="text-pink-400">{'\u2665'}</span>=Goal
-        </span>
+    <div className="flex flex-col items-center gap-1.5">
+      {/* HUD */}
+      <div className="flex items-center gap-4 text-xs">
+        <span className="text-red-400 font-mono">{livesStr}</span>
+        <span className="text-yellow-400 font-mono">Coins: {coinCount}</span>
+        <span className="text-slate-500 font-mono">Progress: {progressPct}%</span>
       </div>
-      <pre className="select-none text-[10px] leading-[12px] font-mono text-emerald-400 bg-slate-950 rounded-lg px-3 py-2 shadow-inner shadow-emerald-900/20 border border-slate-800">
+
+      {/* Game screen */}
+      <pre className="select-none text-[9px] leading-[11px] font-mono text-emerald-400 bg-slate-950 rounded-lg px-2 py-1.5 shadow-inner shadow-emerald-900/20 border border-slate-800">
         {border}
         {'\n'}
         {rows.join('\n')}
         {'\n'}
         {border}
       </pre>
+
+      {/* Legend / controls */}
+      <div className="flex items-center gap-3 text-[10px] text-slate-500">
+        <span><span className="text-yellow-400">M</span> Mario</span>
+        <span><span className="text-yellow-400">o</span> Coin</span>
+        <span><span className="text-red-400">G</span> Goomba</span>
+        <span><span className="text-green-400">[]</span> Pipe</span>
+        <span><span className="text-blue-400">?</span> Block</span>
+        <span><span className="text-pink-400">P</span> Flag</span>
+      </div>
+
       {!started && !gameOver && !won && (
         <p className="text-xs text-slate-400 animate-pulse">
-          Arrow keys / WASD to move, Up to jump. Dodge barrels, reach the {'\u2665'}!
+          Arrow keys to move, Up/Space to jump. Reach the flag!
         </p>
       )}
       {gameOver && (
         <div className="flex flex-col items-center gap-1">
-          <p className="text-xs font-medium text-red-400">Game Over! Score: {score}</p>
-          <button onClick={reset} className="text-xs text-blue-400 hover:text-blue-300 underline">
-            Play again
-          </button>
+          <p className="text-xs font-medium text-red-400">Game Over! Coins: {coinCount}</p>
+          <button onClick={reset} className="text-xs text-blue-400 hover:text-blue-300 underline">Play again</button>
         </div>
       )}
       {won && (
         <div className="flex flex-col items-center gap-1">
-          <p className="text-xs font-medium text-emerald-400">You saved the princess! Score: {score}</p>
-          <button onClick={reset} className="text-xs text-blue-400 hover:text-blue-300 underline">
-            Play again
-          </button>
+          <p className="text-xs font-medium text-emerald-400">Level Complete! Coins: {coinCount}</p>
+          <button onClick={reset} className="text-xs text-blue-400 hover:text-blue-300 underline">Play again</button>
         </div>
       )}
     </div>
