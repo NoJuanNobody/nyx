@@ -516,6 +516,7 @@ export function ArcadeGame() {
   const [started, setStarted] = useState(false);
   const [tick, setTick] = useState(0);
   const keysRef = useRef<Set<string>>(new Set());
+  const jumpPressedRef = useRef(false);
 
   // Refs for game loop to avoid stale closures
   const playerRef = useRef(player);
@@ -547,6 +548,9 @@ export function ArcadeGame() {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
         e.preventDefault();
         keysRef.current.add(e.key);
+        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') {
+          jumpPressedRef.current = true;
+        }
         if (!started && !gameOver && !won) setStarted(true);
       }
     };
@@ -573,10 +577,11 @@ export function ArcadeGame() {
         else if (keys.has('ArrowRight') || keys.has('d')) { vx = MOVE_SPEED; facingRight = true; }
         else { vx = 0; }
 
-        // Jump
-        if ((keys.has('ArrowUp') || keys.has('w') || keys.has(' ')) && onGround) {
+        // Jump (one-shot: only on fresh keypress, not while held)
+        if (jumpPressedRef.current && onGround) {
           vy = JUMP_FORCE;
           onGround = false;
+          jumpPressedRef.current = false;
         }
 
         // Apply physics
