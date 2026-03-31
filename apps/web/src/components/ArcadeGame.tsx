@@ -14,10 +14,10 @@ const GROUND_Y = 10;
 const SUB_STEPS = 1;
 
 // Physics (in tile units per tick)
-const GRAVITY = 0.15;
-const JUMP_FORCE = -0.65;
+const GRAVITY = 0.06;
+const JUMP_FORCE = -0.55;
 const MOVE_SPEED = 0.18;
-const MAX_FALL = 0.6;
+const MAX_FALL = 0.5;
 
 // ── Sprite definitions (16x16 pixel art as hex color arrays) ──
 // '_' = transparent
@@ -548,7 +548,8 @@ export function ArcadeGame() {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
         e.preventDefault();
         keysRef.current.add(e.key);
-        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') {
+        // Only trigger jump on fresh press, not key repeat
+        if (!e.repeat && (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ')) {
           jumpPressedRef.current = true;
         }
         if (!started && !gameOver && !won) setStarted(true);
