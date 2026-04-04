@@ -93,10 +93,13 @@ async function streamAgentResponse(
 }
 
 function startRepl(opts: ChatOptions, client: NyxClient): void {
+  const purple = '\x1b[38;5;141m';
+  const reset = '\x1b[0m';
+
   const rl: ReadlineInterface = createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: 'nyx> ',
+    prompt: `${purple}nyx>${reset} `,
   });
 
   const scope: string[] = [];
