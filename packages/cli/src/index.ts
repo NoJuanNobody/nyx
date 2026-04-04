@@ -21,6 +21,7 @@ import { registerTicketsCommand } from './commands/tickets.js';
 import { registerJobsCommand } from './commands/jobs.js';
 import { registerStatusCommand } from './commands/status.js';
 import { registerAiCommand } from './commands/ai.js';
+import { registerBranchesCommand } from './commands/branches.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -53,6 +54,7 @@ registerTicketsCommand(program);
 registerJobsCommand(program);
 registerStatusCommand(program);
 registerAiCommand(program);
+registerBranchesCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
