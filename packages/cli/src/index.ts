@@ -33,6 +33,7 @@ import { registerIntegrationsCommand } from './commands/integrations.js';
 import { registerByokCommand } from './commands/byok.js';
 import { registerCreditsCommand } from './commands/credits.js';
 import { registerRegistryCommand } from './commands/registry.js';
+import { registerBillingCommand } from './commands/billing.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -79,6 +80,7 @@ registerIntegrationsCommand(program);
 registerByokCommand(program);
 registerCreditsCommand(program);
 registerRegistryCommand(program);
+registerBillingCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
