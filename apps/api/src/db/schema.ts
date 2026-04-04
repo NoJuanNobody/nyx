@@ -11,6 +11,7 @@ export const auditEventTypeEnum = pgEnum('audit_event_type', [
   'code_commit', 'proposal_created', 'proposal_approved', 'proposal_pushed',
   'agent_workflow',
 ]);
+export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'rejected', 'expired']);
 export const agentSessionStatusEnum = pgEnum('agent_session_status', ['running', 'completed', 'failed', 'cancelled']);
 export const jobStatusEnum = pgEnum('job_status', ['pending', 'running', 'completed', 'failed']);
 export const notificationEmailModeEnum = pgEnum('notification_email_mode', ['instant', 'daily', 'weekly', 'off']);
@@ -759,5 +760,27 @@ export const backgroundJobs = pgTable('background_jobs', {
   progressMessage: text('progress_message'),
   startedAt: timestamp('started_at', { withTimezone: true }),
   completedAt: timestamp('completed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Approvals ────────────────────────────────────────────
+
+export const approvals = pgTable('approvals', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  action: text('action').notNull(),
+  resourceId: text('resource_id').notNull(),
+  requestedById: uuid('requested_by_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  reviewedById: uuid('reviewed_by_id')
+    .references(() => users.id, { onDelete: 'set null' }),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id, { onDelete: 'cascade' }),
+  status: approvalStatusEnum('status').notNull().default('pending'),
+  metadata: jsonb('metadata').notNull().default({}),
+  reason: text('reason'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
