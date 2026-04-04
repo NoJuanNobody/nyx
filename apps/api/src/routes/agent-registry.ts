@@ -3,6 +3,7 @@ import type { AgentType, AgentState } from '../services/agent/registry.types.js'
 import {
   listAgents,
   getAgent,
+  registerAgent,
   updateState,
   updateConfig,
   enableForWorkspace,
@@ -22,6 +23,34 @@ export const agentRegistryRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ error: 'Agent not found' });
     }
     return agent;
+  });
+
+  // ── Register a new agent ──────────────────────────────
+  fastify.post<{
+    Body: {
+      type: string;
+      name: string;
+      url?: string;
+      description?: string;
+      capabilities?: string[];
+    };
+  }>('/', async (request, reply) => {
+    try {
+      const { type, name, url, description, capabilities } = request.body;
+      const entry = registerAgent({
+        type: type as AgentType,
+        name,
+        description: description ?? `Agent at ${url ?? 'unknown'}`,
+        capabilities: capabilities ?? [],
+        currentState: 'idle',
+        config: url ? { url } : {},
+        enabledWorkspaces: [],
+      });
+      return reply.status(201).send(entry);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      return reply.status(400).send({ error: message });
+    }
   });
 
   // ── Update agent state ─────────────────────────────────
