@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -124,6 +125,7 @@ export function buildApp() {
       reply.code(400).send({ error: error.message });
       return;
     }
+    Sentry.captureException(error);
     request.log.error({ err: error, stack: error.stack }, 'Unhandled error');
     reply.code(500).send({ error: 'Internal server error' });
   });
