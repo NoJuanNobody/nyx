@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { NyxClient, resolveTeamId, resolveDocId } from '../client.js';
 import { formatOutput, formatTable, timeAgo, error, type OutputFormat } from '../utils/output.js';
+import { renderMarkdown } from '../utils/markdown.js';
 
 export function registerDocsCommand(program: Command): void {
   const docs = program.command('docs').description('Manage documents');
@@ -74,7 +75,7 @@ export function registerDocsCommand(program: Command): void {
           lines.push(`  ID:       ${data.id ?? ''}`);
           lines.push('');
           if (!opts.metaOnly && data.content) {
-            lines.push(String(data.content));
+            lines.push(renderMarkdown(String(data.content)));
           }
           console.log(lines.join('\n'));
         }

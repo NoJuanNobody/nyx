@@ -12,7 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "marked": "^17.0.5",
+    "marked-terminal": "^7.3.0"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

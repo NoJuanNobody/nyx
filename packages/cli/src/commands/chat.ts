@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { createInterface, type Interface as ReadlineInterface } from 'node:readline';
 import { NyxClient, resolveTeamId } from '../client.js';
+import { renderMarkdown } from '../utils/markdown.js';
 
 interface ChatOptions {
   docId?: string;
@@ -46,6 +47,7 @@ async function streamAgentResponse(
 
     const decoder = new TextDecoder();
     let buffer = '';
+    let fullResponse = '';
 
     while (true) {
       const { done, value } = await reader.read();
@@ -53,18 +55,13 @@ async function streamAgentResponse(
 
       buffer += decoder.decode(value, { stream: true });
 
-      // Process complete SSE lines
       const lines = buffer.split('\n');
-      // Keep the last (potentially incomplete) line in the buffer
       buffer = lines.pop() ?? '';
 
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           const data = line.slice(6);
-          if (data === '[DONE]') {
-            process.stdout.write('\n');
-            return;
-          }
+          if (data === '[DONE]') break;
           try {
             const parsed = JSON.parse(data) as Record<string, unknown>;
             const text =
@@ -72,26 +69,17 @@ async function streamAgentResponse(
               (parsed.content as string) ??
               (parsed.delta as string) ??
               '';
-            if (text) {
-              process.stdout.write(text);
-            }
+            if (text) fullResponse += text;
           } catch {
-            // If it's not JSON, write raw data
-            process.stdout.write(data);
+            fullResponse += data;
           }
         }
       }
     }
 
-    // Process any remaining buffer
-    if (buffer.startsWith('data: ')) {
-      const data = buffer.slice(6);
-      if (data !== '[DONE]') {
-        process.stdout.write(data);
-      }
+    if (fullResponse) {
+      console.log(renderMarkdown(fullResponse));
     }
-
-    process.stdout.write('\n');
   } else {
     // Non-SSE JSON response - print the content
     const json = (await res.json()) as Record<string, unknown>;
