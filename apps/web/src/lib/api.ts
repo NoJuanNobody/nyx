@@ -1109,6 +1109,24 @@ export function findContextMatches(data: {
   });
 }
 
+export interface RelatedSpec {
+  id: string;
+  title: string;
+  score: string;
+  snippet: string;
+  relevance: 'high' | 'medium' | 'low';
+  relationship: 'confirms' | 'contradicts' | 'expands';
+}
+
+export interface RelatedSpecsResult {
+  related: RelatedSpec[];
+  signals: ContextSignal[];
+}
+
+export function fetchRelatedSpecs(documentId: string): Promise<RelatedSpecsResult> {
+  return request<RelatedSpecsResult>(`/documents/${encodeURIComponent(documentId)}/related`);
+}
+
 // ── Slack ────────────────────────────────────────────────────────────
 
 export interface SlackConnection {
