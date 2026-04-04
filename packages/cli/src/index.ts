@@ -29,6 +29,7 @@ import { registerTimelineCommand } from './commands/timeline.js';
 import { registerSnapshotCommand } from './commands/snapshot.js';
 import { registerNotificationsCommand } from './commands/notifications.js';
 import { registerApikeysCommand } from './commands/apikeys.js';
+import { registerIntegrationsCommand } from './commands/integrations.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -71,6 +72,7 @@ registerTimelineCommand(program);
 registerSnapshotCommand(program);
 registerNotificationsCommand(program);
 registerApikeysCommand(program);
+registerIntegrationsCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
