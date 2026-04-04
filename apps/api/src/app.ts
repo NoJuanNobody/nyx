@@ -73,6 +73,7 @@ import { jobRoutes } from './routes/jobs.js';
 import { wsRoutes } from './routes/ws.js';
 import { approvalRoutes } from './routes/approvals.js';
 import { retrievalRoutes } from './routes/retrieval.js';
+import { complianceRoutes } from './routes/compliance.js';
 import { authMiddleware } from './middleware/auth.js';
 import { config } from './lib/config.js';
 
@@ -254,6 +255,7 @@ export function buildApp() {
   app.register(wsRoutes, { prefix: '/api/ws' });
   app.register(approvalRoutes, { prefix: '/api' });
   app.register(retrievalRoutes, { prefix: '/api/retrieve' });
+  app.register(complianceRoutes, { prefix: '/api/compliance' });
 
   return app;
 }
