@@ -132,6 +132,179 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
       required: ['query'],
     },
   },
+
+  // ── Intake & Spec Writing ──────────────────────────────
+
+  intake_process: {
+    name: 'intake_process',
+    description: 'Transform raw, unstructured text into a structured product specification with user story, acceptance criteria, edge cases, and open questions.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        raw_input: { type: 'string', description: 'Raw text from a founder or PM to convert into a structured spec' },
+      },
+      required: ['raw_input'],
+    },
+  },
+
+  improve_document: {
+    name: 'improve_document',
+    description: 'AI-improve a document\'s content based on quality analysis. Fetches the document, analyzes its quality, and returns improved content.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        document_id: { type: 'string', description: 'UUID of the document to improve' },
+        instruction: { type: 'string', description: 'Optional instruction to guide the improvement' },
+      },
+      required: ['document_id'],
+    },
+  },
+
+  // ── Tickets & Proposals ────────────────────────────────
+
+  suggest_tickets: {
+    name: 'suggest_tickets',
+    description: 'Generate ticket suggestions from a document based on its content and recent changes. Returns suggested tickets with titles and descriptions.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        document_id: { type: 'string', description: 'UUID of the document to generate ticket suggestions from' },
+      },
+      required: ['document_id'],
+    },
+  },
+
+  generate_change_proposal: {
+    name: 'generate_change_proposal',
+    description: 'Generate a change proposal for a document by analyzing its recent version changes. Returns a proposal with suggested tickets.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        document_id: { type: 'string', description: 'UUID of the document to generate a change proposal for' },
+      },
+      required: ['document_id'],
+    },
+  },
+
+  // ── Podcast ────────────────────────────────────────────
+
+  generate_podcast_script: {
+    name: 'generate_podcast_script',
+    description: 'Generate a podcast script from a document. Returns a two-host conversational script with quality score.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        document_id: { type: 'string', description: 'UUID of the document to generate a podcast script from' },
+      },
+      required: ['document_id'],
+    },
+  },
+
+  generate_podcast_audio: {
+    name: 'generate_podcast_audio',
+    description: 'Generate TTS audio from a podcast script. Returns a confirmation that audio was generated.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        script_id: { type: 'string', description: 'ID of the podcast script to generate audio for' },
+      },
+      required: ['script_id'],
+    },
+  },
+
+  // ── Export ─────────────────────────────────────────────
+
+  export_document: {
+    name: 'export_document',
+    description: 'Export a document in various formats. Returns the document content in the requested format.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        document_id: { type: 'string', description: 'UUID of the document to export' },
+        format: { type: 'string', enum: ['markdown', 'pdf', 'txt'], description: 'Export format' },
+      },
+      required: ['document_id', 'format'],
+    },
+  },
+
+  // ── RAG & Compliance ──────────────────────────────────
+
+  retrieve_chunks: {
+    name: 'retrieve_chunks',
+    description: 'Search documents by semantic similarity using vector embeddings. Returns the most relevant document chunks for a given query.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'Natural-language query to search for' },
+      },
+      required: ['query'],
+    },
+  },
+
+  check_compliance: {
+    name: 'check_compliance',
+    description: 'Check whether code complies with the team\'s specs. Returns compliance status and any violations found.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        code: { type: 'string', description: 'The code content to check for compliance' },
+        file_path: { type: 'string', description: 'Optional file path for context' },
+      },
+      required: ['code'],
+    },
+  },
+
+  // ── Document Management ───────────────────────────────
+
+  create_document: {
+    name: 'create_document',
+    description: 'Create a new document in the team workspace.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: { type: 'string', description: 'Title of the new document' },
+        content: { type: 'string', description: 'Initial content (optional)' },
+        stage: { type: 'string', description: 'Document stage, e.g. draft, review, approved (optional)' },
+      },
+      required: ['title'],
+    },
+  },
+
+  delete_document: {
+    name: 'delete_document',
+    description: 'Archive (soft-delete) a document by its ID.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        document_id: { type: 'string', description: 'UUID of the document to archive' },
+      },
+      required: ['document_id'],
+    },
+  },
+
+  list_versions: {
+    name: 'list_versions',
+    description: 'List all versions for a document, ordered by most recent first.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        document_id: { type: 'string', description: 'UUID of the document' },
+      },
+      required: ['document_id'],
+    },
+  },
+
+  // ── Notifications & Activity ──────────────────────────
+
+  list_notifications: {
+    name: 'list_notifications',
+    description: 'List the current user\'s recent notifications.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
 };
 
 /**
