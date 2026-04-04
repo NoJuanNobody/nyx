@@ -39,6 +39,7 @@ import { registerVideoCommand } from './commands/video.js';
 import { registerFeaturesCommand } from './commands/features.js';
 import { registerAdminCommand } from './commands/admin.js';
 import { registerChatCommand } from './commands/chat.js';
+import { registerQueryCommand } from './commands/query.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -91,6 +92,7 @@ registerVideoCommand(program);
 registerFeaturesCommand(program);
 registerAdminCommand(program);
 registerChatCommand(program);
+registerQueryCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
