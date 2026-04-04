@@ -6,6 +6,7 @@ import { requireRole } from '../middleware/permissions.js';
 import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
 import { gatekeeperService } from '../services/gatekeeper.service.js';
+import { embeddingPipelineService } from '../services/embedding-pipeline.service.js';
 
 export const documentRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/documents?teamId=X&stage=Y — list documents for a team
@@ -125,6 +126,15 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
           createdById: userId,
         })
         .returning();
+
+      // Fire-and-forget: index document for vector search
+      setImmediate(async () => {
+        try {
+          await embeddingPipelineService.indexDocument(doc.id, docContent, teamId, 1);
+        } catch (e) {
+          request.log.warn({ err: e, docId: doc.id }, 'embedding indexing failed');
+        }
+      });
 
       reply.code(201);
       return doc;
@@ -276,6 +286,22 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       } catch {}
     });
 
+    // Fire-and-forget: re-index document embeddings when content changes
+    if ('content' in body) {
+      setImmediate(async () => {
+        try {
+          await embeddingPipelineService.indexDocument(
+            id,
+            doc.content ?? '',
+            doc.teamId,
+            Math.floor(doc.updatedAt.getTime() / 1000),
+          );
+        } catch (e) {
+          request.log.warn({ err: e, docId: id }, 'embedding re-indexing failed');
+        }
+      });
+    }
+
     return doc;
   });
 
@@ -294,6 +320,15 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       reply.code(404);
       return { error: 'Document not found' };
     }
+
+    // Fire-and-forget: remove embedding chunks for archived document
+    setImmediate(async () => {
+      try {
+        await embeddingPipelineService.removeDocumentChunks(id);
+      } catch (e) {
+        request.log.warn({ err: e, docId: id }, 'embedding chunk removal failed');
+      }
+    });
 
     reply.code(200);
     return doc;
