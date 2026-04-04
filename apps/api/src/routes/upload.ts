@@ -14,7 +14,7 @@ export const uploadRoutes: FastifyPluginAsync = async (app) => {
   // editors+ can upload
   app.post(
     '/:id/upload',
-    { preHandler: [requireRole({ minimumRole: 'editor', source: 'document' })] },
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } }, preHandler: [requireRole({ minimumRole: 'editor', source: 'document' })] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
 

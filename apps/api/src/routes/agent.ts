@@ -30,7 +30,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       documentId?: string;
       teamId: string;
     };
-  }>('/', async (request, reply) => {
+  }>('/', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { prompt, workflowId, documentId, teamId } = request.body;
     const user = request.user;
 

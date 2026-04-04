@@ -73,14 +73,14 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/ai/meeting-quality — analyze meeting note quality
-  app.post('/meeting-quality', async (request, _reply) => {
+  app.post('/meeting-quality', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
     const { content } = meetingQualityBody.parse(request.body);
     const result = await aiService.analyzeMeetingNoteQuality(content);
     return result;
   });
 
   // POST /api/ai/meeting-apply-suggestions — apply improvement suggestions to meeting notes
-  app.post('/meeting-apply-suggestions', async (request, _reply) => {
+  app.post('/meeting-apply-suggestions', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
     const { content, suggestions } = meetingApplySuggestionsBody.parse(request.body);
     const result = await aiService.applyMeetingSuggestions(content, suggestions);
     return { content: result };
@@ -94,21 +94,21 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/ai/seed-from-stage — generate pre-filled content for the next lifecycle stage (document-based)
-  app.post('/seed-from-stage', async (request, _reply) => {
+  app.post('/seed-from-stage', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
     const { content, fromStage, toStage } = seedFromStageBody.parse(request.body);
     const result = await aiService.seedNextStage(content, fromStage, toStage);
     return result;
   });
 
   // POST /api/ai/missing-sections — analyze content for missing sections
-  app.post('/missing-sections', async (request, _reply) => {
+  app.post('/missing-sections', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
     const { content, stage } = missingSectionsBody.parse(request.body);
     const result = await aiService.analyzeMissingSections(content, stage);
     return result;
   });
 
   // POST /api/ai/notification-reply — process user reply to a notification
-  app.post('/notification-reply', async (request, _reply) => {
+  app.post('/notification-reply', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
     const { notificationId, message, documentId, content } = notificationReplyBody.parse(request.body);
     const result = await aiService.notificationReply(
       notificationId,
@@ -119,7 +119,7 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/ai/decision-weight — estimate the human judgment cost of a spec
-  app.post('/decision-weight', async (request, _reply) => {
+  app.post('/decision-weight', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
     const { content, stage } = decisionWeightBody.parse(request.body);
     const result = await aiService.estimateDecisionWeight(content, stage);
     return result;

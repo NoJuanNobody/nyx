@@ -116,12 +116,16 @@ export function buildApp() {
     encoding: 'utf8',
   });
 
-  // Global rate limiting — 100 requests per minute per user (or IP for unauthenticated)
+  // Global rate limiting — 200 requests per minute per user (or IP for unauthenticated)
   app.register(rateLimit, {
-    max: 100,
+    max: 200,
     timeWindow: '1 minute',
     keyGenerator: (request) => {
       return (request as any).user?.id ?? request.ip;
+    },
+    allowList: (request) => {
+      const url = request.url;
+      return url.startsWith('/health') || url.startsWith('/api/webhooks/');
     },
   });
 
