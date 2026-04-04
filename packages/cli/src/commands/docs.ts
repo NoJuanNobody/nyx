@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { NyxClient, resolveTeamId } from '../client.js';
+import { NyxClient, resolveTeamId, resolveDocId } from '../client.js';
 import { formatOutput, formatTable, timeAgo, error, type OutputFormat } from '../utils/output.js';
 
 export function registerDocsCommand(program: Command): void {
@@ -50,13 +50,16 @@ export function registerDocsCommand(program: Command): void {
     });
 
   docs
-    .command('read <id>')
-    .description('Get a single document')
+    .command('read <idOrTitle>')
+    .description('Get a single document by ID or title search')
+    .option('--team-id <teamId>', 'Team ID (required when searching by title)')
     .option('--format <format>', 'Output format (json|readable)', 'readable')
     .option('--meta-only', 'Show only metadata, no content')
-    .action(async (id: string, opts: { format: string; metaOnly?: boolean }) => {
+    .action(async (idOrTitle: string, opts: { teamId?: string; format: string; metaOnly?: boolean }) => {
       const client = new NyxClient();
       try {
+        const teamId = resolveTeamId(opts.teamId);
+        const id = await resolveDocId(idOrTitle, client, teamId);
         const data = await client.get<Record<string, unknown>>(`/api/documents/${id}`);
         if (opts.format === 'json') {
           console.log(formatOutput(data, 'json'));

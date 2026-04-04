@@ -50,6 +50,25 @@ export function resolveTeamId(explicit?: string): string {
   return id;
 }
 
+export async function resolveDocId(
+  input: string,
+  client: NyxClient,
+  teamId: string,
+): Promise<string> {
+  // If UUID format, return as-is
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input)) return input;
+  // Otherwise fetch docs and match by title
+  const docs = await client.get<{ id: string; title: string }[]>(
+    `/api/documents?teamId=${teamId}`,
+  );
+  const matches = docs.filter((d) => d.title.toLowerCase().includes(input.toLowerCase()));
+  if (matches.length === 1) return matches[0].id;
+  if (matches.length === 0) throw new Error(`No document matching "${input}"`);
+  throw new Error(
+    `Multiple matches:\n${matches.map((d) => `  ${d.title} (${d.id})`).join('\n')}`,
+  );
+}
+
 export class NyxClient {
   private config: NyxConfig;
 
