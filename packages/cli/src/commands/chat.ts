@@ -108,8 +108,22 @@ function startRepl(opts: ChatOptions, client: NyxClient): void {
   if (opts.docId) scope.push(`doc:${opts.docId}`);
   if (opts.teamId) scope.push(`team:${opts.teamId}`);
 
+  const deepPurple = '\x1b[38;5;99m';
+  const midPurple = '\x1b[38;5;134m';
+  const stars = '\x1b[38;5;229m';
+
   console.log('');
-  console.log(`  ${purple}Nyx${reset} interactive REPL`);
+  console.log(`${dim}${deepPurple}              .  ${stars}*${deepPurple}                          ${stars}.${reset}`);
+  console.log(`${dim}${deepPurple}        ${stars}*${deepPurple}          ${stars}·${reset}`);
+  console.log(`${purple}    ███╗   ██╗██╗   ██╗██╗  ██╗${reset}`);
+  console.log(`${purple}    ████╗  ██║╚██╗ ██╔╝╚██╗██╔╝${reset}`);
+  console.log(`${midPurple}    ██╔██╗ ██║ ╚████╔╝  ╚███╔╝${reset}`);
+  console.log(`${midPurple}    ██║╚██╗██║  ╚██╔╝   ██╔██╗${reset}`);
+  console.log(`${deepPurple}    ██║ ╚████║   ██║   ██╔╝ ██╗${reset}`);
+  console.log(`${deepPurple}    ╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝${reset}`);
+  console.log(`${dim}${deepPurple}        ${stars}·${deepPurple}        ${stars}*${deepPurple}       ${dim}${midPurple}goddess of night${reset}`);
+  console.log(`${dim}${deepPurple}    ${stars}*${deepPurple}                      ${dim}${midPurple}mother of dreams${reset}`);
+  console.log('');
   if (scope.length > 0) {
     console.log(`  ${dim}Scope: ${scope.join(', ')}${reset}`);
   }
