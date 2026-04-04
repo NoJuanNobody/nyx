@@ -69,6 +69,7 @@ import { adminRoutes } from './routes/admin.js';
 import { aiKeyRoutes } from './routes/ai-keys.js';
 import { atlassianRoutes } from './routes/integrations/atlassian.js';
 import { jobRoutes } from './routes/jobs.js';
+import { approvalRoutes } from './routes/approvals.js';
 import { authMiddleware } from './middleware/auth.js';
 import { config } from './lib/config.js';
 
@@ -245,6 +246,7 @@ export function buildApp() {
   app.register(aiKeyRoutes, { prefix: '/api/teams' });
   app.register(atlassianRoutes, { prefix: '/api/integrations' });
   app.register(jobRoutes, { prefix: '/api' });
+  app.register(approvalRoutes, { prefix: '/api' });
 
   return app;
 }
