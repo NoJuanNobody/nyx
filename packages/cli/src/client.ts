@@ -76,6 +76,14 @@ export class NyxClient {
     this.config = config ?? resolveConfig();
   }
 
+  get apiUrl(): string {
+    return this.config.apiUrl;
+  }
+
+  get apiKey(): string {
+    return this.config.apiKey;
+  }
+
   private async request<T>(
     method: string,
     path: string,

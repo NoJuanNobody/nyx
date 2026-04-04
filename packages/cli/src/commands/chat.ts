@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { createInterface, type Interface as ReadlineInterface } from 'node:readline';
-import { getBaseUrl } from '../lib/api.js';
+import { NyxClient, resolveTeamId } from '../client.js';
 
 interface ChatOptions {
   docId?: string;
@@ -10,22 +10,19 @@ interface ChatOptions {
 async function streamAgentResponse(
   message: string,
   opts: ChatOptions,
+  client: NyxClient,
 ): Promise<void> {
-  const baseUrl = getBaseUrl();
-  const url = `${baseUrl}/api/agent`;
+  const url = `${client.apiUrl}/api/agent`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'text/event-stream',
+    Authorization: `Bearer ${client.apiKey}`,
   };
-  const apiKey = process.env.NYX_API_KEY;
-  if (apiKey) {
-    headers['Authorization'] = `Bearer ${apiKey}`;
-  }
 
-  const body: Record<string, unknown> = { message };
-  if (opts.docId) body.docId = opts.docId;
-  if (opts.teamId) body.teamId = opts.teamId;
+  const teamId = resolveTeamId(opts.teamId);
+  const body: Record<string, unknown> = { prompt: message, teamId };
+  if (opts.docId) body.documentId = opts.docId;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -107,7 +104,7 @@ async function streamAgentResponse(
   }
 }
 
-function startRepl(opts: ChatOptions): void {
+function startRepl(opts: ChatOptions, client: NyxClient): void {
   const rl: ReadlineInterface = createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -143,7 +140,7 @@ function startRepl(opts: ChatOptions): void {
     }
 
     try {
-      await streamAgentResponse(trimmed, opts);
+      await streamAgentResponse(trimmed, opts, client);
     } catch (err) {
       console.error(
         'Error:',
@@ -167,6 +164,7 @@ export function registerChatCommand(program: Command): void {
     .option('--doc-id <docId>', 'Scope the conversation to a specific document')
     .option('--team-id <teamId>', 'Scope the conversation to a specific team')
     .action((opts: ChatOptions) => {
-      startRepl(opts);
+      const client = new NyxClient();
+      startRepl(opts, client);
     });
 }
