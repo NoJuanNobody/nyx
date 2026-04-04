@@ -40,6 +40,7 @@ import { registerFeaturesCommand } from './commands/features.js';
 import { registerAdminCommand } from './commands/admin.js';
 import { registerChatCommand } from './commands/chat.js';
 import { registerQueryCommand } from './commands/query.js';
+import { registerCheckCommand } from './commands/check.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -93,6 +94,7 @@ registerFeaturesCommand(program);
 registerAdminCommand(program);
 registerChatCommand(program);
 registerQueryCommand(program);
+registerCheckCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
