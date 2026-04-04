@@ -100,6 +100,11 @@ export function buildApp() {
         frameSrc: ["'self'", "blob:"],
       },
     },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
   });
   app.register(cookie);
 
