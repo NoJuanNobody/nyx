@@ -1,8 +1,17 @@
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { backgroundJobs } from '../db/schema.js';
 
 export const jobService = {
+  async listByTeam(teamId: string, limit = 50) {
+    return db
+      .select()
+      .from(backgroundJobs)
+      .where(eq(backgroundJobs.teamId, teamId))
+      .orderBy(desc(backgroundJobs.createdAt))
+      .limit(limit);
+  },
+
   async create(teamId: string | null, userId: string, type: string, input: Record<string, unknown> = {}) {
     const [job] = await db
       .insert(backgroundJobs)
