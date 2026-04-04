@@ -4,6 +4,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
+import websocket from '@fastify/websocket';
 import rawBody from 'fastify-raw-body';
 import { ZodError } from 'zod';
 import { healthRoutes } from './routes/health.js';
@@ -69,6 +70,7 @@ import { adminRoutes } from './routes/admin.js';
 import { aiKeyRoutes } from './routes/ai-keys.js';
 import { atlassianRoutes } from './routes/integrations/atlassian.js';
 import { jobRoutes } from './routes/jobs.js';
+import { wsRoutes } from './routes/ws.js';
 import { authMiddleware } from './middleware/auth.js';
 import { config } from './lib/config.js';
 
@@ -108,6 +110,7 @@ export function buildApp() {
     },
   });
   app.register(cookie);
+  app.register(websocket);
 
   // Raw body support — required for Stripe webhook signature verification
   app.register(rawBody, {
@@ -165,6 +168,7 @@ export function buildApp() {
     '/api/integrations/gitlab/callback',
     '/api/integrations/bitbucket/callback',
     '/api/integrations/atlassian/callback',
+    '/api/ws',
   ];
 
   app.addHook('preHandler', async (request, reply) => {
@@ -245,6 +249,7 @@ export function buildApp() {
   app.register(aiKeyRoutes, { prefix: '/api/teams' });
   app.register(atlassianRoutes, { prefix: '/api/integrations' });
   app.register(jobRoutes, { prefix: '/api' });
+  app.register(wsRoutes, { prefix: '/api/ws' });
 
   return app;
 }

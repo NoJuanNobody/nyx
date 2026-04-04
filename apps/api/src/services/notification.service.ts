@@ -2,6 +2,7 @@ import { eq, and, isNull, gt } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { notifications, notificationPreferences, slackConnections } from '../db/schema.js';
 import { slackService } from './slack.service.js';
+import { pubSub } from './pubsub.service.js';
 
 export interface CreateNotificationInput {
   userId: string;
@@ -67,6 +68,12 @@ class NotificationService {
           .where(eq(notifications.id, existing.id))
           .returning();
 
+        // Push real-time update over WebSocket
+        pubSub.publish(input.userId, {
+          eventType: 'notification.updated',
+          payload: { notification: updated },
+        });
+
         return updated;
       }
     }
@@ -84,6 +91,12 @@ class NotificationService {
         entityId: input.entityId ?? null,
       })
       .returning();
+
+    // Push real-time notification over WebSocket
+    pubSub.publish(input.userId, {
+      eventType: 'notification.created',
+      payload: { notification },
+    });
 
     // Fire-and-forget: deliver to Slack if the team has a connection
     this.deliverToSlack(input).catch(() => {
