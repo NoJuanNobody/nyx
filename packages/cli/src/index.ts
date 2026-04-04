@@ -20,6 +20,7 @@ import { registerIntakeCommand } from './commands/intake.js';
 import { registerTicketsCommand } from './commands/tickets.js';
 import { registerJobsCommand } from './commands/jobs.js';
 import { registerStatusCommand } from './commands/status.js';
+import { registerDeliverablesCommand } from './commands/deliverables.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -51,6 +52,7 @@ registerIntakeCommand(program);
 registerTicketsCommand(program);
 registerJobsCommand(program);
 registerStatusCommand(program);
+registerDeliverablesCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
