@@ -28,6 +28,7 @@ import { registerDeliverablesCommand } from './commands/deliverables.js';
 import { registerTimelineCommand } from './commands/timeline.js';
 import { registerSnapshotCommand } from './commands/snapshot.js';
 import { registerNotificationsCommand } from './commands/notifications.js';
+import { registerByokCommand } from './commands/byok.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -69,6 +70,7 @@ registerDeliverablesCommand(program);
 registerTimelineCommand(program);
 registerSnapshotCommand(program);
 registerNotificationsCommand(program);
+registerByokCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
