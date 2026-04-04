@@ -13,3 +13,4 @@ build.log
 .vercel/
 generated-videos/
 demos/
+demo.*
