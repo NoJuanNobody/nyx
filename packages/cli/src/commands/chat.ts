@@ -94,6 +94,8 @@ async function streamAgentResponse(
 
 function startRepl(opts: ChatOptions, client: NyxClient): void {
   const purple = '\x1b[38;5;141m';
+  const dim = '\x1b[2m';
+  const cyan = '\x1b[38;5;117m';
   const reset = '\x1b[0m';
 
   const rl: ReadlineInterface = createInterface({
@@ -107,11 +109,11 @@ function startRepl(opts: ChatOptions, client: NyxClient): void {
   if (opts.teamId) scope.push(`team:${opts.teamId}`);
 
   console.log('');
-  console.log('  Nyx interactive REPL');
+  console.log(`  ${purple}Nyx${reset} interactive REPL`);
   if (scope.length > 0) {
-    console.log(`  Scope: ${scope.join(', ')}`);
+    console.log(`  ${dim}Scope: ${scope.join(', ')}${reset}`);
   }
-  console.log('  Type /quit or press Ctrl+C to exit');
+  console.log(`  ${dim}Type /quit or press Ctrl+C to exit${reset}`);
   console.log('');
 
   rl.prompt();
@@ -131,14 +133,18 @@ function startRepl(opts: ChatOptions, client: NyxClient): void {
     }
 
     try {
+      process.stdout.write(`\n${dim}${cyan}`);
       await streamAgentResponse(trimmed, opts, client);
+      process.stdout.write(reset);
     } catch (err) {
+      process.stdout.write(reset);
       console.error(
-        'Error:',
+        '\x1b[31mError:\x1b[0m',
         err instanceof Error ? err.message : String(err),
       );
     }
 
+    console.log('');
     rl.prompt();
   });
 
