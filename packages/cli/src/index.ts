@@ -25,6 +25,8 @@ import { registerBranchesCommand } from './commands/branches.js';
 import { registerSearchCommand, registerContextCommand } from './commands/search.js';
 import { registerTemplatesCommand, registerMarketplaceCommand } from './commands/templates.js';
 import { registerDeliverablesCommand } from './commands/deliverables.js';
+import { registerTimelineCommand } from './commands/timeline.js';
+import { registerSnapshotCommand } from './commands/snapshot.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -63,6 +65,8 @@ registerContextCommand(program);
 registerTemplatesCommand(program);
 registerMarketplaceCommand(program);
 registerDeliverablesCommand(program);
+registerTimelineCommand(program);
+registerSnapshotCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
