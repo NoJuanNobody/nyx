@@ -67,22 +67,44 @@ export function registerDeliverablesCommand(program: Command): void {
   deliverables
     .command('export <doc-id>')
     .description('Export a document to a file')
-    .requiredOption('--format <format>', 'Export format (markdown|pdf|txt|docx)')
+    .requiredOption('--format <format>', 'Export format (markdown|pdf|txt|docx|latex|jupyter)')
     .option('--output <filename>', 'Output filename (default: <doc-title>.<format>)')
+    .option('--theme <theme>', 'LaTeX theme (only used with latex format)', 'default')
     .action(async (docId: string, opts: {
       format: string;
       output?: string;
+      theme: string;
     }) => {
-      const validFormats = ['markdown', 'pdf', 'txt', 'docx'];
+      const validFormats = ['markdown', 'pdf', 'txt', 'docx', 'latex', 'jupyter'];
       if (!validFormats.includes(opts.format)) {
         error(`Invalid format "${opts.format}". Must be one of: ${validFormats.join(', ')}`);
       }
 
+      const extMap: Record<string, string> = {
+        markdown: 'md',
+        pdf: 'pdf',
+        txt: 'txt',
+        docx: 'docx',
+        latex: 'tex',
+        jupyter: 'ipynb',
+      };
+      const binaryFormats = ['pdf', 'docx'];
+      const postFormats = ['latex', 'jupyter'];
+
       const client = new NyxClient();
       try {
-        const res = await client.getRaw(
-          `/api/export/documents/${docId}/export/${opts.format}`,
-        );
+        let res: Response;
+        if (postFormats.includes(opts.format)) {
+          const body = opts.format === 'latex' ? { theme: opts.theme } : {};
+          res = await client.postRaw(
+            `/api/export/documents/${docId}/export/${opts.format}`,
+            body,
+          );
+        } else {
+          res = await client.getRaw(
+            `/api/export/documents/${docId}/export/${opts.format}`,
+          );
+        }
 
         // Extract filename from Content-Disposition header or use provided output name
         let filename = opts.output;
@@ -92,12 +114,11 @@ export function registerDeliverablesCommand(program: Command): void {
           if (match) {
             filename = match[1];
           } else {
-            const ext = opts.format === 'markdown' ? 'md' : opts.format;
-            filename = `${docId}.${ext}`;
+            filename = `${docId}.${extMap[opts.format] ?? opts.format}`;
           }
         }
 
-        if (opts.format === 'pdf' || opts.format === 'docx') {
+        if (binaryFormats.includes(opts.format)) {
           const buffer = Buffer.from(await res.arrayBuffer());
           writeFileSync(filename, buffer);
         } else {

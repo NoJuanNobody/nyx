@@ -24,7 +24,8 @@ export function registerBulkCommand(program: Command): void {
     .description('Export all documents for a team')
     .option('--team-id <teamId>', 'Team ID')
     .option('--format <format>', 'Output format (json|table)', 'json')
-    .option('--export-format <exportFormat>', 'Export file format (markdown|pdf)', 'markdown')
+    .option('--export-format <exportFormat>', 'Export file format (markdown|pdf|txt|docx|latex|jupyter)', 'markdown')
+    .option('--theme <theme>', 'LaTeX theme (only used with latex format)', 'default')
     .option('--stage <stage>', 'Filter by lifecycle stage')
     .option('--output-dir <dir>', 'Output directory', '.')
     .action(async (opts: {
@@ -33,7 +34,26 @@ export function registerBulkCommand(program: Command): void {
       exportFormat: string;
       stage?: string;
       outputDir: string;
+      theme: string;
     }) => {
+      const validFormats = ['markdown', 'pdf', 'txt', 'docx', 'latex', 'jupyter'];
+      if (!validFormats.includes(opts.exportFormat)) {
+        error(
+          `Invalid export format "${opts.exportFormat}". Must be one of: ${validFormats.join(', ')}`,
+        );
+      }
+
+      const extMap: Record<string, string> = {
+        markdown: 'md',
+        pdf: 'pdf',
+        txt: 'txt',
+        docx: 'docx',
+        latex: 'tex',
+        jupyter: 'ipynb',
+      };
+      const binaryFormats = ['pdf', 'docx'];
+      const postFormats = ['latex', 'jupyter'];
+
       const teamId = resolveTeamId(opts.teamId);
       const client = new NyxClient();
       try {
@@ -50,8 +70,7 @@ export function registerBulkCommand(program: Command): void {
 
         mkdirSync(opts.outputDir, { recursive: true });
 
-        const ext = opts.exportFormat === 'pdf' ? 'pdf' : 'md';
-        const exportType = opts.exportFormat === 'pdf' ? 'pdf' : 'markdown';
+        const ext = extMap[opts.exportFormat] ?? opts.exportFormat;
         const results: Array<{ id: string; title: string; file: string }> = [];
 
         for (const doc of docs) {
@@ -59,11 +78,20 @@ export function registerBulkCommand(program: Command): void {
           const filePath = join(opts.outputDir, filename);
           process.stderr.write(`Exporting ${doc.title}...\n`);
 
-          const res = await client.getRaw(
-            `/api/export/documents/${doc.id}/export/${exportType}`,
-          );
+          let res: Response;
+          if (postFormats.includes(opts.exportFormat)) {
+            const body = opts.exportFormat === 'latex' ? { theme: opts.theme } : {};
+            res = await client.postRaw(
+              `/api/export/documents/${doc.id}/export/${opts.exportFormat}`,
+              body,
+            );
+          } else {
+            res = await client.getRaw(
+              `/api/export/documents/${doc.id}/export/${opts.exportFormat}`,
+            );
+          }
 
-          if (ext === 'pdf') {
+          if (binaryFormats.includes(opts.exportFormat)) {
             const buffer = Buffer.from(await res.arrayBuffer());
             writeFileSync(filePath, buffer);
           } else {

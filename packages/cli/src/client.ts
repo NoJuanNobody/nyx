@@ -121,4 +121,23 @@ export class NyxClient {
 
     return res;
   }
+
+  async postRaw(path: string, body?: unknown): Promise<Response> {
+    const url = `${this.config.apiUrl}${path}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.config.apiKey}`,
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`API error ${res.status}: ${text || res.statusText}`);
+    }
+
+    return res;
+  }
 }
