@@ -27,6 +27,7 @@ import { registerTemplatesCommand, registerMarketplaceCommand } from './commands
 import { registerDeliverablesCommand } from './commands/deliverables.js';
 import { registerTimelineCommand } from './commands/timeline.js';
 import { registerSnapshotCommand } from './commands/snapshot.js';
+import { registerNotificationsCommand } from './commands/notifications.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -67,6 +68,7 @@ registerMarketplaceCommand(program);
 registerDeliverablesCommand(program);
 registerTimelineCommand(program);
 registerSnapshotCommand(program);
+registerNotificationsCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
