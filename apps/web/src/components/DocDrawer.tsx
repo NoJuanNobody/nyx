@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import type { DocumentVersion } from '@nyx/shared';
 import { VersionHistory } from './VersionHistory';
 import { Timeline } from './Timeline';
@@ -8,8 +8,11 @@ import { UnifiedAIPanel } from './UnifiedAIPanel';
 import { JSXPreviewPanel } from './JSXPreviewPanel';
 import { ImpactMap } from './ImpactMap';
 import { VideoGenerationPanel } from './VideoGenerationPanel';
+import { ContextMatches } from './ContextMatches';
+import { fetchRelatedSpecs } from '../lib/api';
+import type { ContextMatch, ContextSignal } from '../lib/api';
 
-export type DrawerPanel = 'history' | 'timeline' | 'proposals' | 'audit' | 'ai' | 'jsx-preview' | 'impact' | 'video';
+export type DrawerPanel = 'history' | 'timeline' | 'proposals' | 'audit' | 'ai' | 'jsx-preview' | 'impact' | 'video' | 'related';
 
 interface AIChatProps {
   content: string;
@@ -31,6 +34,7 @@ interface DocDrawerProps {
   aiChat?: AIChatProps;
   jsxPreviewContext?: string;
   onMockupReady?: (jsx: string | null) => void;
+  stage?: string | null;
 }
 
 const PANELS: { key: DrawerPanel; label: string; icon: JSX.Element }[] = [
@@ -106,11 +110,62 @@ const PANELS: { key: DrawerPanel; label: string; icon: JSX.Element }[] = [
       </svg>
     ),
   },
+  {
+    key: 'related',
+    label: 'Related',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+      </svg>
+    ),
+  },
 ];
 
-export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVersion, activeVersionId, onSwitchToHistory, aiChat, jsxPreviewContext, onMockupReady }: DocDrawerProps) {
+export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVersion, activeVersionId, onSwitchToHistory, aiChat, jsxPreviewContext, onMockupReady, stage }: DocDrawerProps) {
   const isOpen = activePanel !== null;
   const drawerRef = useRef<HTMLDivElement>(null);
+  const [relatedMatches, setRelatedMatches] = useState<ContextMatch[]>([]);
+  const [relatedSignals, setRelatedSignals] = useState<ContextSignal[]>([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
+  const relatedFetchedRef = useRef<string | null>(null);
+
+  // Fetch related specs when panel opens or stage enters approval/review
+  const loadRelatedSpecs = useCallback(async () => {
+    if (relatedFetchedRef.current === documentId) return;
+    setRelatedLoading(true);
+    try {
+      const result = await fetchRelatedSpecs(documentId);
+      setRelatedMatches(
+        result.related.map((r) => ({
+          documentId: r.id,
+          title: r.title,
+          relevance: r.relevance,
+          relationship: r.relationship,
+          summary: r.snippet,
+        })),
+      );
+      setRelatedSignals(result.signals);
+      relatedFetchedRef.current = documentId;
+    } catch {
+      setRelatedMatches([]);
+      setRelatedSignals([]);
+    } finally {
+      setRelatedLoading(false);
+    }
+  }, [documentId]);
+
+  useEffect(() => {
+    if (activePanel === 'related') {
+      loadRelatedSpecs();
+    }
+  }, [activePanel, loadRelatedSpecs]);
+
+  // Auto-trigger when document enters an approval/review stage
+  useEffect(() => {
+    if (stage && /review|approval/i.test(stage)) {
+      loadRelatedSpecs();
+    }
+  }, [stage, loadRelatedSpecs]);
 
   // Close on Escape
   useEffect(() => {
@@ -175,6 +230,18 @@ export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVe
             {activePanel === 'jsx-preview' && <JSXPreviewPanel specContext={jsxPreviewContext} onMockupReady={onMockupReady} />}
             {activePanel === 'impact' && <ImpactMap documentId={documentId} />}
             {activePanel === 'video' && <VideoGenerationPanel documentId={documentId} />}
+            {activePanel === 'related' && (
+              <div className="p-4">
+                <ContextMatches
+                  matches={relatedMatches}
+                  signals={relatedSignals}
+                  isLoading={relatedLoading}
+                />
+                {!relatedLoading && relatedMatches.length === 0 && relatedSignals.length === 0 && (
+                  <p className="text-sm text-slate-400">No related specs found for this document.</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -663,6 +663,7 @@ export function DocumentEditor() {
                 isReviewMode: aiProposedContent !== null,
                 stage: docStage,
               }}
+              stage={docStage}
             />
           )}
         </div>

@@ -7,6 +7,7 @@ import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
 import { gatekeeperService } from '../services/gatekeeper.service.js';
 import { embeddingPipelineService } from '../services/embedding-pipeline.service.js';
+import { contextMatchingService } from '../services/context-matching.service.js';
 
 export const documentRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/documents?teamId=X&stage=Y — list documents for a team
@@ -73,6 +74,44 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return doc;
+  });
+
+  // GET /api/documents/:id/related — find related specs via AI context matching
+  // viewers+ can read
+  app.get('/:id/related', { preHandler: [requireRole({ minimumRole: 'viewer', source: 'document' })] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const [doc] = await db
+      .select()
+      .from(documents)
+      .where(eq(documents.id, id));
+
+    if (!doc) {
+      reply.code(404);
+      return { error: 'Document not found' };
+    }
+
+    try {
+      const result = await contextMatchingService.findRelatedSpecs(
+        doc.content ?? '',
+        doc.teamId,
+      );
+
+      const related = result.matches.map((m) => ({
+        id: m.documentId,
+        title: m.title,
+        score: m.relevance,
+        snippet: m.summary,
+        relevance: m.relevance,
+        relationship: m.relationship,
+      }));
+
+      return { related, signals: result.signals };
+    } catch (err) {
+      request.log.error({ err, docId: id }, 'GET /documents/:id/related — context matching failed');
+      reply.code(500);
+      return { error: 'Failed to find related specs. AI service may be unavailable.' };
+    }
   });
 
   // POST /api/documents — create a document
