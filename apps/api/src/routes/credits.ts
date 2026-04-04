@@ -64,6 +64,10 @@ export const creditRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // ── POST /purchase — purchase credits (by pack or amount) ──
+  // TODO: Credit purchases currently bypass Stripe — credits are added directly
+  // without any payment processing. This endpoint needs Stripe Checkout integration
+  // to create a payment session before crediting the user's balance. See the billing
+  // checkout flow in routes/billing.ts for reference.
   fastify.post('/purchase', async (request, reply) => {
     const userId = request.user?.id;
     if (!userId) {

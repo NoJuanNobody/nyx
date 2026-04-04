@@ -291,6 +291,130 @@ export async function handleWebhookEvent(
       break;
     }
 
+    case 'customer.subscription.created': {
+      const sub = event.data.object as Stripe.Subscription;
+      const teamId = sub.metadata?.teamId;
+      if (!teamId) break;
+
+      const priceId = sub.items.data[0]?.price.id;
+      const plan =
+        Object.entries(PLAN_PRICES).find(([, pid]) => pid === priceId)?.[0] ?? 'pro';
+
+      const status =
+        sub.status === 'active'
+          ? 'active'
+          : sub.status === 'trialing'
+            ? 'trialing'
+            : 'incomplete';
+
+      const customerId =
+        typeof sub.customer === 'string' ? sub.customer : sub.customer.toString();
+
+      const [existing] = await db
+        .select()
+        .from(subscriptions)
+        .where(eq(subscriptions.teamId, teamId))
+        .limit(1);
+
+      const values = {
+        plan: plan as 'free' | 'pro' | 'team' | 'enterprise',
+        status: status as 'active' | 'past_due' | 'canceled' | 'trialing' | 'incomplete',
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: sub.id,
+        stripePriceId: priceId ?? null,
+        currentPeriodStart: new Date(
+          sub.items.data[0]?.current_period_start
+            ? sub.items.data[0].current_period_start * 1000
+            : Date.now(),
+        ),
+        currentPeriodEnd: new Date(
+          sub.items.data[0]?.current_period_end
+            ? sub.items.data[0].current_period_end * 1000
+            : Date.now(),
+        ),
+        cancelAtPeriodEnd: sub.cancel_at_period_end,
+        updatedAt: new Date(),
+      };
+
+      if (existing) {
+        await db
+          .update(subscriptions)
+          .set(values)
+          .where(eq(subscriptions.teamId, teamId));
+      } else {
+        await db.insert(subscriptions).values({ teamId, ...values });
+      }
+
+      // Upsert stripe_customers record
+      const [existingCustomer] = await db
+        .select()
+        .from(stripeCustomers)
+        .where(eq(stripeCustomers.stripeCustomerId, customerId))
+        .limit(1);
+
+      if (!existingCustomer) {
+        await db.insert(stripeCustomers).values({
+          userId: teamId,
+          stripeCustomerId: customerId,
+          subscriptionId: sub.id,
+          plan,
+        });
+      }
+      break;
+    }
+
+    case 'invoice.paid': {
+      const invoice = event.data.object as Stripe.Invoice;
+      const parentSub = invoice.parent?.subscription_details;
+      const subscriptionId =
+        parentSub
+          ? (typeof parentSub.subscription === 'string'
+            ? parentSub.subscription
+            : parentSub.subscription?.id)
+          : undefined;
+      if (!subscriptionId) break;
+
+      // Update subscription status to active and refresh period dates
+      const [subRecord] = await db
+        .select()
+        .from(subscriptions)
+        .where(eq(subscriptions.stripeSubscriptionId, subscriptionId))
+        .limit(1);
+
+      if (subRecord) {
+        await db
+          .update(subscriptions)
+          .set({
+            status: 'active',
+            updatedAt: new Date(),
+          })
+          .where(eq(subscriptions.stripeSubscriptionId, subscriptionId));
+      }
+      break;
+    }
+
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object as Stripe.Invoice;
+      const parentSub = invoice.parent?.subscription_details;
+      const subscriptionId =
+        parentSub
+          ? (typeof parentSub.subscription === 'string'
+            ? parentSub.subscription
+            : parentSub.subscription?.id)
+          : undefined;
+      if (!subscriptionId) break;
+
+      // Mark subscription as past_due when payment fails
+      await db
+        .update(subscriptions)
+        .set({
+          status: 'past_due',
+          updatedAt: new Date(),
+        })
+        .where(eq(subscriptions.stripeSubscriptionId, subscriptionId));
+      break;
+    }
+
     default:
       // Unhandled event type — ignore
       break;

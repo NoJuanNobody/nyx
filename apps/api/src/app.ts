@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
+import rawBody from 'fastify-raw-body';
 import { ZodError } from 'zod';
 import { healthRoutes } from './routes/health.js';
 import { authRoutes } from './routes/auth.js';
@@ -101,6 +102,14 @@ export function buildApp() {
     },
   });
   app.register(cookie);
+
+  // Raw body support — required for Stripe webhook signature verification
+  app.register(rawBody, {
+    field: 'rawBody',
+    global: false,
+    runFirst: true,
+    encoding: 'utf8',
+  });
 
   // Global rate limiting — 100 requests per minute per user (or IP for unauthenticated)
   app.register(rateLimit, {
