@@ -387,35 +387,36 @@ export function UnifiedAIPanel({
             {messages.map((msg) => {
               if (msg.kind === 'user') {
                 return (
-                  <div key={msg.id} className="rounded-lg bg-blue-50/70 px-3 py-2">
-                    <div className="mb-0.5 flex items-center gap-1.5">
-                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[9px] font-bold text-slate-500">
-                        Y
-                      </span>
-                      <span className="text-[10px] font-semibold text-slate-400">You</span>
-                      <span className="text-[9px] text-slate-300">
-                        {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                  <div key={msg.id} className="flex justify-end">
+                    <div className="max-w-[85%] rounded-lg bg-blue-600 px-3 py-2 text-white">
+                      <div className="mb-0.5 flex items-center justify-end gap-1.5">
+                        <span className="text-[9px] text-blue-200">
+                          {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <span className="text-[10px] font-semibold text-blue-200">You</span>
+                      </div>
+                      <p className="leading-relaxed text-white">{msg.content}</p>
                     </div>
-                    <p className="pl-[22px] leading-relaxed text-slate-600">{msg.content}</p>
                   </div>
                 );
               }
 
               if (msg.kind === 'assistant') {
                 return (
-                  <div key={msg.id} className="rounded-lg px-3 py-2">
-                    <div className="mb-0.5 flex items-center gap-1.5">
-                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600">
-                        <AIIcon className="h-2.5 w-2.5 text-white" />
-                      </span>
-                      <span className="text-[10px] font-semibold text-slate-400">Nyx</span>
-                      <span className="text-[9px] text-slate-300">
-                        {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <div className="pl-[22px]">
-                      <MarkdownPreview content={msg.content} />
+                  <div key={msg.id} className="flex justify-start">
+                    <div className="max-w-[85%] rounded-lg bg-slate-100 px-3 py-2">
+                      <div className="mb-0.5 flex items-center gap-1.5">
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600">
+                          <AIIcon className="h-2.5 w-2.5 text-white" />
+                        </span>
+                        <span className="text-[10px] font-semibold text-slate-400">Nyx</span>
+                        <span className="text-[9px] text-slate-300">
+                          {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="pl-[22px]">
+                        <MarkdownPreview content={msg.content} />
+                      </div>
                     </div>
                   </div>
                 );
@@ -528,34 +529,38 @@ export function UnifiedAIPanel({
 
             {/* In-progress streaming text */}
             {streamingContent && (
-              <div className="rounded-lg px-3 py-2">
-                <div className="mb-0.5 flex items-center gap-1.5">
-                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600">
-                    <AIIcon className="h-2.5 w-2.5 text-white" />
-                  </span>
-                  <span className="text-[10px] font-semibold text-slate-400">AI</span>
-                  <span className="ml-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
-                </div>
-                <div className="pl-[22px]">
-                  <MarkdownPreview content={streamingContent} />
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-lg bg-slate-100 px-3 py-2">
+                  <div className="mb-0.5 flex items-center gap-1.5">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600">
+                      <AIIcon className="h-2.5 w-2.5 text-white" />
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">Nyx</span>
+                    <span className="ml-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
+                  </div>
+                  <div className="pl-[22px]">
+                    <MarkdownPreview content={streamingContent} />
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Loading dots for fast path (no streaming text yet) */}
             {isRunning && !streamingContent && (
-              <div className="rounded-lg px-3 py-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600">
-                    <AIIcon className="h-2.5 w-2.5 text-white" />
-                  </span>
-                  <span className="text-[10px] font-semibold text-slate-400">AI</span>
-                </div>
-                <div className="mt-1 pl-[22px]">
-                  <div className="flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-400 [animation-delay:0ms]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-400 [animation-delay:150ms]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-400 [animation-delay:300ms]" />
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-lg bg-slate-100 px-3 py-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600">
+                      <AIIcon className="h-2.5 w-2.5 text-white" />
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">Nyx</span>
+                  </div>
+                  <div className="mt-1 pl-[22px]">
+                    <div className="flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-400 [animation-delay:0ms]" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-400 [animation-delay:150ms]" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-400 [animation-delay:300ms]" />
+                    </div>
                   </div>
                 </div>
               </div>
