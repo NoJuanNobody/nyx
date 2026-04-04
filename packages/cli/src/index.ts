@@ -23,6 +23,7 @@ import { registerStatusCommand } from './commands/status.js';
 import { registerAiCommand } from './commands/ai.js';
 import { registerBranchesCommand } from './commands/branches.js';
 import { registerSearchCommand, registerContextCommand } from './commands/search.js';
+import { registerTemplatesCommand, registerMarketplaceCommand } from './commands/templates.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -58,6 +59,8 @@ registerAiCommand(program);
 registerBranchesCommand(program);
 registerSearchCommand(program);
 registerContextCommand(program);
+registerTemplatesCommand(program);
+registerMarketplaceCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();
