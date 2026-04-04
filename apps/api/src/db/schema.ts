@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, integer, jsonb, pgEnum, boolean, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, jsonb, pgEnum, boolean, uniqueIndex, index, vector } from 'drizzle-orm/pg-core';
 
 export const userRoleEnum = pgEnum('user_role', ['owner', 'admin', 'developer', 'editor', 'viewer']);
 export const documentStatusEnum = pgEnum('document_status', ['draft', 'published', 'archived']);
@@ -784,3 +784,19 @@ export const approvals = pgTable('approvals', {
   reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ── Document Chunks (pgvector) ──────────────────────────
+
+export const docChunks = pgTable('doc_chunks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  docId: uuid('doc_id').notNull().references(() => documents.id, { onDelete: 'cascade' }),
+  orgId: uuid('org_id').notNull().references(() => teams.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  embedding: vector('embedding', { dimensions: 1536 }),
+  version: integer('version').notNull(),
+  chunkIndex: integer('chunk_index').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('doc_chunks_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
+  index('doc_chunks_doc_version_idx').on(table.docId, table.version),
+]);

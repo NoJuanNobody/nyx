@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_PASSWORD: testpassword
           POSTGRES_DB: nyx_test
@@ -101,7 +101,7 @@ jobs:
     needs: build
     services:
       postgres:
-        image: postgres:16
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_PASSWORD: testpassword
           POSTGRES_DB: nyx_test
@@ -140,7 +140,7 @@ jobs:
     if: github.event_name == 'pull_request'
     services:
       postgres:
-        image: postgres:16
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_PASSWORD: testpassword
           POSTGRES_DB: nyx_test
