@@ -128,7 +128,7 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
   }
 
   return (
-    <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed prose-pre:p-0 prose-pre:bg-transparent prose-pre:border-0">
+    <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed prose-p:my-3 prose-headings:mt-4 prose-headings:mb-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-pre:p-0 prose-pre:bg-transparent prose-pre:border-0">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

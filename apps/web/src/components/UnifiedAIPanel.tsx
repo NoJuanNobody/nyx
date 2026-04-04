@@ -397,7 +397,7 @@ export function UnifiedAIPanel({
                         {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <p className="pl-[22px] text-xs leading-relaxed text-slate-600">{msg.content}</p>
+                    <p className="pl-[22px] leading-relaxed text-slate-600">{msg.content}</p>
                   </div>
                 );
               }
@@ -414,7 +414,7 @@ export function UnifiedAIPanel({
                         {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <div className="pl-[22px] text-xs">
+                    <div className="pl-[22px]">
                       <MarkdownPreview content={msg.content} />
                     </div>
                   </div>
@@ -536,7 +536,7 @@ export function UnifiedAIPanel({
                   <span className="text-[10px] font-semibold text-slate-400">AI</span>
                   <span className="ml-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
                 </div>
-                <div className="pl-[22px] text-xs">
+                <div className="pl-[22px]">
                   <MarkdownPreview content={streamingContent} />
                 </div>
               </div>
