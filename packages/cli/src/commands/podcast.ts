@@ -1,6 +1,8 @@
 import { Command } from 'commander';
 import { writeFileSync } from 'node:fs';
 import { apiRequest, getBaseUrl } from '../lib/api.js';
+import { resolveTeamId } from '../client.js';
+import { formatTable as sharedFormatTable, timeAgo } from '../utils/output.js';
 
 interface PodcastScriptResponse {
   id: string;
@@ -81,10 +83,11 @@ export function registerPodcastCommand(program: Command): void {
     .command('generate')
     .description('Generate a podcast script from one or more documents')
     .argument('<doc-ids...>', 'Document IDs to include')
-    .requiredOption('--team-id <id>', 'Team ID')
+    .option('--team-id <id>', 'Team ID')
     .option('--title <title>', 'Podcast episode title')
     .option('--format <format>', 'Output format (json|table)', 'table')
-    .action(async (docIds: string[], opts: { teamId: string; title?: string; format: string }) => {
+    .action(async (docIds: string[], opts: { teamId?: string; title?: string; format: string }) => {
+      const teamId = resolveTeamId(opts.teamId);
       try {
         const result = await apiRequest<PodcastScriptResponse>(
           '/api/podcast/generate',
@@ -92,7 +95,7 @@ export function registerPodcastCommand(program: Command): void {
             method: 'POST',
             body: JSON.stringify({
               documentIds: docIds,
-              teamId: opts.teamId,
+              teamId,
               title: opts.title,
             }),
           },
@@ -147,18 +150,25 @@ export function registerPodcastCommand(program: Command): void {
   podcast
     .command('list')
     .description('List generated podcast scripts')
-    .requiredOption('--team-id <id>', 'Team ID')
+    .option('--team-id <id>', 'Team ID')
     .option('--format <format>', 'Output format (json|table)', 'table')
-    .action(async (opts: { teamId: string; format: string }) => {
+    .action(async (opts: { teamId?: string; format: string }) => {
+      const teamId = resolveTeamId(opts.teamId);
       try {
         const result = await apiRequest<PodcastListResponse>(
-          `/api/podcast/scripts?teamId=${encodeURIComponent(opts.teamId)}`,
+          `/api/podcast/scripts?teamId=${encodeURIComponent(teamId)}`,
         );
 
         if (opts.format === 'json') {
           console.log(JSON.stringify(result.scripts, null, 2));
         } else {
-          console.log(formatTable(result.scripts));
+          console.log(sharedFormatTable(result.scripts, [
+            { key: 'title', width: 50 },
+            { key: 'qualityScore', label: 'Quality', width: 12, transform: (v) => `${v}/10` },
+            { key: 'createdAt', label: 'Created', transform: (v) => timeAgo(String(v)) },
+            { key: 'id', width: 36 },
+          ]));
+          console.log(`\n${result.scripts.length} script(s)`);
         }
       } catch (err) {
         console.error(

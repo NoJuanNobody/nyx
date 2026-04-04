@@ -116,7 +116,7 @@ export function requireRole(options: RequireRoleOptions) {
     switch (source) {
       case 'team': {
         const params = request.params as Record<string, string>;
-        teamId = params.id;
+        teamId = params.id ?? params.teamId;
         break;
       }
       case 'document': {

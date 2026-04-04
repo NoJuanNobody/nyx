@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import fs from 'node:fs';
+import { resolveTeamId } from '../client.js';
 
 const SECRET_PATTERNS = [
   /(?:api[_-]?key|apikey)\s*[:=]\s*['"][A-Za-z0-9_\-]{16,}['"]/i,
@@ -94,16 +95,17 @@ export function registerGovernanceCommand(program: Command): void {
     .command('validate')
     .description('Validate an action against governance rules')
     .requiredOption('--action <action>', 'Action to validate (publish, edit, create, delete)')
-    .requiredOption('--team-id <id>', 'Team ID')
+    .option('--team-id <id>', 'Team ID')
     .option('--doc-id <id>', 'Document ID')
     .option('--content <content>', 'Content to validate')
     .option('--stage <stage>', 'Document lifecycle stage')
     .option('--format <format>', 'Output format (json|table)', 'table')
     .action(async (options) => {
+      const teamId = resolveTeamId(options.teamId);
       try {
         const body: Record<string, string> = {
           action: options.action,
-          teamId: options.teamId,
+          teamId,
         };
         if (options.docId) body.documentId = options.docId;
         if (options.content) body.content = options.content;

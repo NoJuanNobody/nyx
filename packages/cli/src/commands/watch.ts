@@ -1,5 +1,6 @@
 import type { Command } from 'commander';
-import { apiGet } from '../lib/api-client.js';
+import { NyxClient, resolveTeamId } from '../client.js';
+import { formatTable, timeAgo } from '../utils/output.js';
 
 interface DocChange {
   id: string;
@@ -27,23 +28,23 @@ export function registerWatchCommand(program: Command): void {
   program
     .command('watch')
     .description('Poll for document changes in real-time')
-    .requiredOption('--team-id <id>', 'Team ID to watch')
+    .option('--team-id <id>', 'Team ID to watch')
     .option('--interval <seconds>', 'Polling interval in seconds', '30')
     .option('--since <iso-date>', 'Start watching from this timestamp')
-    .action(async (opts: { teamId: string; interval: string; since?: string }) => {
+    .action(async (opts: { teamId?: string; interval: string; since?: string }) => {
+      const teamId = resolveTeamId(opts.teamId);
+      const client = new NyxClient();
       const intervalMs = (parseInt(opts.interval, 10) || 30) * 1000;
       let cursor = opts.since || new Date().toISOString();
 
-      console.log(`Watching team ${opts.teamId} for changes (interval: ${opts.interval}s)`);
+      console.log(`Watching team ${teamId} for changes (interval: ${opts.interval}s)`);
       console.log(`Starting from: ${cursor}`);
       console.log('Press Ctrl+C to stop.\n');
 
       const poll = async () => {
         try {
-          const data = await apiGet<ChangesResponse>('/api/documents/changes', {
-            teamId: opts.teamId,
-            since: cursor,
-          });
+          const params = new URLSearchParams({ teamId, since: cursor });
+          const data = await client.get<ChangesResponse>(`/api/documents/changes?${params}`);
 
           for (const change of data.changes.reverse()) {
             console.log(formatChange(change));
@@ -82,19 +83,18 @@ export function registerChangesCommand(program: Command): void {
   program
     .command('changes')
     .description('List recent document changes (one-shot)')
-    .requiredOption('--team-id <id>', 'Team ID')
+    .option('--team-id <id>', 'Team ID')
     .option('--since <iso-date>', 'Show changes since this timestamp (default: 24h ago)')
     .option('--limit <n>', 'Maximum number of changes to return', '50')
     .option('--format <format>', 'Output format: table or json', 'table')
-    .action(async (opts: { teamId: string; since?: string; limit: string; format: string }) => {
+    .action(async (opts: { teamId?: string; since?: string; limit: string; format: string }) => {
+      const teamId = resolveTeamId(opts.teamId);
+      const client = new NyxClient();
       const since = opts.since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
       try {
-        const data = await apiGet<ChangesResponse>('/api/documents/changes', {
-          teamId: opts.teamId,
-          since,
-          limit: opts.limit,
-        });
+        const params = new URLSearchParams({ teamId, since, limit: opts.limit });
+        const data = await client.get<ChangesResponse>(`/api/documents/changes?${params}`);
 
         if (opts.format === 'json') {
           console.log(JSON.stringify(data, null, 2));
@@ -107,10 +107,13 @@ export function registerChangesCommand(program: Command): void {
           return;
         }
 
-        console.log(`${data.changes.length} change(s) since ${data.since}:\n`);
-        for (const change of data.changes) {
-          console.log(formatChange(change));
-        }
+        console.log(formatTable(data.changes, [
+          { key: 'title', width: 50 },
+          { key: 'status', label: 'Action', width: 12 },
+          { key: 'updatedAt', label: 'Updated', transform: (v) => timeAgo(String(v)) },
+          { key: 'id', width: 36 },
+        ]));
+        console.log(`\n${data.changes.length} change(s)`);
       } catch (err) {
         console.error(`Error: ${(err as Error).message}`);
         process.exit(1);

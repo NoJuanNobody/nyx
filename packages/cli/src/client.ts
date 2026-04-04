@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 export interface NyxConfig {
   apiKey: string;
   apiUrl: string;
+  teamId?: string;
 }
 
 function loadConfigFile(): Partial<NyxConfig> {
@@ -34,7 +35,19 @@ function resolveConfig(): NyxConfig {
     );
   }
 
-  return { apiKey, apiUrl };
+  const teamId = process.env.NYX_TEAM_ID ?? file.teamId;
+
+  return { apiKey, apiUrl, teamId };
+}
+
+export function resolveTeamId(explicit?: string): string {
+  const id = explicit ?? process.env.NYX_TEAM_ID ?? loadConfigFile().teamId;
+  if (!id) {
+    throw new Error(
+      'Missing team ID. Pass --team-id, set NYX_TEAM_ID, or run: nyx config set teamId <id>',
+    );
+  }
+  return id;
 }
 
 export class NyxClient {

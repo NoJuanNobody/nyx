@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { NyxClient } from '../client.js';
-import { formatOutput, error, type OutputFormat } from '../utils/output.js';
+import { NyxClient, resolveTeamId } from '../client.js';
+import { formatOutput, formatTable, timeAgo, error, type OutputFormat } from '../utils/output.js';
 
 interface AgentSession {
   id: string;
@@ -14,18 +14,19 @@ export function registerAgentCommand(program: Command): void {
   agent
     .command('sessions')
     .description('List agent sessions for a team')
-    .requiredOption('--team-id <teamId>', 'Team ID')
+    .option('--team-id <teamId>', 'Team ID')
     .option('--status <status>', 'Filter by session status (client-side)')
     .option('--limit <n>', 'Limit results')
-    .option('--format <format>', 'Output format (json|table)', 'json')
+    .option('--format <format>', 'Output format (json|table)', 'table')
     .action(async (opts: {
-      teamId: string;
+      teamId?: string;
       status?: string;
       limit?: string;
       format: OutputFormat;
     }) => {
+      const teamId = resolveTeamId(opts.teamId);
       const client = new NyxClient();
-      const params = new URLSearchParams({ teamId: opts.teamId });
+      const params = new URLSearchParams({ teamId });
       if (opts.limit) params.set('limit', opts.limit);
 
       try {
@@ -36,7 +37,17 @@ export function registerAgentCommand(program: Command): void {
           data = data.filter((s) => s.status === opts.status);
         }
 
-        console.log(formatOutput(data, opts.format));
+        if (opts.format === 'json') {
+          console.log(formatOutput(data, 'json'));
+        } else {
+          console.log(formatTable(data, [
+            { key: 'id', width: 36 },
+            { key: 'status', width: 12 },
+            { key: 'agentId', label: 'Agent', width: 20 },
+            { key: 'createdAt', label: 'Created', transform: (v) => timeAgo(String(v)) },
+          ]));
+          console.log(`\n${data.length} session(s)`);
+        }
       } catch (err) {
         error(err instanceof Error ? err.message : String(err));
       }

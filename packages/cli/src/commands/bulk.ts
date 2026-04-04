@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { NyxClient } from '../client.js';
+import { NyxClient, resolveTeamId } from '../client.js';
 import { formatOutput, error, type OutputFormat } from '../utils/output.js';
 
 interface Document {
@@ -22,21 +22,22 @@ export function registerBulkCommand(program: Command): void {
   bulk
     .command('export')
     .description('Export all documents for a team')
-    .requiredOption('--team-id <teamId>', 'Team ID')
+    .option('--team-id <teamId>', 'Team ID')
     .option('--format <format>', 'Output format (json|table)', 'json')
     .option('--export-format <exportFormat>', 'Export file format (markdown|pdf)', 'markdown')
     .option('--stage <stage>', 'Filter by lifecycle stage')
     .option('--output-dir <dir>', 'Output directory', '.')
     .action(async (opts: {
-      teamId: string;
+      teamId?: string;
       format: OutputFormat;
       exportFormat: string;
       stage?: string;
       outputDir: string;
     }) => {
+      const teamId = resolveTeamId(opts.teamId);
       const client = new NyxClient();
       try {
-        const params = new URLSearchParams({ teamId: opts.teamId });
+        const params = new URLSearchParams({ teamId });
         if (opts.stage) params.set('stage', opts.stage);
 
         const docs = await client.get<Document[]>(`/api/documents?${params}`);
@@ -83,19 +84,20 @@ export function registerBulkCommand(program: Command): void {
   bulk
     .command('status')
     .description('Bulk update document status')
-    .requiredOption('--team-id <teamId>', 'Team ID')
+    .option('--team-id <teamId>', 'Team ID')
     .requiredOption('--status <status>', 'New status (draft|published|archived)')
     .option('--stage <stage>', 'Filter by lifecycle stage')
     .option('--format <format>', 'Output format (json|table)', 'json')
     .action(async (opts: {
-      teamId: string;
+      teamId?: string;
       status: string;
       stage?: string;
       format: OutputFormat;
     }) => {
+      const teamId = resolveTeamId(opts.teamId);
       const client = new NyxClient();
       try {
-        const params = new URLSearchParams({ teamId: opts.teamId });
+        const params = new URLSearchParams({ teamId });
         if (opts.stage) params.set('stage', opts.stage);
 
         const docs = await client.get<Document[]>(`/api/documents?${params}`);
@@ -122,12 +124,13 @@ export function registerBulkCommand(program: Command): void {
   bulk
     .command('sync')
     .description('Sync all ticket statuses for a team')
-    .requiredOption('--team-id <teamId>', 'Team ID')
+    .option('--team-id <teamId>', 'Team ID')
     .option('--format <format>', 'Output format (json|table)', 'json')
-    .action(async (opts: { teamId: string; format: OutputFormat }) => {
+    .action(async (opts: { teamId?: string; format: OutputFormat }) => {
+      const teamId = resolveTeamId(opts.teamId);
       const client = new NyxClient();
       try {
-        const params = new URLSearchParams({ teamId: opts.teamId });
+        const params = new URLSearchParams({ teamId });
         const result = await client.post<unknown>(
           `/api/tickets/sync-all?${params}`,
         );

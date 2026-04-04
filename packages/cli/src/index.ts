@@ -16,6 +16,8 @@ import { registerPermissionsCommand } from './commands/permissions.js';
 import { registerPodcastCommand } from './commands/podcast.js';
 import { registerWatchCommand, registerChangesCommand } from './commands/watch.js';
 import { registerOrchestrateCommand } from './commands/orchestrate.js';
+import { registerIntakeCommand } from './commands/intake.js';
+import { registerTicketsCommand } from './commands/tickets.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -43,6 +45,8 @@ registerPodcastCommand(program);
 registerWatchCommand(program);
 registerChangesCommand(program);
 registerOrchestrateCommand(program);
+registerIntakeCommand(program);
+registerTicketsCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();

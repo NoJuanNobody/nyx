@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { NyxClient } from '../client.js';
-import { formatOutput, error, type OutputFormat } from '../utils/output.js';
+import { NyxClient, resolveTeamId } from '../client.js';
+import { formatOutput, formatTable, timeAgo, error, type OutputFormat } from '../utils/output.js';
 
 interface PipelineStep {
   name: string;
@@ -97,7 +97,7 @@ export function registerOrchestrateCommand(program: Command): void {
   orchestrate
     .command('create')
     .description('Create an orchestration pipeline')
-    .requiredOption('--team-id <teamId>', 'Team ID')
+    .option('--team-id <teamId>', 'Team ID')
     .requiredOption('--doc-id <docId>', 'Document ID')
     .requiredOption('--name <name>', 'Pipeline name')
     .option('--steps <json>', 'Steps as JSON array')
@@ -108,13 +108,14 @@ export function registerOrchestrateCommand(program: Command): void {
     .option('--format <format>', 'Output format (json|table)', 'json')
     .action(
       async (opts: {
-        teamId: string;
+        teamId?: string;
         docId: string;
         name: string;
         steps?: string;
         template?: string;
         format: OutputFormat;
       }) => {
+        const teamId = resolveTeamId(opts.teamId);
         const client = new NyxClient();
 
         let steps: PipelineStep[];
@@ -145,7 +146,7 @@ export function registerOrchestrateCommand(program: Command): void {
           const data = await client.post<Pipeline>(
             '/api/orchestration/pipelines',
             {
-              teamId: opts.teamId,
+              teamId,
               documentId: opts.docId,
               name: opts.name,
               steps,
@@ -166,15 +167,26 @@ export function registerOrchestrateCommand(program: Command): void {
   orchestrate
     .command('list')
     .description('List orchestration pipelines for a team')
-    .requiredOption('--team-id <teamId>', 'Team ID')
-    .option('--format <format>', 'Output format (json|table)', 'json')
-    .action(async (opts: { teamId: string; format: OutputFormat }) => {
+    .option('--team-id <teamId>', 'Team ID')
+    .option('--format <format>', 'Output format (json|table)', 'table')
+    .action(async (opts: { teamId?: string; format: OutputFormat }) => {
+      const teamId = resolveTeamId(opts.teamId);
       const client = new NyxClient();
       try {
-        const data = await client.get(
-          `/api/orchestration/pipelines?teamId=${opts.teamId}`,
+        const data = await client.get<Record<string, unknown>[]>(
+          `/api/orchestration/pipelines?teamId=${teamId}`,
         );
-        console.log(formatOutput(data, opts.format));
+        if (opts.format === 'json') {
+          console.log(formatOutput(data, 'json'));
+        } else {
+          console.log(formatTable(data, [
+            { key: 'name', width: 40 },
+            { key: 'status', width: 12 },
+            { key: 'createdAt', label: 'Created', transform: (v) => timeAgo(String(v)) },
+            { key: 'id', width: 36 },
+          ]));
+          console.log(`\n${data.length} pipeline(s)`);
+        }
       } catch (err) {
         error(err instanceof Error ? err.message : String(err));
       }
