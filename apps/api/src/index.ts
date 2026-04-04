@@ -1,7 +1,15 @@
+import * as Sentry from '@sentry/node';
 import { buildApp } from './app.js';
 import { config } from './lib/config.js';
 import { ensureTemplates } from './db/seed-templates.js';
 import { ensureLifecycles } from './db/seed-lifecycles.js';
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV ?? 'development',
+  });
+}
 
 const app = buildApp();
 

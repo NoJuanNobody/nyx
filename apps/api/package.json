@@ -26,6 +26,7 @@
     "@fastify/rate-limit": "^10.3.0",
     "@google/genai": "^1.46.0",
     "@nyx/shared": "workspace:*",
+    "@sentry/node": "^10.47.0",
     "archiver": "^7.0.1",
     "docx": "^9.6.1",
     "dotenv": "^16",

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { eq, and } from 'drizzle-orm';
 import { config } from '../lib/config.js';
@@ -67,7 +68,8 @@ async function resolveClient(teamId?: string): Promise<Anthropic> {
         );
         return getOrCreateCachedClient(teamId, decryptedKey);
       }
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err);
       // Fall through to platform key on any error
     }
   }
