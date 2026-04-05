@@ -38,7 +38,6 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
 
   const [folderSuggestions, setFolderSuggestions] = useState<TicketSuggestion[]>([]);
   const [jobId, setJobId] = useState<string | null>(null);
->>>>>>> fix/bulk-ticket-modal-and-ci
 
   const { data: docSuggestions = [], isLoading } = useQuery({
     queryKey: ['ticket-suggestions', documentId],
@@ -71,12 +70,8 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
         ? generateFolderTicketSuggestions(teamId, folderPath)
         : generateBulkSuggestions(documentId),
     onSuccess: (data) => {
-<<<<<<< HEAD
       if (folderPath && data && 'jobId' in data) {
         setJobId(data.jobId);
-=======
-      if (folderPath && Array.isArray(data)) {
-        setFolderSuggestions(data);
       } else {
         queryClient.invalidateQueries({ queryKey: ['ticket-suggestions', documentId] });
       }
