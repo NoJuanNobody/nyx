@@ -11,6 +11,7 @@ test.describe('Smoke Tests', () => {
   // 2. Auth endpoint responds (user info visible in sidebar)
   test('auth resolves and shows user info', async ({ authenticatedPage: page }) => {
     await expect(page.locator('aside').locator('text=Dev User')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator(SEL.sidebar.userName)).toHaveText('Dev User');
   });
 
   // 3. Document list loads
@@ -50,5 +51,14 @@ test.describe('Smoke Tests', () => {
     // The team switcher select only renders when teams.length > 1 and may be flaky,
     // so we check that at least the Default Team context loaded (documents appear)
     await expect(page.locator(SEL.fileTree.docLink(SEED.DOC_API_SPEC_ID))).toBeVisible({ timeout: 10_000 });
+  });
+
+  // 9. Team switcher loads teams
+  test('team switcher loads teams', async ({ authenticatedPage: page }) => {
+    const teamSelect = page.locator(SEL.sidebar.teamSwitcher);
+    await expect(teamSelect).toBeVisible();
+    // Should have at least 2 options (Default Team, Second Team)
+    const options = teamSelect.locator('option');
+    await expect(options).toHaveCount(2);
   });
 });
