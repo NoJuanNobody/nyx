@@ -5,19 +5,30 @@ DEV_PID=$!
 
 echo "[e2e] Waiting for Vite (5173) and API (3001)..."
 
-# Wait for both servers
-for i in $(seq 1 60); do
-  VITE_OK=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5173 2>/dev/null || echo "000")
-  API_OK=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/health 2>/dev/null || echo "000")
+for i in $(seq 1 90); do
+  VITE_OK=false
+  API_OK=false
 
-  if [ "$VITE_OK" != "000" ] && [ "$API_OK" != "000" ]; then
-    echo "[e2e] Both servers ready (Vite: $VITE_OK, API: $API_OK)"
+  # Use curl -sf (silent + fail) — exit code 0 means success
+  if curl -sf http://localhost:5173 > /dev/null 2>&1; then
+    VITE_OK=true
+  fi
+
+  if curl -sf http://localhost:3001/health > /dev/null 2>&1; then
+    API_OK=true
+  fi
+
+  if [ "$VITE_OK" = "true" ] && [ "$API_OK" = "true" ]; then
+    echo "[e2e] Both servers ready!"
+    # Keep the process running so Playwright doesn't kill it
     wait $DEV_PID
     exit 0
   fi
+
+  echo "[e2e] Waiting... (Vite: $VITE_OK, API: $API_OK) [$i/90]"
   sleep 2
 done
 
-echo "[e2e] Timeout waiting for servers (Vite: $VITE_OK, API: $API_OK)"
+echo "[e2e] ERROR: Timeout waiting for servers after 180s"
 kill $DEV_PID 2>/dev/null
 exit 1
