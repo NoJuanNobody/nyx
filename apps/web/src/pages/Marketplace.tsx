@@ -1289,11 +1289,13 @@ function PipelineCard({ lifecycle, totalCreditCost, isOwned }: { lifecycle: Life
         )}
       </div>
 
+      {/* Expanded detail */}
       {expanded && (
         <div className="border-t border-slate-100 px-5 pb-5 pt-4">
           <div className="space-y-3">
             {lifecycle.stages.map((stage, i) => (
               <div key={stage.id} className="flex gap-3">
+                {/* Stage number + connector line */}
                 <div className="flex flex-col items-center">
                   <span
                     className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white flex-shrink-0"
@@ -1305,6 +1307,7 @@ function PipelineCard({ lifecycle, totalCreditCost, isOwned }: { lifecycle: Life
                     <div className="w-px flex-1 bg-slate-200 mt-1" />
                   )}
                 </div>
+                {/* Stage details */}
                 <div className="pb-3 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">{stage.icon}</span>
