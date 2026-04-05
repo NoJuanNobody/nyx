@@ -184,7 +184,8 @@ async function streamAgentResponse(
   const teamId = resolveTeamId(opts.teamId);
   const body: Record<string, unknown> = { prompt: message, teamId };
   if (opts.docId) body.documentId = opts.docId;
-  if (history.length > 0) body.history = history;
+  // When a conversationId exists, server reconstructs history from DB — skip sending it
+  if (history.length > 0 && !conversationId) body.history = history;
   if (conversationId) body.conversationId = conversationId;
 
   const res = await fetch(url, {

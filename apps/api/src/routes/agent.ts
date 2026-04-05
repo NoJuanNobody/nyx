@@ -53,8 +53,8 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
             { role: 'assistant' as const, content: s.result! },
           ]);
 
-        // Server-reconstructed history takes precedence, client history appends new turns
-        history = [...reconstructedHistory, ...(history ?? [])];
+        // Server-reconstructed history takes precedence; ignore client history to avoid duplication
+        history = reconstructedHistory;
       } catch {
         // conversationId column may not exist yet (migration pending) — fall through
       }
@@ -87,7 +87,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
     // Determine system prompt and tools
     const workflow = workflowId ? getWorkflow(workflowId) : undefined;
     const baseSystemPrompt = workflow?.systemPrompt ??
-      'You are a helpful AI assistant for Nyx, a documentation platform. Use the available tools to help the user with their request. Be thorough and provide clear, actionable results.\n\nIMPORTANT: Use `update_document` only when the user wants to improve or edit document content. Use `create_ticket` when the user wants to track action items, bugs, or tasks — do not describe tickets in text, call the tool instead. Never substitute one for the other.';
+      'You are a helpful AI assistant for Nyx, a documentation platform. Use the available tools to help the user with their request. Be thorough and provide clear, actionable results.\n\nIMPORTANT: Use `update_document` only when the user wants to improve or edit document content. Use `create_ticket` when the user wants to track action items, bugs, or tasks — do not describe tickets in text, call the tool instead. Never substitute one for the other.\n\nCODEBASE SEARCH: When you need to understand code, ALWAYS use `search_code` first — it returns small, relevant snippets via semantic search and is much cheaper than reading full files. Only fall back to `get_github_files` if search_code returns no results or you need a specific file path you already know. Never read more than 2-3 files per turn with get_github_files.';
     const toolNames = workflow?.tools;
 
     // Enrich system prompt with team/user/document context

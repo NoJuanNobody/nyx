@@ -16,33 +16,49 @@
 .dark {
   color-scheme: dark;
 
-  /* Swap white → dark surface */
-  --color-white: oklch(20.8% 0.042 265.755);
+  /* Swap white → elevated surface (cards, sidebar, modals) */
+  --color-white: oklch(24% 0.03 285);
 
-  /* Swap slate scale (light ↔ dark) */
-  --color-slate-50:  oklch(12.9% 0.042 264.695);
-  --color-slate-100: oklch(20.8% 0.042 265.755);
-  --color-slate-200: oklch(27.9% 0.041 260.031);
-  --color-slate-300: oklch(37.2% 0.044 257.287);
-  --color-slate-400: oklch(55.4% 0.046 257.417);
-  --color-slate-500: oklch(70.4% 0.04 256.788);
-  --color-slate-600: oklch(86.9% 0.022 252.894);
-  --color-slate-700: oklch(92.9% 0.013 255.508);
-  --color-slate-800: oklch(96.8% 0.007 247.896);
-  --color-slate-900: oklch(98.4% 0.003 247.858);
+  /* Swap slate scale — purple-tinted dark surfaces
+     50 = page bg (darkest), white = cards/sidebar (visibly lighter).
+     The ~12-point lightness gap between 50 and white ensures
+     clear surface hierarchy even on dim displays. */
+  --color-slate-50:  oklch(12% 0.02 285);
+  --color-slate-100: oklch(17% 0.025 285);
+  --color-slate-200: oklch(30% 0.035 283);
+  --color-slate-300: oklch(38% 0.04 280);
+  --color-slate-400: oklch(50% 0.035 278);
+  --color-slate-500: oklch(65% 0.03 275);
+  --color-slate-600: oklch(82% 0.02 272);
+  --color-slate-700: oklch(90% 0.012 270);
+  --color-slate-800: oklch(95% 0.007 268);
+  --color-slate-900: oklch(97.5% 0.004 268);
   --color-slate-950: #ffffff;
 
+  /* Remap blue → purple accent in dark mode
+     All blue-* utilities (bg-blue-600, text-blue-500, border-blue-400, etc.)
+     automatically become purple/violet without touching component files. */
+  --color-blue-50:    oklch(22% 0.06 290);
+  --color-blue-100:   oklch(30% 0.1 290);
+  --color-blue-200:   oklch(40% 0.14 289);
+  --color-blue-300:   oklch(55% 0.18 288);
+  --color-blue-400:   oklch(65% 0.2 287);
+  --color-blue-500:   oklch(72% 0.19 286);
+  --color-blue-600:   oklch(68% 0.21 287);
+  --color-blue-700:   oklch(60% 0.2 288);
+  --color-blue-800:   oklch(50% 0.17 289);
+  --color-blue-900:   oklch(35% 0.12 290);
+  --color-blue-950:   oklch(25% 0.08 291);
+
   /* Darken light accent backgrounds */
-  --color-blue-50:    oklch(28.2% 0.091 267.935);
-  --color-blue-100:   oklch(37.9% 0.146 265.522);
   --color-green-50:   oklch(26.6% 0.065 152.934);
   --color-green-100:  oklch(39.3% 0.095 152.535);
   --color-red-50:     oklch(25.8% 0.092 26.042);
   --color-red-100:    oklch(39.6% 0.141 25.723);
   --color-amber-50:   oklch(27.9% 0.077 45.635);
   --color-amber-100:  oklch(41.4% 0.112 45.904);
-  --color-violet-50:  oklch(28.3% 0.141 291.089);
-  --color-violet-100: oklch(38% 0.189 293.745);
+  --color-violet-50:  oklch(22% 0.06 290);
+  --color-violet-100: oklch(30% 0.1 290);
 }
 
 /* Preserve text-white in dark mode (buttons, badges) */
@@ -51,9 +67,9 @@
 }
 
 /* Lighten accent text on darkened accent backgrounds */
-.dark .text-blue-600    { color: oklch(70.7% 0.165 254.624); }
-.dark .text-blue-700    { color: oklch(80.9% 0.105 251.813); }
-.dark .text-blue-800    { color: oklch(80.9% 0.105 251.813); }
+.dark .text-blue-600    { color: oklch(75% 0.18 287); }
+.dark .text-blue-700    { color: oklch(82% 0.12 286); }
+.dark .text-blue-800    { color: oklch(82% 0.12 286); }
 .dark .text-green-600   { color: oklch(79.2% 0.209 151.711); }
 .dark .text-green-700   { color: oklch(87.1% 0.15 154.449); }
 .dark .text-green-800   { color: oklch(79.2% 0.209 151.711); }
@@ -71,18 +87,18 @@ h1, h2, h3 {
   font-family: 'Syne', sans-serif;
 }
 
-/* Prose dark mode — ensure typography plugin text is readable */
+/* Prose dark mode — purple-tinted typography */
 .dark .prose {
-  --tw-prose-body: oklch(86.9% 0.022 252.894);
-  --tw-prose-headings: oklch(98.4% 0.003 247.858);
-  --tw-prose-links: oklch(70.7% 0.165 254.624);
-  --tw-prose-bold: oklch(96.8% 0.007 247.896);
-  --tw-prose-code: oklch(96.8% 0.007 247.896);
-  --tw-prose-quotes: oklch(70.4% 0.04 256.788);
-  --tw-prose-quote-borders: oklch(37.2% 0.044 257.287);
-  --tw-prose-counters: oklch(55.4% 0.046 257.417);
-  --tw-prose-bullets: oklch(55.4% 0.046 257.417);
-  --tw-prose-hr: oklch(27.9% 0.041 260.031);
-  --tw-prose-th-borders: oklch(37.2% 0.044 257.287);
-  --tw-prose-td-borders: oklch(27.9% 0.041 260.031);
+  --tw-prose-body: oklch(82% 0.02 272);
+  --tw-prose-headings: oklch(97.5% 0.004 268);
+  --tw-prose-links: oklch(75% 0.18 287);
+  --tw-prose-bold: oklch(95% 0.007 268);
+  --tw-prose-code: oklch(95% 0.007 268);
+  --tw-prose-quotes: oklch(65% 0.03 275);
+  --tw-prose-quote-borders: oklch(33% 0.035 280);
+  --tw-prose-counters: oklch(50% 0.035 278);
+  --tw-prose-bullets: oklch(50% 0.035 278);
+  --tw-prose-hr: oklch(23.5% 0.03 283);
+  --tw-prose-th-borders: oklch(33% 0.035 280);
+  --tw-prose-td-borders: oklch(23.5% 0.03 283);
 }

@@ -10,6 +10,18 @@ import type { AgentContext, TokenUsage, ToolCallRecord } from './types.js';
 
 const MODEL = 'claude-sonnet-4-20250514';
 const MAX_ITERATIONS = 15;
+const MAX_TOOL_RESULT_CHARS = 12_000; // ~3K tokens — truncate large tool outputs
+const TOKEN_BUDGET = 180_000; // Stop looping before hitting API's 200K limit
+
+/**
+ * Truncate a tool result string to stay within token budget.
+ * Keeps the beginning and adds a truncation notice.
+ */
+function truncateToolResult(content: string): string {
+  if (content.length <= MAX_TOOL_RESULT_CHARS) return content;
+  const kept = content.slice(0, MAX_TOOL_RESULT_CHARS);
+  return `${kept}\n\n... [TRUNCATED — result was ${content.length} chars. Ask for specific sections if you need more detail.]`;
+}
 
 function requireClient(): Anthropic {
   if (!config.ANTHROPIC_API_KEY) {
@@ -67,7 +79,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
 
   // Prepend conversation history for multi-turn context
   if (history?.length) {
-    const recent = history.slice(-40); // Cap at 20 turns to control token budget
+    const recent = history.slice(-16); // Cap at 8 turns to control token budget
     for (const msg of recent) {
       messages.push({ role: msg.role, content: msg.content });
     }
@@ -172,7 +184,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
         toolResults.push({
           type: 'tool_result',
           tool_use_id: block.id,
-          content: JSON.stringify(output),
+          content: truncateToolResult(JSON.stringify(output)),
           is_error: !!error,
         });
       }
@@ -180,6 +192,11 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
 
     // If there were tool uses, feed results back and continue
     if (toolResults.length > 0) {
+      // Check token budget before continuing — stop early to avoid 400 errors
+      if (tokenUsage.inputTokens + tokenUsage.outputTokens > TOKEN_BUDGET) {
+        context.onEvent?.({ type: 'text', text: '\n\n[Stopping early — approaching token limit. Please start a new message for further exploration.]' });
+        break;
+      }
       messages.push({ role: 'assistant', content: response.content as Anthropic.ContentBlockParam[] });
       messages.push({ role: 'user', content: toolResults });
       continue;
