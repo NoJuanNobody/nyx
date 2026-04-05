@@ -91,19 +91,24 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const toolNames = workflow?.tools;
 
     // Enrich system prompt with team/user/document context
-    const [teamRows, recentDocs] = await Promise.all([
-      db.select({ name: teams.name }).from(teams).where(eq(teams.id, teamId)).limit(1),
-      db.select({ id: documents.id, title: documents.title, stage: documents.stage, status: documents.status })
-        .from(documents).where(eq(documents.teamId, teamId))
-        .orderBy(desc(documents.updatedAt)).limit(5),
-    ]);
+    let systemPrompt = baseSystemPrompt;
+    try {
+      const [teamRows, recentDocs] = await Promise.all([
+        db.select({ name: teams.name }).from(teams).where(eq(teams.id, teamId)).limit(1),
+        db.select({ id: documents.id, title: documents.title, stage: documents.stage, status: documents.status })
+          .from(documents).where(eq(documents.teamId, teamId))
+          .orderBy(desc(documents.updatedAt)).limit(5),
+      ]);
 
-    const teamName = teamRows[0]?.name ?? 'Unknown';
-    const docsContext = recentDocs.length > 0
-      ? `Recent documents:\n${recentDocs.map(d => `- "${d.title}" (${d.id}, stage: ${d.stage ?? 'none'}, status: ${d.status})`).join('\n')}`
-      : 'No documents in this team yet.';
+      const teamName = teamRows[0]?.name ?? 'Unknown';
+      const docsContext = recentDocs.length > 0
+        ? `Recent documents:\n${recentDocs.map(d => `- "${d.title}" (${d.id}, stage: ${d.stage ?? 'none'}, status: ${d.status})`).join('\n')}`
+        : 'No documents in this team yet.';
 
-    const systemPrompt = `${baseSystemPrompt}\n\n--- Context ---\nUser: ${user.name} (${user.email}), role: ${user.role}\nTeam: ${teamName}\n${docsContext}\n---`;
+      systemPrompt = `${baseSystemPrompt}\n\n--- Context ---\nUser: ${user.name} (${user.email}), role: ${user.role}\nTeam: ${teamName}\n${docsContext}\n---`;
+    } catch {
+      // Context enrichment failed — proceed with base prompt
+    }
 
     // Build user prompt with document context
     let fullPrompt = prompt;
