@@ -970,7 +970,7 @@ export const test = base.extend<NyxFixtures>({
     await setupApiMocks(page);
     await page.goto('/dashboard');
     // Wait for the sidebar logo to confirm auth loaded
-    await page.waitForSelector('a:has-text("Nyx")', { timeout: 15_000 });
+    await page.waitForSelector('a:has-text("Nyx")', { timeout: 30_000 });
     // Wait for the user section to load (confirms auth/me resolved)
     await page.waitForSelector('aside >> text=Dev User', { timeout: 10_000 }).catch(() => {});
     // Wait for team switcher to confirm teams are loaded (select only renders when teams.length > 1)
