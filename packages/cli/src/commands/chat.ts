@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { createInterface, type Interface as ReadlineInterface } from 'node:readline';
+import { createInterface } from 'node:readline';
 import { NyxClient, resolveTeamId } from '../client.js';
 import { renderMarkdown } from '../utils/markdown.js';
 
@@ -98,7 +98,7 @@ function startRepl(opts: ChatOptions, client: NyxClient): void {
   const cyan = '\x1b[38;5;117m';
   const reset = '\x1b[0m';
 
-  const rl: ReadlineInterface = createInterface({
+  const rl = createInterface({
     input: process.stdin,
     output: process.stdout,
     prompt: `${purple}nyx>${reset} `,
