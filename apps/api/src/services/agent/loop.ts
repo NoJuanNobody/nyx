@@ -24,6 +24,7 @@ export interface AgentLoopOptions {
   toolNames?: string[];
   workflowId?: string;
   context: AgentContext;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
 export interface AgentLoopResult {
@@ -39,7 +40,7 @@ export interface AgentLoopResult {
  * 3. Repeat until end_turn or max iterations
  */
 export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoopResult> {
-  const { systemPrompt, userPrompt, toolNames, workflowId, context } = options;
+  const { systemPrompt, userPrompt, toolNames, workflowId, context, history } = options;
 
   // ── Credit gate: verify the user can afford this run ──
   const creditCost = getAgentCost(workflowId);
@@ -62,9 +63,17 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
   const client = requireClient();
   const tools = getToolDefinitions(toolNames);
 
-  const messages: Anthropic.MessageParam[] = [
-    { role: 'user', content: userPrompt },
-  ];
+  const messages: Anthropic.MessageParam[] = [];
+
+  // Prepend conversation history for multi-turn context
+  if (history?.length) {
+    const recent = history.slice(-40); // Cap at 20 turns to control token budget
+    for (const msg of recent) {
+      messages.push({ role: msg.role, content: msg.content });
+    }
+  }
+
+  messages.push({ role: 'user', content: userPrompt });
 
   const allToolCalls: ToolCallRecord[] = [];
   const tokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 };

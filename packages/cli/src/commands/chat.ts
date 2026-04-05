@@ -6,13 +6,26 @@ import { renderMarkdown } from '../utils/markdown.js';
 interface ChatOptions {
   docId?: string;
   teamId?: string;
+  resume?: string;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+interface StreamResult {
+  response: string;
+  conversationId?: string;
 }
 
 async function streamAgentResponse(
   message: string,
   opts: ChatOptions,
   client: NyxClient,
-): Promise<void> {
+  history: ChatMessage[],
+  conversationId?: string,
+): Promise<StreamResult> {
   const url = `${client.apiUrl}/api/agent`;
 
   const headers: Record<string, string> = {
@@ -24,6 +37,8 @@ async function streamAgentResponse(
   const teamId = resolveTeamId(opts.teamId);
   const body: Record<string, unknown> = { prompt: message, teamId };
   if (opts.docId) body.documentId = opts.docId;
+  if (history.length > 0) body.history = history;
+  if (conversationId) body.conversationId = conversationId;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -36,6 +51,7 @@ async function streamAgentResponse(
     throw new Error(`API request failed (${res.status}): ${text}`);
   }
 
+  const resConversationId = res.headers.get('X-Conversation-Id') ?? undefined;
   const contentType = res.headers.get('content-type') ?? '';
 
   if (contentType.includes('text/event-stream')) {
@@ -80,6 +96,8 @@ async function streamAgentResponse(
     if (fullResponse) {
       console.log(renderMarkdown(fullResponse));
     }
+
+    return { response: fullResponse, conversationId: resConversationId };
   } else {
     // Non-SSE JSON response - print the content
     const json = (await res.json()) as Record<string, unknown>;
@@ -89,6 +107,8 @@ async function streamAgentResponse(
       (json.response as string) ??
       JSON.stringify(json, null, 2);
     console.log(text);
+
+    return { response: text, conversationId: resConversationId };
   }
 }
 
@@ -131,6 +151,9 @@ function startRepl(opts: ChatOptions, client: NyxClient): void {
   console.log(`  ${dim}Type /quit or press Ctrl+C to exit${reset}`);
   console.log('');
 
+  const conversationHistory: ChatMessage[] = [];
+  let activeConversationId: string | undefined = opts.resume;
+
   rl.prompt();
 
   rl.on('line', async (input: string) => {
@@ -149,8 +172,19 @@ function startRepl(opts: ChatOptions, client: NyxClient): void {
 
     try {
       process.stdout.write(`\n${dim}${cyan}`);
-      await streamAgentResponse(trimmed, opts, client);
+      const result = await streamAgentResponse(trimmed, opts, client, conversationHistory, activeConversationId);
       process.stdout.write(reset);
+
+      // Accumulate conversation history for multi-turn context
+      conversationHistory.push({ role: 'user', content: trimmed });
+      if (result.response) {
+        conversationHistory.push({ role: 'assistant', content: result.response });
+      }
+
+      // Track conversation ID for session continuity
+      if (result.conversationId) {
+        activeConversationId = result.conversationId;
+      }
     } catch (err) {
       process.stdout.write(reset);
       console.error(
@@ -175,6 +209,7 @@ export function registerChatCommand(program: Command): void {
     .description('Start an interactive REPL session with the Nyx agent')
     .option('--doc-id <docId>', 'Scope the conversation to a specific document')
     .option('--team-id <teamId>', 'Scope the conversation to a specific team')
+    .option('--resume <conversationId>', 'Resume a previous conversation')
     .action((opts: ChatOptions) => {
       const client = new NyxClient();
       startRepl(opts, client);

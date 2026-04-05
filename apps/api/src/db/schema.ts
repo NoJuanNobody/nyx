@@ -312,6 +312,7 @@ export const agentSessions = pgTable('agent_sessions', {
     .notNull()
     .references(() => users.id),
   documentId: uuid('document_id').references(() => documents.id),
+  conversationId: uuid('conversation_id'),  // groups sessions in one logical conversation
   status: agentSessionStatusEnum('status').notNull().default('running'),
   prompt: text('prompt').notNull(),
   result: text('result'),
