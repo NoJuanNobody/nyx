@@ -133,6 +133,8 @@ jobs:
         run: pnpm test:smoke
         env:
           CI: true
+          NODE_ENV: development
+          DEV_AUTH_BYPASS: "true"
           DATABASE_URL: postgres://postgres:testpassword@localhost:5432/nyx_test
 
   e2e:
@@ -174,4 +176,6 @@ jobs:
         run: pnpm test:e2e
         env:
           CI: true
+          NODE_ENV: development
+          DEV_AUTH_BYPASS: "true"
           DATABASE_URL: postgres://postgres:testpassword@localhost:5432/nyx_test
