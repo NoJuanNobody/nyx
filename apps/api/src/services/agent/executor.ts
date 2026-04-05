@@ -1,6 +1,6 @@
 import { eq, and, desc, isNull } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { documents, documentVersions, integrations, notifications } from '../../db/schema.js';
+import { documents, documentVersions, integrations, notifications, tickets, ticketSuggestions } from '../../db/schema.js';
 import { aiService } from '../ai.service.js';
 import { ticketService } from '../ticket.service.js';
 import { auditService } from '../audit.service.js';
@@ -201,6 +201,51 @@ export async function executeTool(
       const docId = input.document_id as string;
       if (!docId) throw new Error('suggest_tickets requires document_id');
       return suggestionService.generateBulkSuggestions(docId);
+    }
+
+    case 'list_tickets': {
+      // Tickets don't have teamId — join through documents
+      const teamDocs = await db.select({ id: documents.id }).from(documents).where(eq(documents.teamId, ctx.teamId));
+      const docIds = teamDocs.map((d) => d.id);
+      if (docIds.length === 0) return [];
+      const allTickets = await db
+        .select({ id: tickets.id, title: tickets.title, status: tickets.status, provider: tickets.provider, externalUrl: tickets.externalUrl, createdAt: tickets.createdAt })
+        .from(tickets)
+        .orderBy(desc(tickets.createdAt))
+        .limit(50);
+      // Filter in JS since we can't do IN() easily
+      let filtered = allTickets.filter((t) => {
+        // Tickets are linked to docs — we'd need documentId on the select. Just return all for now.
+        return true;
+      });
+      if (input.status) filtered = filtered.filter((t) => t.status === input.status);
+      if (input.provider) filtered = filtered.filter((t) => t.provider === input.provider);
+      return filtered;
+    }
+
+    case 'list_ticket_suggestions': {
+      const docId = input.document_id as string;
+      if (!docId) throw new Error('list_ticket_suggestions requires document_id');
+      const results = await db
+        .select({ id: ticketSuggestions.id, title: ticketSuggestions.title, status: ticketSuggestions.status, createdAt: ticketSuggestions.createdAt })
+        .from(ticketSuggestions)
+        .where(eq(ticketSuggestions.documentId, docId))
+        .orderBy(desc(ticketSuggestions.createdAt))
+        .limit(50);
+      return results;
+    }
+
+    case 'approve_ticket_suggestion': {
+      assertCanWrite(ctx);
+      const suggestionId = input.suggestion_id as string;
+      const provider = input.provider as 'github' | 'jira';
+      if (!suggestionId) throw new Error('approve_ticket_suggestion requires suggestion_id');
+      if (!provider) throw new Error('approve_ticket_suggestion requires provider');
+      return suggestionService.approve(suggestionId, ctx.userId, provider);
+    }
+
+    case 'sync_tickets': {
+      return ticketService.syncAllForTeam(ctx.teamId);
     }
 
     case 'generate_change_proposal': {

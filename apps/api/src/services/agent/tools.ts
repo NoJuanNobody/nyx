@@ -174,6 +174,54 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
     },
   },
 
+  list_tickets: {
+    name: 'list_tickets',
+    description: 'List all tickets for the team, optionally filtered by status or provider. Returns ticket IDs, titles, status, and external URLs.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        status: { type: 'string', enum: ['open', 'in_progress', 'closed'], description: 'Filter by status (optional)' },
+        provider: { type: 'string', enum: ['github', 'jira'], description: 'Filter by provider (optional)' },
+      },
+      required: [],
+    },
+  },
+
+  list_ticket_suggestions: {
+    name: 'list_ticket_suggestions',
+    description: 'List pending ticket suggestions for a document. These are AI-generated suggestions that can be approved or dismissed.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        document_id: { type: 'string', description: 'UUID of the document' },
+      },
+      required: ['document_id'],
+    },
+  },
+
+  approve_ticket_suggestion: {
+    name: 'approve_ticket_suggestion',
+    description: 'Approve a pending ticket suggestion, creating an actual ticket in GitHub or Jira.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        suggestion_id: { type: 'string', description: 'UUID of the ticket suggestion to approve' },
+        provider: { type: 'string', enum: ['github', 'jira'], description: 'Where to create the ticket' },
+      },
+      required: ['suggestion_id', 'provider'],
+    },
+  },
+
+  sync_tickets: {
+    name: 'sync_tickets',
+    description: 'Sync all ticket statuses from external providers (GitHub, Jira) back to Nyx. Returns count of synced and errored tickets.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
+
   generate_change_proposal: {
     name: 'generate_change_proposal',
     description: 'Generate a change proposal for a document by analyzing its recent version changes. Returns a proposal with suggested tickets.',

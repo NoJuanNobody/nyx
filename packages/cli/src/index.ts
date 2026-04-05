@@ -47,7 +47,55 @@ const program = new Command();
 
 program
   .name('nyx')
-  .description('CLI wrapper for the Nyx API')
+  .description(`Nyx — Product Versioning Platform
+
+  Goddess of night, mother of dreams.
+  Turn ideas into specs. Keep specs in sync with code.
+
+  Core:
+    chat                  Interactive AI REPL
+    intake                Raw ideas → structured specs
+    docs                  Document CRUD
+    quality               AI quality scoring & improvement
+    tickets               AI ticket generation, create, sync
+    check <file>          Spec compliance gate
+
+  Discovery:
+    search <query>        Web search
+    context <doc-id>      Find related specs
+    query "question"      RAG-powered Q&A over docs
+
+  Lifecycle:
+    branches              Document branching & merging
+    versions / diff       Version history & diffs
+    proposals             Stakeholder change proposals
+    timeline / snapshot   Event timeline & snapshots
+
+  Integrations:
+    integrations          Connect GitHub, GitLab, Jira, etc.
+    apikeys               API key management
+    byok                  Bring your own AI key
+
+  Platform:
+    sprint                Sprint capacity & gating
+    billing / credits     Plans, usage, credits
+    notifications         Notification management
+    permissions           Role & permission checks
+    governance            Policy validation
+
+  Content:
+    podcast               Generate podcast scripts & audio
+    deliverables          Export docs (PDF, LaTeX, DOCX, etc.)
+    templates / marketplace  Templates & marketplace
+    video                 Video generation
+
+  Operations:
+    status                Platform health check
+    jobs                  Background job status
+    agent                 AI agent sessions
+    orchestrate           Multi-agent pipelines
+    admin                 Super-admin operations
+    config                CLI configuration`)
   .version('0.1.0');
 
 // === COMMAND REGISTRATION ===
