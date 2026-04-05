@@ -129,8 +129,36 @@ jobs:
         run: pnpm --filter api exec drizzle-kit push --force
         env:
           DATABASE_URL: postgres://postgres:testpassword@localhost:5432/nyx_test
+      - name: Build packages
+        run: pnpm build
+      - name: Start API server
+        run: |
+          cd apps/api && node dist/index.js &
+          echo "Waiting for API..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3001/health > /dev/null 2>&1; then
+              echo "API ready!"
+              break
+            fi
+            sleep 2
+          done
+        env:
+          NODE_ENV: development
+          DEV_AUTH_BYPASS: "true"
+          DATABASE_URL: postgres://postgres:testpassword@localhost:5432/nyx_test
+          PORT: "3001"
+      - name: Start frontend
+        run: |
+          cd apps/web && npx vite preview --port 5173 &
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:5173 > /dev/null 2>&1; then
+              echo "Vite ready!"
+              break
+            fi
+            sleep 2
+          done
       - name: Run smoke tests
-        run: pnpm test:smoke
+        run: PLAYWRIGHT_SKIP_WEBSERVER=1 pnpm test:smoke
         env:
           CI: true
           NODE_ENV: development
@@ -172,8 +200,36 @@ jobs:
         run: pnpm --filter api exec drizzle-kit push --force
         env:
           DATABASE_URL: postgres://postgres:testpassword@localhost:5432/nyx_test
+      - name: Build packages
+        run: pnpm build
+      - name: Start API server
+        run: |
+          cd apps/api && node dist/index.js &
+          echo "Waiting for API..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3001/health > /dev/null 2>&1; then
+              echo "API ready!"
+              break
+            fi
+            sleep 2
+          done
+        env:
+          NODE_ENV: development
+          DEV_AUTH_BYPASS: "true"
+          DATABASE_URL: postgres://postgres:testpassword@localhost:5432/nyx_test
+          PORT: "3001"
+      - name: Start frontend
+        run: |
+          cd apps/web && npx vite preview --port 5173 &
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:5173 > /dev/null 2>&1; then
+              echo "Vite ready!"
+              break
+            fi
+            sleep 2
+          done
       - name: Run E2E tests
-        run: pnpm test:e2e
+        run: PLAYWRIGHT_SKIP_WEBSERVER=1 pnpm test:e2e
         env:
           CI: true
           NODE_ENV: development

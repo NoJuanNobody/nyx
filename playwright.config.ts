@@ -19,20 +19,22 @@ export default defineConfig({
       use: { browserName: 'chromium' },
     },
   ],
-  webServer: {
-    command: process.env.CI ? 'bash e2e/start-servers.sh' : 'pnpm dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    stdout: 'pipe',
-    stderr: 'pipe',
-    env: {
-      ...process.env,
-      NODE_ENV: 'development',
-      DEV_AUTH_BYPASS: 'true',
-      CLERK_SECRET_KEY: '',
-      CLERK_PUBLISHABLE_KEY: '',
-      VITE_CLERK_PUBLISHABLE_KEY: '',
+  ...(process.env.PLAYWRIGHT_SKIP_WEBSERVER ? {} : {
+    webServer: {
+      command: 'pnpm dev',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: {
+        ...process.env,
+        NODE_ENV: 'development',
+        DEV_AUTH_BYPASS: 'true',
+        CLERK_SECRET_KEY: '',
+        CLERK_PUBLISHABLE_KEY: '',
+        VITE_CLERK_PUBLISHABLE_KEY: '',
+      },
     },
-  },
+  }),
 });
