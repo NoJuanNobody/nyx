@@ -74,11 +74,8 @@ export const gatekeeperService = {
       validTransition = false;
       transitionReason = `Target stage "${targetStage}" is not a recognized stage`;
     } else if (document.stage === null) {
-      // No current stage — allow transition to the first stage only
-      validTransition = targetIndex === 0;
-      if (!validTransition) {
-        transitionReason = `Document has no current stage; it must start at "${stageOrder[0]}"`;
-      }
+      // No current stage — allow transition to any valid stage (initial assignment)
+      validTransition = true;
     } else if (currentIndex === -1) {
       // Current stage not in known order — allow any valid target
       validTransition = true;
