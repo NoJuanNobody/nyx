@@ -1,3 +1,10 @@
+// Force chalk color support for marked-terminal before it initialises chalk.
+// Without this, chalk detects level 0 in some environments (piped stdout,
+// tsx -e, etc.) and strips all bold / italic / heading ANSI codes.
+if (!process.env.FORCE_COLOR && process.stdout.isTTY) {
+  process.env.FORCE_COLOR = '1';
+}
+
 import { Marked } from 'marked';
 // @ts-expect-error no type declarations
 import { markedTerminal } from 'marked-terminal';
