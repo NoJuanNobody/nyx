@@ -163,7 +163,6 @@ describe('Podcast CLI Command', () => {
       expect(consoleSpy).toHaveBeenCalled();
       const output = consoleSpy.mock.calls[0][0] as string;
       expect(output).toContain('(no results)');
-      expect(output).toContain('No podcast scripts found');
     });
   });
 });

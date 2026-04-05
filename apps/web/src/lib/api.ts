@@ -1309,7 +1309,6 @@ export interface MarketplaceListing {
   priceType: 'free' | 'paid';
   priceAmountCents: number | null;
   creditPrice: number | null;
->>>>>>> feat/issue-125-community-marketplace
   category: string | null;
   tags: string[];
   stage: string | null;
@@ -1375,7 +1374,6 @@ export function fetchMarketplaceListing(id: string): Promise<MarketplaceListing>
 }
 
 export function createMarketplaceListing(data: { type: string; title: string; description: string; content: string; priceType?: string; creditPrice?: number; priceAmountCents?: number; category?: string; tags?: string[]; stage?: string }): Promise<MarketplaceListing> {
-export function createMarketplaceListing(data: { type: string; title: string; description: string; content: string; priceType?: string; category?: string; tags?: string[]; stage?: string }): Promise<MarketplaceListing> {
   return request<MarketplaceListing>('/marketplace', { method: 'POST', body: JSON.stringify(data) });
 }
 
@@ -1475,8 +1473,6 @@ export function createProjectShowcase(data: { title: string; description: string
   return request<ProjectShowcase>('/project-showcases', { method: 'POST', body: JSON.stringify(data) });
 }
 
-<<<<<<< HEAD
->>>>>>> feat/issue-141-multi-agent-orchestration
 // ── Observability ────────────────────────────────────────────────────
 
 export function fetchObservabilityDashboard(): Promise<{
@@ -1499,7 +1495,6 @@ export function fetchPipelineHealth(): Promise<Array<{ stage: string; avgLatency
   return request('/observability/pipeline-health');
 }
 
-<<<<<<< HEAD
 // ── Background Jobs ─────────────────────────────────────────────────
 
 export interface JobStatus<T = unknown> {
@@ -1516,8 +1511,6 @@ export function fetchJobStatus<T = unknown>(jobId: string): Promise<JobStatus<T>
   return request<JobStatus<T>>(`/jobs/${jobId}`);
 }
 
-=======
-=======
 // ── Ticket Suggestions (Bulk) ───────────────────────────────────────
 
 export interface TicketSuggestion {

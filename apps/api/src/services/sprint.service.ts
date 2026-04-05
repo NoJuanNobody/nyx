@@ -1,7 +1,5 @@
 // Sprint capacity service: fetches sprint data from GitHub Projects v2,
 // checks capacity, and supports deferring tickets.
-// Sprint capacity service: fetches active sprint data from Jira/Linear,
-// checks capacity, and supports deferring tickets to backlog.
 //
 // Capacity is measured in DECISION WEIGHT — the human judgment cost to
 // review, validate, and integrate work — not story points or dev-days.
@@ -12,7 +10,6 @@ import { jiraService } from './jira.service.js';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { integrations } from '../db/schema.js';
->>>>>>> feat/issue-125-community-marketplace
 
 export interface SprintTicket {
   id: string;
@@ -50,7 +47,6 @@ export interface SprintCheckResult {
 // ── Status mapping ──────────────────────────────────────────────────
 // GitHub Projects v2 status columns → normalized status values
 
-<<<<<<< HEAD
 function normalizeStatus(ghStatus: string | null): string {
   if (!ghStatus) return 'todo';
   const lower = ghStatus.toLowerCase();
@@ -58,23 +54,6 @@ function normalizeStatus(ghStatus: string | null): string {
   if (lower === 'in progress' || lower === 'in review' || lower === 'active') return 'in_progress';
   return 'todo'; // Todo, Backlog, New, Triage, etc.
 }
-=======
-const MOCK_SPRINT: SprintCapacity = {
-  sprintName: 'Sprint 12',
-  totalWeight: 200,
-  usedWeight: 168,
-  capacityPercent: 84,
-  totalPoints: 40,
-  usedPoints: 34,
-  tickets: [
-    { id: 'MOCK-101', title: 'Implement user profile page', points: 5, decisionWeight: 28, reviewCycles: 2, status: 'in_progress' },
-    { id: 'MOCK-102', title: 'Fix login redirect bug', points: 3, decisionWeight: 12, reviewCycles: 1, status: 'done' },
-    { id: 'MOCK-103', title: 'Add export CSV feature', points: 8, decisionWeight: 42, reviewCycles: 3, status: 'todo' },
-    { id: 'MOCK-104', title: 'Update API rate limiting', points: 5, decisionWeight: 35, reviewCycles: 2, status: 'in_progress' },
-    { id: 'MOCK-105', title: 'Refactor notification service', points: 8, decisionWeight: 22, reviewCycles: 2, status: 'todo' },
-    { id: 'MOCK-106', title: 'Write integration tests', points: 5, decisionWeight: 29, reviewCycles: 2, status: 'in_progress' },
-  ],
-};
 
 // ── Decision weight heuristic ───────────────────────────────────────
 // Estimate decision weight from issue labels and title when no explicit
@@ -318,17 +297,6 @@ export const sprintService = {
     if (jiraData) return jiraData;
 
     return getEmptySprint();
-  async getSprintCapacity(_teamId: string): Promise<SprintCapacity> {
-    // TODO: When Jira/Linear integration is connected, fetch real sprint data.
-    // For MVP, return mock data that simulates a near-capacity sprint.
-    const sprint = { ...MOCK_SPRINT };
-    // Filter out deferred tickets
-    sprint.tickets = sprint.tickets.filter((t) => !deferredTickets.has(t.id));
-    sprint.usedPoints = sprint.tickets.reduce((sum, t) => sum + t.points, 0);
-    sprint.usedWeight = sprint.tickets.reduce((sum, t) => sum + t.decisionWeight, 0);
-    // Capacity is gated on decision weight, not story points
-    sprint.capacityPercent = Math.round((sprint.usedWeight / sprint.totalWeight) * 100);
-    return sprint;
   },
 
   /**
@@ -349,10 +317,6 @@ export const sprintService = {
 
     const suggestions: string[] = [];
     if (overThreshold) {
-<<<<<<< HEAD
-=======
-      // Suggest deferring non-started tickets with highest decision weight first
->>>>>>> feat/issue-125-community-marketplace
       const deferrable = capacity.tickets
         .filter((t) => t.status === 'todo')
         .sort((a, b) => b.decisionWeight - a.decisionWeight);

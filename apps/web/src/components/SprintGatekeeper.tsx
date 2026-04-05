@@ -4,10 +4,7 @@ import {
   getSprintCapacity,
   checkSprintCapacity,
   deferSprintTicket,
-<<<<<<< HEAD
   scheduleNextSprint,
-=======
->>>>>>> feat/issue-125-community-marketplace
   type SprintTicket,
   type SprintCapacityData,
   type SprintCheckResult,

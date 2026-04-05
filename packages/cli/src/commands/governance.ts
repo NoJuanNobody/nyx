@@ -1,7 +1,6 @@
 import { Command } from 'commander';
 import fs from 'node:fs';
 import { resolveTeamId } from '../client.js';
->>>>>>> feat/issue-141-multi-agent-orchestration
 
 const SECRET_PATTERNS = [
   /(?:api[_-]?key|apikey)\s*[:=]\s*['"][A-Za-z0-9_\-]{16,}['"]/i,
@@ -96,10 +95,7 @@ export function registerGovernanceCommand(program: Command): void {
     .command('validate')
     .description('Validate an action against governance rules')
     .requiredOption('--action <action>', 'Action to validate (publish, edit, create, delete)')
-<<<<<<< HEAD
     .option('--team-id <id>', 'Team ID')
-=======
-    .requiredOption('--team-id <id>', 'Team ID')
     .option('--doc-id <id>', 'Document ID')
     .option('--content <content>', 'Content to validate')
     .option('--stage <stage>', 'Document lifecycle stage')
@@ -110,10 +106,6 @@ export function registerGovernanceCommand(program: Command): void {
         const body: Record<string, string> = {
           action: options.action,
           teamId,
-      try {
-        const body: Record<string, string> = {
-          action: options.action,
-          teamId: options.teamId,
         };
         if (options.docId) body.documentId = options.docId;
         if (options.content) body.content = options.content;

@@ -15,7 +15,6 @@ vi.mock('../client.js', () => ({
   })),
   resolveTeamId: vi.fn().mockReturnValue('team-1'),
   resolveDocId: vi.fn().mockResolvedValue('doc-1'),
->>>>>>> feat/issue-141-multi-agent-orchestration
 }));
 
 describe('orchestrate command', () => {
@@ -170,9 +169,7 @@ describe('orchestrate command', () => {
     await program.parseAsync([
       'node', 'nyx', 'orchestrate', 'list',
       '--team-id', 'team-1',
-<<<<<<< HEAD
       '--format', 'json',
-=======
     ]);
 
     expect(mockGet).toHaveBeenCalledWith(

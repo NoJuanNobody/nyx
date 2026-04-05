@@ -1,8 +1,6 @@
 import { Command } from 'commander';
 import { NyxClient, resolveTeamId } from '../client.js';
 import { formatOutput, formatTable, error, type OutputFormat } from '../utils/output.js';
-import { NyxClient } from '../client.js';
-import { formatOutput, error, type OutputFormat } from '../utils/output.js';
 
 export function registerPermissionsCommand(program: Command): void {
   const permissions = program
@@ -13,14 +11,12 @@ export function registerPermissionsCommand(program: Command): void {
     .command('check')
     .description('Check if the authenticated user can perform an action')
     .option('--team-id <teamId>', 'Team ID')
-    .requiredOption('--team-id <teamId>', 'Team ID')
     .requiredOption('--action <action>', 'Action to check (read|edit|create|deploy|merge|delete|manage|transfer)')
     .option('--resource-type <type>', 'Resource type')
     .option('--resource-id <id>', 'Resource ID')
     .option('--format <format>', 'Output format (json|table)', 'json')
     .action(async (opts: {
       teamId?: string;
-      teamId: string;
       action: string;
       resourceType?: string;
       resourceId?: string;
@@ -30,9 +26,6 @@ export function registerPermissionsCommand(program: Command): void {
       const client = new NyxClient();
       const params = new URLSearchParams({
         teamId,
-      const client = new NyxClient();
-      const params = new URLSearchParams({
-        teamId: opts.teamId,
         action: opts.action,
       });
       if (opts.resourceType) params.set('resourceType', opts.resourceType);
@@ -86,15 +79,6 @@ export function registerPermissionsCommand(program: Command): void {
           ];
           console.log(lines.join('\n'));
         }
-    .requiredOption('--team-id <teamId>', 'Team ID')
-    .option('--format <format>', 'Output format (json|table)', 'json')
-    .action(async (opts: { teamId: string; format: OutputFormat }) => {
-      const client = new NyxClient();
-      const params = new URLSearchParams({ teamId: opts.teamId });
-
-      try {
-        const data = await client.get(`/api/permissions/roles?${params}`);
-        console.log(formatOutput(data, opts.format));
       } catch (err) {
         error(err instanceof Error ? err.message : String(err));
       }

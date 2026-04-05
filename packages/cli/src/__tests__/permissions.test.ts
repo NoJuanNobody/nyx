@@ -12,7 +12,6 @@ vi.mock('../client.js', () => ({
   })),
   resolveTeamId: vi.fn().mockReturnValue('team-1'),
   resolveDocId: vi.fn().mockResolvedValue('doc-1'),
->>>>>>> feat/issue-141-multi-agent-orchestration
 }));
 
 describe('permissions command', () => {
@@ -28,10 +27,8 @@ describe('permissions command', () => {
           requiredRole: 'editor',
         }),
       })),
-<<<<<<< HEAD
       resolveTeamId: vi.fn().mockReturnValue('team-1'),
       resolveDocId: vi.fn().mockResolvedValue('doc-1'),
-=======
     }));
     program = new Command();
     program.exitOverride();
