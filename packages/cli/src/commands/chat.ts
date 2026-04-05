@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { createInterface } from 'node:readline';
+import * as readline from 'node:readline';
 import { NyxClient, resolveTeamId } from '../client.js';
 import { renderMarkdown } from '../utils/markdown.js';
 
@@ -98,11 +98,11 @@ function startRepl(opts: ChatOptions, client: NyxClient): void {
   const cyan = '\x1b[38;5;117m';
   const reset = '\x1b[0m';
 
-  const rl = createInterface({
+  const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
     prompt: `${purple}nyx>${reset} `,
-  });
+  }) as readline.Interface & { on(event: string, listener: (...args: unknown[]) => void): void; prompt(): void };
 
   const scope: string[] = [];
   if (opts.docId) scope.push(`doc:${opts.docId}`);
