@@ -974,7 +974,7 @@ export const test = base.extend<NyxFixtures>({
     // Wait for the user section to load (confirms auth/me resolved)
     await page.waitForSelector('aside >> text=Dev User', { timeout: 10_000 }).catch(() => {});
     // Wait for team switcher to confirm teams are loaded (select only renders when teams.length > 1)
-    await page.waitForSelector('aside select', { timeout: 10_000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="team-switcher"]', { timeout: 10_000 }).catch(() => {});
     await use(page);
   },
 
