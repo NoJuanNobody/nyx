@@ -13,6 +13,7 @@ import { exportService } from '../export.service.js';
 import { retrieveChunks } from '../retrieval.service.js';
 import { checkCompliance } from '../compliance.service.js';
 import { ttsService } from '../tts.service.js';
+import { codebaseScannerService } from '../codebase-scanner.service.js';
 import type { AgentContext } from './types.js';
 
 // Roles that can write (update docs, create tickets)
@@ -404,6 +405,20 @@ export async function executeTool(
         .limit(20);
 
       return rows;
+    }
+
+    // ── Codebase Scanner ──────────────────────────────────
+
+    case 'scan_codebase': {
+      const teamId = (input.team_id as string) || ctx.teamId;
+      return codebaseScannerService.scanAndFillSpecs(teamId);
+    }
+
+    case 'scan_document': {
+      const docId = input.document_id as string;
+      if (!docId) throw new Error('scan_document requires document_id');
+      const teamId = (input.team_id as string) || ctx.teamId;
+      return codebaseScannerService.scanDocument(docId, teamId);
     }
 
     default:

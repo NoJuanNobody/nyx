@@ -353,6 +353,33 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
       required: [],
     },
   },
+
+  // ── Codebase Scanner ─────────────────────────────────
+
+  scan_codebase: {
+    name: 'scan_codebase',
+    description: 'Scan all team documents against the connected GitHub repository to find missing or incomplete spec sections. Creates change proposals for PM review.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        team_id: { type: 'string', description: 'Optional team UUID (defaults to current team)' },
+      },
+      required: [],
+    },
+  },
+
+  scan_document: {
+    name: 'scan_document',
+    description: 'Scan a single document against the connected GitHub repository to find missing or incomplete spec sections based on actual implementation code.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        document_id: { type: 'string', description: 'UUID of the document to scan' },
+        team_id: { type: 'string', description: 'Optional team UUID (defaults to current team)' },
+      },
+      required: ['document_id'],
+    },
+  },
 };
 
 /**

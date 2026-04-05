@@ -75,6 +75,7 @@ import { approvalRoutes } from './routes/approvals.js';
 import { queryRoutes } from './routes/query.js';
 import { retrievalRoutes } from './routes/retrieval.js';
 import { complianceRoutes } from './routes/compliance.js';
+import { scannerRoutes } from './routes/scanner.js';
 import { authMiddleware } from './middleware/auth.js';
 import { config } from './lib/config.js';
 
@@ -258,6 +259,7 @@ export function buildApp() {
   app.register(queryRoutes, { prefix: '/api/query' });
   app.register(retrievalRoutes, { prefix: '/api/retrieve' });
   app.register(complianceRoutes, { prefix: '/api/compliance' });
+  app.register(scannerRoutes, { prefix: '/api/scanner' });
 
   return app;
 }

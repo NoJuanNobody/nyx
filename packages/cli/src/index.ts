@@ -41,6 +41,7 @@ import { registerAdminCommand } from './commands/admin.js';
 import { registerChatCommand } from './commands/chat.js';
 import { registerQueryCommand } from './commands/query.js';
 import { registerCheckCommand } from './commands/check.js';
+import { registerScanCommand } from './commands/scan.js';
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -70,6 +71,9 @@ program
     versions / diff       Version history & diffs
     proposals             Stakeholder change proposals
     timeline / snapshot   Event timeline & snapshots
+
+  Codebase:
+    scan [doc-id]         Scan repo to fill missing spec sections
 
   Integrations:
     integrations          Connect GitHub, GitLab, Jira, etc.
@@ -143,6 +147,7 @@ registerAdminCommand(program);
 registerChatCommand(program);
 registerQueryCommand(program);
 registerCheckCommand(program);
+registerScanCommand(program);
 // === END COMMAND REGISTRATION ===
 
 program.parse();

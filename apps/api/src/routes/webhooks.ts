@@ -10,6 +10,7 @@ import { ticketService } from '../services/ticket.service.js';
 import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
 import { claudeInsightsService } from '../services/claude-insights.service.js';
+import { codebaseScannerService } from '../services/codebase-scanner.service.js';
 import { githubPushPayload, githubIssuesPayload, githubIssueCommentPayload } from '@nyx/shared';
 
 function verifyGitHubSignature(payload: string, signature: string, secret: string): boolean {
@@ -152,6 +153,17 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
             // Best-effort; don't crash on webhook processing errors
           }
         });
+
+        // Fire-and-forget: trigger codebase scan for the team
+        if (matchedIntegration?.teamId) {
+          setImmediate(async () => {
+            try {
+              await codebaseScannerService.scanAndFillSpecs(matchedIntegration!.teamId);
+            } catch {
+              // Best-effort scan on push
+            }
+          });
+        }
       }
 
       return { ok: true, ...result };
