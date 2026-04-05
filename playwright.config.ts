@@ -19,20 +19,28 @@ export default defineConfig({
       use: { browserName: 'chromium' },
     },
   ],
-  webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    stdout: 'pipe',
-    stderr: 'pipe',
-    env: {
-      ...process.env,
-      NODE_ENV: 'development',
-      DEV_AUTH_BYPASS: 'true',
-      CLERK_SECRET_KEY: '',
-      CLERK_PUBLISHABLE_KEY: '',
-      VITE_CLERK_PUBLISHABLE_KEY: '',
+  webServer: [
+    {
+      command: 'pnpm dev',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: {
+        ...process.env,
+        NODE_ENV: 'development',
+        DEV_AUTH_BYPASS: 'true',
+        CLERK_SECRET_KEY: '',
+        CLERK_PUBLISHABLE_KEY: '',
+        VITE_CLERK_PUBLISHABLE_KEY: '',
+      },
     },
-  },
+    {
+      command: 'echo "Waiting for API..." && until curl -s http://localhost:3001/health > /dev/null 2>&1; do sleep 1; done && echo "API ready"',
+      url: 'http://localhost:3001/health',
+      reuseExistingServer: true,
+      timeout: 120_000,
+    },
+  ],
 });
