@@ -1127,7 +1127,6 @@ Respond ONLY with valid JSON in this exact format:
       max_tokens: 4096,
       system:
         `You are a technical documentation expert helping teams progress through their product lifecycle. ${seedPrompt} Write the output as a well-structured markdown document. Start with a # Title heading on the first line.`,
-        `You are a technical documentation expert. Given source documentation, generate the next-stage document as rich markdown with proper headings, lists, and formatting. ${seedPrompt} Return your response as valid JSON in this exact format: {"title": "<document title>", "content": "<full markdown content with proper headings, lists, and formatting>"}`,
       messages: [
         {
           role: 'user',
@@ -1145,26 +1144,5 @@ Respond ONLY with valid JSON in this exact format:
       title: headingMatch ? headingMatch[1].trim() : 'Untitled Document',
       content: text,
     };
-    // Strip code fences (```json ... ``` or ``` ... ```) anywhere in the text
-    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
-
-    // Try to extract a JSON object from the text (AI may wrap it in extra prose)
-    const jsonMatch = text.match(/(\{[\s\S]*"content"\s*:[\s\S]*\})\s*$/);
-    const jsonCandidate = jsonMatch ? jsonMatch[0] : text;
-
-    try {
-      const parsed = JSON.parse(jsonCandidate) as { title: string; content: string };
-      return {
-        title: parsed.title || 'Untitled Document',
-        content: parsed.content || text,
-      };
-    } catch {
-      // Fallback: extract title from first markdown heading
-      const headingMatch = text.match(/^#\s+(.+)$/m);
-      return {
-        title: headingMatch ? headingMatch[1].trim() : 'Untitled Document',
-        content: text,
-      };
-    }
   },
 };
