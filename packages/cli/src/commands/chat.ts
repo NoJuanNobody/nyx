@@ -98,11 +98,12 @@ function startRepl(opts: ChatOptions, client: NyxClient): void {
   const cyan = '\x1b[38;5;117m';
   const reset = '\x1b[0m';
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
     prompt: `${purple}nyx>${reset} `,
-  }) as readline.Interface & { on(event: string, listener: (...args: unknown[]) => void): void; prompt(): void };
+  }) as any;
 
   const scope: string[] = [];
   if (opts.docId) scope.push(`doc:${opts.docId}`);
