@@ -149,7 +149,7 @@ jobs:
           PORT: "3001"
       - name: Start frontend
         run: |
-          cd apps/web && VITE_CLERK_PUBLISHABLE_KEY=pk_test_placeholder npx vite --port 5173 &
+          cd apps/web && npx vite --port 5173 &
           for i in $(seq 1 15); do
             if curl -sf http://localhost:5173 > /dev/null 2>&1; then
               echo "Vite ready!"
@@ -157,6 +157,8 @@ jobs:
             fi
             sleep 2
           done
+        env:
+          VITE_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
       - name: Run smoke tests
         run: PLAYWRIGHT_SKIP_WEBSERVER=1 pnpm test:smoke
         env:
@@ -220,7 +222,7 @@ jobs:
           PORT: "3001"
       - name: Start frontend
         run: |
-          cd apps/web && VITE_CLERK_PUBLISHABLE_KEY=pk_test_placeholder npx vite --port 5173 &
+          cd apps/web && npx vite --port 5173 &
           for i in $(seq 1 15); do
             if curl -sf http://localhost:5173 > /dev/null 2>&1; then
               echo "Vite ready!"
@@ -228,6 +230,8 @@ jobs:
             fi
             sleep 2
           done
+        env:
+          VITE_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
       - name: Run E2E tests
         run: PLAYWRIGHT_SKIP_WEBSERVER=1 pnpm test:e2e
         env:
