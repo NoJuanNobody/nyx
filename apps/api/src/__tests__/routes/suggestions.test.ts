@@ -6,7 +6,7 @@ vi.mock('../../middleware/permissions.js', () => ({
   requireRole: () => async () => {},
 }));
 
-const { mockSuggestionService } = vi.hoisted(() => ({
+const { mockSuggestionService, mockJobService } = vi.hoisted(() => ({
   mockSuggestionService: {
     generateSuggestions: vi.fn(),
     generateBulkSuggestions: vi.fn(),
@@ -17,10 +17,23 @@ const { mockSuggestionService } = vi.hoisted(() => ({
     bulkApprove: vi.fn(),
     updateSuggestion: vi.fn(),
   },
+  mockJobService: {
+    create: vi.fn().mockResolvedValue({ id: 'job-1' }),
+    markRunning: vi.fn().mockResolvedValue({}),
+    markCompleted: vi.fn().mockResolvedValue({}),
+    markFailed: vi.fn().mockResolvedValue({}),
+    listByTeam: vi.fn().mockResolvedValue([]),
+    getById: vi.fn().mockResolvedValue(null),
+    updateProgress: vi.fn().mockResolvedValue({}),
+  },
 }));
 
 vi.mock('../../services/suggestion.service.js', () => ({
   suggestionService: mockSuggestionService,
+}));
+
+vi.mock('../../services/job.service.js', () => ({
+  jobService: mockJobService,
 }));
 
 import { suggestionRoutes } from '../../routes/suggestions.js';
@@ -134,12 +147,14 @@ describe('Suggestion Routes', () => {
       },
     });
 
-    expect(res.statusCode).toBe(200);
-    expect(mockSuggestionService.bulkApprove).toHaveBeenCalledWith(
-      ['sug-1'],
+    expect(res.statusCode).toBe(202);
+    const body = JSON.parse(res.body);
+    expect(body.jobId).toBe('job-1');
+    expect(mockJobService.create).toHaveBeenCalledWith(
+      null,
       'user-1',
-      'github',
-      { owner: 'myorg', name: 'myrepo' },
+      'bulk-approve-tickets',
+      { suggestionIds: ['sug-1'], provider: 'github', repo: { owner: 'myorg', name: 'myrepo' } },
     );
   });
 

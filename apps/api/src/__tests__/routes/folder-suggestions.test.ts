@@ -6,7 +6,7 @@ vi.mock('../../middleware/permissions.js', () => ({
   requireRole: () => async () => {},
 }));
 
-const { mockSuggestionService } = vi.hoisted(() => ({
+const { mockSuggestionService, mockJobService } = vi.hoisted(() => ({
   mockSuggestionService: {
     generateSuggestions: vi.fn(),
     listByDocument: vi.fn(),
@@ -17,10 +17,23 @@ const { mockSuggestionService } = vi.hoisted(() => ({
     updateSuggestion: vi.fn(),
     generateFolderSuggestions: vi.fn(),
   },
+  mockJobService: {
+    create: vi.fn().mockResolvedValue({ id: 'job-1' }),
+    markRunning: vi.fn().mockResolvedValue({}),
+    markCompleted: vi.fn().mockResolvedValue({}),
+    markFailed: vi.fn().mockResolvedValue({}),
+    listByTeam: vi.fn().mockResolvedValue([]),
+    getById: vi.fn().mockResolvedValue(null),
+    updateProgress: vi.fn().mockResolvedValue({}),
+  },
 }));
 
 vi.mock('../../services/suggestion.service.js', () => ({
   suggestionService: mockSuggestionService,
+}));
+
+vi.mock('../../services/job.service.js', () => ({
+  jobService: mockJobService,
 }));
 
 import { suggestionRoutes } from '../../routes/suggestions.js';
@@ -62,11 +75,10 @@ describe('Folder Suggestion Routes', () => {
       payload: { teamId: 'team-1', folderPath: '/specs' },
     });
 
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(202);
     const body = JSON.parse(res.body);
-    expect(body).toHaveLength(2);
-    expect(body[0].id).toBe('sug-1');
-    expect(mockSuggestionService.generateFolderSuggestions).toHaveBeenCalledWith('team-1', '/specs');
+    expect(body.jobId).toBe('job-1');
+    expect(mockJobService.create).toHaveBeenCalledWith('team-1', 'user-1', 'folder-suggest-tickets', { teamId: 'team-1', folderPath: '/specs' });
   });
 
   it('returns 400 when teamId is missing', async () => {
@@ -95,7 +107,7 @@ describe('Folder Suggestion Routes', () => {
     expect(body.error).toBe('folderPath is required');
   });
 
-  it('returns 400 when no documents found in folder', async () => {
+  it('returns 202 and marks job failed when no documents found in folder', async () => {
     mockSuggestionService.generateFolderSuggestions.mockRejectedValue(
       new Error('No documents found in this folder'),
     );
@@ -107,8 +119,13 @@ describe('Folder Suggestion Routes', () => {
       payload: { teamId: 'team-1', folderPath: '/empty-folder' },
     });
 
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(202);
     const body = JSON.parse(res.body);
-    expect(body.error).toBe('No documents found in this folder');
+    expect(body.jobId).toBe('job-1');
+
+    // Wait for setImmediate to process the async work
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(mockJobService.markFailed).toHaveBeenCalledWith('job-1', 'No documents found in this folder');
   });
 });
