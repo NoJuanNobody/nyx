@@ -149,7 +149,7 @@ jobs:
           PORT: "3001"
       - name: Start frontend
         run: |
-          cd apps/web && npx vite preview --port 5173 &
+          cd apps/web && npx vite --port 5173 &
           for i in $(seq 1 15); do
             if curl -sf http://localhost:5173 > /dev/null 2>&1; then
               echo "Vite ready!"
@@ -220,7 +220,7 @@ jobs:
           PORT: "3001"
       - name: Start frontend
         run: |
-          cd apps/web && npx vite preview --port 5173 &
+          cd apps/web && npx vite --port 5173 &
           for i in $(seq 1 15); do
             if curl -sf http://localhost:5173 > /dev/null 2>&1; then
               echo "Vite ready!"
