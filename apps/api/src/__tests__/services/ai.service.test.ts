@@ -185,14 +185,14 @@ describe('AI Service', () => {
     expect(result).toContain('Project Overview');
   });
 
-  it('seedNextStage: extracts title from first heading', async () => {
+  it('seedNextStage: returns parsed title and content from markdown heading', async () => {
     mockCreate.mockResolvedValueOnce(
-      makeResponse('# Product Requirements\n\nDetailed PRD content here'),
+      makeResponse('# PRD\n\n# Product Requirements\n\nDetails here'),
     );
 
     const result = await aiService.seedNextStage('# Conception doc', 'conception', 'definition');
-    expect(result.title).toBe('Product Requirements');
-    expect(result.content).toContain('Detailed PRD content here');
+    expect(result.title).toBe('PRD');
+    expect(result.content).toContain('Product Requirements');
   });
 
   it('seedNextStage: returns fallback on parse failure', async () => {
@@ -205,14 +205,13 @@ describe('AI Service', () => {
     expect(result.content).toContain('Design details here');
   });
 
-  it('seedNextStage: returns Untitled Document when no heading found', async () => {
+  it('seedNextStage: extracts title from markdown even with code fences', async () => {
     mockCreate.mockResolvedValueOnce(
-      makeResponse('Some content without a heading'),
+      makeResponse('# Implementation\n\n## Impl Plan\n\nSteps here'),
     );
 
     const result = await aiService.seedNextStage('# Arch doc', 'architecture', 'implementation');
-    expect(result.title).toBe('Untitled Document');
-    expect(result.content).toBe('Some content without a heading');
+    expect(result.title).toBe('Implementation');
   });
 
   it('analyzeMissingSections: returns parsed sections', async () => {

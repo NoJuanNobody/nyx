@@ -29,7 +29,6 @@ const envSchema = z.object({
   SLACK_CLIENT_SECRET: z.string().optional(),
   SLACK_SIGNING_SECRET: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
-<<<<<<< HEAD
   EMAIL_FROM: z.string().optional(),
   APP_URL: z.string().url().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
