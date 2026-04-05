@@ -61,7 +61,69 @@ function cleanJSX(jsx: string): string {
   code = code.replace(/\)\s*:\s*[\w.]+(?:<[^>]*>)?\s*\{/g, ') {');
   // Strip `as Type` assertions
   code = code.replace(/\s+as\s+\w+(?:<[^>]*>)?/g, '');
+
+  // Strip TypeScript interface/type blocks and single-line type aliases
+  // by processing line-by-line with brace-depth tracking
+  code = stripTypeScriptDeclarations(code);
+
+  // Strip `as SomeType` type assertions (but not JSX attributes like `as="div"`)
+  code = code.replace(/\bas\s+[A-Z]\w*(?:<[^>]*>)?/g, '');
+  // Strip type annotations from function params, e.g. `({ value }: Props)` → `({ value })`
+  code = code.replace(/\}:\s*[A-Z]\w*(?:<[^>]*>)?/g, '}');
+  // Strip inline parameter type annotations, e.g. `(x: number)` → `(x)`
+  code = code.replace(/(\w):\s*(?:string|number|boolean|any|void|never|null|undefined|unknown|object|bigint|symbol|[A-Z]\w*)(?:<[^>]*>)?(?:\[\])?/g, '$1');
+  // Strip generic type parameters from function/const declarations (NOT JSX tags)
+  // e.g. `function foo<T>(` → `function foo(` and `const foo = <T,>(` → `const foo = (`
+  code = code.replace(/(function\s+\w+)\s*<[^>]*>/g, '$1');
+  code = code.replace(/(=\s*)<(\w+),?\s*>/g, '$1<$2,>');
+  // Strip return type annotations, e.g. `): React.ReactNode {` → `) {`
+  code = code.replace(/\):\s*[\w.]+(?:<[^>]*>)?\s*(?=\{|=>)/g, ')');
+
   return code.trim();
+}
+
+function stripTypeScriptDeclarations(code: string): string {
+  const lines = code.split('\n');
+  const result: string[] = [];
+  let braceDepth = 0;
+  let skipping = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (!skipping) {
+      // Single-line type alias: `type Foo = string;` or `type Foo = string | number;`
+      if (/^\s*(?:export\s+)?type\s+\w+\s*=\s*[^{]*;\s*$/.test(line)) {
+        continue;
+      }
+      // Multi-line type/interface start
+      if (/^\s*(?:export\s+)?(?:interface|type)\s+\w+/.test(line)) {
+        // Count braces on this line
+        const opens = (trimmed.match(/\{/g) || []).length;
+        const closes = (trimmed.match(/\}/g) || []).length;
+        braceDepth = opens - closes;
+        if (braceDepth <= 0) {
+          // Entire declaration on one line (or no braces → bare type alias without semicolon)
+          continue;
+        }
+        skipping = true;
+        continue;
+      }
+      result.push(line);
+    } else {
+      // We are inside a type/interface block — track brace depth
+      const opens = (trimmed.match(/\{/g) || []).length;
+      const closes = (trimmed.match(/\}/g) || []).length;
+      braceDepth += opens - closes;
+      if (braceDepth <= 0) {
+        skipping = false;
+        braceDepth = 0;
+      }
+      // Skip the line (part of the type declaration)
+    }
+  }
+
+  return result.join('\n');
 }
 
 function buildIframeHTML(jsx: string): string {
@@ -121,6 +183,16 @@ export function JSXPreviewRenderer({ jsx }: JSXPreviewRendererProps) {
       blobUrlRef.current = null;
     }
 
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'jsx-preview-error') {
+        setError(event.data.error as string);
+        setIsLoading(false);
+      }
+    };
+
+    // Register message listener BEFORE setting iframe src to avoid missing fast errors
+    window.addEventListener('message', handleMessage);
+
     const html = buildIframeHTML(jsx);
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
@@ -138,6 +210,7 @@ export function JSXPreviewRenderer({ jsx }: JSXPreviewRendererProps) {
 
     window.addEventListener('message', handleMessage);
 
+>>>>>>> feat/issue-125-community-marketplace
     const iframe = iframeRef.current;
     if (iframe) {
       iframe.src = url;
@@ -179,7 +252,10 @@ export function JSXPreviewRenderer({ jsx }: JSXPreviewRendererProps) {
               </svg>
               <span className="text-xs font-semibold text-red-700">Preview failed</span>
             </div>
+<<<<<<< HEAD
             <p className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-red-600">{error}</p>
+=======
+            <p className="font-mono text-[11px] leading-relaxed text-red-600 whitespace-pre-wrap break-words">{error}</p>
           </div>
         </div>
       )}

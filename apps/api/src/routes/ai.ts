@@ -121,6 +121,14 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/ai/decision-weight — estimate the human judgment cost of a spec
   app.post('/decision-weight', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
     const { content, stage } = decisionWeightBody.parse(request.body);
+  app.post('/decision-weight', async (request, reply) => {
+    const { content, stage } = request.body as { content: string; stage?: string };
+
+    if (!content) {
+      reply.code(400);
+      return { error: 'content is required' };
+    }
+
     const result = await aiService.estimateDecisionWeight(content, stage);
     return result;
   });

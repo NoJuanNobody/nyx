@@ -519,6 +519,8 @@ export const deliverables = pgTable('deliverables', {
   metadata: jsonb('metadata'),
 });
 
+// ── Community Marketplace ─────────────────────────────
+
 export const listingTypeEnum = pgEnum('listing_type', ['template', 'workflow', 'prompt']);
 export const listingPriceTypeEnum = pgEnum('listing_price_type', ['free', 'paid']);
 export const featureRequestStatusEnum = pgEnum('feature_request_status', ['submitted', 'under_review', 'planned', 'in_progress', 'shipped', 'declined']);
@@ -594,6 +596,7 @@ export const projectShowcases = pgTable('project_showcases', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+<<<<<<< HEAD
 
 // ── Social Posts ──────────────────────────────────────
 
@@ -801,3 +804,5 @@ export const docChunks = pgTable('doc_chunks', {
   index('doc_chunks_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
   index('doc_chunks_doc_version_idx').on(table.docId, table.version),
 ]);
+=======
+>>>>>>> feat/issue-125-community-marketplace

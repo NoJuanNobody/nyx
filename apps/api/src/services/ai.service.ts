@@ -816,6 +816,7 @@ Respond ONLY with valid JSON:
     }
   },
 
+<<<<<<< HEAD
   async generatePodcastScript(
     content: string,
     title?: string,
@@ -1112,6 +1113,8 @@ Respond ONLY with valid JSON in this exact format:
     }
   },
 
+=======
+>>>>>>> feat/issue-125-community-marketplace
   async seedNextStage(
     content: string,
     fromStage: string,
