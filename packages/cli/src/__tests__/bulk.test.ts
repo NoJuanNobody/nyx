@@ -14,6 +14,8 @@ vi.mock('../client.js', () => ({
     post: mockPost,
     getRaw: mockGetRaw,
   })),
+  resolveTeamId: vi.fn().mockReturnValue('team-1'),
+  resolveDocId: vi.fn().mockResolvedValue('doc-1'),
 }));
 
 vi.mock('node:fs', async () => {

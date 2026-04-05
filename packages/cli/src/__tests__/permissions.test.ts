@@ -10,6 +10,8 @@ vi.mock('../client.js', () => ({
       requiredRole: 'editor',
     }),
   })),
+  resolveTeamId: vi.fn().mockReturnValue('team-1'),
+  resolveDocId: vi.fn().mockResolvedValue('doc-1'),
 }));
 
 describe('permissions command', () => {
@@ -25,6 +27,8 @@ describe('permissions command', () => {
           requiredRole: 'editor',
         }),
       })),
+      resolveTeamId: vi.fn().mockReturnValue('team-1'),
+      resolveDocId: vi.fn().mockResolvedValue('doc-1'),
     }));
     program = new Command();
     program.exitOverride();

@@ -8,6 +8,8 @@ vi.mock('../client.js', () => ({
     post: vi.fn().mockResolvedValue({ id: 'proposal-1' }),
     patch: vi.fn().mockResolvedValue({ id: 'proposal-1', status: 'approved' }),
   })),
+  resolveTeamId: vi.fn().mockReturnValue('team-1'),
+  resolveDocId: vi.fn().mockResolvedValue('doc-1'),
 }));
 
 describe('proposals command', () => {
@@ -21,6 +23,8 @@ describe('proposals command', () => {
         post: vi.fn().mockResolvedValue({ id: 'proposal-1' }),
         patch: vi.fn().mockResolvedValue({ id: 'proposal-1', status: 'approved' }),
       })),
+      resolveTeamId: vi.fn().mockReturnValue('team-1'),
+      resolveDocId: vi.fn().mockResolvedValue('doc-1'),
     }));
     program = new Command();
     program.exitOverride();

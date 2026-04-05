@@ -10,6 +10,8 @@ vi.mock('../client.js', () => ({
     put: vi.fn().mockResolvedValue({ id: '1', title: 'Updated Doc' }),
     delete: vi.fn().mockResolvedValue({ id: '1', status: 'archived' }),
   })),
+  resolveTeamId: vi.fn().mockReturnValue('team-1'),
+  resolveDocId: vi.fn().mockResolvedValue('doc-1'),
 }));
 
 describe('docs command', () => {
@@ -25,6 +27,8 @@ describe('docs command', () => {
         put: vi.fn().mockResolvedValue({ id: '1', title: 'Updated Doc' }),
         delete: vi.fn().mockResolvedValue({ id: '1', status: 'archived' }),
       })),
+      resolveTeamId: vi.fn().mockReturnValue('team-1'),
+      resolveDocId: vi.fn().mockResolvedValue('doc-1'),
     }));
     program = new Command();
     program.exitOverride(); // prevent process.exit in tests

@@ -13,6 +13,8 @@ vi.mock('../client.js', () => ({
     get: (...args: unknown[]) => mockGet(...args),
     post: (...args: unknown[]) => mockPost(...args),
   })),
+  resolveTeamId: vi.fn().mockReturnValue('team-1'),
+  resolveDocId: vi.fn().mockResolvedValue('doc-1'),
 }));
 
 describe('orchestrate command', () => {
@@ -167,6 +169,7 @@ describe('orchestrate command', () => {
     await program.parseAsync([
       'node', 'nyx', 'orchestrate', 'list',
       '--team-id', 'team-1',
+      '--format', 'json',
     ]);
 
     expect(mockGet).toHaveBeenCalledWith(

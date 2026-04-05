@@ -6,6 +6,8 @@ vi.mock('../client.js', () => ({
   NyxClient: vi.fn().mockImplementation(() => ({
     get: vi.fn().mockResolvedValue({ documentId: 'doc-1', events: [] }),
   })),
+  resolveTeamId: vi.fn().mockReturnValue('team-1'),
+  resolveDocId: vi.fn().mockResolvedValue('doc-1'),
 }));
 
 describe('audit command', () => {
@@ -17,6 +19,8 @@ describe('audit command', () => {
       NyxClient: vi.fn().mockImplementation(() => ({
         get: vi.fn().mockResolvedValue({ documentId: 'doc-1', events: [] }),
       })),
+      resolveTeamId: vi.fn().mockReturnValue('team-1'),
+      resolveDocId: vi.fn().mockResolvedValue('doc-1'),
     }));
     program = new Command();
     program.exitOverride();
@@ -45,6 +49,8 @@ describe('activity command', () => {
       NyxClient: vi.fn().mockImplementation(() => ({
         get: vi.fn().mockResolvedValue({ teamId: 'team-1', events: [] }),
       })),
+      resolveTeamId: vi.fn().mockReturnValue('team-1'),
+      resolveDocId: vi.fn().mockResolvedValue('doc-1'),
     }));
     program = new Command();
     program.exitOverride();

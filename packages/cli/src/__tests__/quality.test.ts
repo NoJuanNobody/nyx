@@ -5,6 +5,8 @@ import { NyxClient } from '../client.js';
 
 vi.mock('../client.js', () => ({
   NyxClient: vi.fn(),
+  resolveTeamId: vi.fn().mockReturnValue('team-1'),
+  resolveDocId: vi.fn().mockResolvedValue('doc-1'),
 }));
 
 describe('quality command', () => {
@@ -97,7 +99,7 @@ describe('quality command', () => {
     await program.parseAsync(['node', 'nyx', 'quality', 'check', 'doc-123', '--format', 'table']);
 
     const output = consoleSpy.mock.calls[0][0] as string;
-    expect(output).toContain('score');
+    expect(output).toContain('Score');
     expect(output).toContain('8');
     consoleSpy.mockRestore();
   });

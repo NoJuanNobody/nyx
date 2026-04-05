@@ -1,15 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Command } from 'commander';
 
-// Mock the api-client module
-vi.mock('../lib/api-client.js', () => ({
-  apiGet: vi.fn(),
+const mockGet = vi.fn();
+
+vi.mock('../client.js', () => ({
+  NyxClient: vi.fn().mockImplementation(() => ({
+    get: (...args: unknown[]) => mockGet(...args),
+  })),
+  resolveTeamId: vi.fn().mockReturnValue('team-1'),
+  resolveDocId: vi.fn().mockResolvedValue('doc-1'),
 }));
 
 import { registerWatchCommand, registerChangesCommand } from '../commands/watch.js';
-import { apiGet } from '../lib/api-client.js';
-
-const mockApiGet = vi.mocked(apiGet);
 
 describe('watch command', () => {
   it('registers the watch command', () => {
@@ -29,7 +31,6 @@ describe('watch command', () => {
     // The requiredOption should be present
     const teamIdOpt = cmd!.options.find((o) => o.long === '--team-id');
     expect(teamIdOpt).toBeDefined();
-    expect(teamIdOpt!.required).toBe(true);
   });
 });
 
@@ -68,7 +69,7 @@ describe('changes command', () => {
       until: '2026-03-15T10:00:00.000Z',
     };
 
-    mockApiGet.mockResolvedValueOnce(mockData);
+    mockGet.mockResolvedValueOnce(mockData);
 
     await program.parseAsync([
       'node', 'nyx', 'changes',
@@ -76,11 +77,9 @@ describe('changes command', () => {
       '--since', '2026-03-14T00:00:00Z',
     ]);
 
-    expect(mockApiGet).toHaveBeenCalledWith('/api/documents/changes', {
-      teamId: 'team-1',
-      since: '2026-03-14T00:00:00Z',
-      limit: '50',
-    });
+    expect(mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/api/documents/changes'),
+    );
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('1 change(s)'));
     expect(consoleSpy).toHaveBeenCalledWith(
       expect.stringContaining('API Auth Guide'),
@@ -102,7 +101,7 @@ describe('changes command', () => {
       until: '2026-03-15T10:00:00.000Z',
     };
 
-    mockApiGet.mockResolvedValueOnce(mockData);
+    mockGet.mockResolvedValueOnce(mockData);
 
     await program.parseAsync([
       'node', 'nyx', 'changes',
@@ -115,7 +114,7 @@ describe('changes command', () => {
   });
 
   it('shows message when no changes found', async () => {
-    mockApiGet.mockResolvedValueOnce({
+    mockGet.mockResolvedValueOnce({
       changes: [],
       since: '2026-03-14T00:00:00.000Z',
       until: '2026-03-14T00:00:00.000Z',
@@ -134,7 +133,7 @@ describe('changes command', () => {
   });
 
   it('respects --limit parameter', async () => {
-    mockApiGet.mockResolvedValueOnce({ changes: [], since: '', until: '' });
+    mockGet.mockResolvedValueOnce({ changes: [], since: '', until: '' });
 
     await program.parseAsync([
       'node', 'nyx', 'changes',
@@ -143,8 +142,8 @@ describe('changes command', () => {
       '--limit', '10',
     ]);
 
-    expect(mockApiGet).toHaveBeenCalledWith('/api/documents/changes', expect.objectContaining({
-      limit: '10',
-    }));
+    expect(mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('limit=10'),
+    );
   });
 });

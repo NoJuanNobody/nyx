@@ -8,6 +8,8 @@ vi.mock('../client.js', () => ({
   NyxClient: vi.fn().mockImplementation(() => ({
     get: (...args: unknown[]) => mockGet(...args),
   })),
+  resolveTeamId: vi.fn().mockReturnValue('team-1'),
+  resolveDocId: vi.fn().mockResolvedValue('doc-1'),
 }));
 
 describe('agent command', () => {
@@ -36,7 +38,7 @@ describe('agent command', () => {
     mockGet.mockResolvedValue(sessions);
 
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-    await program.parseAsync(['node', 'nyx', 'agent', 'sessions', '--team-id', 'team-1']);
+    await program.parseAsync(['node', 'nyx', 'agent', 'sessions', '--team-id', 'team-1', '--format', 'json']);
 
     expect(mockGet).toHaveBeenCalledWith('/api/agent/sessions?teamId=team-1');
     expect(log).toHaveBeenCalled();
@@ -58,6 +60,7 @@ describe('agent command', () => {
       'node', 'nyx', 'agent', 'sessions',
       '--team-id', 'team-1',
       '--status', 'active',
+      '--format', 'json',
     ]);
 
     const output = JSON.parse(log.mock.calls[0][0] as string);

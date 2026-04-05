@@ -7,6 +7,8 @@ vi.mock('../client.js', () => ({
     get: vi.fn().mockResolvedValue({ totalCapacity: 40, usedCapacity: 25, remainingCapacity: 15 }),
     post: vi.fn().mockResolvedValue({ allowed: true, remaining: 12 }),
   })),
+  resolveTeamId: vi.fn().mockReturnValue('team-1'),
+  resolveDocId: vi.fn().mockResolvedValue('doc-1'),
 }));
 
 describe('sprint command', () => {
@@ -19,6 +21,8 @@ describe('sprint command', () => {
         get: vi.fn().mockResolvedValue({ totalCapacity: 40, usedCapacity: 25, remainingCapacity: 15 }),
         post: vi.fn().mockResolvedValue({ allowed: true, remaining: 12 }),
       })),
+      resolveTeamId: vi.fn().mockReturnValue('team-1'),
+      resolveDocId: vi.fn().mockResolvedValue('doc-1'),
     }));
     program = new Command();
     program.exitOverride();

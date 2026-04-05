@@ -9,6 +9,8 @@ vi.mock('../client.js', () => ({
       { id: 'v2', documentId: 'doc-1', version: 2, createdAt: '2025-01-02' },
     ]),
   })),
+  resolveTeamId: vi.fn().mockReturnValue('team-1'),
+  resolveDocId: vi.fn().mockResolvedValue('doc-1'),
 }));
 
 describe('versions command', () => {
@@ -23,6 +25,8 @@ describe('versions command', () => {
           { id: 'v2', documentId: 'doc-1', version: 2, createdAt: '2025-01-02' },
         ]),
       })),
+      resolveTeamId: vi.fn().mockReturnValue('team-1'),
+      resolveDocId: vi.fn().mockResolvedValue('doc-1'),
     }));
     program = new Command();
     program.exitOverride();
@@ -61,6 +65,8 @@ describe('diff command', () => {
           changes: [{ path: '/title', op: 'replace', oldValue: 'Old', newValue: 'New' }],
         }),
       })),
+      resolveTeamId: vi.fn().mockReturnValue('team-1'),
+      resolveDocId: vi.fn().mockResolvedValue('doc-1'),
     }));
     program = new Command();
     program.exitOverride();

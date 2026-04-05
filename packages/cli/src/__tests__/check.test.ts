@@ -6,6 +6,7 @@ import { NyxClient } from '../client.js';
 vi.mock('../client.js', () => ({
   NyxClient: vi.fn(),
   resolveTeamId: vi.fn(() => 'team-abc'),
+  resolveDocId: vi.fn().mockResolvedValue('doc-1'),
 }));
 
 vi.mock('node:fs', () => ({
