@@ -123,6 +123,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
+      - name: Enable pgvector extension
+        run: PGPASSWORD=testpassword psql -h localhost -U postgres -d nyx_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
       - name: Push database schema
         run: pnpm --filter api exec drizzle-kit push --force
         env:
@@ -162,6 +164,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
+      - name: Enable pgvector extension
+        run: PGPASSWORD=testpassword psql -h localhost -U postgres -d nyx_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
       - name: Push database schema
         run: pnpm --filter api exec drizzle-kit push --force
         env:
