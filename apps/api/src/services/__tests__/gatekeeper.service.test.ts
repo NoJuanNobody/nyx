@@ -141,16 +141,15 @@ describe('gatekeeperService', () => {
       expect(result.passed).toBe(true);
     });
 
-    it('rejects transition to non-first stage when current stage is null', () => {
+    it('allows transition to any stage when current stage is null', () => {
       const result = gatekeeperService.evaluateGate(
         { content: longContent, stage: null },
         'definition',
       );
 
-      expect(result.passed).toBe(false);
+      expect(result.passed).toBe(true);
       const transitionCheck = result.checks.find((c) => c.name === 'valid_stage_transition');
-      expect(transitionCheck?.passed).toBe(false);
-      expect(transitionCheck?.reason).toContain('must start at "conception"');
+      expect(transitionCheck?.passed).toBe(true);
     });
 
     // ── Custom stage order ──────────────────────────────────
