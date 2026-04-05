@@ -463,10 +463,11 @@ STRICT RULES:
     });
 
     let text = response.content[0].type === 'text' ? response.content[0].text : '';
+    // Strip code fences if model wraps output (global match for robustness)
     text = text.replace(/```(?:jsx?|javascript|tsx?)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
     // Strip any import statements the model may have included
     text = text.replace(/^\s*import\s+.*?(?:from\s+['"].*?['"]|['"].*?['"])\s*;?\s*$/gm, '');
-    return text;
+    return text.trim();
   },
 
   async bootstrapDocsFromCode(
