@@ -11,10 +11,6 @@ import {
   restoreDocument,
   fetchTeams,
   fetchTemplates,
-  generateFolderTicketSuggestions,
-  bulkApproveSuggestions,
-  dismissTicketSuggestion,
-  type TicketSuggestion,
 } from '../lib/api';
 import { STAGE_MAP, STAGES, type DocumentStage } from '../lib/stages';
 import { getLifecycle, getStageInfo, type StageInfo } from '../lib/lifecycles';
@@ -635,12 +631,6 @@ export function FileTree() {
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [bulkTicketFolderPath, setBulkTicketFolderPath] = useState<string | null>(null);
-  const [folderSuggestions, setFolderSuggestions] = useState<TicketSuggestion[] | null>(null);
-  const [folderSuggestionsLoading, setFolderSuggestionsLoading] = useState(false);
-  const [approvingIds, setApprovingIds] = useState<Set<string>>(new Set());
-  const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
-  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
-  const [bulkApproving, setBulkApproving] = useState(false);
   const seeding = useUIStore((s) => s.seeding);
   const activeLifecycleSlug = useUIStore((s) => s.activeLifecycleSlug);
   const activeLifecycle = getLifecycle(activeLifecycleSlug);
@@ -910,66 +900,6 @@ export function FileTree() {
   const handleOpenFolderSuggestions = (folderPath: string) => {
     if (!teamId) return;
     setBulkTicketFolderPath(folderPath);
-  const handleGenerateFolderSuggestions = async (folderPath: string) => {
-    if (!teamId || folderSuggestionsLoading) return;
-    setFolderSuggestionsLoading(true);
-    setApprovedIds(new Set());
-    setDismissedIds(new Set());
-    try {
-      const suggestions = await generateFolderTicketSuggestions(teamId, folderPath);
-      setFolderSuggestions(suggestions);
-    } catch (err) {
-      console.error('Failed to generate folder suggestions:', err);
-      setFolderSuggestions([]);
-    } finally {
-      setFolderSuggestionsLoading(false);
-    }
-  };
-
-  const handleApproveSuggestion = async (suggestionId: string) => {
-    setApprovingIds((prev) => new Set(prev).add(suggestionId));
-    try {
-      await bulkApproveSuggestions([suggestionId], 'github');
-      setApprovedIds((prev) => new Set(prev).add(suggestionId));
-    } catch (err) {
-      console.error('Failed to approve suggestion:', err);
-    } finally {
-      setApprovingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(suggestionId);
-        return next;
-      });
-    }
-  };
-
-  const handleDismissSuggestion = async (suggestionId: string) => {
-    try {
-      await dismissTicketSuggestion(suggestionId);
-      setDismissedIds((prev) => new Set(prev).add(suggestionId));
-    } catch (err) {
-      console.error('Failed to dismiss suggestion:', err);
-    }
-  };
-
-  const handleApproveAll = async () => {
-    if (!folderSuggestions) return;
-    const pendingIds = folderSuggestions
-      .filter((s) => !approvedIds.has(s.id) && !dismissedIds.has(s.id))
-      .map((s) => s.id);
-    if (pendingIds.length === 0) return;
-    setBulkApproving(true);
-    try {
-      await bulkApproveSuggestions(pendingIds, 'github');
-      setApprovedIds((prev) => {
-        const next = new Set(prev);
-        pendingIds.forEach((id) => next.add(id));
-        return next;
-      });
-    } catch (err) {
-      console.error('Failed to bulk approve:', err);
-    } finally {
-      setBulkApproving(false);
-    }
   };
 
   // ── Menu item builders ────────────────────────────────
@@ -1382,128 +1312,6 @@ export function FileTree() {
           onClose={() => setBulkTicketFolderPath(null)}
           folderPath={bulkTicketFolderPath}
         />
-      {/* Folder ticket suggestions loading indicator */}
-      {folderSuggestionsLoading && (
-        <div
-          data-testid="folder-suggestions-loading"
-          className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm"
-        >
-          <svg
-            className="h-6 w-6 animate-spin text-blue-600"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-          <span className="mt-2 text-xs font-medium text-slate-500">
-            Generating ticket suggestions...
-          </span>
-        </div>
-      )}
-
-      {/* Folder ticket suggestions panel */}
-      {folderSuggestions !== null && !folderSuggestionsLoading && (
-        <div
-          data-testid="folder-suggestions-panel"
-          className="absolute inset-0 z-30 flex flex-col bg-white"
-        >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-            <span className="text-xs font-semibold text-slate-700">
-              Ticket Suggestions ({folderSuggestions.length})
-            </span>
-            <div className="flex items-center gap-1">
-              {folderSuggestions.length > 0 && (
-                <button
-                  type="button"
-                  data-testid="approve-all-suggestions"
-                  onClick={handleApproveAll}
-                  disabled={bulkApproving || folderSuggestions.every((s) => approvedIds.has(s.id) || dismissedIds.has(s.id))}
-                  className="rounded px-2 py-1 text-[10px] font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  {bulkApproving ? 'Creating...' : 'Create All'}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setFolderSuggestions(null)}
-                className="rounded p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
-            {approveError && (
-              <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2">
-                <p className="text-[10px] text-red-700">{approveError}</p>
-              </div>
-            )}
-            {folderSuggestions.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-4">
-                No suggestions generated.
-              </p>
-            ) : (
-              folderSuggestions.filter((s) => !dismissedIds.has(s.id)).map((suggestion) => (
-                <div
-                  key={suggestion.id}
-                  className={`rounded-md border p-3 transition-colors ${
-                    approvedIds.has(suggestion.id)
-                      ? 'border-green-200 bg-green-50'
-                      : 'border-slate-200 hover:border-blue-200'
-                  }`}
-                >
-                  <p className="text-xs font-medium text-slate-800">{suggestion.title}</p>
-                  <p className="mt-1 text-[11px] text-slate-500 line-clamp-2">
-                    {suggestion.description}
-                  </p>
-                  {suggestion.labels && suggestion.labels.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1">
-                      {suggestion.labels.map((label) => (
-                        <span
-                          key={label}
-                          className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-500"
-                        >
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {approvedIds.has(suggestion.id) ? (
-                    <p className="mt-2 text-[10px] font-medium text-green-600">Created as GitHub Issue</p>
-                  ) : (
-                    <div className="mt-2 flex gap-1.5">
-                      <button
-                        type="button"
-                        data-testid={`approve-suggestion-${suggestion.id}`}
-                        onClick={() => handleApproveSuggestion(suggestion.id)}
-                        disabled={approvingIds.has(suggestion.id)}
-                        className="rounded px-2 py-0.5 text-[10px] font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 transition-colors"
-                      >
-                        {approvingIds.has(suggestion.id) ? 'Creating...' : 'Approve'}
-                      </button>
-                      <button
-                        type="button"
-                        data-testid={`dismiss-suggestion-${suggestion.id}`}
-                        onClick={() => handleDismissSuggestion(suggestion.id)}
-                        className="rounded px-2 py-0.5 text-[10px] font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors"
-                      >
-                        Dismiss
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
       )}
     </div>
   );
