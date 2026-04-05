@@ -67,7 +67,26 @@ function handleReadCommand(args: string): string | null {
   }
 }
 
-const SLASH_COMMANDS = ['/quit', '/read '];
+const SLASH_COMMANDS = ['/quit', '/read ', '/connect '];
+
+const SUPPORTED_PROVIDERS = ['github', 'gitlab', 'bitbucket', 'jira', 'confluence'];
+
+const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
+function createSpinner(message: string) {
+  let i = 0;
+  const timer = setInterval(() => {
+    process.stdout.write(`\r\x1b[2m\x1b[38;5;141m${SPINNER_FRAMES[i]} ${message}\x1b[0m`);
+    i = (i + 1) % SPINNER_FRAMES.length;
+  }, 80);
+
+  return {
+    stop() {
+      clearInterval(timer);
+      process.stdout.write('\r\x1b[2K'); // clear the spinner line
+    },
+  };
+}
 
 /**
  * Tab-completion for slash commands and file paths.
@@ -75,6 +94,16 @@ const SLASH_COMMANDS = ['/quit', '/read '];
 function completer(line: string): [string[], string] {
   // Slash command completion
   if (line.startsWith('/')) {
+    // /connect <provider> completion
+    const connectMatch = line.match(/^\/connect\s+(.*)$/);
+    if (connectMatch) {
+      const partial = connectMatch[1];
+      const matches = SUPPORTED_PROVIDERS
+        .filter(p => p.startsWith(partial))
+        .map(p => `/connect ${p}`);
+      return [matches, line];
+    }
+
     const matches = SLASH_COMMANDS.filter(c => c.startsWith(line));
     return [matches.length ? matches : SLASH_COMMANDS, line];
   }
@@ -203,7 +232,13 @@ async function streamAgentResponse(
               (parsed.content as string) ??
               (parsed.delta as string) ??
               '';
-            if (text) fullResponse += text;
+            if (text) {
+              // Separate consecutive text blocks (agent emits text between tool calls)
+              if (fullResponse && !fullResponse.endsWith('\n\n')) {
+                fullResponse += fullResponse.endsWith('\n') ? '\n' : '\n\n';
+              }
+              fullResponse += text;
+            }
           } catch {
             fullResponse += data;
           }
@@ -211,20 +246,15 @@ async function streamAgentResponse(
       }
     }
 
-    if (fullResponse) {
-      console.log(renderMarkdown(fullResponse));
-    }
-
     return { response: fullResponse, conversationId: resConversationId };
   } else {
-    // Non-SSE JSON response - print the content
+    // Non-SSE JSON response
     const json = (await res.json()) as Record<string, unknown>;
     const text =
       (json.text as string) ??
       (json.content as string) ??
       (json.response as string) ??
       JSON.stringify(json, null, 2);
-    console.log(text);
 
     return { response: text, conversationId: resConversationId };
   }
@@ -300,12 +330,39 @@ function startRepl(opts: ChatOptions, client: NyxClient): void {
       return;
     }
 
+    // /connect <provider> — show OAuth URL for integrations
+    if (trimmed.startsWith('/connect')) {
+      const provider = trimmed.slice(8).trim().toLowerCase();
+      if (!provider || !SUPPORTED_PROVIDERS.includes(provider)) {
+        console.log(`\n${dim}Usage: /connect <provider>${reset}`);
+        console.log(`${dim}Supported: ${SUPPORTED_PROVIDERS.join(', ')}${reset}\n`);
+      } else {
+        const teamId = resolveTeamId(opts.teamId);
+        if (['github', 'gitlab', 'bitbucket'].includes(provider)) {
+          const connectUrl = `${client.apiUrl}/api/integrations/${provider}/connect?teamId=${encodeURIComponent(teamId)}`;
+          console.log(`\n${dim}Open this URL to connect ${provider}:${reset}\n`);
+          console.log(`  ${cyan}${connectUrl}${reset}\n`);
+        } else if (provider === 'jira' || provider === 'confluence') {
+          console.log(`\n${dim}Connect ${provider} via the CLI:${reset}\n`);
+          console.log(`  ${cyan}nyx integrations connect ${provider}${reset}\n`);
+        }
+      }
+      rl.prompt();
+      return;
+    }
+
     // Expand @file references in the message
     const expanded = expandFileReferences(trimmed);
 
+    const spinner = createSpinner('Thinking...');
     try {
-      process.stdout.write(`\n${dim}${cyan}`);
       const result = await streamAgentResponse(expanded, opts, client, conversationHistory, activeConversationId);
+      spinner.stop();
+      console.log('');
+      process.stdout.write(`${dim}${cyan}`);
+      if (result.response) {
+        console.log(renderMarkdown(result.response));
+      }
       process.stdout.write(reset);
 
       // Accumulate conversation history for multi-turn context
@@ -319,7 +376,7 @@ function startRepl(opts: ChatOptions, client: NyxClient): void {
         activeConversationId = result.conversationId;
       }
     } catch (err) {
-      process.stdout.write(reset);
+      spinner.stop();
       console.error(
         '\x1b[31mError:\x1b[0m',
         err instanceof Error ? err.message : String(err),

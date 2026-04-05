@@ -105,7 +105,7 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
         ? `Recent documents:\n${recentDocs.map(d => `- "${d.title}" (${d.id}, stage: ${d.stage ?? 'none'}, status: ${d.status})`).join('\n')}`
         : 'No documents in this team yet.';
 
-      systemPrompt = `${baseSystemPrompt}\n\n--- Context ---\nUser: ${user.name} (${user.email}), role: ${user.role}\nTeam: ${teamName}\n${docsContext}\n---`;
+      systemPrompt = `${baseSystemPrompt}\n\n--- Context ---\nUser: ${user.name} (${user.email}), role: ${user.role}\nTeam: ${teamName} (ID: ${teamId})\nWhen calling tools that accept a team_id parameter, always use "${teamId}".\n${docsContext}\n---`;
     } catch {
       // Context enrichment failed — proceed with base prompt
     }
