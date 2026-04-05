@@ -42,6 +42,7 @@ import { registerChatCommand } from './commands/chat.js';
 import { registerQueryCommand } from './commands/query.js';
 import { registerCheckCommand } from './commands/check.js';
 import { registerScanCommand } from './commands/scan.js';
+>>>>>>> feat/issue-141-multi-agent-orchestration
 // === END COMMAND IMPORTS ===
 
 const program = new Command();
@@ -120,6 +121,7 @@ registerPodcastCommand(program);
 registerWatchCommand(program);
 registerChangesCommand(program);
 registerOrchestrateCommand(program);
+<<<<<<< HEAD
 registerIntakeCommand(program);
 registerTicketsCommand(program);
 registerJobsCommand(program);
@@ -148,6 +150,7 @@ registerChatCommand(program);
 registerQueryCommand(program);
 registerCheckCommand(program);
 registerScanCommand(program);
+=======
 // === END COMMAND REGISTRATION ===
 
 program.parse();

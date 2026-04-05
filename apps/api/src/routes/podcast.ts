@@ -4,6 +4,7 @@ import { documents } from '../db/schema.js';
 import { inArray } from 'drizzle-orm';
 import { aiService } from '../services/ai.service.js';
 import { ttsService } from '../services/tts.service.js';
+import { aiService } from '../services/ai.service.js';
 
 export interface PodcastScript {
   id: string;
@@ -23,6 +24,7 @@ let nextId = 1;
 export const podcastRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/podcast/generate — generate a podcast script from documents
   app.post('/podcast/generate', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
+  app.post('/podcast/generate', async (request, reply) => {
     const { documentIds, teamId, title } = request.body as {
       documentIds?: string[];
       teamId?: string;
@@ -52,6 +54,9 @@ export const podcastRoutes: FastifyPluginAsync = async (app) => {
     const concatenatedContent = docs
       .map((d) => `# ${d.title}\n\n${d.content}`)
       .join('\n\n---\n\n');
+    // For MVP, use placeholder content since we don't have DB access in this route.
+    // In production, fetch documents by ID from the database.
+    const concatenatedContent = `Documents: ${documentIds.join(', ')}`;
 
     const result = await aiService.generatePodcastScript(concatenatedContent, title);
 
@@ -70,6 +75,7 @@ export const podcastRoutes: FastifyPluginAsync = async (app) => {
     return script;
   });
 
+<<<<<<< HEAD
   // POST /api/podcast/:id/audio — generate audio for a podcast script
   app.post('/podcast/:id/audio', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { id } = request.params as { id: string };
@@ -144,6 +150,8 @@ export const podcastRoutes: FastifyPluginAsync = async (app) => {
     podcastScripts.push(script);
     return script;
   });
+=======
+>>>>>>> feat/issue-141-multi-agent-orchestration
   // GET /api/podcast/scripts?teamId=X — list generated podcast scripts
   app.get('/podcast/scripts', async (request, reply) => {
     const { teamId } = request.query as { teamId?: string };

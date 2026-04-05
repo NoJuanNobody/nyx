@@ -817,6 +817,7 @@ Respond ONLY with valid JSON:
   },
 
 <<<<<<< HEAD
+>>>>>>> feat/issue-141-multi-agent-orchestration
   async generatePodcastScript(
     content: string,
     title?: string,
@@ -875,6 +876,7 @@ Respond ONLY with valid JSON in this exact format:
     }
   },
 
+<<<<<<< HEAD
   async generateRadioShowScript(
     segments: Array<{ title: string; content: string }>,
     showName?: string,
@@ -942,6 +944,7 @@ Respond ONLY with valid JSON in this exact format:
     }
   },
 
+=======
   async analyzeMeetingNoteQuality(
     content: string,
   ): Promise<{
@@ -1113,8 +1116,8 @@ Respond ONLY with valid JSON in this exact format:
     }
   },
 
-=======
 >>>>>>> feat/issue-125-community-marketplace
+=======
   async seedNextStage(
     content: string,
     fromStage: string,

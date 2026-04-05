@@ -1374,9 +1374,7 @@ export function fetchMarketplaceListing(id: string): Promise<MarketplaceListing>
   return request<MarketplaceListing>(`/marketplace/${id}`);
 }
 
-<<<<<<< HEAD
 export function createMarketplaceListing(data: { type: string; title: string; description: string; content: string; priceType?: string; creditPrice?: number; priceAmountCents?: number; category?: string; tags?: string[]; stage?: string }): Promise<MarketplaceListing> {
-=======
 export function createMarketplaceListing(data: { type: string; title: string; description: string; content: string; priceType?: string; category?: string; tags?: string[]; stage?: string }): Promise<MarketplaceListing> {
   return request<MarketplaceListing>('/marketplace', { method: 'POST', body: JSON.stringify(data) });
 }
@@ -1443,7 +1441,6 @@ export function checkPipelineAccess(pipelineId: string): Promise<{ owned: boolea
   return request<{ owned: boolean }>(`/pipelines/check/${pipelineId}`);
 }
 
->>>>>>> feat/issue-125-community-marketplace
 export function reviewMarketplaceListing(id: string, data: { rating: number; comment?: string }): Promise<MarketplaceReview> {
   return request<MarketplaceReview>(`/marketplace/${id}/reviews`, { method: 'POST', body: JSON.stringify(data) });
 }
@@ -1479,6 +1476,7 @@ export function createProjectShowcase(data: { title: string; description: string
 }
 
 <<<<<<< HEAD
+>>>>>>> feat/issue-141-multi-agent-orchestration
 // ── Observability ────────────────────────────────────────────────────
 
 export function fetchObservabilityDashboard(): Promise<{
@@ -1501,6 +1499,7 @@ export function fetchPipelineHealth(): Promise<Array<{ stage: string; avgLatency
   return request('/observability/pipeline-health');
 }
 
+<<<<<<< HEAD
 // ── Background Jobs ─────────────────────────────────────────────────
 
 export interface JobStatus<T = unknown> {
@@ -1517,6 +1516,7 @@ export function fetchJobStatus<T = unknown>(jobId: string): Promise<JobStatus<T>
   return request<JobStatus<T>>(`/jobs/${jobId}`);
 }
 
+=======
 =======
 // ── Ticket Suggestions (Bulk) ───────────────────────────────────────
 

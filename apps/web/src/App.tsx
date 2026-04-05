@@ -17,6 +17,8 @@ import { GettingStarted } from './pages/GettingStarted';
 import { AgentMapPage } from './pages/AgentMapPage';
 import { ObservabilityPage } from './pages/ObservabilityPage';
 import { VoicePage } from './pages/VoicePage';
+import { AgentMapPage } from './pages/AgentMapPage';
+import { ObservabilityPage } from './pages/ObservabilityPage';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 import { AcceptInvite } from './pages/AcceptInvite';
@@ -62,6 +64,8 @@ export function App() {
             <Route path="/voice" element={<Navigate to="/operations?tab=voice" replace />} />
             <Route path="/admin/documents" element={<Navigate to="/dashboard" replace />} />
             <Route path="/getting-started" element={<GettingStarted />} />
+            <Route path="/agent-map" element={<AgentMapPage />} />
+            <Route path="/observability" element={<ObservabilityPage />} />
           </Route>
         </Route>
       </Routes>

@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { apiRequest, getBaseUrl } from '../lib/api.js';
 import { resolveTeamId } from '../client.js';
 import { formatTable as sharedFormatTable, timeAgo } from '../utils/output.js';
+import { apiRequest } from '../lib/api.js';
 
 interface PodcastScriptResponse {
   id: string;
@@ -88,6 +89,10 @@ export function registerPodcastCommand(program: Command): void {
     .option('--format <format>', 'Output format (json|table)', 'table')
     .action(async (docIds: string[], opts: { teamId?: string; title?: string; format: string }) => {
       const teamId = resolveTeamId(opts.teamId);
+    .requiredOption('--team-id <id>', 'Team ID')
+    .option('--title <title>', 'Podcast episode title')
+    .option('--format <format>', 'Output format (json|table)', 'table')
+    .action(async (docIds: string[], opts: { teamId: string; title?: string; format: string }) => {
       try {
         const result = await apiRequest<PodcastScriptResponse>(
           '/api/podcast/generate',
@@ -96,6 +101,7 @@ export function registerPodcastCommand(program: Command): void {
             body: JSON.stringify({
               documentIds: docIds,
               teamId,
+              teamId: opts.teamId,
               title: opts.title,
             }),
           },
@@ -157,6 +163,14 @@ export function registerPodcastCommand(program: Command): void {
       try {
         const result = await apiRequest<PodcastListResponse>(
           `/api/podcast/scripts?teamId=${encodeURIComponent(teamId)}`,
+    .command('list')
+    .description('List generated podcast scripts')
+    .requiredOption('--team-id <id>', 'Team ID')
+    .option('--format <format>', 'Output format (json|table)', 'table')
+    .action(async (opts: { teamId: string; format: string }) => {
+      try {
+        const result = await apiRequest<PodcastListResponse>(
+          `/api/podcast/scripts?teamId=${encodeURIComponent(opts.teamId)}`,
         );
 
         if (opts.format === 'json') {
@@ -169,6 +183,7 @@ export function registerPodcastCommand(program: Command): void {
             { key: 'id', width: 36 },
           ]));
           console.log(`\n${result.scripts.length} script(s)`);
+          console.log(formatTable(result.scripts));
         }
       } catch (err) {
         console.error(

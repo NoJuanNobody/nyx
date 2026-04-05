@@ -76,6 +76,7 @@ import { queryRoutes } from './routes/query.js';
 import { retrievalRoutes } from './routes/retrieval.js';
 import { complianceRoutes } from './routes/compliance.js';
 import { scannerRoutes } from './routes/scanner.js';
+>>>>>>> feat/issue-141-multi-agent-orchestration
 import { authMiddleware } from './middleware/auth.js';
 import { config } from './lib/config.js';
 
@@ -241,6 +242,7 @@ export function buildApp() {
   app.register(voiceRoutes, { prefix: '/api/voice' });
   app.register(voiceTranscriptionRoutes, { prefix: '/api/voice' });
   app.register(voiceDocumentRoutes, { prefix: '/api/voice' });
+<<<<<<< HEAD
   app.register(voiceWebhookRoutes, { prefix: '/api/voice' });
   app.register(uploadRoutes, { prefix: '/api/documents' });
   app.register(pcbRoutes, { prefix: '/api/documents' });
@@ -260,6 +262,7 @@ export function buildApp() {
   app.register(retrievalRoutes, { prefix: '/api/retrieve' });
   app.register(complianceRoutes, { prefix: '/api/compliance' });
   app.register(scannerRoutes, { prefix: '/api/scanner' });
+=======
 
   return app;
 }
