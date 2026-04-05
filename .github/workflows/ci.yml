@@ -158,7 +158,7 @@ jobs:
             sleep 2
           done
         env:
-          VITE_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
+          VITE_CLERK_PUBLISHABLE_KEY: ""
       - name: Run smoke tests
         run: PLAYWRIGHT_SKIP_WEBSERVER=1 pnpm test:smoke
         env:
@@ -231,7 +231,7 @@ jobs:
             sleep 2
           done
         env:
-          VITE_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
+          VITE_CLERK_PUBLISHABLE_KEY: ""
       - name: Run E2E tests
         run: PLAYWRIGHT_SKIP_WEBSERVER=1 pnpm test:e2e
         env:
