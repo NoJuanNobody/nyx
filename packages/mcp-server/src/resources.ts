@@ -1,3 +1,5 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { apiRequest } from './auth.js';
 
 /**
@@ -41,6 +43,12 @@ export const RESOURCE_TEMPLATES: ResourceTemplate[] = [
     name: 'Team Details',
     description: 'Get details for a specific team',
     mimeType: 'application/json',
+  },
+  {
+    uriTemplate: 'file://{path}',
+    name: 'Local File',
+    description: 'Read a local file from the user\'s filesystem',
+    mimeType: 'text/plain',
   },
 ];
 
@@ -127,6 +135,17 @@ export async function resolveResource(uri: string): Promise<{ content: string; m
       content: `# ${doc.title}\n\n${doc.content}`,
       mimeType: 'text/markdown',
     };
+  }
+
+  // file://{path} — read a local file
+  if (uri.startsWith('file://')) {
+    const filePath = path.resolve(uri.slice(7));
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const ext = path.extname(filePath).slice(1);
+    const mimeType = ext === 'json' ? 'application/json'
+      : ext === 'md' ? 'text/markdown'
+      : 'text/plain';
+    return { content, mimeType };
   }
 
   throw new Error(`Unknown resource URI: ${uri}`);

@@ -39,32 +39,50 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
 
     // If resuming a conversation, reconstruct history from prior sessions
     if (conversationId) {
-      const priorSessions = await db
-        .select({ prompt: agentSessions.prompt, result: agentSessions.result })
-        .from(agentSessions)
-        .where(eq(agentSessions.conversationId, conversationId))
-        .orderBy(agentSessions.createdAt);
+      try {
+        const priorSessions = await db
+          .select({ prompt: agentSessions.prompt, result: agentSessions.result })
+          .from(agentSessions)
+          .where(eq(agentSessions.conversationId, conversationId))
+          .orderBy(agentSessions.createdAt);
 
-      const reconstructedHistory = priorSessions
-        .filter(s => s.result)
-        .flatMap(s => [
-          { role: 'user' as const, content: s.prompt },
-          { role: 'assistant' as const, content: s.result! },
-        ]);
+        const reconstructedHistory = priorSessions
+          .filter(s => s.result)
+          .flatMap(s => [
+            { role: 'user' as const, content: s.prompt },
+            { role: 'assistant' as const, content: s.result! },
+          ]);
 
-      // Server-reconstructed history takes precedence, client history appends new turns
-      history = [...reconstructedHistory, ...(history ?? [])];
+        // Server-reconstructed history takes precedence, client history appends new turns
+        history = [...reconstructedHistory, ...(history ?? [])];
+      } catch {
+        // conversationId column may not exist yet (migration pending) — fall through
+      }
     }
 
-    // Create session record
-    const [session] = await db.insert(agentSessions).values({
-      teamId,
-      userId: user.id,
-      documentId: documentId ?? null,
-      conversationId: conversationId ?? null,
-      prompt,
-      status: 'running',
-    }).returning();
+    // Create session record — conversationId may not exist if migration hasn't run
+    let session: { id: string };
+    try {
+      const [row] = await db.insert(agentSessions).values({
+        teamId,
+        userId: user.id,
+        documentId: documentId ?? null,
+        conversationId: conversationId ?? null,
+        prompt,
+        status: 'running',
+      }).returning();
+      session = row;
+    } catch {
+      // Fallback: insert without conversationId if column doesn't exist yet
+      const [row] = await db.insert(agentSessions).values({
+        teamId,
+        userId: user.id,
+        documentId: documentId ?? null,
+        prompt,
+        status: 'running',
+      } as typeof agentSessions.$inferInsert).returning();
+      session = row;
+    }
 
     // Determine system prompt and tools
     const workflow = workflowId ? getWorkflow(workflowId) : undefined;
@@ -100,9 +118,13 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Back-fill the conversation ID on this session if it's a new conversation
     if (!conversationId) {
-      await db.update(agentSessions)
-        .set({ conversationId: activeConversationId })
-        .where(eq(agentSessions.id, session.id));
+      try {
+        await db.update(agentSessions)
+          .set({ conversationId: activeConversationId })
+          .where(eq(agentSessions.id, session.id));
+      } catch {
+        // conversationId column may not exist yet — safe to skip
+      }
     }
 
     // Set up SSE response

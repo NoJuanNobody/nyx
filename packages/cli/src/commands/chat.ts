@@ -1,5 +1,7 @@
 import { Command } from 'commander';
 import * as readline from 'node:readline';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { NyxClient, resolveTeamId } from '../client.js';
 import { renderMarkdown } from '../utils/markdown.js';
 
@@ -12,6 +14,122 @@ interface ChatOptions {
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+}
+
+const MAX_FILE_SIZE = 100 * 1024; // 100 KB limit for inlined files
+
+/**
+ * Expand @file references in a message into inline file content.
+ * Supports @path/to/file and @"path with spaces/file.ts".
+ */
+function expandFileReferences(message: string): string {
+  // Match @"quoted/path" or @unquoted/path (no spaces)
+  return message.replace(/@"([^"]+)"|@(\S+)/g, (_match, quoted, unquoted) => {
+    const filePath = quoted || unquoted;
+    const resolved = path.resolve(filePath);
+
+    try {
+      const stats = fs.statSync(resolved);
+      if (stats.size > MAX_FILE_SIZE) {
+        return `[File too large: ${resolved} (${Math.round(stats.size / 1024)} KB, max 100 KB)]`;
+      }
+      const content = fs.readFileSync(resolved, 'utf-8');
+      const ext = path.extname(resolved).slice(1) || 'txt';
+      return `\n<file path="${resolved}">\n\`\`\`${ext}\n${content}\n\`\`\`\n</file>\n`;
+    } catch {
+      return `[File not found: ${resolved}]`;
+    }
+  });
+}
+
+/**
+ * Handle /read <path> command — read a local file and return its content as context.
+ */
+function handleReadCommand(args: string): string | null {
+  const filePath = args.trim().replace(/^["']|["']$/g, '');
+  if (!filePath) return null;
+
+  const resolved = path.resolve(filePath);
+  try {
+    const stats = fs.statSync(resolved);
+    if (stats.isDirectory()) {
+      const entries = fs.readdirSync(resolved);
+      return `Directory ${resolved}:\n${entries.join('\n')}`;
+    }
+    if (stats.size > MAX_FILE_SIZE) {
+      return `File too large: ${resolved} (${Math.round(stats.size / 1024)} KB, max 100 KB)`;
+    }
+    const content = fs.readFileSync(resolved, 'utf-8');
+    const ext = path.extname(resolved).slice(1) || 'txt';
+    return `\`\`\`${ext}\n${content}\n\`\`\``;
+  } catch {
+    return `File not found: ${resolved}`;
+  }
+}
+
+const SLASH_COMMANDS = ['/quit', '/read '];
+
+/**
+ * Tab-completion for slash commands and file paths.
+ */
+function completer(line: string): [string[], string] {
+  // Slash command completion
+  if (line.startsWith('/')) {
+    const matches = SLASH_COMMANDS.filter(c => c.startsWith(line));
+    return [matches.length ? matches : SLASH_COMMANDS, line];
+  }
+
+  // File path completion after @, /read , or standalone path-like input
+  let prefix = '';
+  let partial = '';
+
+  const readMatch = line.match(/^\/read\s+(.*)$/);
+  const atMatch = line.match(/@"([^"]*)$|@(\S*)$/);
+
+  if (readMatch) {
+    prefix = line.slice(0, line.length - readMatch[1].length);
+    partial = readMatch[1];
+  } else if (atMatch) {
+    const raw = atMatch[1] ?? atMatch[2];
+    prefix = line.slice(0, line.length - raw.length);
+    partial = raw;
+  } else {
+    return [[], line];
+  }
+
+  try {
+    const resolved = path.resolve(partial);
+    let dir: string;
+    let base: string;
+
+    // Check if partial points to an existing directory
+    try {
+      const stats = fs.statSync(resolved);
+      if (stats.isDirectory()) {
+        dir = resolved;
+        base = '';
+      } else {
+        dir = path.dirname(resolved);
+        base = path.basename(resolved);
+      }
+    } catch {
+      dir = path.dirname(resolved);
+      base = path.basename(resolved);
+    }
+
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    const matching = entries
+      .filter(e => e.name.startsWith(base) && !e.name.startsWith('.'))
+      .map(e => {
+        const rel = path.relative(process.cwd(), path.join(dir, e.name));
+        return e.isDirectory() ? `${rel}/` : rel;
+      });
+
+    const completions = matching.map(m => `${prefix}${m}`);
+    return [completions, line];
+  } catch {
+    return [[], line];
+  }
 }
 
 interface StreamResult {
@@ -123,6 +241,7 @@ function startRepl(opts: ChatOptions, client: NyxClient): void {
     input: process.stdin,
     output: process.stdout,
     prompt: `${purple}nyx>${reset} `,
+    completer,
   }) as any;
 
   const scope: string[] = [];
@@ -149,6 +268,7 @@ function startRepl(opts: ChatOptions, client: NyxClient): void {
     console.log(`  ${dim}Scope: ${scope.join(', ')}${reset}`);
   }
   console.log(`  ${dim}Type /quit or press Ctrl+C to exit${reset}`);
+  console.log(`  ${dim}Use @path/to/file to include file contents, /read <path> to preview${reset}`);
   console.log('');
 
   const conversationHistory: ChatMessage[] = [];
@@ -170,13 +290,26 @@ function startRepl(opts: ChatOptions, client: NyxClient): void {
       process.exit(0);
     }
 
+    // /read <path> — display a local file without sending to the agent
+    if (trimmed.startsWith('/read ')) {
+      const output = handleReadCommand(trimmed.slice(6));
+      if (output) {
+        console.log(`\n${dim}${cyan}${renderMarkdown(output)}${reset}\n`);
+      }
+      rl.prompt();
+      return;
+    }
+
+    // Expand @file references in the message
+    const expanded = expandFileReferences(trimmed);
+
     try {
       process.stdout.write(`\n${dim}${cyan}`);
-      const result = await streamAgentResponse(trimmed, opts, client, conversationHistory, activeConversationId);
+      const result = await streamAgentResponse(expanded, opts, client, conversationHistory, activeConversationId);
       process.stdout.write(reset);
 
       // Accumulate conversation history for multi-turn context
-      conversationHistory.push({ role: 'user', content: trimmed });
+      conversationHistory.push({ role: 'user', content: expanded });
       if (result.response) {
         conversationHistory.push({ role: 'assistant', content: result.response });
       }

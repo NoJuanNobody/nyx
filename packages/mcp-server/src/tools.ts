@@ -1,5 +1,9 @@
+import * as fs from 'node:fs';
+import * as nodePath from 'node:path';
 import { apiRequest } from './auth.js';
 import { performWebSearch } from './search/search.service.js';
+
+const MAX_FILE_SIZE = 100 * 1024; // 100 KB
 
 /**
  * MCP tool definitions and handlers.
@@ -260,6 +264,29 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
       required: ['session_id', 'team_id'],
     },
   },
+  {
+    name: 'nyx_read_file',
+    description:
+      'Read a local file from the user\'s filesystem. Returns file contents. Useful for comparing code against specs, checking compliance, or importing content into Nyx documents. Max 100 KB.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'Absolute or relative file path to read' },
+      },
+      required: ['path'],
+    },
+  },
+  {
+    name: 'nyx_list_files',
+    description:
+      'List files and directories at a given path on the user\'s filesystem. Useful for exploring project structure before reading specific files.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'Directory path to list (defaults to current working directory)' },
+      },
+    },
+  },
 ];
 
 /**
@@ -391,6 +418,27 @@ export async function executeTool(
 
       const results = await performWebSearch(query, searchType, maxResults);
       return results;
+    }
+    case 'nyx_read_file': {
+      const filePath = nodePath.resolve(args.path as string);
+      const stats = fs.statSync(filePath);
+      if (stats.isDirectory()) {
+        throw new Error(`Path is a directory, not a file: ${filePath}. Use nyx_list_files instead.`);
+      }
+      if (stats.size > MAX_FILE_SIZE) {
+        throw new Error(`File too large: ${Math.round(stats.size / 1024)} KB (max 100 KB)`);
+      }
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const ext = nodePath.extname(filePath).slice(1) || 'txt';
+      return { path: filePath, extension: ext, content };
+    }
+    case 'nyx_list_files': {
+      const dirPath = nodePath.resolve((args.path as string) ?? '.');
+      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+      return entries.map(e => ({
+        name: e.name,
+        type: e.isDirectory() ? 'directory' : 'file',
+      }));
     }
     default:
       throw new Error(`Unknown tool: ${name}`);
