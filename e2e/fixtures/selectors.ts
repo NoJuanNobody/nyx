@@ -54,7 +54,7 @@ export const SEL = {
   editor: {
     titleInput: 'input[type="text"]',
     textarea: 'textarea',
-    saveVersionButton: 'button:has-text("Save Version")',
+    saveVersionButton: 'button[title="Save Version"]',
     saveStateIndicator: 'text=/Saved|Saving|Unsaved/',
     // Layout tabs
     markdownTab: 'button:has-text("Markdown")',

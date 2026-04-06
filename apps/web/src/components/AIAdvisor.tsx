@@ -614,7 +614,7 @@ export function AIAdvisor({
       {/* Expandable panel — animated height */}
       <div
         className="overflow-hidden transition-[max-height] duration-300 ease-out"
-        style={{ maxHeight: expanded ? `${Math.min(panelHeight, window.innerHeight * 0.4)}px` : '0px' }}
+        style={{ maxHeight: expanded ? `${Math.min(panelHeight, window.innerHeight * 0.4)}px` : '0px', visibility: expanded ? 'visible' : 'hidden' }}
       >
         <div ref={panelRef} data-testid="ai-advisor-panel">
           {/* Panel header with optional Clear all */}
