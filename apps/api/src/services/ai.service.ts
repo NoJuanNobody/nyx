@@ -712,15 +712,35 @@ Respond ONLY with a valid JSON array of objects with title, description, and lab
     // Strip code fences
     text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
 
+    // Extract JSON array — find the outermost [ ... ] in case the model added prose around it
+    const firstBracket = text.indexOf('[');
+    const lastBracket = text.lastIndexOf(']');
+    if (firstBracket !== -1 && lastBracket > firstBracket) {
+      text = text.slice(firstBracket, lastBracket + 1);
+    }
+
     try {
       const parsed = JSON.parse(text) as Array<{ title: string; description: string; labels: string[] }>;
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
-      return [{ title: `[M] Review "${title}"`, description: text, labels: ['spec-review'] }];
     } catch {
-      return [{ title: `[M] Review "${title}"`, description: text, labels: ['spec-review'] }];
+      // Try to salvage partial JSON — sometimes the model truncates the last entry
+      try {
+        // Remove trailing incomplete object and close the array
+        const lastComplete = text.lastIndexOf('},');
+        if (lastComplete > 0) {
+          const salvaged = text.slice(0, lastComplete + 1) + ']';
+          const parsed = JSON.parse(salvaged) as Array<{ title: string; description: string; labels: string[] }>;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch {
+        // Fall through to fallback
+      }
     }
+    return [{ title: `[M] Review "${title}"`, description: 'AI generated suggestions but they could not be parsed. Please try again.', labels: ['spec-review'] }];
   },
 
   /**
