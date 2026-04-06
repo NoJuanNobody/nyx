@@ -24,7 +24,14 @@ When calling create_ticket, make each ticket actionable:
   4. Suggested labels (e.g., bug, enhancement, drift, spec-gap)
 
 End by asking if there's a specific part of the findings the user wants to dig into further, or suggest the single most valuable next step.`,
-    tools: ['read_document', 'analyze_spec_quality', 'detect_drift', 'get_github_files', 'search_audit_trail', 'create_ticket', 'web_search'],
+    tools: [
+      'read_document', 'list_documents', 'update_document', 'create_document', 'delete_document',
+      'analyze_spec_quality', 'detect_drift', 'get_github_files', 'search_audit_trail',
+      'create_ticket', 'suggest_tickets', 'list_tickets', 'list_ticket_suggestions', 'approve_ticket_suggestion',
+      'get_version_diff', 'list_versions', 'improve_document', 'check_compliance',
+      'search_code', 'retrieve_chunks', 'export_document', 'web_search',
+      'generate_change_proposal', 'list_notifications',
+    ],
     defaultPrompt: 'Take a look at this spec and let me know what stands out.',
     postSessionSuggestions: [
       'Which issue is highest priority?',
@@ -56,7 +63,13 @@ When calling create_ticket, make each ticket actionable:
   4. Suggested labels (e.g., bug, enhancement, drift, spec-gap)
 
 End by asking if there's a specific impact area the user wants to dig into, or suggest the most important thing to address first.`,
-    tools: ['read_document', 'search_audit_trail', 'get_github_files', 'detect_drift', 'create_ticket', 'web_search'],
+    tools: [
+      'read_document', 'list_documents', 'search_audit_trail', 'get_github_files', 'detect_drift',
+      'create_ticket', 'suggest_tickets', 'list_tickets', 'sync_tickets',
+      'get_version_diff', 'list_versions', 'check_compliance',
+      'search_code', 'retrieve_chunks', 'scan_document', 'web_search',
+      'generate_change_proposal', 'list_notifications',
+    ],
     defaultPrompt: 'What changed recently, and what does it affect?',
     postSessionSuggestions: [
       "What's the highest-risk change?",
@@ -78,7 +91,12 @@ Before each tool call, briefly say what you're about to check and why. After get
 Your job: list the documents, check each one against the linked codebase, and give a clear picture of where things stand — which docs are in sync, which have drifted, how severe it is, and what to tackle first.
 
 End by asking if there's a specific document or area the user wants to dig into, or point to the most urgent thing to fix.`,
-    tools: ['list_documents', 'read_document', 'get_github_files', 'detect_drift', 'web_search'],
+    tools: [
+      'list_documents', 'read_document', 'update_document', 'get_github_files', 'detect_drift',
+      'create_ticket', 'suggest_tickets', 'check_compliance',
+      'search_code', 'retrieve_chunks', 'scan_codebase', 'scan_document', 'index_codebase',
+      'get_version_diff', 'list_versions', 'web_search', 'list_notifications',
+    ],
     defaultPrompt: 'How in sync are our docs with the code right now?',
     postSessionSuggestions: [
       'Which doc has the most drift?',
@@ -100,7 +118,12 @@ Before each tool call, briefly say what you're about to look at and why. After g
 Your job: explore the codebase, see what's already documented, identify the gaps, and write clear documentation to fill them using update_document. Focus on architecture, key modules, API endpoints, and setup instructions. Write in clear, structured markdown.
 
 End by sharing what you documented and asking if there's a specific area the user wants you to go deeper on.`,
-    tools: ['get_github_files', 'list_documents', 'read_document', 'update_document', 'web_search'],
+    tools: [
+      'get_github_files', 'list_documents', 'read_document', 'update_document', 'create_document',
+      'search_code', 'retrieve_chunks', 'index_codebase', 'scan_codebase', 'scan_document',
+      'intake_process', 'improve_document', 'detect_drift', 'check_compliance',
+      'export_document', 'web_search', 'list_notifications',
+    ],
     defaultPrompt: 'Scan the codebase and fill in any documentation gaps.',
     postSessionSuggestions: [
       'Go deeper on the API endpoints',
@@ -124,7 +147,13 @@ Your job: read the meeting document, assess its quality and completeness, verify
 If you find issues, use update_document to improve the notes directly — fix unclear wording, add missing context, and ensure every action item has an assignee and deadline where possible.
 
 End by summarizing what you improved and asking if there's a specific area the user wants to dig into further.`,
-    tools: ['read_document', 'analyze_spec_quality', 'update_document', 'web_search'],
+    tools: [
+      'read_document', 'list_documents', 'analyze_spec_quality', 'update_document',
+      'create_ticket', 'suggest_tickets', 'improve_document',
+      'search_code', 'get_github_files', 'detect_drift',
+      'export_document', 'web_search', 'list_notifications',
+      'generate_podcast_script', 'generate_podcast_audio',
+    ],
     defaultPrompt: 'Review these meeting notes and improve their quality.',
     postSessionSuggestions: [
       'Are all action items assigned?',
