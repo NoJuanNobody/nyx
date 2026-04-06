@@ -108,6 +108,37 @@ export const suggestionService = {
     return updated;
   },
 
+  async expandSuggestion(suggestionId: string) {
+    const [suggestion] = await db
+      .select()
+      .from(ticketSuggestions)
+      .where(eq(ticketSuggestions.id, suggestionId));
+
+    if (!suggestion) throw new Error('Suggestion not found');
+
+    // Fetch the parent document for context
+    const [doc] = await db
+      .select({ title: documents.title, content: documents.content })
+      .from(documents)
+      .where(eq(documents.id, suggestion.documentId));
+
+    const expanded = await aiService.expandTicketDescription(
+      suggestion.title,
+      suggestion.description,
+      doc?.title ?? '',
+      doc?.content?.slice(0, 6000) ?? '',
+    );
+
+    // Update the suggestion with the expanded description
+    const [updated] = await db
+      .update(ticketSuggestions)
+      .set({ description: expanded, updatedAt: new Date() })
+      .where(eq(ticketSuggestions.id, suggestionId))
+      .returning();
+
+    return updated;
+  },
+
   async generateBulkSuggestions(documentId: string) {
     // Fetch document and GitHub integration in parallel
     const [docResult, integrationResult] = await Promise.all([

@@ -51,11 +51,38 @@ export const suggestionRoutes: FastifyPluginAsync = async (app) => {
     }
   });
 
-  // POST /api/documents/:documentId/bulk-suggest-tickets — generate bulk ticket suggestions
+  // POST /api/ticket-suggestions/:id/expand — expand a brief suggestion into full description
+  app.post('/ticket-suggestions/:id/expand', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    try {
+      const result = await suggestionService.expandSuggestion(id);
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      reply.code(400);
+      return { error: message };
+    }
+  });
+
+  // POST /api/documents/:documentId/bulk-suggest-tickets — generate bulk ticket suggestions (async job)
   app.post('/documents/:documentId/bulk-suggest-tickets', { preHandler: [requireRole({ minimumRole: 'editor', source: 'document' })] }, async (request) => {
     const { documentId } = request.params as { documentId: string };
-    const suggestions = await suggestionService.generateBulkSuggestions(documentId);
-    return suggestions;
+    const userId = request.user.id;
+
+    const job = await jobService.create(null, userId, 'bulk-suggest-tickets', { documentId });
+
+    setImmediate(async () => {
+      try {
+        await jobService.markRunning(job.id);
+        const suggestions = await suggestionService.generateBulkSuggestions(documentId);
+        await jobService.markCompleted(job.id, suggestions);
+      } catch (err) {
+        await jobService.markFailed(job.id, err instanceof Error ? err.message : 'Unknown error');
+      }
+    });
+
+    return { jobId: job.id };
   });
 
   // POST /api/ticket-suggestions/bulk-approve — approve multiple suggestions at once (async)

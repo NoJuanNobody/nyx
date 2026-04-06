@@ -70,10 +70,8 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
         ? generateFolderTicketSuggestions(teamId, folderPath)
         : generateBulkSuggestions(documentId),
     onSuccess: (data) => {
-      if (folderPath && data && 'jobId' in data) {
+      if (data && 'jobId' in data) {
         setJobId(data.jobId);
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['ticket-suggestions', documentId] });
       }
     },
   });
@@ -92,12 +90,17 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
   useEffect(() => {
     if (!jobStatus || !jobId) return;
     if (jobStatus.status === 'completed' && jobStatus.result) {
-      setFolderSuggestions(jobStatus.result);
+      if (folderPath) {
+        setFolderSuggestions(jobStatus.result);
+      } else {
+        // Single-doc: refresh the query to pick up new suggestions from DB
+        queryClient.invalidateQueries({ queryKey: ['ticket-suggestions', documentId] });
+      }
       setJobId(null);
     } else if (jobStatus.status === 'failed') {
       setJobId(null);
     }
-  }, [jobStatus, jobId]);
+  }, [jobStatus, jobId, folderPath, documentId, queryClient]);
 
   const [approveJobId, setApproveJobId] = useState<string | null>(null);
 

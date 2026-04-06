@@ -1537,8 +1537,8 @@ export function fetchTicketSuggestions(documentId: string): Promise<TicketSugges
   return request<TicketSuggestion[]>(`/documents/${encodeURIComponent(documentId)}/ticket-suggestions`);
 }
 
-export function generateBulkSuggestions(documentId: string): Promise<TicketSuggestion[]> {
-  return request<TicketSuggestion[]>(`/documents/${encodeURIComponent(documentId)}/bulk-suggest-tickets`, {
+export function generateBulkSuggestions(documentId: string): Promise<{ jobId: string }> {
+  return request<{ jobId: string }>(`/documents/${encodeURIComponent(documentId)}/bulk-suggest-tickets`, {
     method: 'POST',
     body: JSON.stringify({}),
   });
@@ -1609,6 +1609,12 @@ export function applyMeetingSuggestions(
 
 export function dismissTicketSuggestion(id: string): Promise<TicketSuggestion> {
   return request<TicketSuggestion>(`/ticket-suggestions/${encodeURIComponent(id)}/dismiss`, {
+    method: 'POST',
+  });
+}
+
+export function expandTicketSuggestion(id: string): Promise<TicketSuggestion> {
+  return request<TicketSuggestion>(`/ticket-suggestions/${encodeURIComponent(id)}/expand`, {
     method: 'POST',
   });
 }

@@ -649,8 +649,8 @@ Preserve the technical detail from each module doc. Use clean Markdown formattin
   ): Promise<Array<{ title: string; description: string; labels: string[] }>> {
     const ai = requireClient();
 
-    const truncatedContent = content.slice(0, 20000);
-    const truncatedCode = codeContext ? codeContext.slice(0, 8000) : '';
+    const truncatedContent = content.slice(0, 12000);
+    const truncatedCode = codeContext ? codeContext.slice(0, 3000) : '';
 
     let stageFocus = '';
     if (stage && ['conception', 'definition'].includes(stage)) {
@@ -676,12 +676,12 @@ Preserve the technical detail from each module doc. Use clean Markdown formattin
         `Ticket suggestion engine. Generate exactly the tickets needed to implement the document — no more, no less. Each ticket = one independently deliverable unit of code work. ${stageFocus}${stageContext}
 
 Rules:
-- Concrete code work only: features, bugs, tests, refactors, APIs, migrations, security. No doc-only tickets.
-- Title: "[S]"/"[M]"/"[L]" prefix for scope + action verb ("Implement", "Add", "Fix", "Refactor")
-- Description: brief "## Context" (which spec section), "## Affected Areas" (files/modules), "## Acceptance Criteria" (checklist)
-- Labels: array (e.g. enhancement, bug, testing, security, performance)
+- Code work only: features, bugs, tests, APIs, migrations, security. No doc-only tickets.
+- Title: "[S]"/"[M]"/"[L]" prefix + action verb ("Implement", "Add", "Fix", "Refactor")
+- Description: include "## Context" (which spec section), "## Affected Areas" (files/modules), "## Acceptance Criteria" (checklist)
+- Labels: 1-3 labels (enhancement, bug, testing, security, performance)
 
-Respond ONLY with a JSON array: [{title, description, labels}]`,
+JSON array only: [{title, description, labels}]`,
       messages: [
         {
           role: 'user',
@@ -725,6 +725,33 @@ Respond ONLY with a JSON array: [{title, description, labels}]`,
       }
     }
     return [{ title: `[M] Review "${title}"`, description: 'AI generated suggestions but they could not be parsed. Please try again.', labels: ['spec-review'] }];
+  },
+
+  /**
+   * Expand a brief ticket suggestion into a full implementation description.
+   * Called on-demand when a user clicks into a ticket for details.
+   */
+  async expandTicketDescription(
+    ticketTitle: string,
+    briefDescription: string,
+    docTitle: string,
+    docContent: string,
+  ): Promise<string> {
+    const ai = requireClient();
+
+    const response = await ai.messages.create({
+      model: MODEL_FAST,
+      max_tokens: 1024,
+      system: 'Expand a brief ticket into a detailed implementation description. Include: ## Context (which part of the spec), ## Affected Areas (files/modules), ## Acceptance Criteria (checklist). Be specific and actionable. Return markdown only, no JSON.',
+      messages: [
+        {
+          role: 'user',
+          content: `Ticket: ${ticketTitle}\nBrief: ${briefDescription}\n\nFrom document "${docTitle}":\n${docContent}`,
+        },
+      ],
+    });
+
+    return response.content[0].type === 'text' ? response.content[0].text : briefDescription;
   },
 
   /**
