@@ -726,21 +726,9 @@ JSON array only: [{title, description, labels}]`,
       return [{ title: `[M] Review "${title}"`, description: 'AI generated suggestions but they could not be parsed. Please try again.', labels: ['spec-review'] }];
     }
 
-    // ── Phase 2: Parallel expansion — batches of 5 tickets (~15-20s) ──
-    const BATCH_SIZE = 5;
-    const batches: Array<Array<{ title: string; description: string; labels: string[] }>> = [];
-    for (let i = 0; i < outlineTickets.length; i += BATCH_SIZE) {
-      batches.push(outlineTickets.slice(i, i + BATCH_SIZE));
-    }
-
-    const expandedBatches = await Promise.all(
-      batches.map(async (batch) => {
-        const ticketList = batch.map((t, i) => `${i + 1}. ${t.title}: ${t.description}`).join('\n');
-
-        const expandResponse = await ai.messages.create({
-          model: MODEL_FAST,
-          max_tokens: 8192,
-          system: `Expand each ticket into a detailed implementation spec. For EACH ticket return:
+    // ── Phase 2: Parallel expansion — batches of 3 tickets ──
+    const BATCH_SIZE = 3;
+    const expandPrompt = `Expand each ticket into a detailed implementation spec. For EACH ticket return:
 
 ## Context
 Which spec section this addresses and WHY.
@@ -754,9 +742,22 @@ Specific file paths, modules, DB tables, API endpoints, or components.
 ## Acceptance Criteria
 3-8 testable checklist items. Specific, not vague.
 
-Return a JSON array matching the input order: [{title, description, labels}] where description contains the full markdown above.`,
+Return a JSON array matching the input order: [{title, description, labels}] where description contains the full markdown above.`;
+
+    const docContext = truncatedContent.slice(0, 4000);
+
+    async function expandBatch(
+      batch: Array<{ title: string; description: string; labels: string[] }>,
+    ): Promise<Array<{ title: string; description: string; labels: string[] }>> {
+      const ticketList = batch.map((t, i) => `${i + 1}. ${t.title}: ${t.description}`).join('\n');
+
+      try {
+        const expandResponse = await ai.messages.create({
+          model: MODEL_FAST,
+          max_tokens: 8192,
+          system: expandPrompt,
           messages: [
-            { role: 'user', content: `Expand these tickets for document "${title}":\n\n${ticketList}\n\nDocument context:\n${truncatedContent.slice(0, 4000)}` },
+            { role: 'user', content: `Expand these tickets for document "${title}":\n\n${ticketList}\n\nDocument context:\n${docContext}` },
           ],
         });
 
@@ -764,16 +765,47 @@ Return a JSON array matching the input order: [{title, description, labels}] whe
           expandResponse.content[0].type === 'text' ? expandResponse.content[0].text : '',
         );
 
-        // Merge expanded descriptions back, falling back to outline if expansion failed
         return batch.map((original, i) => ({
           title: expanded[i]?.title ?? original.title,
           description: expanded[i]?.description ?? original.description,
           labels: expanded[i]?.labels ?? original.labels,
         }));
-      }),
-    );
+      } catch {
+        return batch; // Return originals on failure
+      }
+    }
 
-    return expandedBatches.flat();
+    // First pass: expand all batches in parallel
+    const batches: Array<Array<{ title: string; description: string; labels: string[] }>> = [];
+    for (let i = 0; i < outlineTickets.length; i += BATCH_SIZE) {
+      batches.push(outlineTickets.slice(i, i + BATCH_SIZE));
+    }
+
+    const firstPass = await Promise.all(batches.map(expandBatch));
+    const allTickets = firstPass.flat();
+
+    // Retry pass: any tickets still missing detail (description < 200 chars = probably unexpanded)
+    const needsRetry = allTickets
+      .map((t, i) => ({ ticket: t, index: i }))
+      .filter(({ ticket }) => ticket.description.length < 200);
+
+    if (needsRetry.length > 0) {
+      const retryBatches: Array<Array<{ ticket: typeof allTickets[0]; index: number }>> = [];
+      for (let i = 0; i < needsRetry.length; i += BATCH_SIZE) {
+        retryBatches.push(needsRetry.slice(i, i + BATCH_SIZE));
+      }
+
+      const retryResults = await Promise.all(
+        retryBatches.map((batch) => expandBatch(batch.map((b) => b.ticket))),
+      );
+
+      // Merge retried tickets back
+      retryResults.flat().forEach((expanded, i) => {
+        allTickets[needsRetry[i].index] = expanded;
+      });
+    }
+
+    return allTickets;
   },
 
   /**
