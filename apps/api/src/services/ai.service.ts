@@ -671,15 +671,27 @@ Preserve the technical detail from each module doc. Use clean Markdown formattin
 
     const response = await ai.messages.create({
       model: MODEL_FAST,
-      max_tokens: 8192,
+      max_tokens: 16384,
       system:
         `Ticket suggestion engine. Generate exactly the tickets needed to implement the document — no more, no less. Each ticket = one independently deliverable unit of code work. ${stageFocus}${stageContext}
 
 Rules:
 - Code work only: features, bugs, tests, APIs, migrations, security. No doc-only tickets.
 - Title: "[S]"/"[M]"/"[L]" prefix + action verb ("Implement", "Add", "Fix", "Refactor")
-- Description: include "## Context" (which spec section), "## Affected Areas" (files/modules), "## Acceptance Criteria" (checklist)
 - Labels: 1-3 labels (enhancement, bug, testing, security, performance)
+
+Description MUST include all of these sections with real detail:
+## Context
+Cite the specific spec section/requirement this addresses. Explain WHY this work is needed.
+
+## Implementation Details
+Step-by-step technical approach: what code to write, which patterns to follow, what libraries/APIs to use, data flow, error handling strategy. Be specific enough that a developer can start coding from this.
+
+## Affected Areas
+List specific file paths, modules, database tables, API endpoints, or components that will be created or modified.
+
+## Acceptance Criteria
+Markdown checklist of 3-8 verifiable conditions. Each item should be testable — not vague ("works correctly") but specific ("returns 200 with paginated results when limit=10").
 
 JSON array only: [{title, description, labels}]`,
       messages: [
