@@ -14,6 +14,7 @@ program
     chat                  Interactive AI REPL
     intake                Raw ideas → structured specs
     docs                  Document CRUD
+    sync                  Two-way sync: Nyx docs ↔ local .md files
     quality               AI quality scoring & improvement
     tickets               AI ticket generation, create, sync
     check <file>          Spec compliance gate
@@ -103,6 +104,7 @@ const commands: Array<[string[], string, string[]]> = [
   [['query'], './commands/query.js', ['registerQueryCommand']],
   [['check'], './commands/check.js', ['registerCheckCommand']],
   [['scan'], './commands/scan.js', ['registerScanCommand']],
+  [['sync'], './commands/sync.js', ['registerSyncCommand']],
 ];
 
 // Determine which command the user invoked (first non-flag arg)
