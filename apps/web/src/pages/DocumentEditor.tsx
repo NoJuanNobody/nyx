@@ -129,10 +129,11 @@ export function DocumentEditor() {
     scheduleSave({ title, content: newContent });
   };
 
-  const handleApproveAIEdit = () => {
-    if (aiProposedContent !== null) {
-      setContent(aiProposedContent);
-      scheduleSave({ title, content: aiProposedContent });
+  const handleApproveAIEdit = (editedContent?: string) => {
+    const finalContent = editedContent ?? aiProposedContent;
+    if (finalContent !== null) {
+      setContent(finalContent);
+      scheduleSave({ title, content: finalContent });
       setAiProposedContent(null);
     }
   };
