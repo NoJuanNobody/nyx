@@ -673,7 +673,7 @@ Preserve the technical detail from each module doc. Use clean Markdown formattin
       model: MODEL_FAST,
       max_tokens: 16384,
       system:
-        `You are a ticket suggestion engine for a software engineering team. Given a document and optional code context, generate at least 50 actionable ticket suggestions. Be thorough and exhaustive — cover every feature, requirement, edge case, test scenario, integration point, performance concern, security consideration, accessibility issue, and deployment task you can identify. ${stageFocus}${stageContext}
+        `You are a ticket suggestion engine for a software engineering team. Given a document and optional code context, generate exactly the number of actionable tickets needed to fully implement what the document describes — no more, no less. Each ticket should represent a meaningful, independently deliverable unit of work. Do not pad with redundant or overly granular tickets. A simple feature might need 3-5 tickets; a complex system might need 30+. Let the scope of the document dictate the count. ${stageFocus}${stageContext}
 
 CRITICAL RULES:
 - Every ticket must describe **concrete code implementation work**: building features, fixing bugs, writing tests, refactoring modules, adding API endpoints, creating database migrations, improving performance, hardening security, etc.
@@ -712,15 +712,35 @@ Respond ONLY with a valid JSON array of objects with title, description, and lab
     // Strip code fences
     text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
 
+    // Extract JSON array — find the outermost [ ... ] in case the model added prose around it
+    const firstBracket = text.indexOf('[');
+    const lastBracket = text.lastIndexOf(']');
+    if (firstBracket !== -1 && lastBracket > firstBracket) {
+      text = text.slice(firstBracket, lastBracket + 1);
+    }
+
     try {
       const parsed = JSON.parse(text) as Array<{ title: string; description: string; labels: string[] }>;
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
-      return [{ title: `[M] Review "${title}"`, description: text, labels: ['spec-review'] }];
     } catch {
-      return [{ title: `[M] Review "${title}"`, description: text, labels: ['spec-review'] }];
+      // Try to salvage partial JSON — sometimes the model truncates the last entry
+      try {
+        // Remove trailing incomplete object and close the array
+        const lastComplete = text.lastIndexOf('},');
+        if (lastComplete > 0) {
+          const salvaged = text.slice(0, lastComplete + 1) + ']';
+          const parsed = JSON.parse(salvaged) as Array<{ title: string; description: string; labels: string[] }>;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch {
+        // Fall through to fallback
+      }
     }
+    return [{ title: `[M] Review "${title}"`, description: 'AI generated suggestions but they could not be parsed. Please try again.', labels: ['spec-review'] }];
   },
 
   /**

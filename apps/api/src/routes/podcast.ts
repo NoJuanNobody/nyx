@@ -1,24 +1,11 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { db } from '../db/index.js';
-import { documents } from '../db/schema.js';
-import { inArray } from 'drizzle-orm';
+import { documents, podcastScripts } from '../db/schema.js';
+import { eq, inArray } from 'drizzle-orm';
 import { aiService } from '../services/ai.service.js';
 import { ttsService } from '../services/tts.service.js';
 
-export interface PodcastScript {
-  id: string;
-  teamId: string;
-  title: string;
-  documentIds: string[];
-  script: Array<{ speaker: 'Host A' | 'Host B'; text: string }>;
-  qualityScore: number;
-  suggestions: string[];
-  createdAt: string;
-}
-
-// In-memory store for MVP (same pattern as sprint service)
-const podcastScripts: PodcastScript[] = [];
-let nextId = 1;
+export type PodcastScript = typeof podcastScripts.$inferSelect;
 
 export const podcastRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/podcast/generate — generate a podcast script from documents
@@ -55,26 +42,30 @@ export const podcastRoutes: FastifyPluginAsync = async (app) => {
 
     const result = await aiService.generatePodcastScript(concatenatedContent, title);
 
-    const script: PodcastScript = {
-      id: `podcast-${nextId++}`,
+    const [inserted] = await db.insert(podcastScripts).values({
       teamId,
       title: result.title,
       documentIds,
       script: result.script,
       qualityScore: result.qualityScore,
       suggestions: result.suggestions,
-      createdAt: new Date().toISOString(),
-    };
+    }).returning();
 
-    podcastScripts.push(script);
-    return script;
+    return inserted;
   });
 
   // POST /api/podcast/:id/audio — generate audio for a podcast script
   app.post('/podcast/:id/audio', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { id } = request.params as { id: string };
 
-    const script = podcastScripts.find((s) => s.id === id);
+    // Validate UUID format to avoid Postgres errors
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      reply.code(404);
+      return { error: 'Podcast script not found' };
+    }
+
+    const [script] = await db.select().from(podcastScripts).where(eq(podcastScripts.id, id));
     if (!script) {
       reply.code(404);
       return { error: 'Podcast script not found' };
@@ -130,20 +121,18 @@ export const podcastRoutes: FastifyPluginAsync = async (app) => {
 
     const result = await aiService.generateRadioShowScript(segments, showName);
 
-    const script: PodcastScript = {
-      id: `podcast-${nextId++}`,
+    const [inserted] = await db.insert(podcastScripts).values({
       teamId,
       title: result.title,
       documentIds,
       script: result.script,
       qualityScore: result.qualityScore,
       suggestions: result.suggestions,
-      createdAt: new Date().toISOString(),
-    };
+    }).returning();
 
-    podcastScripts.push(script);
-    return script;
+    return inserted;
   });
+
   // GET /api/podcast/scripts?teamId=X — list generated podcast scripts
   app.get('/podcast/scripts', async (request, reply) => {
     const { teamId } = request.query as { teamId?: string };
@@ -153,13 +142,7 @@ export const podcastRoutes: FastifyPluginAsync = async (app) => {
       return { error: 'teamId query parameter is required' };
     }
 
-    const scripts = podcastScripts.filter((s) => s.teamId === teamId);
+    const scripts = await db.select().from(podcastScripts).where(eq(podcastScripts.teamId, teamId));
     return { scripts };
   });
 };
-
-// Exported for testing
-export function _resetPodcastScripts(): void {
-  podcastScripts.length = 0;
-  nextId = 1;
-}

@@ -239,6 +239,7 @@ export const tickets = pgTable('tickets', {
   externalId: text('external_id').notNull(),
   externalUrl: text('external_url').notNull(),
   title: text('title').notNull(),
+  body: text('body').notNull().default(''),
   status: ticketStatusEnum('status').notNull().default('open'),
   claudeInsights: jsonb('claude_insights'),
   createdById: uuid('created_by_id')
@@ -818,4 +819,19 @@ export const codeChunks = pgTable('code_chunks', {
 }, (table) => [
   index('code_chunks_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
   index('code_chunks_team_repo_idx').on(table.teamId, table.repoFullName),
+]);
+
+// ── Podcast Scripts ──────────────────────────────────────
+
+export const podcastScripts = pgTable('podcast_scripts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').notNull().references(() => teams.id),
+  title: text('title').notNull(),
+  documentIds: jsonb('document_ids').$type<string[]>().notNull().default([]),
+  script: jsonb('script').$type<Array<{ speaker: string; text: string }>>().notNull().default([]),
+  qualityScore: integer('quality_score').notNull().default(0),
+  suggestions: jsonb('suggestions').$type<string[]>().notNull().default([]),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('podcast_scripts_team_id_idx').on(table.teamId),
 ]);

@@ -7,6 +7,7 @@ const { mockAiService, mockDb } = vi.hoisted(() => ({
   },
   mockDb: {
     select: vi.fn(),
+    insert: vi.fn(),
   },
 }));
 
@@ -18,7 +19,7 @@ vi.mock('../../db/index.js', () => ({
   db: mockDb,
 }));
 
-import { podcastRoutes, _resetPodcastScripts } from '../../routes/podcast.js';
+import { podcastRoutes } from '../../routes/podcast.js';
 
 async function buildApp() {
   const app = Fastify({ logger: false });
@@ -49,18 +50,41 @@ const mockScriptResult = {
   suggestions: ['Add more examples', 'Include diagrams'],
 };
 
+const mockInsertedScript = {
+  id: 'b1c2d3e4-f5a6-7890-abcd-ef1234567890',
+  teamId: 'team-1',
+  title: 'Test Podcast Episode',
+  content: '',
+  documentIds: ['doc-1', 'doc-2'],
+  script: mockScriptResult.script,
+  qualityScore: 8,
+  suggestions: ['Add more examples', 'Include diagrams'],
+  createdAt: new Date('2026-01-01T00:00:00Z'),
+};
+
+function setupSelectMock(docs: Array<{ id: string; title: string; content: string }>) {
+  const mockWhere = vi.fn().mockResolvedValue(docs);
+  const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+  mockDb.select.mockReturnValue({ from: mockFrom });
+}
+
+function setupInsertMock(returnValue: any) {
+  const mockReturning = vi.fn().mockResolvedValue([returnValue]);
+  const mockValues = vi.fn().mockReturnValue({ returning: mockReturning });
+  mockDb.insert.mockReturnValue({ values: mockValues });
+}
+
 describe('Podcast Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    _resetPodcastScripts();
 
     // Default: db.select().from().where() returns matching docs
-    const mockWhere = vi.fn().mockResolvedValue([
+    setupSelectMock([
       { id: 'doc-1', title: 'Doc One', content: 'Content one' },
       { id: 'doc-2', title: 'Doc Two', content: 'Content two' },
     ]);
-    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
-    mockDb.select.mockReturnValue({ from: mockFrom });
+
+    setupInsertMock(mockInsertedScript);
   });
 
   describe('POST /api/podcast/generate', () => {
@@ -96,11 +120,9 @@ describe('Podcast Routes', () => {
     it('works without optional title', async () => {
       mockAiService.generatePodcastScript.mockResolvedValue(mockScriptResult);
 
-      const mockWhere = vi.fn().mockResolvedValue([
+      setupSelectMock([
         { id: 'doc-1', title: 'Doc One', content: 'Content one' },
       ]);
-      const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
-      mockDb.select.mockReturnValue({ from: mockFrom });
 
       const app = await buildApp();
       const res = await app.inject({
@@ -161,23 +183,10 @@ describe('Podcast Routes', () => {
 
   describe('GET /api/podcast/scripts', () => {
     it('returns scripts filtered by teamId', async () => {
-      mockAiService.generatePodcastScript.mockResolvedValue(mockScriptResult);
-
-      const mockWhere = vi.fn().mockResolvedValue([
-        { id: 'doc-1', title: 'Doc One', content: 'Content one' },
-      ]);
-      const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
-      mockDb.select.mockReturnValue({ from: mockFrom });
+      mockDb.select.mockReset();
+      setupSelectMock([mockInsertedScript]);
 
       const app = await buildApp();
-
-      // Generate a script first
-      await app.inject({
-        method: 'POST',
-        url: '/api/podcast/generate',
-        payload: { documentIds: ['doc-1'], teamId: 'team-1' },
-      });
-
       const res = await app.inject({
         method: 'GET',
         url: '/api/podcast/scripts?teamId=team-1',
@@ -190,6 +199,8 @@ describe('Podcast Routes', () => {
     });
 
     it('returns empty array for team with no scripts', async () => {
+      setupSelectMock([]);
+
       const app = await buildApp();
       const res = await app.inject({
         method: 'GET',

@@ -119,6 +119,8 @@ export function UnifiedAIPanel({
         setStreamingContent(streamingContentRef.current);
         break;
       case 'tool_call':
+        // Flush any accumulated text as a separate message before showing tool call
+        commitStreamingContent();
         if (event.toolName === 'update_document') {
           const proposed = (event.input as { content?: string })?.content ?? '';
           appendMessage({ kind: 'proposed_edit', proposed, resolved: false });

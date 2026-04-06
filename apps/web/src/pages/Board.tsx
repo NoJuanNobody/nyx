@@ -19,6 +19,16 @@ const PROVIDER_BADGE: Record<string, { label: string; className: string }> = {
 
 function TicketCard({ ticket, onStatusChange }: { ticket: Ticket; onStatusChange: (ticketId: string, status: ColumnStatus) => void }) {
   const badge = PROVIDER_BADGE[ticket.provider] ?? { label: ticket.provider, className: 'bg-slate-200 text-slate-700' };
+  const [expanded, setExpanded] = useState(false);
+
+  // Strip markdown headers/links for a clean preview
+  const bodyPreview = ticket.body
+    ? ticket.body.replace(/^#{1,6}\s+/gm, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').trim()
+    : '';
+  const MAX_PREVIEW = 120;
+  const truncatedBody = bodyPreview.length > MAX_PREVIEW
+    ? bodyPreview.slice(0, MAX_PREVIEW) + '...'
+    : bodyPreview;
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm hover:shadow transition-shadow">
@@ -38,6 +48,25 @@ function TicketCard({ ticket, onStatusChange }: { ticket: Ticket; onStatusChange
           {badge.label}
         </span>
       </div>
+
+      {/* Body preview */}
+      {bodyPreview && (
+        <div className="mt-2">
+          <p className="text-xs leading-relaxed text-slate-500">
+            {expanded ? bodyPreview : truncatedBody}
+          </p>
+          {bodyPreview.length > MAX_PREVIEW && (
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="mt-0.5 text-[10px] font-medium text-blue-500 hover:text-blue-700"
+            >
+              {expanded ? 'Show less' : 'Show more'}
+            </button>
+          )}
+        </div>
+      )}
+
       {ticket.repoName && (
         <div className="mt-1.5 flex items-center gap-1">
           <svg className="h-3 w-3 flex-shrink-0 text-slate-400" fill="currentColor" viewBox="0 0 16 16">
@@ -89,12 +118,33 @@ export function Board() {
   const queryClient = useQueryClient();
   const currentTeamId = useAuthStore((s) => s.currentTeamId);
   const [providerFilter, setProviderFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [repoFilter, setRepoFilter] = useState<string>('');
 
   const { data: tickets = [], isLoading } = useQuery({
-    queryKey: ['tickets', currentTeamId, providerFilter],
-    queryFn: () => fetchTickets(currentTeamId!, { provider: providerFilter || undefined }),
+    queryKey: ['tickets', currentTeamId, providerFilter, statusFilter],
+    queryFn: () => fetchTickets(currentTeamId!, {
+      provider: providerFilter || undefined,
+      status: statusFilter || undefined,
+    }),
     enabled: !!currentTeamId,
   });
+
+  // Derive unique repo names for filter dropdown
+  const repoNames = [...new Set(tickets.map((t) => t.repoName).filter(Boolean))] as string[];
+
+  // Apply client-side repo filter
+  const filteredTickets = repoFilter
+    ? tickets.filter((t) => t.repoName === repoFilter)
+    : tickets;
+
+  const hasActiveFilters = !!(providerFilter || statusFilter || repoFilter);
+
+  const clearFilters = () => {
+    setProviderFilter('');
+    setStatusFilter('');
+    setRepoFilter('');
+  };
 
   const syncMutation = useMutation({
     mutationFn: () => syncAllTickets(currentTeamId!),
@@ -117,7 +167,7 @@ export function Board() {
     closed: [],
   };
 
-  for (const ticket of tickets) {
+  for (const ticket of filteredTickets) {
     const status = ticket.status as ColumnStatus;
     if (grouped[status]) {
       grouped[status].push(ticket);
@@ -128,24 +178,14 @@ export function Board() {
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Board</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Track tickets across your team's integrations.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={providerFilter}
-            onChange={(e) => setProviderFilter(e.target.value)}
-            data-testid="provider-filter"
-            className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-600 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          >
-            <option value="">All providers</option>
-            <option value="github">GitHub</option>
-            <option value="jira">Jira</option>
-          </select>
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Board</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Track tickets across your team's integrations.
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => syncMutation.mutate()}
@@ -169,6 +209,54 @@ export function Board() {
               </>
             )}
           </button>
+        </div>
+
+        {/* Filter bar */}
+        <div className="mt-3 flex items-center gap-3">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            data-testid="status-filter"
+            className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-600 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          >
+            <option value="">All statuses</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In Progress</option>
+            <option value="closed">Closed</option>
+          </select>
+          <select
+            value={providerFilter}
+            onChange={(e) => setProviderFilter(e.target.value)}
+            data-testid="provider-filter"
+            className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-600 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          >
+            <option value="">All providers</option>
+            <option value="github">GitHub</option>
+            <option value="jira">Jira</option>
+          </select>
+          <select
+            value={repoFilter}
+            onChange={(e) => setRepoFilter(e.target.value)}
+            data-testid="repo-filter"
+            className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-600 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          >
+            <option value="">All repos</option>
+            {repoNames.sort().map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
+          <span className="ml-auto text-xs text-slate-400">
+            {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''}
+          </span>
         </div>
       </div>
 
