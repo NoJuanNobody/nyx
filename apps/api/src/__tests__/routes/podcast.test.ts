@@ -183,6 +183,7 @@ describe('Podcast Routes', () => {
 
   describe('GET /api/podcast/scripts', () => {
     it('returns scripts filtered by teamId', async () => {
+      vi.clearAllMocks();
       setupSelectMock([mockInsertedScript]);
 
       const app = await buildApp();
