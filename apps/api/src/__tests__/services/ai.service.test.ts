@@ -384,6 +384,7 @@ describe('AI Service', () => {
     expect(result.headline).toBe('Fenced Article');
   });
 
+
   it('refineJSXPreview: strips import statements', async () => {
     mockCreate.mockResolvedValueOnce(
       makeResponse('import React from "react";\nfunction App() { return <div/>; }'),

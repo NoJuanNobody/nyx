@@ -103,6 +103,7 @@ function UserSection({ collapsed }: { collapsed: boolean }) {
       {/* Team switcher */}
       {teams.length > 1 && (
         <select
+          data-testid="team-switcher"
           value={currentTeamId ?? ''}
           onChange={(e) => setCurrentTeamId(e.target.value)}
           className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
@@ -125,7 +126,7 @@ function UserSection({ collapsed }: { collapsed: boolean }) {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <p className="truncate text-xs font-medium text-slate-700">{user.name}</p>
+          <p data-testid="user-name" className="truncate text-xs font-medium text-slate-700">{user.name}</p>
           <p className="truncate text-[10px] text-slate-400">{user.role}</p>
         </div>
         <button
@@ -249,16 +250,16 @@ export function Sidebar() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 bg-white transition-all duration-200 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 bg-white transition-all duration-200 md:static md:translate-x-0 ${
           sidebarCollapsed ? 'w-16' : 'w-64'
-        } ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        } ${sidebarOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'}`}
       >
         {/* Logo + collapse toggle */}
         <div className="flex h-14 items-center border-b border-slate-200">
