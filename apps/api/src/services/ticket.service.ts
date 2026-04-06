@@ -104,6 +104,7 @@ export const ticketService = {
         externalId,
         externalUrl,
         title,
+        body,
         status: 'open',
         createdById,
       })

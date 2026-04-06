@@ -757,6 +757,7 @@ export interface Ticket {
   externalId: string;
   externalUrl: string;
   title: string;
+  body?: string;
   status: 'open' | 'in_progress' | 'closed';
   createdById: string;
   createdAt: string;

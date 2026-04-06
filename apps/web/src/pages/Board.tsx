@@ -19,6 +19,16 @@ const PROVIDER_BADGE: Record<string, { label: string; className: string }> = {
 
 function TicketCard({ ticket, onStatusChange }: { ticket: Ticket; onStatusChange: (ticketId: string, status: ColumnStatus) => void }) {
   const badge = PROVIDER_BADGE[ticket.provider] ?? { label: ticket.provider, className: 'bg-slate-200 text-slate-700' };
+  const [expanded, setExpanded] = useState(false);
+
+  // Strip markdown headers/links for a clean preview
+  const bodyPreview = ticket.body
+    ? ticket.body.replace(/^#{1,6}\s+/gm, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').trim()
+    : '';
+  const MAX_PREVIEW = 120;
+  const truncatedBody = bodyPreview.length > MAX_PREVIEW
+    ? bodyPreview.slice(0, MAX_PREVIEW) + '...'
+    : bodyPreview;
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm hover:shadow transition-shadow">
@@ -38,6 +48,25 @@ function TicketCard({ ticket, onStatusChange }: { ticket: Ticket; onStatusChange
           {badge.label}
         </span>
       </div>
+
+      {/* Body preview */}
+      {bodyPreview && (
+        <div className="mt-2">
+          <p className="text-xs leading-relaxed text-slate-500">
+            {expanded ? bodyPreview : truncatedBody}
+          </p>
+          {bodyPreview.length > MAX_PREVIEW && (
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="mt-0.5 text-[10px] font-medium text-blue-500 hover:text-blue-700"
+            >
+              {expanded ? 'Show less' : 'Show more'}
+            </button>
+          )}
+        </div>
+      )}
+
       {ticket.repoName && (
         <div className="mt-1.5 flex items-center gap-1">
           <svg className="h-3 w-3 flex-shrink-0 text-slate-400" fill="currentColor" viewBox="0 0 16 16">
