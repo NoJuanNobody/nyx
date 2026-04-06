@@ -64,7 +64,7 @@ When calling create_ticket, make each ticket actionable:
 
 End by asking if there's a specific impact area the user wants to dig into, or suggest the most important thing to address first.`,
     tools: [
-      'read_document', 'list_documents', 'search_audit_trail', 'get_github_files', 'detect_drift',
+      'read_document', 'list_documents', 'update_document', 'search_audit_trail', 'get_github_files', 'detect_drift',
       'create_ticket', 'suggest_tickets', 'list_tickets', 'sync_tickets',
       'get_version_diff', 'list_versions', 'check_compliance',
       'search_code', 'retrieve_chunks', 'scan_document', 'web_search',
@@ -122,7 +122,7 @@ End by sharing what you documented and asking if there's a specific area the use
       'get_github_files', 'list_documents', 'read_document', 'update_document', 'create_document',
       'search_code', 'retrieve_chunks', 'index_codebase', 'scan_codebase', 'scan_document',
       'intake_process', 'improve_document', 'detect_drift', 'check_compliance',
-      'export_document', 'web_search', 'list_notifications',
+      'create_ticket', 'suggest_tickets', 'export_document', 'web_search', 'list_notifications',
     ],
     defaultPrompt: 'Scan the codebase and fill in any documentation gaps.',
     postSessionSuggestions: [

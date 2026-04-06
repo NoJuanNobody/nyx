@@ -4,32 +4,30 @@ import { AGENT_TOOLS, getToolDefinitions } from '../../services/agent/tools.js';
 
 describe('Agent tool selection (issue #74)', () => {
   describe('workflow tool scoping', () => {
-    it('full_spec_review includes create_ticket but not update_document', () => {
-      const workflow = getWorkflow('full_spec_review');
-      expect(workflow).toBeDefined();
-      expect(workflow!.tools).toContain('create_ticket');
-      expect(workflow!.tools).not.toContain('update_document');
+    it('all workflows include both create_ticket and update_document', () => {
+      for (const [id, workflow] of Object.entries(WORKFLOWS)) {
+        expect(workflow.tools, `${id} should include create_ticket`).toContain('create_ticket');
+        expect(workflow.tools, `${id} should include update_document`).toContain('update_document');
+      }
     });
 
-    it('change_impact_analysis includes create_ticket but not update_document', () => {
-      const workflow = getWorkflow('change_impact_analysis');
-      expect(workflow).toBeDefined();
-      expect(workflow!.tools).toContain('create_ticket');
-      expect(workflow!.tools).not.toContain('update_document');
+    it('all workflows include core tools', () => {
+      const coreTools = ['read_document', 'web_search'];
+      for (const [id, workflow] of Object.entries(WORKFLOWS)) {
+        for (const tool of coreTools) {
+          expect(workflow.tools, `${id} should include ${tool}`).toContain(tool);
+        }
+      }
     });
 
-    it('doc_generation includes update_document but not create_ticket', () => {
-      const workflow = getWorkflow('doc_generation');
-      expect(workflow).toBeDefined();
-      expect(workflow!.tools).toContain('update_document');
-      expect(workflow!.tools).not.toContain('create_ticket');
-    });
-
-    it('codebase_sync_check includes neither update_document nor create_ticket', () => {
-      const workflow = getWorkflow('codebase_sync_check');
-      expect(workflow).toBeDefined();
-      expect(workflow!.tools).not.toContain('update_document');
-      expect(workflow!.tools).not.toContain('create_ticket');
+    it('every defined tool is in at least one workflow', () => {
+      const allToolNames = Object.keys(AGENT_TOOLS);
+      const toolsInWorkflows = new Set(
+        Object.values(WORKFLOWS).flatMap((w) => w.tools),
+      );
+      for (const tool of allToolNames) {
+        expect(toolsInWorkflows, `${tool} should be in at least one workflow`).toContain(tool);
+      }
     });
   });
 
