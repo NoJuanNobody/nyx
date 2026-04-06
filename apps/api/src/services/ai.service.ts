@@ -7,6 +7,32 @@ import { decrypt } from './encryption.service.js';
 const MODEL = 'claude-sonnet-4-20250514';
 const MODEL_FAST = 'claude-haiku-4-5-20251001';
 
+/** Parse a JSON array from AI text, handling code fences, prose wrapping, and truncation. */
+function parseJsonArray(raw: string): Array<{ title: string; description: string; labels: string[] }> {
+  let text = raw.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+
+  const firstBracket = text.indexOf('[');
+  const lastBracket = text.lastIndexOf(']');
+  if (firstBracket !== -1 && lastBracket > firstBracket) {
+    text = text.slice(firstBracket, lastBracket + 1);
+  }
+
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  } catch {
+    // Try salvaging truncated JSON
+    try {
+      const lastComplete = text.lastIndexOf('},');
+      if (lastComplete > 0) {
+        const salvaged = JSON.parse(text.slice(0, lastComplete + 1) + ']');
+        if (Array.isArray(salvaged) && salvaged.length > 0) return salvaged;
+      }
+    } catch { /* fall through */ }
+  }
+  return [];
+}
+
 const client = config.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: config.ANTHROPIC_API_KEY })
   : null;
@@ -641,6 +667,11 @@ Preserve the technical detail from each module doc. Use clean Markdown formattin
     }
   },
 
+  /** Parse a JSON array from AI text output, handling code fences and truncation. */
+  _parseJsonArray(text: string): Array<{ title: string; description: string; labels: string[] }> {
+    return parseJsonArray(text);
+  },
+
   async generateBulkTicketSuggestions(
     content: string,
     title: string,
@@ -649,16 +680,16 @@ Preserve the technical detail from each module doc. Use clean Markdown formattin
   ): Promise<Array<{ title: string; description: string; labels: string[] }>> {
     const ai = requireClient();
 
-    const truncatedContent = content.slice(0, 20000);
-    const truncatedCode = codeContext ? codeContext.slice(0, 8000) : '';
+    const truncatedContent = content.slice(0, 12000);
+    const truncatedCode = codeContext ? codeContext.slice(0, 3000) : '';
 
     let stageFocus = '';
     if (stage && ['conception', 'definition'].includes(stage)) {
-      stageFocus = 'Focus on requirement gaps, missing user stories, and unanswered questions that need code solutions — e.g., building prototypes, implementing validation logic, or creating API endpoints to address gaps.';
+      stageFocus = 'Focus on requirement gaps, missing user stories, and unanswered questions that need code solutions.';
     } else if (stage && ['architecture', 'implementation'].includes(stage)) {
       stageFocus = 'Focus on code changes, API contracts, migration tasks, and test coverage.';
     } else if (stage === 'execution') {
-      stageFocus = 'Focus on drift remediation — code fixes to bring implementation back in sync with specs, not documentation updates.';
+      stageFocus = 'Focus on drift remediation — code fixes to bring implementation back in sync with specs.';
     }
 
     const stageContext = stage && STAGE_QUALITY_PROMPTS[stage]
@@ -669,62 +700,104 @@ Preserve the technical detail from each module doc. Use clean Markdown formattin
       ? `\n\nLinked code context:\n${truncatedCode}`
       : '';
 
-    const response = await ai.messages.create({
+    // ── Phase 1: Fast outline — titles + labels only (~5-10s) ──
+    const outlineResponse = await ai.messages.create({
       model: MODEL_FAST,
-      max_tokens: 8192,
-      system:
-        `Ticket suggestion engine. Generate exactly the tickets needed to implement the document — no more, no less. Each ticket = one independently deliverable unit of code work. ${stageFocus}${stageContext}
+      max_tokens: 4096,
+      system: `Ticket planning engine. List exactly the tickets needed to implement the document. Each ticket = one independently deliverable unit of code work. ${stageFocus}${stageContext}
 
 Rules:
-- Concrete code work only: features, bugs, tests, refactors, APIs, migrations, security. No doc-only tickets.
-- Title: "[S]"/"[M]"/"[L]" prefix for scope + action verb ("Implement", "Add", "Fix", "Refactor")
-- Description: brief "## Context" (which spec section), "## Affected Areas" (files/modules), "## Acceptance Criteria" (checklist)
-- Labels: array (e.g. enhancement, bug, testing, security, performance)
+- Code work only: features, bugs, tests, APIs, migrations, security. No doc-only tickets.
+- Title: "[S]"/"[M]"/"[L]" prefix + action verb
+- Labels: 1-3 labels
+- Description: one sentence summary ONLY (details will be expanded separately)
 
-Respond ONLY with a JSON array: [{title, description, labels}]`,
+JSON array only: [{title, description, labels}]`,
+      messages: [
+        { role: 'user', content: `Plan tickets for "${title}":\n\n${truncatedContent}${codeBlock}` },
+      ],
+    });
+
+    const outlineTickets = parseJsonArray(
+      outlineResponse.content[0].type === 'text' ? outlineResponse.content[0].text : '',
+    );
+
+    if (outlineTickets.length === 0) {
+      return [{ title: `[M] Review "${title}"`, description: 'AI generated suggestions but they could not be parsed. Please try again.', labels: ['spec-review'] }];
+    }
+
+    // ── Phase 2: Expand every ticket individually in parallel ──
+    // Each call sees the full ticket list to avoid overlap.
+    const docContext = truncatedContent.slice(0, 4000);
+    const allTitles = outlineTickets.map((t, i) => `${i + 1}. ${t.title}`).join('\n');
+
+    const expanded = await Promise.all(
+      outlineTickets.map(async (ticket, idx) => {
+        try {
+          const response = await ai.messages.create({
+            model: MODEL_FAST,
+            max_tokens: 2048,
+            system: `Expand ticket #${idx + 1} into a detailed implementation spec. Return ONLY the markdown description (no JSON, no wrapping). Include these sections:
+
+## Context
+Which spec section this addresses and WHY.
+
+## Implementation Details
+Step-by-step: what code to write, patterns, libraries/APIs, data flow, error handling. Specific enough to start coding.
+
+## Affected Areas
+Specific file paths, modules, DB tables, API endpoints, or components.
+
+## Acceptance Criteria
+3-8 testable checklist items. Specific, not vague.
+
+IMPORTANT: Focus ONLY on this ticket's scope. Do NOT overlap with other tickets in the plan. Here is the full ticket list for context — the other tickets handle everything not in your scope:
+${allTitles}`,
+            messages: [
+              { role: 'user', content: `Expand ticket #${idx + 1}:\nTitle: ${ticket.title}\nSummary: ${ticket.description}\n\nFrom document "${title}":\n${docContext}` },
+            ],
+          });
+
+          const desc = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+          return {
+            title: ticket.title,
+            description: desc || ticket.description,
+            labels: ticket.labels,
+          };
+        } catch {
+          return ticket; // Keep outline on failure
+        }
+      }),
+    );
+
+    return expanded;
+  },
+
+  /**
+   * Expand a brief ticket suggestion into a full implementation description.
+   * Called on-demand when a user clicks into a ticket for details.
+   */
+  async expandTicketDescription(
+    ticketTitle: string,
+    briefDescription: string,
+    docTitle: string,
+    docContent: string,
+  ): Promise<string> {
+    const ai = requireClient();
+
+    const response = await ai.messages.create({
+      model: MODEL_FAST,
+      max_tokens: 1024,
+      system: 'Expand a brief ticket into a detailed implementation description. Include: ## Context (which part of the spec), ## Affected Areas (files/modules), ## Acceptance Criteria (checklist). Be specific and actionable. Return markdown only, no JSON.',
       messages: [
         {
           role: 'user',
-          content: `Generate tickets for "${title}":\n\n${truncatedContent}${codeBlock}`,
+          content: `Ticket: ${ticketTitle}\nBrief: ${briefDescription}\n\nFrom document "${docTitle}":\n${docContent}`,
         },
       ],
     });
 
-    let text =
-      response.content[0].type === 'text' ? response.content[0].text : '';
-
-    // Strip code fences
-    text = text.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
-
-    // Extract JSON array — find the outermost [ ... ] in case the model added prose around it
-    const firstBracket = text.indexOf('[');
-    const lastBracket = text.lastIndexOf(']');
-    if (firstBracket !== -1 && lastBracket > firstBracket) {
-      text = text.slice(firstBracket, lastBracket + 1);
-    }
-
-    try {
-      const parsed = JSON.parse(text) as Array<{ title: string; description: string; labels: string[] }>;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    } catch {
-      // Try to salvage partial JSON — sometimes the model truncates the last entry
-      try {
-        // Remove trailing incomplete object and close the array
-        const lastComplete = text.lastIndexOf('},');
-        if (lastComplete > 0) {
-          const salvaged = text.slice(0, lastComplete + 1) + ']';
-          const parsed = JSON.parse(salvaged) as Array<{ title: string; description: string; labels: string[] }>;
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
-          }
-        }
-      } catch {
-        // Fall through to fallback
-      }
-    }
-    return [{ title: `[M] Review "${title}"`, description: 'AI generated suggestions but they could not be parsed. Please try again.', labels: ['spec-review'] }];
+    return response.content[0].type === 'text' ? response.content[0].text : briefDescription;
   },
 
   /**
