@@ -296,7 +296,7 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
 
           {/* Content area */}
           <div className="flex-1 overflow-y-auto p-6">
-            {jobId && (!jobStatus || jobStatus.status === 'pending' || jobStatus.status === 'running') ? (
+            {(generateMutation.isPending || (jobId && (!jobStatus || jobStatus.status === 'pending' || jobStatus.status === 'running'))) ? (
               /* Job progress state — play a game while waiting */
               <div className="flex flex-col items-center justify-center py-4">
                 <p className="mb-3 text-sm font-medium text-slate-700">
