@@ -727,16 +727,17 @@ JSON array only: [{title, description, labels}]`,
     }
 
     // ── Phase 2: Expand every ticket individually in parallel ──
-    // One small AI call per ticket (~1-2s each), all concurrent. No batching, no truncation.
+    // Each call sees the full ticket list to avoid overlap.
     const docContext = truncatedContent.slice(0, 4000);
+    const allTitles = outlineTickets.map((t, i) => `${i + 1}. ${t.title}`).join('\n');
 
     const expanded = await Promise.all(
-      outlineTickets.map(async (ticket) => {
+      outlineTickets.map(async (ticket, idx) => {
         try {
           const response = await ai.messages.create({
             model: MODEL_FAST,
             max_tokens: 2048,
-            system: `Expand this ticket into a detailed implementation spec. Return ONLY the markdown description (no JSON, no wrapping). Include these sections:
+            system: `Expand ticket #${idx + 1} into a detailed implementation spec. Return ONLY the markdown description (no JSON, no wrapping). Include these sections:
 
 ## Context
 Which spec section this addresses and WHY.
@@ -748,9 +749,12 @@ Step-by-step: what code to write, patterns, libraries/APIs, data flow, error han
 Specific file paths, modules, DB tables, API endpoints, or components.
 
 ## Acceptance Criteria
-3-8 testable checklist items. Specific, not vague.`,
+3-8 testable checklist items. Specific, not vague.
+
+IMPORTANT: Focus ONLY on this ticket's scope. Do NOT overlap with other tickets in the plan. Here is the full ticket list for context — the other tickets handle everything not in your scope:
+${allTitles}`,
             messages: [
-              { role: 'user', content: `Ticket: ${ticket.title}\nSummary: ${ticket.description}\n\nFrom document "${title}":\n${docContext}` },
+              { role: 'user', content: `Expand ticket #${idx + 1}:\nTitle: ${ticket.title}\nSummary: ${ticket.description}\n\nFrom document "${title}":\n${docContext}` },
             ],
           });
 
