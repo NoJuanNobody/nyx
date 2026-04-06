@@ -109,41 +109,45 @@ export const suggestionService = {
   },
 
   async generateBulkSuggestions(documentId: string) {
-    // Fetch the document
-    const [doc] = await db
-      .select()
-      .from(documents)
-      .where(eq(documents.id, documentId));
+    // Fetch document and GitHub integration in parallel
+    const [docResult, integrationResult] = await Promise.all([
+      db.select().from(documents).where(eq(documents.id, documentId)),
+      db.select().from(integrations).where(eq(integrations.type, 'github')).then(
+        (rows) => rows,
+        () => [] as typeof integrations.$inferSelect[],
+      ),
+    ]);
 
+    const [doc] = docResult;
     if (!doc) throw new Error('Document not found');
 
-    // Optionally fetch code context from GitHub integration
+    // Fetch GitHub file tree (with 5s timeout to avoid blocking on slow repos)
     let codeContextStr: string | undefined;
-    if (doc.teamId) {
+    const integration = integrationResult.find((i) => i.teamId === doc.teamId);
+    if (integration) {
       try {
-        const [integration] = await db
-          .select()
-          .from(integrations)
-          .where(and(eq(integrations.teamId, doc.teamId), eq(integrations.type, 'github')));
+        const cfg = integration.config as {
+          accessToken?: string;
+          selectedRepos?: Array<{ owner: string; name: string }>;
+          owner?: string;
+          repo?: string;
+        };
+        const accessToken = cfg.accessToken;
+        const owner = cfg.selectedRepos?.[0]?.owner ?? cfg.owner;
+        const repo = cfg.selectedRepos?.[0]?.name ?? cfg.repo;
 
-        if (integration) {
-          const cfg = integration.config as {
-            accessToken?: string;
-            selectedRepos?: Array<{ owner: string; name: string }>;
-            owner?: string;
-            repo?: string;
-          };
-          const accessToken = cfg.accessToken;
-          const owner = cfg.selectedRepos?.[0]?.owner ?? cfg.owner;
-          const repo = cfg.selectedRepos?.[0]?.name ?? cfg.repo;
-
-          if (accessToken && owner && repo) {
-            const tree = await githubService.getFileTree(accessToken, owner, repo);
-            codeContextStr = JSON.stringify(tree).slice(0, 4000);
+        if (accessToken && owner && repo) {
+          const treePromise = githubService.getFileTree(accessToken, owner, repo);
+          const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+          const tree = await Promise.race([treePromise, timeoutPromise]);
+          if (tree) {
+            // Only send file paths, not full metadata — much smaller payload
+            const paths = tree.map((f: { path: string }) => f.path).slice(0, 500);
+            codeContextStr = paths.join('\n');
           }
         }
       } catch {
-        // Proceed without code context if GitHub fetch fails
+        // Proceed without code context
       }
     }
 

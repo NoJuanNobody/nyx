@@ -671,37 +671,21 @@ Preserve the technical detail from each module doc. Use clean Markdown formattin
 
     const response = await ai.messages.create({
       model: MODEL_FAST,
-      max_tokens: 16384,
+      max_tokens: 8192,
       system:
-        `You are a ticket suggestion engine for a software engineering team. Given a document and optional code context, generate exactly the number of actionable tickets needed to fully implement what the document describes — no more, no less. Each ticket should represent a meaningful, independently deliverable unit of work. Do not pad with redundant or overly granular tickets. A simple feature might need 3-5 tickets; a complex system might need 30+. Let the scope of the document dictate the count. ${stageFocus}${stageContext}
+        `Ticket suggestion engine. Generate exactly the tickets needed to implement the document — no more, no less. Each ticket = one independently deliverable unit of code work. ${stageFocus}${stageContext}
 
-CRITICAL RULES:
-- Every ticket must describe **concrete code implementation work**: building features, fixing bugs, writing tests, refactoring modules, adding API endpoints, creating database migrations, improving performance, hardening security, etc.
-- NEVER generate tickets whose primary goal is to "create documentation", "update docs", "write a guide", or "add README". Documentation-only tickets are acceptable ONLY when the spec explicitly identifies a missing doc as the sole deliverable.
-- Titles must be action-oriented toward code: "Implement ...", "Add ...", "Fix ...", "Refactor ...", "Migrate ...", etc.
+Rules:
+- Concrete code work only: features, bugs, tests, refactors, APIs, migrations, security. No doc-only tickets.
+- Title: "[S]"/"[M]"/"[L]" prefix for scope + action verb ("Implement", "Add", "Fix", "Refactor")
+- Description: brief "## Context" (which spec section), "## Affected Areas" (files/modules), "## Acceptance Criteria" (checklist)
+- Labels: array (e.g. enhancement, bug, testing, security, performance)
 
-GOOD ticket titles:
-- "[M] Implement rate limiting middleware for public API routes"
-- "[S] Add unit tests for team invitation service"
-- "[L] Build real-time collaboration WebSocket layer"
-- "[S] Fix missing null check in document version resolver"
-
-BAD ticket titles (do NOT generate these):
-- "[M] Create API documentation for endpoints"
-- "[S] Update README with deployment instructions"
-- "[M] Document the authentication flow"
-- "[L] Write comprehensive user guide"
-
-Each ticket must have:
-- title: prefixed with [S], [M], or [L] for estimated scope (small/medium/large)
-- description: must include a "## Context" section citing the specific spec heading or section, an "## Affected Areas" section listing file paths or modules, and an "## Acceptance Criteria" section with a markdown checklist of verifiable conditions
-- labels: array of relevant labels (e.g., bug, enhancement, drift, spec-gap, testing, security, performance, accessibility)
-
-Respond ONLY with a valid JSON array of objects with title, description, and labels fields.`,
+Respond ONLY with a JSON array: [{title, description, labels}]`,
       messages: [
         {
           role: 'user',
-          content: `Generate ticket suggestions for the document "${title}":\n\n${truncatedContent}${codeBlock}`,
+          content: `Generate tickets for "${title}":\n\n${truncatedContent}${codeBlock}`,
         },
       ],
     });
