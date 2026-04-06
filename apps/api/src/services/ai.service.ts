@@ -673,7 +673,7 @@ Preserve the technical detail from each module doc. Use clean Markdown formattin
       model: MODEL_FAST,
       max_tokens: 16384,
       system:
-        `You are a ticket suggestion engine for a software engineering team. Given a document and optional code context, generate at least 50 actionable ticket suggestions. Be thorough and exhaustive — cover every feature, requirement, edge case, test scenario, integration point, performance concern, security consideration, accessibility issue, and deployment task you can identify. ${stageFocus}${stageContext}
+        `You are a ticket suggestion engine for a software engineering team. Given a document and optional code context, generate exactly the number of actionable tickets needed to fully implement what the document describes — no more, no less. Each ticket should represent a meaningful, independently deliverable unit of work. Do not pad with redundant or overly granular tickets. A simple feature might need 3-5 tickets; a complex system might need 30+. Let the scope of the document dictate the count. ${stageFocus}${stageContext}
 
 CRITICAL RULES:
 - Every ticket must describe **concrete code implementation work**: building features, fixing bugs, writing tests, refactoring modules, adding API endpoints, creating database migrations, improving performance, hardening security, etc.
