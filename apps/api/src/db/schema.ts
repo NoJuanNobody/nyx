@@ -801,3 +801,21 @@ export const docChunks = pgTable('doc_chunks', {
   index('doc_chunks_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
   index('doc_chunks_doc_version_idx').on(table.docId, table.version),
 ]);
+
+// ── Code Chunks (pgvector) ──────────────────────────────
+// Stores embedded code snippets from connected GitHub repos for RAG-powered codebase search.
+
+export const codeChunks = pgTable('code_chunks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').notNull().references(() => teams.id, { onDelete: 'cascade' }),
+  filePath: text('file_path').notNull(),
+  content: text('content').notNull(),
+  embedding: vector('embedding', { dimensions: 1536 }),
+  repoFullName: text('repo_full_name').notNull(),
+  commitSha: text('commit_sha'),
+  chunkIndex: integer('chunk_index').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('code_chunks_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
+  index('code_chunks_team_repo_idx').on(table.teamId, table.repoFullName),
+]);

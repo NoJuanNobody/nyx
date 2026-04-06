@@ -547,19 +547,42 @@ export function AIAdvisor({
   const visibleNotifications = notifications.slice(0, 3);
   const hasOverflow = notifications.length > 3;
 
+  // Measure the expandable panel's natural height for smooth animation
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelHeight, setPanelHeight] = useState(0);
+
+  useEffect(() => {
+    if (expanded && panelRef.current) {
+      const measure = () => setPanelHeight(panelRef.current?.scrollHeight ?? 0);
+      measure();
+      // Re-measure when notifications change
+      const observer = new ResizeObserver(measure);
+      observer.observe(panelRef.current);
+      return () => observer.disconnect();
+    } else {
+      setPanelHeight(0);
+    }
+  }, [expanded, notifications.length, replyToId]);
+
   return (
-    <div className="border-t border-slate-200 bg-white" data-testid="ai-advisor">
-      {/* Status bar — always visible (~28px) */}
+    <div className="flex-shrink-0 border-t border-slate-200 bg-white" data-testid="ai-advisor">
+      {/* Status bar — always visible */}
       <button
         type="button"
         onClick={expanded ? handleCollapse : handleExpand}
-        className="flex w-full items-center justify-between px-4 text-left hover:bg-slate-50 transition-colors"
+        className="flex w-full items-center justify-between px-4 text-left transition-colors hover:bg-slate-50"
         style={{ minHeight: '28px', paddingTop: '4px', paddingBottom: '4px' }}
         aria-label={expanded ? 'Collapse AI Advisor' : 'Expand AI Advisor'}
         data-testid="ai-advisor-status-bar"
       >
         <div className="flex items-center gap-2">
-          <span className="text-slate-400 text-xs" aria-hidden="true">✦</span>
+          <span
+            className="text-xs text-slate-400 transition-transform duration-300 ease-out"
+            aria-hidden="true"
+            style={{ display: 'inline-block', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+          >
+            ✦
+          </span>
           <span className="text-xs font-medium text-slate-600">AI Advisor</span>
           {notificationCount > 0 && !expanded && (
             <span
@@ -575,15 +598,25 @@ export function AIAdvisor({
         </div>
         <div className="flex items-center gap-3">
           {qualityScore !== null && <ScoreBadge score={qualityScore} />}
-          <span className="text-[10px] text-slate-400 select-none">
-            {expanded ? '▾ Collapse' : '▸ Expand'}
-          </span>
+          <svg
+            className="h-3 w-3 text-slate-400 transition-transform duration-300 ease-out"
+            style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+          </svg>
         </div>
       </button>
 
-      {/* Expanded panel */}
-      {expanded && (
-        <div data-testid="ai-advisor-panel">
+      {/* Expandable panel — animated height */}
+      <div
+        className="overflow-hidden transition-[max-height] duration-300 ease-out"
+        style={{ maxHeight: expanded ? `${Math.min(panelHeight, window.innerHeight * 0.4)}px` : '0px', visibility: expanded ? 'visible' : 'hidden' }}
+      >
+        <div ref={panelRef} data-testid="ai-advisor-panel">
           {/* Panel header with optional Clear all */}
           <div className="flex items-center justify-between border-t border-slate-100 px-4 py-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
@@ -595,7 +628,7 @@ export function AIAdvisor({
               <button
                 type="button"
                 onClick={clearAll}
-                className="text-[10px] text-slate-400 hover:text-slate-700 transition-colors"
+                className="text-[10px] text-slate-400 transition-colors hover:text-slate-700"
                 data-testid="ai-advisor-clear-all"
               >
                 Clear all
@@ -604,7 +637,7 @@ export function AIAdvisor({
           </div>
 
           {/* Notification cards */}
-          <div className="max-h-[40vh] overflow-y-auto px-4 pb-3 space-y-2">
+          <div className="max-h-[35vh] space-y-2 overflow-y-auto px-4 pb-3">
             {notifications.length === 0 && (
               <p className="py-2 text-xs text-slate-400">
                 No notifications — you're all caught up.
@@ -622,7 +655,7 @@ export function AIAdvisor({
             ))}
 
             {hasOverflow && (
-              <p className="text-center text-[10px] text-slate-400 py-1">
+              <p className="py-1 text-center text-[10px] text-slate-400">
                 + {notifications.length - 3} more · scroll to see all
               </p>
             )}
@@ -644,7 +677,7 @@ export function AIAdvisor({
                 <button
                   type="button"
                   onClick={handleSendReply}
-                  className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
+                  className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-blue-700"
                   data-testid="ai-advisor-reply-send"
                 >
                   Send
@@ -653,7 +686,7 @@ export function AIAdvisor({
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -1,49 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 
-// === COMMAND IMPORTS ===
-import { registerDocsCommand } from './commands/docs.js';
-import { registerConfigCommand } from './commands/config.js';
-import { registerAuditCommand, registerActivityCommand } from './commands/audit.js';
-import { registerQualityCommand } from './commands/quality.js';
-import { registerSprintCommand } from './commands/sprint.js';
-import { registerAgentCommand } from './commands/agent.js';
-import { registerVersionsCommand, registerDiffCommand } from './commands/versions.js';
-import { registerBulkCommand } from './commands/bulk.js';
-import { registerProposalsCommand } from './commands/proposals.js';
-import { registerGovernanceCommand } from './commands/governance.js';
-import { registerPermissionsCommand } from './commands/permissions.js';
-import { registerPodcastCommand } from './commands/podcast.js';
-import { registerWatchCommand, registerChangesCommand } from './commands/watch.js';
-import { registerOrchestrateCommand } from './commands/orchestrate.js';
-import { registerIntakeCommand } from './commands/intake.js';
-import { registerTicketsCommand } from './commands/tickets.js';
-import { registerJobsCommand } from './commands/jobs.js';
-import { registerStatusCommand } from './commands/status.js';
-import { registerAiCommand } from './commands/ai.js';
-import { registerBranchesCommand } from './commands/branches.js';
-import { registerSearchCommand, registerContextCommand } from './commands/search.js';
-import { registerTemplatesCommand, registerMarketplaceCommand } from './commands/templates.js';
-import { registerDeliverablesCommand } from './commands/deliverables.js';
-import { registerTimelineCommand } from './commands/timeline.js';
-import { registerSnapshotCommand } from './commands/snapshot.js';
-import { registerNotificationsCommand } from './commands/notifications.js';
-import { registerApikeysCommand } from './commands/apikeys.js';
-import { registerIntegrationsCommand } from './commands/integrations.js';
-import { registerByokCommand } from './commands/byok.js';
-import { registerCreditsCommand } from './commands/credits.js';
-import { registerRegistryCommand } from './commands/registry.js';
-import { registerBillingCommand } from './commands/billing.js';
-import { registerVoiceCommand } from './commands/voice.js';
-import { registerVideoCommand } from './commands/video.js';
-import { registerFeaturesCommand } from './commands/features.js';
-import { registerAdminCommand } from './commands/admin.js';
-import { registerChatCommand } from './commands/chat.js';
-import { registerQueryCommand } from './commands/query.js';
-import { registerCheckCommand } from './commands/check.js';
-import { registerScanCommand } from './commands/scan.js';
-// === END COMMAND IMPORTS ===
-
 const program = new Command();
 
 program
@@ -102,52 +59,79 @@ program
     config                CLI configuration`)
   .version('0.1.0');
 
-// === COMMAND REGISTRATION ===
-registerDocsCommand(program);
-registerConfigCommand(program);
-registerAuditCommand(program);
-registerActivityCommand(program);
-registerQualityCommand(program);
-registerSprintCommand(program);
-registerAgentCommand(program);
-registerVersionsCommand(program);
-registerDiffCommand(program);
-registerBulkCommand(program);
-registerProposalsCommand(program);
-registerGovernanceCommand(program);
-registerPermissionsCommand(program);
-registerPodcastCommand(program);
-registerWatchCommand(program);
-registerChangesCommand(program);
-registerOrchestrateCommand(program);
-registerIntakeCommand(program);
-registerTicketsCommand(program);
-registerJobsCommand(program);
-registerStatusCommand(program);
-registerAiCommand(program);
-registerBranchesCommand(program);
-registerSearchCommand(program);
-registerContextCommand(program);
-registerTemplatesCommand(program);
-registerMarketplaceCommand(program);
-registerDeliverablesCommand(program);
-registerTimelineCommand(program);
-registerSnapshotCommand(program);
-registerNotificationsCommand(program);
-registerApikeysCommand(program);
-registerIntegrationsCommand(program);
-registerByokCommand(program);
-registerCreditsCommand(program);
-registerRegistryCommand(program);
-registerBillingCommand(program);
-registerVoiceCommand(program);
-registerVideoCommand(program);
-registerFeaturesCommand(program);
-registerAdminCommand(program);
-registerChatCommand(program);
-registerQueryCommand(program);
-registerCheckCommand(program);
-registerScanCommand(program);
-// === END COMMAND REGISTRATION ===
+// === LAZY COMMAND REGISTRATION ===
+// Commands are loaded on-demand to keep CLI startup fast.
+// Each entry: [commandName, modulePath, registerFunctionName(s)]
+const commands: Array<[string[], string, string[]]> = [
+  [['docs'], './commands/docs.js', ['registerDocsCommand']],
+  [['config'], './commands/config.js', ['registerConfigCommand']],
+  [['audit', 'activity'], './commands/audit.js', ['registerAuditCommand', 'registerActivityCommand']],
+  [['quality'], './commands/quality.js', ['registerQualityCommand']],
+  [['sprint'], './commands/sprint.js', ['registerSprintCommand']],
+  [['agent'], './commands/agent.js', ['registerAgentCommand']],
+  [['versions', 'diff'], './commands/versions.js', ['registerVersionsCommand', 'registerDiffCommand']],
+  [['bulk'], './commands/bulk.js', ['registerBulkCommand']],
+  [['proposals'], './commands/proposals.js', ['registerProposalsCommand']],
+  [['governance'], './commands/governance.js', ['registerGovernanceCommand']],
+  [['permissions'], './commands/permissions.js', ['registerPermissionsCommand']],
+  [['podcast'], './commands/podcast.js', ['registerPodcastCommand']],
+  [['watch', 'changes'], './commands/watch.js', ['registerWatchCommand', 'registerChangesCommand']],
+  [['orchestrate'], './commands/orchestrate.js', ['registerOrchestrateCommand']],
+  [['intake'], './commands/intake.js', ['registerIntakeCommand']],
+  [['tickets'], './commands/tickets.js', ['registerTicketsCommand']],
+  [['jobs'], './commands/jobs.js', ['registerJobsCommand']],
+  [['status'], './commands/status.js', ['registerStatusCommand']],
+  [['ai'], './commands/ai.js', ['registerAiCommand']],
+  [['branches'], './commands/branches.js', ['registerBranchesCommand']],
+  [['search', 'context'], './commands/search.js', ['registerSearchCommand', 'registerContextCommand']],
+  [['templates', 'marketplace'], './commands/templates.js', ['registerTemplatesCommand', 'registerMarketplaceCommand']],
+  [['deliverables'], './commands/deliverables.js', ['registerDeliverablesCommand']],
+  [['timeline'], './commands/timeline.js', ['registerTimelineCommand']],
+  [['snapshot'], './commands/snapshot.js', ['registerSnapshotCommand']],
+  [['notifications'], './commands/notifications.js', ['registerNotificationsCommand']],
+  [['apikeys'], './commands/apikeys.js', ['registerApikeysCommand']],
+  [['integrations'], './commands/integrations.js', ['registerIntegrationsCommand']],
+  [['byok'], './commands/byok.js', ['registerByokCommand']],
+  [['credits'], './commands/credits.js', ['registerCreditsCommand']],
+  [['registry'], './commands/registry.js', ['registerRegistryCommand']],
+  [['billing'], './commands/billing.js', ['registerBillingCommand']],
+  [['voice'], './commands/voice.js', ['registerVoiceCommand']],
+  [['video'], './commands/video.js', ['registerVideoCommand']],
+  [['features'], './commands/features.js', ['registerFeaturesCommand']],
+  [['admin'], './commands/admin.js', ['registerAdminCommand']],
+  [['chat'], './commands/chat.js', ['registerChatCommand']],
+  [['query'], './commands/query.js', ['registerQueryCommand']],
+  [['check'], './commands/check.js', ['registerCheckCommand']],
+  [['scan'], './commands/scan.js', ['registerScanCommand']],
+];
 
-program.parse();
+// Determine which command the user invoked (first non-flag arg)
+const requestedCommand = process.argv[2];
+
+async function main() {
+  if (requestedCommand && !requestedCommand.startsWith('-')) {
+    // Load only the module that provides the requested command
+    for (const [names, modulePath, registerFns] of commands) {
+      if (names.includes(requestedCommand)) {
+        const mod = await import(modulePath);
+        for (const fn of registerFns) {
+          mod[fn](program);
+        }
+        break;
+      }
+    }
+  } else {
+    // No command or help/version flag — load all commands so help text works
+    for (const [, modulePath, registerFns] of commands) {
+      const mod = await import(modulePath);
+      for (const fn of registerFns) {
+        mod[fn](program);
+      }
+    }
+  }
+
+  program.parse();
+}
+
+main();
+// === END LAZY COMMAND REGISTRATION ===

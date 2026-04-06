@@ -380,6 +380,33 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
       required: ['document_id'],
     },
   },
+
+  // ── Code RAG ─────────────────────────────────────────
+
+  search_code: {
+    name: 'search_code',
+    description: 'Search the codebase by semantic similarity. Returns the most relevant code snippets for a natural-language query. Much more efficient than reading full files — use this FIRST before get_github_files. The codebase must be indexed first (see index_codebase).',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'Natural-language description of what you are looking for (e.g. "team invitation workflow", "auth middleware")' },
+        top_k: { type: 'number', description: 'Number of results to return (default 8, max 20)' },
+      },
+      required: ['query'],
+    },
+  },
+
+  index_codebase: {
+    name: 'index_codebase',
+    description: 'Index (or re-index) the connected GitHub repository for semantic code search. Run this once to enable the search_code tool, or re-run after major code changes.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        team_id: { type: 'string', description: 'Optional team UUID (defaults to current team)' },
+      },
+      required: [],
+    },
+  },
 };
 
 /**

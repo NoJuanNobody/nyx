@@ -19,7 +19,7 @@ vi.mock('../../services/audit.service.js', () => ({ auditService: mockAuditServi
 
 const mockGithubService = vi.hoisted(() => ({
   getFileTree: vi.fn().mockResolvedValue([{ path: 'src/index.ts' }]),
-  getFileContent: vi.fn().mockResolvedValue('file content'),
+  getFileContent: vi.fn().mockResolvedValue({ content: Buffer.from('file content').toString('base64') }),
 }));
 vi.mock('../../services/github.service.js', () => ({ githubService: mockGithubService }));
 

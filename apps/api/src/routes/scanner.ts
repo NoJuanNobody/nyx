@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { codebaseScannerService } from '../services/codebase-scanner.service.js';
+import { codeEmbeddingService } from '../services/code-embedding.service.js';
 
 const scanBody = z.object({
   teamId: z.string().uuid(),
@@ -43,6 +44,22 @@ export const scannerRoutes: FastifyPluginAsync = async (app) => {
       reply.code(500);
       return {
         error: 'Document scan failed',
+        details: err instanceof Error ? err.message : String(err),
+      };
+    }
+  });
+
+  // POST /api/scanner/index — index codebase for RAG search
+  app.post('/index', async (request, reply) => {
+    const { teamId } = scanBody.parse(request.body);
+
+    try {
+      const result = await codeEmbeddingService.indexRepo(teamId);
+      return result;
+    } catch (err) {
+      reply.code(500);
+      return {
+        error: 'Code indexing failed',
         details: err instanceof Error ? err.message : String(err),
       };
     }

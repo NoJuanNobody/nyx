@@ -10,13 +10,13 @@ export function Layout() {
     <div className="flex h-screen bg-slate-50">
       <Sidebar />
 
-      <div className="flex flex-1 flex-col min-h-0">
+      <div className="flex min-w-0 flex-1 flex-col min-h-0">
         {/* Top bar */}
-        <div className="flex items-center gap-2 px-4 py-2">
+        <div className="flex items-center gap-2 px-3 py-2 sm:px-4">
           <button
             type="button"
             onClick={toggleSidebar}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 lg:hidden"
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 md:hidden"
             aria-label="Toggle sidebar"
           >
             <svg
@@ -33,14 +33,16 @@ export function Layout() {
               />
             </svg>
           </button>
-          <span className="text-sm font-semibold text-slate-900 lg:hidden">Nyx</span>
+          <span className="text-sm font-semibold text-slate-900 md:hidden">Nyx</span>
           <div className="flex-1" />
           <NotificationBell />
         </div>
 
-        {/* Main content */}
-        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto p-6 lg:p-8">
-          <Outlet />
+        {/* Main content — capped width on ultrawide displays */}
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 sm:p-6 lg:p-8">
+          <div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

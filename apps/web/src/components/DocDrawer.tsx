@@ -176,76 +176,92 @@ export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVe
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  // On mobile (<md), drawer overlays the full editor as a sheet.
+  // On desktop (md+), it remains a side panel.
   return (
-    <div
-      ref={drawerRef}
-      className={`flex flex-shrink-0 flex-col border-l border-slate-200/80 bg-white transition-all duration-200 ease-out ${
-        isOpen ? 'w-80' : 'w-0'
-      }`}
-      style={{ overflow: isOpen ? undefined : 'hidden' }}
-    >
+    <>
+      {/* Mobile backdrop */}
       {isOpen && (
-        <div className="flex h-full w-80 flex-col">
-          {/* Drawer header */}
-          <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-200/80 px-4 py-2.5">
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-              {PANELS.find((p) => p.key === activePanel)?.label}
-            </span>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-              aria-label="Close panel"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Panel content */}
-          <div className="flex-1 overflow-hidden">
-            {activePanel === 'history' && (
-              <VersionHistory
-                documentId={documentId}
-                onSelectVersion={onSelectVersion}
-                activeVersionId={activeVersionId}
-              />
-            )}
-            {activePanel === 'timeline' && <Timeline documentId={documentId} onSwitchToHistory={onSwitchToHistory} />}
-            {activePanel === 'proposals' && <ChangeProposals documentId={documentId} />}
-            {activePanel === 'audit' && <AuditTrail documentId={documentId} />}
-            {activePanel === 'ai' && aiChat && (
-              <UnifiedAIPanel
-                content={aiChat.content}
-                onProposedEdit={aiChat.onProposedEdit}
-                isNewDocument={aiChat.isNewDocument}
-                onGenerate={aiChat.onGenerate}
-                isReviewMode={aiChat.isReviewMode}
-                stage={aiChat.stage}
-                documentId={documentId}
-                teamId={teamId}
-              />
-            )}
-            {activePanel === 'jsx-preview' && <JSXPreviewPanel specContext={jsxPreviewContext} onMockupReady={onMockupReady} />}
-            {activePanel === 'impact' && <ImpactMap documentId={documentId} />}
-            {activePanel === 'video' && <VideoGenerationPanel documentId={documentId} />}
-            {activePanel === 'related' && (
-              <div className="p-4">
-                <ContextMatches
-                  matches={relatedMatches}
-                  signals={relatedSignals}
-                  isLoading={relatedLoading}
-                />
-                {!relatedLoading && relatedMatches.length === 0 && relatedSignals.length === 0 && (
-                  <p className="text-sm text-slate-400">No related specs found for this document.</p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        <div
+          className="fixed inset-0 z-30 bg-black/40 md:hidden"
+          onClick={onClose}
+        />
       )}
-    </div>
+
+      <div
+        ref={drawerRef}
+        className={`
+          ${isOpen
+            ? 'fixed inset-x-0 bottom-0 top-14 z-40 w-full md:static md:inset-auto md:z-auto md:w-80'
+            : 'w-0'
+          }
+          flex flex-shrink-0 flex-col border-l border-slate-200/80 bg-white transition-all duration-200 ease-out
+        `}
+        style={{ overflow: isOpen ? undefined : 'hidden' }}
+      >
+        {isOpen && (
+          <div className="flex h-full w-full flex-col md:w-80">
+            {/* Drawer header */}
+            <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-200/80 px-4 py-2.5">
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                {PANELS.find((p) => p.key === activePanel)?.label}
+              </span>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Close panel"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Panel content */}
+            <div className="flex-1 overflow-hidden">
+              {activePanel === 'history' && (
+                <VersionHistory
+                  documentId={documentId}
+                  onSelectVersion={onSelectVersion}
+                  activeVersionId={activeVersionId}
+                />
+              )}
+              {activePanel === 'timeline' && <Timeline documentId={documentId} onSwitchToHistory={onSwitchToHistory} />}
+              {activePanel === 'proposals' && <ChangeProposals documentId={documentId} />}
+              {activePanel === 'audit' && <AuditTrail documentId={documentId} />}
+              {activePanel === 'ai' && aiChat && (
+                <UnifiedAIPanel
+                  content={aiChat.content}
+                  onProposedEdit={aiChat.onProposedEdit}
+                  isNewDocument={aiChat.isNewDocument}
+                  onGenerate={aiChat.onGenerate}
+                  isReviewMode={aiChat.isReviewMode}
+                  stage={aiChat.stage}
+                  documentId={documentId}
+                  teamId={teamId}
+                />
+              )}
+              {activePanel === 'jsx-preview' && <JSXPreviewPanel specContext={jsxPreviewContext} onMockupReady={onMockupReady} />}
+              {activePanel === 'impact' && <ImpactMap documentId={documentId} />}
+              {activePanel === 'video' && <VideoGenerationPanel documentId={documentId} />}
+              {activePanel === 'related' && (
+                <div className="p-4">
+                  <ContextMatches
+                    matches={relatedMatches}
+                    signals={relatedSignals}
+                    isLoading={relatedLoading}
+                  />
+                  {!relatedLoading && relatedMatches.length === 0 && relatedSignals.length === 0 && (
+                    <p className="text-sm text-slate-400">No related specs found for this document.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 

@@ -346,8 +346,8 @@ test.describe('Document Editor', () => {
     const stageSelect = page.locator('main select').first();
     await stageSelect.selectOption('conception');
 
-    // Button text is dynamic: "Seed Definition" (next stage label)
-    const seedBtn = page.locator('button:has-text("Seed Definition")');
+    // Button is icon-only; title is dynamic: "Seed Definition" (next stage label)
+    const seedBtn = page.locator('button[title="Seed Definition"]');
     await expect(seedBtn).toBeVisible({ timeout: 5_000 });
 
     // Wait for the mutation to finish and navigate to the new branched doc

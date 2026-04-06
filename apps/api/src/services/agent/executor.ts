@@ -14,6 +14,7 @@ import { retrieveChunks } from '../retrieval.service.js';
 import { checkCompliance } from '../compliance.service.js';
 import { ttsService } from '../tts.service.js';
 import { codebaseScannerService } from '../codebase-scanner.service.js';
+import { codeEmbeddingService } from '../code-embedding.service.js';
 import type { AgentContext } from './types.js';
 
 // Roles that can write (update docs, create tickets)
@@ -119,8 +120,20 @@ export async function executeTool(
       }
 
       if (filePath) {
-        const content = await githubService.getFileContent(ghConfig.accessToken, owner, repo, filePath);
-        return { path: filePath, content };
+        const file = await githubService.getFileContent(ghConfig.accessToken, owner, repo, filePath);
+        // Decode base64 content and truncate large files to prevent token explosion
+        const decoded = Buffer.from(file.content, 'base64').toString('utf-8');
+        const MAX_FILE_CHARS = 8_000;
+        if (decoded.length > MAX_FILE_CHARS) {
+          return {
+            path: filePath,
+            content: decoded.slice(0, MAX_FILE_CHARS),
+            truncated: true,
+            totalChars: decoded.length,
+            note: 'File truncated. Ask the user to specify a section if more detail is needed.',
+          };
+        }
+        return { path: filePath, content: decoded };
       }
       const tree = await githubService.getFileTree(ghConfig.accessToken, owner, repo);
       return tree;
@@ -419,6 +432,21 @@ export async function executeTool(
       if (!docId) throw new Error('scan_document requires document_id');
       const teamId = (input.team_id as string) || ctx.teamId;
       return codebaseScannerService.scanDocument(docId, teamId);
+    }
+
+    // ── Code RAG ──────────────────────────────────────────
+
+    case 'search_code': {
+      const query = input.query as string;
+      if (!query) throw new Error('search_code requires a query');
+      const topK = Math.min(Number(input.top_k) || 8, 20);
+      return codeEmbeddingService.searchCode(query, ctx.teamId, { topK });
+    }
+
+    case 'index_codebase': {
+      assertCanWrite(ctx);
+      const teamId = (input.team_id as string) || ctx.teamId;
+      return codeEmbeddingService.indexRepo(teamId);
     }
 
     default:
