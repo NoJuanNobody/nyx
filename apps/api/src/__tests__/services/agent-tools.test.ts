@@ -22,14 +22,21 @@ describe('Agent Tools', () => {
     }
   });
 
-  it('getToolDefinitions returns all tools when no names specified', () => {
+  it('getToolDefinitions returns default tool subset when no names specified', () => {
     const tools = getToolDefinitions();
-    expect(tools.length).toBe(Object.keys(AGENT_TOOLS).length);
+    expect(tools.length).toBeGreaterThan(0);
+    expect(tools.length).toBeLessThan(Object.keys(AGENT_TOOLS).length);
+    // Should include core tools
+    const names = tools.map(t => t.name);
+    expect(names).toContain('read_document');
+    expect(names).toContain('create_ticket');
+    expect(names).toContain('search_code');
   });
 
-  it('getToolDefinitions returns all tools with empty array', () => {
+  it('getToolDefinitions returns default tool subset with empty array', () => {
     const tools = getToolDefinitions([]);
-    expect(tools.length).toBe(Object.keys(AGENT_TOOLS).length);
+    expect(tools.length).toBeGreaterThan(0);
+    expect(tools.length).toBeLessThan(Object.keys(AGENT_TOOLS).length);
   });
 
   it('getToolDefinitions filters by name', () => {
