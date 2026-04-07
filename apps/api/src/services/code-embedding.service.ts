@@ -31,7 +31,7 @@ const CODE_EXTENSIONS = new Set([
   '.sh', '.bash',
 ]);
 
-function isIndexableFile(entry: GitHubTreeEntry): boolean {
+export function isIndexableFile(entry: GitHubTreeEntry): boolean {
   if (entry.type !== 'blob') return false;
   const pathParts = entry.path.split('/');
   if (pathParts.some((part) => IGNORED_DIRS.has(part))) return false;

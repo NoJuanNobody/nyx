@@ -390,7 +390,7 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
       type: 'object' as const,
       properties: {
         query: { type: 'string', description: 'Natural-language description of what you are looking for (e.g. "team invitation workflow", "auth middleware")' },
-        top_k: { type: 'number', description: 'Number of results to return (default 8, max 20)' },
+        top_k: { type: 'number', description: 'Number of results to return (default 5, max 10)' },
       },
       required: ['query'],
     },
@@ -410,14 +410,25 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
 };
 
 /**
+ * Default tool set for custom (no-workflow) sessions.
+ * Covers the most common tasks without sending all 35 tool definitions.
+ */
+const DEFAULT_TOOLS = [
+  'read_document', 'list_documents', 'update_document', 'create_document',
+  'analyze_spec_quality', 'detect_drift', 'get_github_files',
+  'create_ticket', 'list_tickets', 'suggest_tickets',
+  'search_code', 'retrieve_chunks', 'web_search',
+  'list_versions', 'get_version_diff', 'improve_document',
+  'export_document', 'list_notifications',
+];
+
+/**
  * Get tool definitions for a given list of tool names.
- * Returns all tools if no names specified.
+ * Falls back to DEFAULT_TOOLS (not all tools) when no names specified.
  */
 export function getToolDefinitions(toolNames?: string[]): ToolDefinition[] {
-  if (!toolNames || toolNames.length === 0) {
-    return Object.values(AGENT_TOOLS);
-  }
-  return toolNames
+  const names = toolNames?.length ? toolNames : DEFAULT_TOOLS;
+  return names
     .filter((name) => AGENT_TOOLS[name])
     .map((name) => AGENT_TOOLS[name]);
 }
