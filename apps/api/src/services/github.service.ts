@@ -103,6 +103,16 @@ export const githubService = {
       if (res.status === 401) {
         throw new GitHubTokenExpiredError('getFileTree');
       }
+      if (res.status === 403) {
+        const body = await res.text();
+        const isRateLimit = body.includes('rate limit') || res.headers.get('x-ratelimit-remaining') === '0';
+        throw new Error(isRateLimit
+          ? 'GitHub API rate limit exceeded. Please wait a few minutes and try again.'
+          : `GitHub getFileTree forbidden (403): ${body.slice(0, 200)}`);
+      }
+      if (res.status === 404) {
+        throw new Error('Repository not found or not accessible. Check that the repository exists and your GitHub token has access.');
+      }
       throw new Error(`GitHub getFileTree failed: ${res.status} ${res.statusText}`);
     }
 
@@ -127,6 +137,16 @@ export const githubService = {
     if (!res.ok) {
       if (res.status === 401) {
         throw new GitHubTokenExpiredError('getFileContent');
+      }
+      if (res.status === 403) {
+        const body = await res.text();
+        const isRateLimit = body.includes('rate limit') || res.headers.get('x-ratelimit-remaining') === '0';
+        throw new Error(isRateLimit
+          ? 'GitHub API rate limit exceeded. Please wait a few minutes and try again.'
+          : `GitHub getFileContent forbidden (403): ${body.slice(0, 200)}`);
+      }
+      if (res.status === 404) {
+        throw new Error(`File not found: "${path}". Check the path and try again.`);
       }
       throw new Error(`GitHub getFileContent failed: ${res.status} ${res.statusText}`);
     }

@@ -5,6 +5,7 @@ import { aiService } from '../ai.service.js';
 import { ticketService } from '../ticket.service.js';
 import { auditService } from '../audit.service.js';
 import { githubService } from '../github.service.js';
+import { isIndexableFile } from '../code-embedding.service.js';
 import { webSearch } from '../search.service.js';
 import { intakeService } from '../intake.service.js';
 import { suggestionService } from '../suggestion.service.js';
@@ -121,6 +122,28 @@ export async function executeTool(
 
       if (filePath) {
         const file = await githubService.getFileContent(ghConfig.accessToken, owner, repo, filePath);
+
+        // GitHub returns an array for directory paths — not a readable file
+        if (Array.isArray(file)) {
+          const entries = (file as Array<{ name: string; type: string }>).map(
+            (e) => `${e.type === 'dir' ? '📁' : '📄'} ${e.name}`,
+          );
+          return {
+            path: filePath,
+            error: 'Path is a directory, not a file.',
+            entries: entries.slice(0, 50),
+            note: 'Use a specific file path instead.',
+          };
+        }
+
+        // Large files (>1 MB) have no content — GitHub omits it
+        if (!file.content) {
+          return {
+            path: filePath,
+            error: `File too large to read via API (${file.size} bytes). Try a more specific path or use search_code instead.`,
+          };
+        }
+
         // Decode base64 content and truncate large files to prevent token explosion
         const decoded = Buffer.from(file.content, 'base64').toString('utf-8');
         const MAX_FILE_CHARS = 8_000;
@@ -135,8 +158,20 @@ export async function executeTool(
         }
         return { path: filePath, content: decoded };
       }
+
+      // Return file tree, filtered using the same rules as the code-embedding indexer
       const tree = await githubService.getFileTree(ghConfig.accessToken, owner, repo);
-      return tree;
+      const MAX_TREE_ENTRIES = 200;
+      const filtered = tree.filter(isIndexableFile).slice(0, MAX_TREE_ENTRIES);
+      const totalBlobs = tree.filter((e) => e.type === 'blob').length;
+      return {
+        files: filtered.map((e) => e.path),
+        total: totalBlobs,
+        shown: filtered.length,
+        note: filtered.length < totalBlobs
+          ? 'File tree filtered & capped. Use a path prefix or search_code for specific files.'
+          : undefined,
+      };
     }
 
     case 'create_ticket': {
@@ -439,7 +474,7 @@ export async function executeTool(
     case 'search_code': {
       const query = input.query as string;
       if (!query) throw new Error('search_code requires a query');
-      const topK = Math.min(Number(input.top_k) || 8, 20);
+      const topK = Math.min(Number(input.top_k) || 5, 10);
       return codeEmbeddingService.searchCode(query, ctx.teamId, { topK });
     }
 

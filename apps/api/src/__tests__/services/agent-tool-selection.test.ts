@@ -61,9 +61,10 @@ describe('Agent tool selection (issue #74)', () => {
       expect(names).not.toContain('update_document');
     });
 
-    it('returns all tools when no names are provided', () => {
+    it('returns default tool subset when no names are provided', () => {
       const tools = getToolDefinitions();
-      expect(tools.length).toBe(Object.keys(AGENT_TOOLS).length);
+      expect(tools.length).toBeGreaterThan(0);
+      expect(tools.length).toBeLessThan(Object.keys(AGENT_TOOLS).length);
     });
   });
 });
