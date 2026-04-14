@@ -9,8 +9,6 @@ import {
   generateDocumentBody,
   editDocumentBody,
   generateTicketBody,
-  jsxPreviewBody,
-  jsxPreviewRefineBody,
   meetingQualityBody,
   meetingApplySuggestionsBody,
   generateNewsArticleBody,
@@ -56,20 +54,6 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
     const { diff, context } = generateTicketBody.parse(request.body);
     const result = await aiService.generateTicketFromDiff(diff, context);
     return result;
-  });
-
-  // POST /api/ai/jsx-preview — generate a self-contained JSX component from a prompt
-  app.post('/jsx-preview', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
-    const { prompt, context, allStates } = jsxPreviewBody.parse(request.body);
-    const jsx = await aiService.generateJSXPreview(prompt, context, allStates);
-    return { jsx };
-  });
-
-  // POST /api/ai/jsx-preview/refine — refine an existing JSX component
-  app.post('/jsx-preview/refine', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
-    const { currentJSX, prompt } = jsxPreviewRefineBody.parse(request.body);
-    const jsx = await aiService.refineJSXPreview(currentJSX, prompt);
-    return { jsx };
   });
 
   // POST /api/ai/meeting-quality — analyze meeting note quality

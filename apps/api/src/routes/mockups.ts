@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { requireRole } from '../middleware/permissions.js';
-import { generateMockupHTML, renderToScreenshot, generateAndAttach, renderJSXToScreenshot } from '../services/mockup.service.js';
+import { generateAndAttach } from '../services/mockup.service.js';
 import { githubService } from '../services/github.service.js';
 import { jiraService } from '../services/jira.service.js';
 import { db } from '../db/index.js';
@@ -45,31 +45,6 @@ export const mockupRoutes: FastifyPluginAsync = async (app) => {
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Mockup generation failed';
-      reply.code(500);
-      return { error: message };
-    }
-  });
-
-  // POST /api/mockups/render-jsx — Render JSX to a PNG screenshot
-  app.post('/render-jsx', async (request, reply) => {
-    const { jsx } = request.body as { jsx: string };
-
-    if (!jsx?.trim()) {
-      reply.code(400);
-      return { error: 'jsx is required' };
-    }
-
-    if (!_cluster) {
-      reply.code(503);
-      return { error: 'Mockup rendering service is not available' };
-    }
-
-    try {
-      const screenshot = await renderJSXToScreenshot(jsx, _cluster);
-      const base64 = screenshot.toString('base64');
-      return { screenshot: `data:image/png;base64,${base64}` };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'JSX rendering failed';
       reply.code(500);
       return { error: message };
     }

@@ -119,35 +119,6 @@ describe('AI Service', () => {
     expect(callArgs.messages.length).toBe(3); // 2 history + 1 current
   });
 
-  it('generateJSXPreview: returns JSX with code fences stripped', async () => {
-    mockCreate.mockResolvedValueOnce(
-      makeResponse('```jsx\nfunction App() { return <div>Hello</div>; }\n```'),
-    );
-
-    const result = await aiService.generateJSXPreview('A hello component');
-    expect(result).toContain('function App()');
-    expect(result).not.toContain('```');
-  });
-
-  it('generateJSXPreview: strips import statements', async () => {
-    mockCreate.mockResolvedValueOnce(
-      makeResponse('import React from "react";\nfunction App() { return <div/>; }'),
-    );
-
-    const result = await aiService.generateJSXPreview('A component');
-    expect(result).not.toContain('import');
-    expect(result).toContain('function App()');
-  });
-
-  it('refineJSXPreview: returns refined component', async () => {
-    mockCreate.mockResolvedValueOnce(
-      makeResponse('function App() { return <div style={{color: "blue"}}>Updated</div>; }'),
-    );
-
-    const result = await aiService.refineJSXPreview('<div>Old</div>', 'Make it blue');
-    expect(result).toContain('blue');
-  });
-
   it('analyzeChangesForTickets: returns parsed ticket suggestions', async () => {
     mockCreate.mockResolvedValueOnce(
       makeResponse('{"title": "API Changes", "description": "Updated API endpoints", "suggestedTickets": [{"title": "Update endpoints", "description": "Fix the routes", "priority": "high", "labels": ["api"]}]}'),
@@ -317,16 +288,6 @@ describe('AI Service', () => {
     expect(callArgs.system).toContain('markdown');
   });
 
-  it('refineJSXPreview: strips code fences with language tags', async () => {
-    mockCreate.mockResolvedValueOnce(
-      makeResponse('```jsx\nfunction App() { return <div>Refined</div>; }\n```'),
-    );
-
-    const result = await aiService.refineJSXPreview('<div>Old</div>', 'Update it');
-    expect(result).toContain('function App()');
-    expect(result).not.toContain('```');
-  });
-
   it('generateNewsArticle: returns parsed JSON on valid response', async () => {
     mockCreate.mockResolvedValueOnce(
       makeResponse(
@@ -384,14 +345,4 @@ describe('AI Service', () => {
     expect(result.headline).toBe('Fenced Article');
   });
 
-
-  it('refineJSXPreview: strips import statements', async () => {
-    mockCreate.mockResolvedValueOnce(
-      makeResponse('import React from "react";\nfunction App() { return <div/>; }'),
-    );
-
-    const result = await aiService.refineJSXPreview('<div/>', 'Add state');
-    expect(result).not.toContain('import');
-    expect(result).toContain('function App()');
-  });
 });

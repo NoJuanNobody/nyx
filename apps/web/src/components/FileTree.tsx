@@ -414,37 +414,6 @@ function Folder({
   );
 }
 
-// ── JSX Preview virtual file item ─────────────────────
-
-function _JSXPreviewItem({ docId, depth }: { docId: string; depth: number }) {
-  return (
-    <NavLink
-      to={`/documents/${docId}?layout=jsx-preview`}
-      className={({ isActive }) =>
-        `group/preview flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-all duration-150 ${
-          isActive
-            ? 'bg-gradient-to-r from-amber-50 to-orange-50 ring-1 ring-amber-200/60'
-            : 'hover:bg-slate-50'
-        }`
-      }
-      style={{ paddingLeft: `${(depth + 2) * 12 + 8}px` }}
-    >
-      <span
-        className={`inline-flex items-center justify-center h-4 w-4 rounded flex-shrink-0 transition-colors duration-150 ${
-          'bg-gradient-to-br from-amber-400 to-orange-500 group-hover/preview:from-amber-500 group-hover/preview:to-orange-600'
-        }`}
-      >
-        <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
-        </svg>
-      </span>
-      <span className="text-[10px] font-semibold tracking-wide uppercase text-slate-400 group-hover/preview:text-amber-700 transition-colors duration-150">
-        Preview
-      </span>
-    </NavLink>
-  );
-}
-
 // ── Document item ─────────────────────────────────────
 
 function DocItem({

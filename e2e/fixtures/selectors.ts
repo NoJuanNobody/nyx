@@ -147,15 +147,6 @@ export const SEL = {
     manageReposButton: '[data-testid="manage-repos-button"]',
   },
 
-  // ── JSX Preview ───────────────────────────────────────
-  jsxPreview: {
-    tab: 'button:has-text("JSX Preview")',
-    allStatesToggle: 'button:has-text("All States")',
-    promptInput: 'textarea[placeholder*="Describe a UI"]',
-    generateButton: 'button[title="Generate"]',
-    previewPane: '.flex.min-h-0.flex-1 > div:last-child',
-  },
-
   // ── Feedback ──────────────────────────────────────────
   feedback: {
     sidebarButton: 'button[data-testid="feedback-button"]',
