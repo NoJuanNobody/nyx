@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { isValidElement, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { codeToHtml, type BundledLanguage } from 'shiki';
@@ -120,6 +120,47 @@ function InlineCode({ children }: { children?: React.ReactNode }) {
   );
 }
 
+// Extract the inner <code> element from a <pre>'s children. react-markdown v10
+// always emits fenced blocks as <pre><code class="language-xxx?">...</code></pre>,
+// but by the time the `pre` override is invoked, the inner <code> has already
+// been wrapped in the custom `code` component. We can still recognize it by
+// inspecting the hast `node` prop that react-markdown passes through, which
+// retains the original tagName.
+type RehypeCodeProps = {
+  node?: { tagName?: string };
+  className?: string;
+  children?: ReactNode;
+};
+
+function extractCodeChild(
+  children: ReactNode,
+): { className?: string; children?: ReactNode } | null {
+  let found: { className?: string; children?: ReactNode } | null = null;
+  const visit = (node: ReactNode) => {
+    if (found) return;
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    if (isValidElement(node)) {
+      const props = node.props as RehypeCodeProps;
+      // The element is a <code> if either (a) the React type is the string
+      // 'code' or (b) react-markdown's hast node identifies it as such.
+      const isCode = node.type === 'code' || props?.node?.tagName === 'code';
+      if (isCode) {
+        found = { className: props.className, children: props.children };
+        return;
+      }
+      // Could be a wrapping fragment or unknown wrapper — recurse into its children.
+      if (props && 'children' in props) {
+        visit(props.children);
+      }
+    }
+  };
+  visit(children);
+  return found;
+}
+
 export function MarkdownPreview({ content }: MarkdownPreviewProps) {
   if (!content) {
     return (
@@ -132,17 +173,22 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          code({ className, children }) {
-            // Detect if this is a fenced code block (has language class) or is inside a <pre>
-            const isBlock = className?.startsWith('language-');
-            if (isBlock) {
-              return <CodeBlock className={className}>{children}</CodeBlock>;
-            }
-            // Inline code
+          code({ children }) {
+            // Block code is intercepted one level up by the pre() override, so
+            // anything that reaches here is true inline code.
             return <InlineCode>{children}</InlineCode>;
           },
           pre({ children }) {
-            // If the child is already a CodeBlock, render it directly without wrapping <pre>
+            // Fenced code blocks always arrive as <pre><code>...</code></pre>.
+            // Extract the inner <code> child and route it through CodeBlock so
+            // we don't depend on a language-* className being present.
+            const codeChild = extractCodeChild(children);
+            if (codeChild) {
+              return (
+                <CodeBlock className={codeChild.className}>{codeChild.children}</CodeBlock>
+              );
+            }
+            // Defensive fallback — render whatever the child was.
             return <>{children}</>;
           },
         }}
