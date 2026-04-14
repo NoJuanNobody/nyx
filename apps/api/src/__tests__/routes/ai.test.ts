@@ -18,8 +18,6 @@ const mockAiService = vi.hoisted(() => ({
   generateDocument: vi.fn(),
   editDocument: vi.fn(),
   generateTicketFromDiff: vi.fn(),
-  generateJSXPreview: vi.fn(),
-  refineJSXPreview: vi.fn(),
   seedNextStage: vi.fn(),
   analyzeMissingSections: vi.fn(),
   notificationReply: vi.fn(),
@@ -86,20 +84,6 @@ describe('AI Routes', () => {
     mockAiService.generateTicketFromDiff.mockResolvedValueOnce({ title: 'Fix bug', description: 'desc', labels: [] });
     const app = await buildApp();
     const res = await app.inject({ method: 'POST', url: '/api/ai/generate-ticket', payload: { diff: 'diff content' } });
-    expect(res.statusCode).toBe(200);
-  });
-
-  it('POST /api/ai/jsx-preview returns JSX', async () => {
-    mockAiService.generateJSXPreview.mockResolvedValueOnce('<div>Hello</div>');
-    const app = await buildApp();
-    const res = await app.inject({ method: 'POST', url: '/api/ai/jsx-preview', payload: { prompt: 'A button' } });
-    expect(res.statusCode).toBe(200);
-  });
-
-  it('POST /api/ai/jsx-preview/refine returns refined JSX', async () => {
-    mockAiService.refineJSXPreview.mockResolvedValueOnce('<div>Updated</div>');
-    const app = await buildApp();
-    const res = await app.inject({ method: 'POST', url: '/api/ai/jsx-preview/refine', payload: { currentJSX: '<div/>', prompt: 'Make it blue' } });
     expect(res.statusCode).toBe(200);
   });
 

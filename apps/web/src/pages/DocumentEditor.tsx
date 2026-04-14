@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
-import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Document, DocumentVersion } from '@nyx/shared';
 
@@ -17,7 +17,6 @@ import { MarkdownToolbar } from '../components/MarkdownToolbar';
 import { AIAdvisor } from '../components/AIAdvisor';
 import { CreateTicketModal } from '../components/CreateTicketModal';
 import { BulkTicketReview } from '../components/BulkTicketReview';
-import { JSXPreviewPanel } from '../components/JSXPreviewPanel';
 import { SaveAsTemplateButton } from '../components/SaveAsTemplateButton';
 import { MeetingNoteQuality } from '../components/MeetingNoteQuality';
 
@@ -34,7 +33,7 @@ export function DocumentEditor() {
   const [versionModalOpen, setVersionModalOpen] = useState(false);
   const [versionMessage, setVersionMessage] = useState('');
   const [aiProposedContent, setAiProposedContent] = useState<string | null>(null);
-  const [editorLayout, setEditorLayout] = useState<'split' | 'editor' | 'preview' | 'jsx-preview'>('split');
+  const [editorLayout, setEditorLayout] = useState<'split' | 'editor' | 'preview'>('split');
   const { seeding, setSeeding } = useUIStore();
   const [splitPercent, setSplitPercent] = useState(50);
   const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
@@ -46,8 +45,6 @@ export function DocumentEditor() {
   const [docxExporting, setDocxExporting] = useState(false);
   const [pdfExporting, setPdfExporting] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
-  const [currentMockupJsx, setCurrentMockupJsx] = useState<string | null>(null);
-  const [searchParams] = useSearchParams();
   const splitContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -73,13 +70,6 @@ export function DocumentEditor() {
   useEffect(() => {
     initialised.current = false;
   }, [id]);
-
-  // Read layout from query param (for FileTree JSX preview link)
-  useEffect(() => {
-    if (searchParams.get('layout') === 'jsx-preview') {
-      setEditorLayout('jsx-preview');
-    }
-  }, [searchParams]);
 
   const saveMutation = useMutation({
     mutationFn: (data: { title?: string; content?: string }) =>
@@ -567,21 +557,10 @@ export function DocumentEditor() {
                 >
                   Preview
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setEditorLayout('jsx-preview')}
-                  className={`px-4 py-2 text-xs font-medium transition-colors ${
-                    editorLayout === 'jsx-preview'
-                      ? 'border-b-2 border-violet-600 text-violet-600'
-                      : 'text-slate-400 hover:text-slate-600'
-                  }`}
-                >
-                  JSX Preview
-                </button>
               </div>
 
               {/* Markdown formatting toolbar */}
-              {editorLayout !== 'preview' && editorLayout !== 'jsx-preview' && (
+              {editorLayout !== 'preview' && (
                 <MarkdownToolbar
                   textareaRef={textareaRef as RefObject<HTMLTextAreaElement>}
                   value={content}
@@ -591,82 +570,41 @@ export function DocumentEditor() {
 
               {/* Content area */}
               <div className="flex min-h-0 flex-1">
-                {editorLayout === 'jsx-preview' ? (
-                  <>
-                    {/* Editor pane */}
-                    <div
-                      className="flex flex-col overflow-hidden"
-                      style={{ width: `${splitPercent}%` }}
-                    >
-                      <MarkdownToolbar
-                        textareaRef={textareaRef as RefObject<HTMLTextAreaElement>}
-                        value={content}
-                        onChange={handleContentChange}
-                      />
-                      <MarkdownEditor
-                        ref={textareaRef}
-                        value={content}
-                        onChange={handleContentChange}
-                        placeholder="Start writing your document..."
-                      />
-                    </div>
-                    {/* Drag handle */}
-                    <div
-                      onPointerDown={handleSplitDragStart}
-                      className="group relative z-10 flex w-3 flex-shrink-0 cursor-col-resize items-center justify-center border-x border-slate-100 bg-slate-50/80 transition-colors hover:bg-violet-50"
-                    >
-                      <div className="h-10 w-1 rounded-full bg-slate-300 transition-colors group-hover:bg-violet-400 group-active:bg-violet-500" />
-                    </div>
-                    {/* JSX Preview pane */}
-                    <div
-                      className="flex flex-col overflow-hidden border-l border-slate-100"
-                      style={{ width: `${100 - splitPercent}%` }}
-                    >
-                      <JSXPreviewPanel
-                        specContext={content}
-                        onMockupReady={setCurrentMockupJsx}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Editor pane */}
-                    {editorLayout !== 'preview' && (
-                      <div
-                        className="flex flex-col overflow-hidden"
-                        style={{ width: editorLayout === 'split' ? `${splitPercent}%` : '100%' }}
-                      >
-                        <MarkdownEditor
-                          ref={textareaRef}
-                          value={content}
-                          onChange={handleContentChange}
-                          placeholder="Start writing your document..."
-                        />
-                      </div>
-                    )}
+                {/* Editor pane */}
+                {editorLayout !== 'preview' && (
+                  <div
+                    className="flex flex-col overflow-hidden"
+                    style={{ width: editorLayout === 'split' ? `${splitPercent}%` : '100%' }}
+                  >
+                    <MarkdownEditor
+                      ref={textareaRef}
+                      value={content}
+                      onChange={handleContentChange}
+                      placeholder="Start writing your document..."
+                    />
+                  </div>
+                )}
 
-                    {/* Resizable drag handle */}
-                    {editorLayout === 'split' && (
-                      <div
-                        onPointerDown={handleSplitDragStart}
-                        className="group relative z-10 flex w-3 flex-shrink-0 cursor-col-resize items-center justify-center border-x border-slate-100 bg-slate-50/80 transition-colors hover:bg-blue-50"
-                      >
-                        <div className="h-10 w-1 rounded-full bg-slate-300 transition-colors group-hover:bg-blue-400 group-active:bg-blue-500" />
-                      </div>
-                    )}
+                {/* Resizable drag handle */}
+                {editorLayout === 'split' && (
+                  <div
+                    onPointerDown={handleSplitDragStart}
+                    className="group relative z-10 flex w-3 flex-shrink-0 cursor-col-resize items-center justify-center border-x border-slate-100 bg-slate-50/80 transition-colors hover:bg-blue-50"
+                  >
+                    <div className="h-10 w-1 rounded-full bg-slate-300 transition-colors group-hover:bg-blue-400 group-active:bg-blue-500" />
+                  </div>
+                )}
 
-                    {/* Preview pane */}
-                    {editorLayout !== 'editor' && (
-                      <div
-                        className="flex flex-col overflow-hidden"
-                        style={{ width: editorLayout === 'split' ? `${100 - splitPercent}%` : '100%' }}
-                      >
-                        <div className="flex-1 overflow-y-auto p-4">
-                          <MarkdownPreview content={content} />
-                        </div>
-                      </div>
-                    )}
-                  </>
+                {/* Preview pane */}
+                {editorLayout !== 'editor' && (
+                  <div
+                    className="flex flex-col overflow-hidden"
+                    style={{ width: editorLayout === 'split' ? `${100 - splitPercent}%` : '100%' }}
+                  >
+                    <div className="flex-1 overflow-y-auto p-4">
+                      <MarkdownPreview content={content} />
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -682,7 +620,6 @@ export function DocumentEditor() {
               onSelectVersion={handleSelectVersion}
               activeVersionId={viewingVersion?.id ?? null}
               onSwitchToHistory={handleSwitchToHistory}
-              onMockupReady={setCurrentMockupJsx}
               aiChat={{
                 content,
                 onProposedEdit: setAiProposedContent,
@@ -761,7 +698,6 @@ export function DocumentEditor() {
         teamId={doc.teamId}
         documentTitle={title}
         documentContent={content}
-        mockupJsx={currentMockupJsx}
       />
 
       <BulkTicketReview

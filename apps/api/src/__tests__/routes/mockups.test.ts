@@ -5,9 +5,6 @@ import { mockupRoutes } from '../../routes/mockups.js';
 
 vi.mock('../../middleware/permissions.js', () => ({ requireRole: () => async () => {} }));
 vi.mock('../../services/mockup.service.js', () => ({
-  generateMockupHTML: vi.fn(),
-  renderToScreenshot: vi.fn(),
-  renderJSXToScreenshot: vi.fn().mockResolvedValue(Buffer.from('screenshot')),
   generateAndAttach: vi.fn().mockResolvedValue({ html: '<div/>', screenshot: Buffer.from('png') }),
 }));
 vi.mock('../../services/github.service.js', () => ({
@@ -45,24 +42,6 @@ describe('Mockup Routes', () => {
     const res = await app.inject({
       method: 'POST', url: '/api/mockups/generate',
       payload: { teamId: 'team-1' },
-    });
-    expect(res.statusCode).toBe(400);
-  });
-
-  it('POST /api/mockups/render-jsx returns 503 when cluster not available', async () => {
-    const app = await buildApp();
-    const res = await app.inject({
-      method: 'POST', url: '/api/mockups/render-jsx',
-      payload: { jsx: '<div>Hello</div>' },
-    });
-    expect(res.statusCode).toBe(503);
-  });
-
-  it('POST /api/mockups/render-jsx returns 400 without jsx', async () => {
-    const app = await buildApp();
-    const res = await app.inject({
-      method: 'POST', url: '/api/mockups/render-jsx',
-      payload: {},
     });
     expect(res.statusCode).toBe(400);
   });

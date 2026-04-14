@@ -43,37 +43,6 @@ export async function renderToScreenshot(
   return screenshot;
 }
 
-export async function renderJSXToScreenshot(
-  jsx: string,
-  cluster: import('puppeteer-cluster').Cluster,
-): Promise<Buffer> {
-  // Wrap the JSX in a full HTML page with React + Tailwind CDN
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://unpkg.com/@babel/standalone@7.26.5/babel.min.js" integrity="sha384-SF03qAKhbEVbqj7hDewV6mk3wJJyzxf3nBCxNuF46+Sof8f1fx4Pes2gOVItRZn9" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1" crossorigin="anonymous"></script>
-  <!-- Tailwind CSS CDN generates output dynamically per-page, so SRI is not feasible. Pinned to specific version. -->
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <style>body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; }</style>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="text/babel" data-presets="react,typescript">
-    const { useState, useEffect, useRef, useCallback, useMemo, useReducer, useContext, createContext, Fragment } = React;
-    ${jsx.replace(/^\s*import\s+.*$/gm, '').replace(/^\s*export\s+default\s+/gm, '').replace(/^\s*export\s+(?=function|const|class)/gm, '')}
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(React.createElement(typeof App !== 'undefined' ? App : () => React.createElement('div', null, 'No App component found')));
-  </script>
-</body>
-</html>`;
-
-  return renderToScreenshot(html, cluster);
-}
-
 export async function generateAndAttach(
   description: string,
   cluster: import('puppeteer-cluster').Cluster,

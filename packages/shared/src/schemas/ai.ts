@@ -29,17 +29,6 @@ export const generateTicketBody = z.object({
   context: z.string().optional(),
 });
 
-export const jsxPreviewBody = z.object({
-  prompt: z.string().min(1),
-  context: z.string().optional(),
-  allStates: z.boolean().optional(),
-});
-
-export const jsxPreviewRefineBody = z.object({
-  currentJSX: z.string().min(1),
-  prompt: z.string().min(1),
-});
-
 export const meetingQualityBody = z.object({
   content: z.string().min(1),
 });
