@@ -353,6 +353,56 @@ const SEEDED_IMPACT_GRAPH = {
   ],
 };
 
+// Templates — built-in templates returned by GET /api/templates.
+// Names match real built-in templates seeded in apps/api/src/db/seed-templates.ts
+// so tests can assert on full names.
+const SEEDED_TEMPLATES = [
+  {
+    id: '00000000-0000-0000-0000-0000000009a0',
+    stage: 'conception',
+    name: 'Problem Statement',
+    description: 'Define the problem you are solving and for whom',
+    content: '# Problem Statement\n',
+    sortOrder: 0,
+    teamId: null,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: '00000000-0000-0000-0000-0000000009a1',
+    stage: 'conception',
+    name: 'Value Proposition Canvas',
+    description: 'Map customer jobs, pains, and gains against your value map',
+    content: '# Value Proposition Canvas\n',
+    sortOrder: 1,
+    teamId: null,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: '00000000-0000-0000-0000-0000000009a2',
+    stage: 'definition',
+    name: 'Product Requirements Document (PRD)',
+    description: 'Complete product specification with goals, user stories, and requirements',
+    content: '# Product Requirements Document\n',
+    sortOrder: 0,
+    teamId: null,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: '00000000-0000-0000-0000-0000000009a3',
+    stage: 'architecture',
+    name: 'Architecture Decision Record (ADR)',
+    description: 'Document a significant architectural decision',
+    content: '# ADR\n',
+    sortOrder: 0,
+    teamId: null,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+  },
+];
+
 // ── Helper to install all API mocks on a page ───────────────────────
 
 let _newDocCounter = 0;
@@ -944,6 +994,16 @@ async function setupApiMocks(page: Page) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockGenerateResponse()) });
     }
     return route.fallback();
+  });
+
+  // Templates — used by the TemplatePicker modal (FileTree "New from template")
+  await page.route('**/api/templates**', (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(SEEDED_TEMPLATES),
+    });
   });
 
   // Waitlist
