@@ -7,6 +7,8 @@ export type AgentSessionStatus = 'running' | 'completed' | 'failed' | 'cancelled
 export interface TokenUsage {
   inputTokens: number;
   outputTokens: number;
+  /** Tokens read from the Anthropic ephemeral prompt cache (billed at 10% of base). */
+  cachedInputTokens?: number;
 }
 
 // ── Tool call record ────────────────────────────────────
@@ -25,7 +27,7 @@ export type AgentEvent =
   | { type: 'tool_call'; toolName: string; input: Record<string, unknown>; sequence: number }
   | { type: 'tool_result'; toolName: string; output: unknown; sequence: number; durationMs: number; error?: string }
   | { type: 'text'; text: string }
-  | { type: 'done'; result: string; toolCallCount: number; tokenUsage: TokenUsage; creditsUsed?: number; creditBalance?: number }
+  | { type: 'done'; result: string; toolCallCount: number; tokenUsage: TokenUsage; creditsUsed?: number; creditBalance?: number; incomplete?: boolean }
   | { type: 'credits_depleted'; balance: number; required: number };
 
 // ── Agent context (passed through the loop) ─────────────
