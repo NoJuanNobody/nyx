@@ -1,5 +1,10 @@
-import { useRef, useEffect, useCallback } from 'react';
-import { generateDocument, editDocumentAI, fetchWorkflows } from '../lib/api';
+import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
+import {
+  generateDocument,
+  editDocumentAI,
+  fetchWorkflows,
+  fetchAISuggestions,
+} from '../lib/api';
 import { startAgentStream, type AgentStreamEvent } from '../lib/agent-stream';
 import { STAGE_SUGGESTIONS, type DocumentStage } from '../lib/stages';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -59,6 +64,8 @@ export function UnifiedAIPanel({
     streamingContent,
     status,
     tokenUsage,
+    incomplete,
+    completionCounter,
     appendMessage: storeAppendMessage,
     updateMessage: storeUpdateMessage,
     setMessages: storeSetMessages,
@@ -67,6 +74,7 @@ export function UnifiedAIPanel({
     setStreamingContent,
     setStatus,
     setTokenUsage,
+    markCompleted,
     reset: resetSession,
   } = useAIChatSession(sessionKey);
 
@@ -191,9 +199,12 @@ export function UnifiedAIPanel({
         );
         break;
       case 'done':
-        setStatus('completed');
         setTokenUsage(event.tokenUsage);
         commitStreamingContent();
+        // Mark the session completed (and bump the completion counter) so the
+        // post-session suggestion effect fires exactly once per run. Reads
+        // the `incomplete` flag from #349 — defaults to false if absent.
+        markCompleted(event.incomplete ?? false);
         // Refresh the sidebar credit balance after agent consumed credits
         queryClient.invalidateQueries({ queryKey: ['credits-balance'] });
         break;
@@ -214,6 +225,7 @@ export function UnifiedAIPanel({
     storeUpdateMessage,
     setStatus,
     setTokenUsage,
+    markCompleted,
   ]);
 
   const handleSubmit = useCallback(async () => {
@@ -377,16 +389,128 @@ export function UnifiedAIPanel({
   const isRunning = status === 'running';
   const isEmpty = messages.length === 0 && !streamingContent;
 
+  // Static fallback used when the context-aware suggestions endpoint fails,
+  // returns an empty array, is still loading, or the document hasn't been
+  // saved yet (no documentId → can't call the endpoint).
+  const fallbackSuggestions = useMemo(() => {
+    if (isNewDocument && !content.trim()) {
+      return [
+        'Write an API specification for a user auth service',
+        'Create a project architecture doc',
+        'Draft an onboarding guide for new developers',
+      ];
+    }
+    if (stage && STAGE_SUGGESTIONS[stage as DocumentStage]) {
+      return STAGE_SUGGESTIONS[stage as DocumentStage];
+    }
+    return [
+      'Add a section about error handling',
+      'Rewrite the intro to be more concise',
+      'Add code examples for each endpoint',
+    ];
+  }, [isNewDocument, content, stage]);
+
+  // Cheap, stable content hash so the query re-runs when the document changes
+  // meaningfully without thrashing on every keystroke. Based on the length +
+  // first char code of the first 500 chars.
+  const contentHash = useMemo(() => {
+    const slice = content.slice(0, 500);
+    return `${slice.length}-${slice.length > 0 ? slice.charCodeAt(0) : 0}`;
+  }, [content]);
+
+  const canFetchPreSession =
+    isEmpty && !!documentId && !!teamId && !(isNewDocument && !content.trim());
+
+  const { data: preSessionData } = useQuery({
+    queryKey: ['ai-suggestions', 'pre-session', documentId, contentHash, stage ?? null],
+    queryFn: () =>
+      fetchAISuggestions({
+        kind: 'pre-session',
+        documentId: documentId!,
+        teamId,
+        content: content.slice(0, 500),
+        stage: stage ?? null,
+      }),
+    enabled: canFetchPreSession,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
   const suggestions =
-    isNewDocument && !content.trim()
-      ? [
-          'Write an API specification for a user auth service',
-          'Create a project architecture doc',
-          'Draft an onboarding guide for new developers',
-        ]
-      : stage && STAGE_SUGGESTIONS[stage as DocumentStage]
-        ? STAGE_SUGGESTIONS[stage as DocumentStage]
-        : ['Add a section about error handling', 'Rewrite the intro to be more concise', 'Add code examples for each endpoint'];
+    preSessionData && preSessionData.suggestions.length > 0
+      ? preSessionData.suggestions
+      : fallbackSuggestions;
+
+  // Post-session suggestions — fired once per completed session via a
+  // useEffect keyed on the completionCounter bump from the store.
+  const [postSessionSuggestions, setPostSessionSuggestions] = useState<string[]>([]);
+  const lastHandledCompletionRef = useRef(0);
+
+  useEffect(() => {
+    if (status !== 'completed') return;
+    if (completionCounter === 0) return;
+    if (completionCounter === lastHandledCompletionRef.current) return;
+    if (selectedWorkflow === QUICK_EDIT_VALUE) return;
+    if (!documentId || !teamId) return;
+
+    lastHandledCompletionRef.current = completionCounter;
+
+    // Build the tool-call summary from the persisted message history.
+    const toolCounts = new Map<string, number>();
+    let lastUserContent = '';
+    let lastAssistantContent = '';
+    for (const msg of messages) {
+      if (msg.kind === 'tool_call') {
+        const name = msg.entry.toolName;
+        toolCounts.set(name, (toolCounts.get(name) ?? 0) + 1);
+      } else if (msg.kind === 'user') {
+        lastUserContent = msg.content;
+      } else if (msg.kind === 'assistant') {
+        lastAssistantContent = msg.content;
+      }
+    }
+    const toolCallSummary = Array.from(toolCounts.entries()).map(([name, count]) => ({
+      name,
+      count,
+    }));
+
+    const history = lastUserContent
+      ? [{ role: 'user' as const, content: lastUserContent }]
+      : [];
+
+    let cancelled = false;
+    fetchAISuggestions({
+      kind: 'post-session',
+      documentId,
+      teamId,
+      stage: stage ?? null,
+      history,
+      toolCallSummary,
+      finalResult: lastAssistantContent,
+      incomplete,
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setPostSessionSuggestions(res.suggestions ?? []);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPostSessionSuggestions([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    status,
+    completionCounter,
+    selectedWorkflow,
+    documentId,
+    teamId,
+    messages,
+    stage,
+    incomplete,
+  ]);
 
   return (
     <div className="flex h-full flex-col">
@@ -620,11 +744,16 @@ export function UnifiedAIPanel({
               </div>
             )}
 
-            {/* Post-session follow-up suggestion chips */}
+            {/* Post-session follow-up suggestion chips — prefer context-aware
+                suggestions fetched from /ai/suggestions, fall back to the
+                static per-workflow list if the fetch returned empty/errored. */}
             {status === 'completed' && selectedWorkflow !== QUICK_EDIT_VALUE && (() => {
               const wf = workflows?.find((w) => w.id === selectedWorkflow);
-              const chips = wf?.postSessionSuggestions;
-              if (!chips?.length) return null;
+              const chips =
+                postSessionSuggestions.length > 0
+                  ? postSessionSuggestions
+                  : (wf?.postSessionSuggestions ?? []);
+              if (!chips.length) return null;
               return (
                 <div className="mt-2 flex flex-wrap gap-1.5 px-1">
                   {chips.map((chip) => (

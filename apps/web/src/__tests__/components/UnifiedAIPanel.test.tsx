@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { UnifiedAIPanel } from '../../components/UnifiedAIPanel';
 import { useAIChatStore } from '../../stores/aiChat.store';
@@ -13,6 +13,9 @@ vi.mock('../../lib/api', () => ({
   generateDocument: vi.fn(),
   editDocumentAI: vi.fn(),
   fetchWorkflows: vi.fn().mockResolvedValue([]),
+  // Default to an empty array so React Query doesn't warn about undefined
+  // query data in tests that don't explicitly override it.
+  fetchAISuggestions: vi.fn().mockResolvedValue({ suggestions: [] }),
 }));
 
 vi.mock('../../lib/agent-stream', () => ({
@@ -98,6 +101,56 @@ describe('UnifiedAIPanel — store-backed session persistence', () => {
     // Mount on A again — message restored.
     renderPanel({ documentId: 'doc-A' });
     expect(screen.getByText('A only message')).toBeInTheDocument();
+  });
+
+  it('pre-session suggestions: swaps in custom suggestions when fetch resolves', async () => {
+    const api = await import('../../lib/api');
+    (api.fetchAISuggestions as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      suggestions: [
+        'Document webhook retry behavior',
+        'Cite billing.service.ts controller',
+        'Add rate-limit and 429 handling',
+      ],
+    });
+
+    renderPanel({ documentId: 'doc-suggest-1' });
+
+    // While the query is loading the static fallback is shown; after it
+    // resolves the custom suggestions take over.
+    await waitFor(() => {
+      expect(screen.getByText('Document webhook retry behavior')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Cite billing.service.ts controller')).toBeInTheDocument();
+    expect(screen.getByText('Add rate-limit and 429 handling')).toBeInTheDocument();
+  });
+
+  it('pre-session suggestions: falls back to static suggestions when fetch rejects', async () => {
+    const api = await import('../../lib/api');
+    (api.fetchAISuggestions as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error('network exploded'),
+    );
+
+    renderPanel({ documentId: 'doc-suggest-2' });
+
+    // The generic fallback shown for a doc with no specific stage.
+    await waitFor(() => {
+      expect(screen.getByText('Add a section about error handling')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Rewrite the intro to be more concise')).toBeInTheDocument();
+    expect(screen.getByText('Add code examples for each endpoint')).toBeInTheDocument();
+  });
+
+  it('pre-session suggestions: falls back to static suggestions when fetch returns empty array', async () => {
+    const api = await import('../../lib/api');
+    (api.fetchAISuggestions as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      suggestions: [],
+    });
+
+    renderPanel({ documentId: 'doc-suggest-3' });
+
+    await waitFor(() => {
+      expect(screen.getByText('Add a section about error handling')).toBeInTheDocument();
+    });
   });
 
   it('unmounting while status is running resets status to idle so a remount does not show a stale running indicator', () => {

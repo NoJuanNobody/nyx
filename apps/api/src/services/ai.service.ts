@@ -1128,6 +1128,136 @@ Respond ONLY with valid JSON in this exact format:
     }
   },
 
+  /**
+   * Generate exactly 3 context-aware prompt suggestions for the AI panel.
+   *
+   * Used for both:
+   * - `pre-session` empty-state chips (before a user has asked anything)
+   * - `post-session` follow-up chips (after an agent run has completed)
+   *
+   * Uses Haiku (`MODEL_FAST`) because this is a cheap, frequent call. On any
+   * failure path — missing client, model error, malformed JSON — returns `[]`
+   * rather than throwing, so the route can gracefully fall back.
+   */
+  async generateSuggestions(input: {
+    kind: 'pre-session' | 'post-session';
+    documentTitle?: string | null;
+    stage?: string | null;
+    contentPreview?: string;
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+    toolCallSummary?: Array<{ name: string; count: number }>;
+    finalResult?: string;
+    incomplete?: boolean;
+    codebaseHint?: { repoFullName?: string; chunks?: Array<{ path: string; content: string }> };
+  }): Promise<string[]> {
+    if (!client) return [];
+
+    const ANTI_BOILERPLATE =
+      "Do NOT produce generic prompts like 'Add error handling', 'Rewrite the intro', or 'Add more detail'. " +
+      'Each suggestion must name a specific concept from the provided document or conversation.';
+
+    let systemPrompt: string;
+    let userPrompt: string;
+
+    if (input.kind === 'pre-session') {
+      const title = (input.documentTitle ?? '').trim() || 'Untitled Document';
+      const stage = input.stage ?? 'unspecified';
+      const preview = (input.contentPreview ?? '').slice(0, 500);
+
+      const codebaseLine = input.codebaseHint?.repoFullName
+        ? `codebase connected: ${input.codebaseHint.repoFullName}`
+        : '';
+
+      // Use at most the first 3 retrieved code paths as a hint; the model
+      // doesn't need full file contents for suggestion generation.
+      const topPaths = (input.codebaseHint?.chunks ?? [])
+        .slice(0, 3)
+        .map((c) => c.path)
+        .filter(Boolean);
+      const pathsLine = topPaths.length > 0 ? `relevant files: ${topPaths.join(', ')}` : '';
+
+      systemPrompt = `You help a product team pick the next useful thing to ask an AI assistant about a specific document they're editing.
+
+${ANTI_BOILERPLATE}
+
+Return EXACTLY 3 suggestions as a JSON array of strings. Each suggestion must be ≤ 80 characters. Each suggestion must reference a concrete concept from the document title, stage, content preview, or connected codebase. Do NOT wrap the array in any object or explanation — return ONLY a JSON array like ["suggestion one", "suggestion two", "suggestion three"].`;
+
+      userPrompt = `Document title: ${title}
+Stage: ${stage}
+${codebaseLine}
+${pathsLine}
+
+Content preview (first 500 chars):
+${preview || '(empty document)'}
+
+Generate 3 next-step prompts the user could ask the AI assistant about THIS document.`;
+    } else {
+      // post-session
+      const lastUser = [...(input.history ?? [])].reverse().find((m) => m.role === 'user')?.content ?? '';
+      const toolSummaryStr =
+        input.toolCallSummary && input.toolCallSummary.length > 0
+          ? input.toolCallSummary.map((t) => `${t.name}×${t.count}`).join(', ')
+          : '(no tool calls)';
+      const finalResult = (input.finalResult ?? '').slice(0, 1000);
+      const incompleteNote = input.incomplete
+        ? '\n\nNOTE: The agent terminated early (hit iteration ceiling). Suggestions should help the user split, narrow, or re-scope the task.'
+        : '';
+
+      systemPrompt = `You help a product team pick the next useful thing to ask an AI assistant after an agent session has just completed.
+
+${ANTI_BOILERPLATE}
+
+Return EXACTLY 3 suggestions as a JSON array of strings. Each suggestion must be ≤ 80 characters. Each suggestion must logically extend the conversation that just happened — reference a specific file, concept, tool result, or topic from the user's prompt or the agent's output. Do NOT wrap the array in any object or explanation — return ONLY a JSON array like ["suggestion one", "suggestion two", "suggestion three"].`;
+
+      userPrompt = `Last user prompt: ${lastUser || '(none)'}
+
+Tools called: ${toolSummaryStr}
+
+Agent's final output (truncated to 1000 chars):
+${finalResult || '(no output)'}${incompleteNote}
+
+Generate 3 follow-up prompts the user could ask next.`;
+    }
+
+    let rawText = '';
+    try {
+      const response = await client.messages.create({
+        model: MODEL_FAST,
+        max_tokens: 512,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      });
+      rawText = response.content[0]?.type === 'text' ? response.content[0].text : '';
+    } catch (err) {
+      Sentry.captureException(err);
+      return [];
+    }
+
+    // Parse the JSON array out of the response — tolerate code fences and
+    // leading/trailing prose, but reject anything that isn't a clean array of
+    // strings.
+    let text = rawText.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+    const first = text.indexOf('[');
+    const last = text.lastIndexOf(']');
+    if (first === -1 || last <= first) return [];
+    text = text.slice(first, last + 1);
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      return [];
+    }
+
+    if (!Array.isArray(parsed)) return [];
+    const strings = parsed.filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
+    if (strings.length === 0) return [];
+
+    // Cap to exactly 3 items (trim extras; if fewer than 3, return what we have —
+    // the route layer can decide whether that counts as a successful response).
+    return strings.slice(0, 3).map((s) => s.trim());
+  },
+
   async seedNextStage(
     content: string,
     fromStage: string,
