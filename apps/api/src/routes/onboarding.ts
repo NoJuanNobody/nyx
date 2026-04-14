@@ -5,6 +5,17 @@ import { config } from '../lib/config.js';
 import { db } from '../db/index.js';
 import { documents } from '../db/schema.js';
 
+/**
+ * Default lifecycle stage for documents created by the repo scan flow.
+ *
+ * Scanned docs are AI-generated from source code that already exists, so
+ * `implementation` is the natural default — these are reverse-engineered
+ * descriptions of code that has already been built.
+ *
+ * Centralized here so future changes only touch one site.
+ */
+const SCAN_DEFAULT_STAGE = 'implementation';
+
 export const onboardingRoutes: FastifyPluginAsync = async (app) => {
   app.post('/scan', async (request, reply) => {
     const { owner, repo, teamId } = request.body as { owner: string; repo: string; teamId: string };
@@ -57,6 +68,7 @@ export const onboardingRoutes: FastifyPluginAsync = async (app) => {
         path: basePath,
         teamId,
         createdById: userId,
+        stage: SCAN_DEFAULT_STAGE,
       }).returning();
       savedDocs.push({ id: doc.id, title: doc.title, path: doc.path });
     }
@@ -68,6 +80,7 @@ export const onboardingRoutes: FastifyPluginAsync = async (app) => {
       path: basePath,
       teamId,
       createdById: userId,
+      stage: SCAN_DEFAULT_STAGE,
     }).returning();
     savedDocs.push({ id: overviewDoc.id, title: overviewDoc.title, path: overviewDoc.path });
 
