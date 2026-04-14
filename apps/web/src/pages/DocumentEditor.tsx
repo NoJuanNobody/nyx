@@ -49,7 +49,33 @@ export function DocumentEditor() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const initialised = useRef(false);
+  // Tracks the latest `id` from the route at render time. Used by the
+  // debounced save callback to detect navigation between when the timer was
+  // armed and when it fires, regardless of stale closure capture.
+  const latestIdRef = useRef<string | undefined>(id);
+  latestIdRef.current = id;
+
+  // Tracks which id the local title/content were seeded from. When the
+  // route id changes, we synchronously clear local state during render
+  // (rather than waiting for a post-render effect) so the editor never
+  // displays the previous document's content under the new document's URL.
+  const seededIdRef = useRef<string | undefined>(undefined);
+  if (seededIdRef.current !== id) {
+    // id has changed (or first render): clear local state immediately so the
+    // upcoming render reflects an empty/loading state for the new document
+    // instead of the previous one. The seeding effect below will fill in the
+    // real values once the query resolves with a doc whose id matches.
+    if (title !== '') setTitle('');
+    if (content !== '') setContent('');
+    if (saveState !== 'saved') setSaveState('saved');
+    // Cancel any pending debounced save from the previous document — belt
+    // (the cleanup effect below is the suspenders).
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+      debounceTimer.current = null;
+    }
+    seededIdRef.current = id;
+  }
 
   const { data: doc, isLoading } = useQuery<Document>({
     queryKey: ['document', id],
@@ -57,34 +83,61 @@ export function DocumentEditor() {
     enabled: !!id,
   });
 
-  // Seed local state from fetched document (once)
+  // Seed local state from the fetched document. Runs whenever `id` or `doc`
+  // changes, but only applies the seed when `doc.id === id` (defensive
+  // against stale query data leaking in during navigation transitions).
+  // Only seeds while local state is still empty so subsequent user edits
+  // are not clobbered by later refetches of the same document.
   useEffect(() => {
-    if (doc && !initialised.current) {
+    if (!doc || doc.id !== id) return;
+    if (title === '' && content === '') {
       setTitle(doc.title);
       setContent(doc.content);
-      initialised.current = true;
     }
-  }, [doc]);
+    // We intentionally exclude `title` and `content` from the dep array so
+    // user edits do not re-trigger this effect and overwrite themselves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, doc]);
 
-  // Reset initialised flag when navigating to a different document
+  // Cleanup: cancel any pending debounced save when the route id changes
+  // or when the editor unmounts. This prevents an in-flight timer from
+  // firing after navigation and writing the previous document's updates
+  // into the new document's row.
   useEffect(() => {
-    initialised.current = false;
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+        debounceTimer.current = null;
+      }
+    };
   }, [id]);
 
   const saveMutation = useMutation({
     mutationFn: (data: { title?: string; content?: string }) =>
       updateDocument(id!, data),
-    onMutate: () => setSaveState('saving'),
+    onMutate: () => {
+      // Only show the "saving" indicator if we are still on the document
+      // whose mutation just kicked off. (The capture-and-bail logic in
+      // scheduleSave should already guarantee this, but be defensive.)
+      if (latestIdRef.current === id) setSaveState('saving');
+    },
     onSuccess: (updated) => {
-      setSaveState('saved');
-      queryClient.setQueryData(['document', id], updated);
+      // Always write the server response into the cache for the document
+      // it actually belongs to, not whatever id the closure happens to
+      // have captured. This prevents updates for doc A from polluting
+      // doc B's cache slot.
+      queryClient.setQueryData(['document', updated.id], updated);
       // Keep the file tree's document list in sync (title, path, status changes)
       queryClient.setQueriesData<Document[]>(
         { queryKey: ['documents'] },
         (old) => old?.map((d) => (d.id === updated.id ? updated : d)),
       );
+      // Only flip the save indicator if we are still viewing the same doc.
+      if (latestIdRef.current === updated.id) setSaveState('saved');
     },
-    onError: () => setSaveState('unsaved'),
+    onError: () => {
+      if (latestIdRef.current === id) setSaveState('unsaved');
+    },
   });
 
   const versionMutation = useMutation({
@@ -99,14 +152,27 @@ export function DocumentEditor() {
 
   const scheduleSave = useCallback(
     (updates: { title?: string; content?: string }) => {
+      // Capture the id at the moment the timer is armed. If the user
+      // navigates to a different document before the timer fires, we
+      // detect the divergence via latestIdRef and abort the save —
+      // never letting the mutation run with the new id and the old
+      // updates (which would corrupt the new document).
+      const capturedId = id;
+      if (!capturedId) return;
       setSaveState('unsaved');
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
       debounceTimer.current = setTimeout(() => {
+        debounceTimer.current = null;
+        if (latestIdRef.current !== capturedId) {
+          // The route changed under us — abort. The cleanup effect will
+          // also have fired; this is the second line of defence in case
+          // the timer somehow races ahead of the cleanup.
+          return;
+        }
         saveMutation.mutate(updates);
       }, 500);
     },
-    // saveMutation is stable via useMutation; we only depend on id changing
-    [id],
+    [id, saveMutation],
   );
 
   const handleTitleChange = (newTitle: string) => {
