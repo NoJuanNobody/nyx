@@ -47,6 +47,20 @@ export function DocumentEditor() {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const splitContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Scroll container for the rendered preview pane. The wrapper div is what
+  // actually owns `overflow-y-auto`, so this ref points at the scrollable
+  // element rather than the inner <MarkdownPreview> root. Used by the
+  // split-mode scroll-sync effect below.
+  const previewScrollRef = useRef<HTMLDivElement>(null);
+  // Leader-lock for split-mode bidirectional scroll sync. While a user-driven
+  // scroll gesture is in progress on one pane, that element is the "leader"
+  // and the opposite pane is updated programmatically. Programmatic scroll
+  // events on the follower are ignored so the sync does not ping-pong back.
+  const scrollLeaderRef = useRef<HTMLElement | null>(null);
+  // Pointer flag set while the user is dragging the split resize handle.
+  // Scroll sync is suspended while this is true so the pane width animation
+  // does not jolt the other pane's scroll position.
+  const isDraggingSplitRef = useRef(false);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Tracks the latest `id` from the route at render time. Used by the
@@ -264,12 +278,14 @@ export function DocumentEditor() {
     const container = splitContainerRef.current;
     if (!container) return;
 
+    isDraggingSplitRef.current = true;
     const onMove = (ev: globalThis.PointerEvent) => {
       const rect = container.getBoundingClientRect();
       const pct = ((ev.clientX - rect.left) / rect.width) * 100;
       setSplitPercent(Math.min(80, Math.max(20, pct)));
     };
     const onUp = () => {
+      isDraggingSplitRef.current = false;
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
       document.body.style.cursor = '';
@@ -280,6 +296,76 @@ export function DocumentEditor() {
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
   }, []);
+
+  // ── Split-mode scroll sync ─────────────────────────────────────────
+  // Bidirectional, ratio-based: when the user scrolls one pane, the other
+  // is moved to the same fractional position
+  // (`scrollTop / (scrollHeight - clientHeight)`). A leader-lock via
+  // `scrollLeaderRef` prevents the programmatic follower update from
+  // re-triggering sync back to the leader. Sync is only attached while
+  // `editorLayout === 'split'` and is suspended while the user is dragging
+  // the split resize handle.
+  useEffect(() => {
+    if (editorLayout !== 'split') return;
+    const editorEl = textareaRef.current;
+    const previewEl = previewScrollRef.current;
+    if (!editorEl || !previewEl) return;
+
+    let releaseTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const claimLeader = (el: HTMLElement) => {
+      scrollLeaderRef.current = el;
+      if (releaseTimer) clearTimeout(releaseTimer);
+      // Release the leader lock shortly after the last scroll event so a
+      // subsequent gesture from the other pane can take over. Browsers do
+      // not all support `scrollend` yet (notably Safari), so a short
+      // timeout is the most portable signal that the gesture has stopped.
+      releaseTimer = setTimeout(() => {
+        scrollLeaderRef.current = null;
+        releaseTimer = null;
+      }, 120);
+    };
+
+    const syncFromTo = (source: HTMLElement, target: HTMLElement) => {
+      const sourceMax = source.scrollHeight - source.clientHeight;
+      const targetMax = target.scrollHeight - target.clientHeight;
+      if (sourceMax <= 0 || targetMax <= 0) return;
+      const ratio = source.scrollTop / sourceMax;
+      const next = ratio * targetMax;
+      // Avoid no-op writes that still fire scroll events.
+      if (Math.abs(target.scrollTop - next) < 0.5) return;
+      window.requestAnimationFrame(() => {
+        target.scrollTop = next;
+      });
+    };
+
+    const onEditorScroll = () => {
+      if (isDraggingSplitRef.current) return;
+      // If the preview is currently the leader, this scroll event was
+      // produced by our own programmatic update — ignore it so we do not
+      // bounce back.
+      if (scrollLeaderRef.current && scrollLeaderRef.current !== editorEl) return;
+      claimLeader(editorEl);
+      syncFromTo(editorEl, previewEl);
+    };
+
+    const onPreviewScroll = () => {
+      if (isDraggingSplitRef.current) return;
+      if (scrollLeaderRef.current && scrollLeaderRef.current !== previewEl) return;
+      claimLeader(previewEl);
+      syncFromTo(previewEl, editorEl);
+    };
+
+    editorEl.addEventListener('scroll', onEditorScroll, { passive: true });
+    previewEl.addEventListener('scroll', onPreviewScroll, { passive: true });
+
+    return () => {
+      editorEl.removeEventListener('scroll', onEditorScroll);
+      previewEl.removeEventListener('scroll', onPreviewScroll);
+      if (releaseTimer) clearTimeout(releaseTimer);
+      scrollLeaderRef.current = null;
+    };
+  }, [editorLayout]);
 
   if (isLoading) {
     return (
@@ -642,24 +728,33 @@ export function DocumentEditor() {
                 />
               )}
 
-              {/* Content area */}
+              {/* Content area
+                  Both the editor pane and the preview pane are kept mounted
+                  unconditionally and toggled with `display: none` based on
+                  `editorLayout`. This preserves each pane's native scroll
+                  position across view switches — unmounting/remounting would
+                  reset every scroll container to `scrollTop = 0` and flash
+                  before a ref-restore could run. Width is driven by inline
+                  `display` + `width` so the existing split drag handle and
+                  `splitPercent` logic stay in charge of layout. */}
               <div className="flex min-h-0 flex-1">
                 {/* Editor pane */}
-                {editorLayout !== 'preview' && (
-                  <div
-                    className="flex flex-col overflow-hidden"
-                    style={{ width: editorLayout === 'split' ? `${splitPercent}%` : '100%' }}
-                  >
-                    <MarkdownEditor
-                      ref={textareaRef}
-                      value={content}
-                      onChange={handleContentChange}
-                      placeholder="Start writing your document..."
-                    />
-                  </div>
-                )}
+                <div
+                  className="flex flex-col overflow-hidden"
+                  style={{
+                    display: editorLayout === 'preview' ? 'none' : 'flex',
+                    width: editorLayout === 'split' ? `${splitPercent}%` : '100%',
+                  }}
+                >
+                  <MarkdownEditor
+                    ref={textareaRef}
+                    value={content}
+                    onChange={handleContentChange}
+                    placeholder="Start writing your document..."
+                  />
+                </div>
 
-                {/* Resizable drag handle */}
+                {/* Resizable drag handle — only renders in split mode. */}
                 {editorLayout === 'split' && (
                   <div
                     onPointerDown={handleSplitDragStart}
@@ -670,16 +765,17 @@ export function DocumentEditor() {
                 )}
 
                 {/* Preview pane */}
-                {editorLayout !== 'editor' && (
-                  <div
-                    className="flex flex-col overflow-hidden"
-                    style={{ width: editorLayout === 'split' ? `${100 - splitPercent}%` : '100%' }}
-                  >
-                    <div className="flex-1 overflow-y-auto p-4">
-                      <MarkdownPreview content={content} />
-                    </div>
+                <div
+                  className="flex flex-col overflow-hidden"
+                  style={{
+                    display: editorLayout === 'editor' ? 'none' : 'flex',
+                    width: editorLayout === 'split' ? `${100 - splitPercent}%` : '100%',
+                  }}
+                >
+                  <div ref={previewScrollRef} className="flex-1 overflow-y-auto p-4">
+                    <MarkdownPreview content={content} />
                   </div>
-                )}
+                </div>
               </div>
             </div>
           )}
