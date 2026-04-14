@@ -25,7 +25,7 @@ export function TracePage() {
       {/* Header */}
       <div className="mb-6">
         <Link
-          to={`/documents/${id}`}
+          to={`/app/documents/${id}`}
           className="mb-2 inline-flex items-center gap-1 text-xs font-medium text-slate-400 transition-colors hover:text-slate-600"
         >
           <svg

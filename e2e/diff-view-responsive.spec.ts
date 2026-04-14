@@ -1,6 +1,6 @@
 import { test, expect, SEED } from './fixtures/test-base';
 
-const DOC_URL = `/documents/${SEED.DOC_API_SPEC_ID}`;
+const DOC_URL = `/app/documents/${SEED.DOC_API_SPEC_ID}`;
 
 /**
  * E2E tests for #336 — DiffView responsive layout.

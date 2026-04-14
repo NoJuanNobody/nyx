@@ -48,7 +48,7 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
     };
 
     if (oauthError) {
-      reply.redirect(`/settings?tab=integrations&atlassian=error&message=${encodeURIComponent(oauthError)}`);
+      reply.redirect(`/app/settings?tab=integrations&atlassian=error&message=${encodeURIComponent(oauthError)}`);
       return;
     }
 
@@ -82,7 +82,7 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
       const resources = await atlassianService.getAccessibleResources(tokenData.access_token);
 
       if (resources.length === 0) {
-        reply.redirect('/settings?tab=integrations&atlassian=error&message=No+accessible+Atlassian+sites+found');
+        reply.redirect('/app/settings?tab=integrations&atlassian=error&message=No+accessible+Atlassian+sites+found');
         return;
       }
 
@@ -116,12 +116,12 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
         webhookUrl,
       );
 
-      reply.redirect('/settings?tab=integrations&atlassian=connected');
+      reply.redirect('/app/settings?tab=integrations&atlassian=connected');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       request.log.error({ err }, 'Atlassian OAuth callback failed');
       reply.redirect(
-        `/settings?tab=integrations&atlassian=error&message=${encodeURIComponent(message)}`,
+        `/app/settings?tab=integrations&atlassian=error&message=${encodeURIComponent(message)}`,
       );
     }
   });

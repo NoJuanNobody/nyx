@@ -43,7 +43,7 @@ export function DocumentList() {
       }),
     onSuccess: (doc) => {
       queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
-      navigate(`/documents/${doc.id}`);
+      navigate(`/app/documents/${doc.id}`);
     },
   });
 
@@ -203,7 +203,7 @@ export function DocumentList() {
           {documents.map((doc) => (
             <li key={doc.id}>
               <Link
-                to={`/documents/${doc.id}`}
+                to={`/app/documents/${doc.id}`}
                 className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-slate-50"
               >
                 <div className="min-w-0 flex-1">

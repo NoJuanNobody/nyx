@@ -3,7 +3,7 @@ import { SEL } from './fixtures/selectors';
 
 test.describe('Feedback submission', () => {
   test('should open feedback modal from sidebar', async ({ authenticatedPage: page }) => {
-    await page.goto('/dashboard');
+    await page.goto('/app/dashboard');
     await page.waitForSelector(SEL.sidebar.logo, { state: 'visible' });
 
     // Click Send Feedback button
@@ -16,7 +16,7 @@ test.describe('Feedback submission', () => {
   });
 
   test('should disable format button when input is empty', async ({ authenticatedPage: page }) => {
-    await page.goto('/dashboard');
+    await page.goto('/app/dashboard');
     await page.waitForSelector(SEL.sidebar.logo, { state: 'visible' });
 
     await page.click(SEL.feedback.sidebarButton);
@@ -32,7 +32,7 @@ test.describe('Feedback submission', () => {
   });
 
   test('should close feedback modal with cancel', async ({ authenticatedPage: page }) => {
-    await page.goto('/dashboard');
+    await page.goto('/app/dashboard');
     await page.waitForSelector(SEL.sidebar.logo, { state: 'visible' });
 
     await page.click(SEL.feedback.sidebarButton);
@@ -46,7 +46,7 @@ test.describe('Feedback submission', () => {
   });
 
   test('should close feedback modal with Escape', async ({ authenticatedPage: page }) => {
-    await page.goto('/dashboard');
+    await page.goto('/app/dashboard');
     await page.waitForSelector(SEL.sidebar.logo, { state: 'visible' });
 
     await page.click(SEL.feedback.sidebarButton);

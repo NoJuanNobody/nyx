@@ -1430,8 +1430,8 @@ function BillingPanel() {
     checkoutMutation.mutate({
       plan: planId,
       teamId,
-      successUrl: `${window.location.origin}/settings?tab=billing&success=true`,
-      cancelUrl: `${window.location.origin}/settings?tab=billing`,
+      successUrl: `${window.location.origin}/app/settings?tab=billing&success=true`,
+      cancelUrl: `${window.location.origin}/app/settings?tab=billing`,
     });
   };
 
@@ -1439,7 +1439,7 @@ function BillingPanel() {
     if (!teamId) return;
     portalMutation.mutate({
       teamId,
-      returnUrl: `${window.location.origin}/settings?tab=billing`,
+      returnUrl: `${window.location.origin}/app/settings?tab=billing`,
     });
   };
 

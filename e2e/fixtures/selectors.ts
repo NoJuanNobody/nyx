@@ -22,7 +22,7 @@ export const SEL = {
 
   // ── File Tree ────────────────────────────────────────
   fileTree: {
-    docLink: (id: string) => `a[href="/documents/${id}"]`,
+    docLink: (id: string) => `a[href="/app/documents/${id}"]`,
     trashToggle: 'button:has-text("Trash")',
   },
 
@@ -30,7 +30,7 @@ export const SEL = {
   dashboard: {
     title: 'h1:has-text("Dashboard")',
     newDocButton: 'button:has-text("New Document")',
-    docRow: 'a[href*="/documents/"]',
+    docRow: 'a[href*="/app/documents/"]',
     aiPrompt: {
       textarea: 'main textarea[placeholder*="Ask AI"]',
       generateButton: 'main button:has-text("Generate")',
@@ -46,7 +46,7 @@ export const SEL = {
     recentDocs: {
       section: 'main h2:has-text("Recent Documents")',
       viewAllLink: 'main a:has-text("View all")',
-      docItem: 'main ul a[href*="/documents/"]',
+      docItem: 'main ul a[href*="/app/documents/"]',
     },
   },
 

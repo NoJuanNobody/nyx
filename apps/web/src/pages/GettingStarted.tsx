@@ -14,13 +14,13 @@ const tutorialSteps: TutorialStep[] = [
     title: '1. Connect your repository',
     description:
       'Link your GitHub repositories so Nyx can detect code changes and keep your documentation in sync.',
-    link: { to: '/repositories', label: 'Go to Repositories' },
+    link: { to: '/app/repositories', label: 'Go to Repositories' },
   },
   {
     title: '2. Create your first spec',
     description:
       'Use the dashboard to create a new document. The AI-assisted editor helps you write structured specs quickly.',
-    link: { to: '/dashboard', label: 'Go to Dashboard' },
+    link: { to: '/app/dashboard', label: 'Go to Dashboard' },
   },
   {
     title: '3. Explore the product lifecycle',
@@ -32,13 +32,13 @@ const tutorialSteps: TutorialStep[] = [
     title: '4. Generate tickets from specs',
     description:
       'Once your spec is ready, Nyx can generate GitHub Issues or Jira tickets directly from your documentation.',
-    link: { to: '/board', label: 'View Board' },
+    link: { to: '/app/board', label: 'View Board' },
   },
   {
     title: '5. Monitor drift',
     description:
       'As your codebase evolves, Nyx detects when documentation falls out of sync and suggests updates.',
-    link: { to: '/observability', label: 'View Observability' },
+    link: { to: '/app/observability', label: 'View Observability' },
   },
 ];
 

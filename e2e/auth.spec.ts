@@ -71,7 +71,7 @@ test.describe('Team Context', () => {
   });
 
   test('2.2 — settings Team tab shows Dev User as owner', async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await expect(page.locator('h1:has-text("Settings")')).toBeVisible({ timeout: 10_000 });
 
     // Click the Team tab
@@ -92,6 +92,6 @@ test.describe('Authenticated Actions', () => {
 
     // Should navigate to a new document page
     await page.waitForURL(/\/documents\//, { timeout: 10_000 });
-    expect(page.url()).toContain('/documents/');
+    expect(page.url()).toContain('/app/documents/');
   });
 });

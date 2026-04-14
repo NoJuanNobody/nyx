@@ -29,7 +29,7 @@ test.describe('Notifications', () => {
     );
 
     // Re-navigate so the bell picks up the mock
-    await page.goto('/dashboard');
+    await page.goto('/app/dashboard');
 
     const badge = page.locator(SEL.notifications.badge);
     await expect(badge).toBeVisible({ timeout: 10_000 });
@@ -53,7 +53,7 @@ test.describe('Notifications', () => {
       }),
     );
 
-    await page.goto('/dashboard');
+    await page.goto('/app/dashboard');
 
     const bell = page.locator(SEL.notifications.bell);
     await expect(bell).toBeVisible({ timeout: 10_000 });
@@ -85,7 +85,7 @@ test.describe('Notifications', () => {
       }),
     );
 
-    await page.goto('/dashboard');
+    await page.goto('/app/dashboard');
 
     await page.locator(SEL.notifications.bell).click();
     await expect(page.locator(SEL.notifications.panel)).toBeVisible({ timeout: 5_000 });
@@ -129,7 +129,7 @@ test.describe('Notifications', () => {
       });
     });
 
-    await page.goto('/dashboard');
+    await page.goto('/app/dashboard');
 
     // Badge should show 2 initially
     const badge = page.locator(SEL.notifications.badge);
@@ -177,7 +177,7 @@ test.describe('Notifications', () => {
       });
     });
 
-    await page.goto('/dashboard');
+    await page.goto('/app/dashboard');
 
     // Open panel
     await page.locator(SEL.notifications.bell).click();

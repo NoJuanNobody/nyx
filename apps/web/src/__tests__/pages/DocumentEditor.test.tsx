@@ -139,7 +139,7 @@ function renderEditor(initialPath: string, onNavReady: (nav: (to: string) => voi
       <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
           <Route
-            path="/documents/:id"
+            path="/app/documents/:id"
             element={
               <>
                 <NavigationProbe onReady={onNavReady} />
@@ -174,7 +174,7 @@ describe('DocumentEditor — stale debounced save across documents (issue #344)'
 
   it('does not call updateDocument with the new id and the previous doc updates', async () => {
     let triggerNavigation: (to: string) => void = () => {};
-    renderEditor('/documents/doc-a', (nav) => {
+    renderEditor('/app/documents/doc-a', (nav) => {
       triggerNavigation = nav;
     });
 
@@ -191,7 +191,7 @@ describe('DocumentEditor — stale debounced save across documents (issue #344)'
 
     // Within the debounce window (well under 500ms), navigate to doc B.
     await act(async () => {
-      triggerNavigation('/documents/doc-b');
+      triggerNavigation('/app/documents/doc-b');
     });
 
     // Wait long enough for any uncancelled debounce timer to fire AND for
@@ -234,7 +234,7 @@ describe('DocumentEditor — stale debounced save across documents (issue #344)'
     });
 
     let triggerNavigation: (to: string) => void = () => {};
-    renderEditor('/documents/doc-a', (nav) => {
+    renderEditor('/app/documents/doc-a', (nav) => {
       triggerNavigation = nav;
     });
 
@@ -244,10 +244,10 @@ describe('DocumentEditor — stale debounced save across documents (issue #344)'
     // Navigate to doc B (wrap in act so React flushes the state updates
     // synchronously before we inspect).
     await act(async () => {
-      triggerNavigation('/documents/doc-b');
+      triggerNavigation('/app/documents/doc-b');
     });
 
-    // At this point the route is /documents/doc-b but doc B has NOT been
+    // At this point the route is /app/documents/doc-b but doc B has NOT been
     // delivered by the query yet. Doc A's content/title must NOT be
     // visible anywhere on the page — the editor should be in its
     // loading state instead.
@@ -279,9 +279,9 @@ describe('DocumentEditor — stale debounced save across documents (issue #344)'
 
     render(
       <QueryClientProvider client={qc}>
-        <MemoryRouter initialEntries={['/documents/doc-a']}>
+        <MemoryRouter initialEntries={['/app/documents/doc-a']}>
           <Routes>
-            <Route path="/documents/:id" element={<DocumentEditor />} />
+            <Route path="/app/documents/:id" element={<DocumentEditor />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,

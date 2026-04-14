@@ -67,6 +67,6 @@ describe('DashboardAIPrompt', () => {
     await waitFor(() => expect(screen.getByText('Create doc from this')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Create doc from this'));
     await waitFor(() => expect(createDocument).toHaveBeenCalled());
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/documents/new-doc-1'));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/app/documents/new-doc-1'));
   });
 });

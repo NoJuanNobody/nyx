@@ -195,7 +195,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Redirect back to settings
-    reply.redirect('/settings?tab=integrations&github=connected');
+    reply.redirect('/app/settings?tab=integrations&github=connected');
   });
 
   // ── GitLab OAuth flow ──────────────────────────────────────────────
@@ -327,7 +327,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    reply.redirect('/settings?tab=integrations&gitlab=connected');
+    reply.redirect('/app/settings?tab=integrations&gitlab=connected');
   });
 
   // GET /api/integrations/:id/gitlab/repos — list repos for a connected GitLab integration
@@ -473,7 +473,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    reply.redirect('/settings?tab=integrations&bitbucket=connected');
+    reply.redirect('/app/settings?tab=integrations&bitbucket=connected');
   });
 
   // GET /api/integrations/:id/bitbucket/repos — list repos for a connected Bitbucket integration

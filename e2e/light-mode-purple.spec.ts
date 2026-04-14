@@ -47,7 +47,7 @@ test.describe('Light mode purple accent (#347)', () => {
       }),
     );
 
-    await page.goto('/repositories');
+    await page.goto('/app/repositories');
 
     // Force light mode: clear any persisted theme and ensure html
     // does not have the .dark class. The default seeded test env

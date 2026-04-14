@@ -18,7 +18,7 @@ test.describe('GitHub Token Expired', () => {
       return route.fallback();
     });
 
-    await page.goto('/repositories');
+    await page.goto('/app/repositories');
     await expect(page.locator('h1:has-text("Repositories")')).toBeVisible({ timeout: 10_000 });
 
     // Should show the reconnect banner
@@ -42,7 +42,7 @@ test.describe('GitHub Token Expired', () => {
       return route.fallback();
     });
 
-    await page.goto('/repositories');
+    await page.goto('/app/repositories');
     await expect(page.locator('text=GitHub connection expired')).toBeVisible({ timeout: 10_000 });
 
     // The reconnect button should exist

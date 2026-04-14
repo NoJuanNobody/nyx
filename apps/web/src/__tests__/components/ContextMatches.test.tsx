@@ -84,7 +84,7 @@ describe('ContextMatches', () => {
 
     // Check links point to the correct documents
     const authLink = screen.getByText('Auth Requirements').closest('a');
-    expect(authLink).toHaveAttribute('href', '/documents/doc-1');
+    expect(authLink).toHaveAttribute('href', '/app/documents/doc-1');
   });
 
   it('renders signal badges with appropriate labels', () => {
