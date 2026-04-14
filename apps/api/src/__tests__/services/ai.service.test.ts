@@ -119,6 +119,45 @@ describe('AI Service', () => {
     expect(callArgs.messages.length).toBe(3); // 2 history + 1 current
   });
 
+  it('editDocument: uses the grounded system prompt and embeds code files when codeContents provided', async () => {
+    mockCreate.mockResolvedValueOnce(makeResponse('# Grounded edit'));
+
+    const result = await aiService.editDocument(
+      '# Old Content',
+      'Fix these',
+      undefined,
+      [
+        { path: 'src/foo.ts', content: 'export function foo() {}' },
+        { path: 'src/bar.ts', content: 'export const BAR = 42;' },
+      ],
+    );
+    expect(result).toBe('# Grounded edit');
+
+    const callArgs = mockCreate.mock.calls[0][0];
+    // Grounded system prompt must be the strict one that treats code as ground truth
+    expect(callArgs.system).toContain('Treat');
+    expect(callArgs.system).toContain('ground truth');
+    expect(callArgs.system).toContain('source files');
+    // User message must embed both files
+    const userMsg = callArgs.messages[0].content as string;
+    expect(userMsg).toContain('src/foo.ts');
+    expect(userMsg).toContain('export function foo()');
+    expect(userMsg).toContain('src/bar.ts');
+    expect(userMsg).toContain('export const BAR = 42;');
+  });
+
+  it('editDocument: uses the ungrounded conservative prompt when no codeContents', async () => {
+    mockCreate.mockResolvedValueOnce(makeResponse('# Conservative edit'));
+
+    await aiService.editDocument('# Old', 'Fix these', undefined, []);
+
+    const callArgs = mockCreate.mock.calls[0][0];
+    // Conservative prompt must forbid fabrication
+    expect(callArgs.system).toContain('NO source code');
+    expect(callArgs.system).toContain('not fabricate');
+    expect(callArgs.system).toContain('TODO: needs codebase context');
+  });
+
   it('analyzeChangesForTickets: returns parsed ticket suggestions', async () => {
     mockCreate.mockResolvedValueOnce(
       makeResponse('{"title": "API Changes", "description": "Updated API endpoints", "suggestedTickets": [{"title": "Update endpoints", "description": "Fix the routes", "priority": "high", "labels": ["api"]}]}'),

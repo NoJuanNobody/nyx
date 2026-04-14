@@ -337,6 +337,7 @@ Respond ONLY with valid JSON in this exact format: {"title": "<short title>", "d
     currentContent: string,
     instruction: string,
     history?: Array<{ role: 'user' | 'assistant'; content: string }>,
+    codeContents?: Array<{ path: string; content: string }>,
   ): Promise<string> {
     const ai = requireClient();
 
@@ -348,16 +349,33 @@ Respond ONLY with valid JSON in this exact format: {"title": "<short title>", "d
       messages.push(...recentHistory);
     }
 
-    messages.push({
-      role: 'user',
-      content: `Here is the current document:\n\n${currentContent}\n\n---\n\nInstruction: ${instruction}`,
-    });
+    const isGrounded = Array.isArray(codeContents) && codeContents.length > 0;
+
+    // ── System prompt variants ─────────────────────────────
+    // Grounded: source files are provided; treat them as ground truth.
+    // Ungrounded: no code — refuse to fabricate concrete implementation details.
+    const groundedSystemPrompt =
+      'You are an expert spec editor. You have been given the document, the editing instruction, AND the relevant source files from the project. Treat the source files as ground truth: prefer facts derived from code over facts in the existing document, correct the document where they disagree, and only fill in details that are either already in the document or clearly supported by the code. If the instruction asks for information you cannot verify from either source, leave that section unchanged — do not invent function names, file paths, endpoints, env vars, flags, error codes, or numeric limits. Return ONLY the updated markdown — no code fences, no explanations.';
+    const ungroundedSystemPrompt =
+      'You have been given the document and an editing instruction but NO source code. You must not fabricate concrete implementation details. Specifically: no invented function signatures, module names, API paths, env var names, CLI flags, error codes, or numeric limits. For any quality suggestion that would require such details, leave that section unchanged and insert a brief inline marker like `> TODO: needs codebase context`. Return ONLY the updated markdown — no code fences, no explanations.';
+
+    // ── User message ───────────────────────────────────────
+    let userMessage: string;
+    if (isGrounded) {
+      const codeBlock = codeContents!
+        .map((f) => `### ${f.path}\n\n\`\`\`\n${f.content}\n\`\`\``)
+        .join('\n\n');
+      userMessage = `Here is the current document:\n\n${currentContent}\n\n---\n\nHere are the relevant source files from the project (treat as ground truth):\n\n${codeBlock}\n\n---\n\nInstruction: ${instruction}`;
+    } else {
+      userMessage = `Here is the current document:\n\n${currentContent}\n\n---\n\nInstruction: ${instruction}`;
+    }
+
+    messages.push({ role: 'user', content: userMessage });
 
     const response = await ai.messages.create({
       model: MODEL_FAST,
       max_tokens: 4096,
-      system:
-        'You are an expert document editor. Given a document and an editing instruction, return ONLY the updated markdown content. Do not wrap the output in code fences. Do not include any explanations — just the raw updated markdown.',
+      system: isGrounded ? groundedSystemPrompt : ungroundedSystemPrompt,
       messages,
     });
 

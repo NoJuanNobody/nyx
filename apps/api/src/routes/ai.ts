@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { documents } from '../db/schema.js';
 import { aiService } from '../services/ai.service.js';
+import { codeEmbeddingService } from '../services/code-embedding.service.js';
 import {
   analyzeSpecBody,
   detectDriftBody,
@@ -44,9 +45,43 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /api/ai/edit-document — edit a document with AI
   app.post('/edit-document', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
-    const { content, instruction, history } = editDocumentBody.parse(request.body);
-    const result = await aiService.editDocument(content, instruction, history);
-    return { content: result };
+    const { content, instruction, history, documentId, teamId } =
+      editDocumentBody.parse(request.body);
+
+    // If caller asked for grounded mode, retrieve relevant code from the
+    // team's indexed codebase. All failure modes are non-fatal — a failure
+    // simply means we fall back to the ungrounded-but-conservative prompt.
+    let codeContents: Array<{ path: string; content: string }> = [];
+    let groundingSources: string[] = [];
+    if (documentId && teamId) {
+      try {
+        const retrieved = await codeEmbeddingService.fetchRelevantCodeForDocument(
+          documentId,
+          teamId,
+        );
+        codeContents = retrieved.chunks;
+        groundingSources = retrieved.sources;
+      } catch (err) {
+        request.log.warn(
+          { err },
+          '[ai/edit-document] grounded retrieval failed — falling back to ungrounded',
+        );
+      }
+    }
+
+    const result = await aiService.editDocument(
+      content,
+      instruction,
+      history,
+      codeContents,
+    );
+
+    const grounded = codeContents.length > 0;
+    return {
+      content: result,
+      grounded,
+      ...(grounded ? { groundingSources } : {}),
+    };
   });
 
   // POST /api/ai/generate-ticket — generate a ticket from a spec diff

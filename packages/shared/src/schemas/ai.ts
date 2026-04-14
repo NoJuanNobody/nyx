@@ -15,14 +15,30 @@ export const generateDocumentBody = z.object({
   context: z.string().optional(),
 });
 
-export const editDocumentBody = z.object({
-  content: z.string().min(1),
-  instruction: z.string().min(1),
-  history: z.array(z.object({
-    role: z.enum(['user', 'assistant']),
-    content: z.string(),
-  })).optional(),
-});
+export const editDocumentBody = z
+  .object({
+    content: z.string().min(1),
+    instruction: z.string().min(1),
+    history: z
+      .array(
+        z.object({
+          role: z.enum(['user', 'assistant']),
+          content: z.string(),
+        }),
+      )
+      .optional(),
+    documentId: z.string().uuid().optional(),
+    teamId: z.string().uuid().optional(),
+  })
+  .refine(
+    (val) =>
+      (val.documentId === undefined && val.teamId === undefined) ||
+      (val.documentId !== undefined && val.teamId !== undefined),
+    {
+      message: 'documentId and teamId must be provided together',
+      path: ['documentId'],
+    },
+  );
 
 export const generateTicketBody = z.object({
   diff: z.string().min(1),

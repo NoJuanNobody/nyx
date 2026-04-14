@@ -213,7 +213,13 @@ export function UnifiedAIPanel({
             m.kind === 'user' || m.kind === 'assistant',
           )
           .map((m) => ({ role: m.kind === 'user' ? ('user' as const) : ('assistant' as const), content: m.content }));
-        const result = await editDocumentAI(content, trimmed, history, controller.signal);
+        const result = await editDocumentAI(
+          content,
+          trimmed,
+          history,
+          controller.signal,
+          documentId && teamId ? { documentId, teamId } : undefined,
+        );
         appendMessage({
           kind: 'assistant',
           content: 'Changes ready for review. Check the diff in the editor.',

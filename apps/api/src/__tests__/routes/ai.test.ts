@@ -24,6 +24,13 @@ const mockAiService = vi.hoisted(() => ({
   generateNewsArticle: vi.fn(),
 }));
 vi.mock('../../services/ai.service.js', () => ({ aiService: mockAiService }));
+
+const mockCodeEmbeddingService = vi.hoisted(() => ({
+  fetchRelevantCodeForDocument: vi.fn(),
+}));
+vi.mock('../../services/code-embedding.service.js', () => ({
+  codeEmbeddingService: mockCodeEmbeddingService,
+}));
 vi.mock('../../middleware/permissions.js', () => ({ requireRole: () => async () => {} }));
 
 async function buildApp() {
@@ -78,6 +85,134 @@ describe('AI Routes', () => {
     const app = await buildApp();
     const res = await app.inject({ method: 'POST', url: '/api/ai/edit-document', payload: { content: '# Old', instruction: 'Update' } });
     expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.content).toBe('# Edited');
+    expect(body.grounded).toBe(false);
+    // No retrieval should happen when documentId/teamId are absent
+    expect(mockCodeEmbeddingService.fetchRelevantCodeForDocument).not.toHaveBeenCalled();
+    // Service called with empty codeContents
+    expect(mockAiService.editDocument).toHaveBeenCalledWith(
+      '# Old',
+      'Update',
+      undefined,
+      [],
+    );
+  });
+
+  it('POST /api/ai/edit-document grounds in codebase when documentId+teamId provided', async () => {
+    const docId = '11111111-1111-1111-1111-111111111111';
+    const teamId = '22222222-2222-2222-2222-222222222222';
+    mockCodeEmbeddingService.fetchRelevantCodeForDocument.mockResolvedValueOnce({
+      chunks: [
+        { path: 'src/foo.ts', content: 'export function foo() {}' },
+        { path: 'src/bar.ts', content: 'export const BAR = 42;' },
+      ],
+      sources: ['src/foo.ts', 'src/bar.ts'],
+    });
+    mockAiService.editDocument.mockResolvedValueOnce('# Edited with code');
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/edit-document',
+      payload: {
+        content: '# Old',
+        instruction: 'Fix these',
+        documentId: docId,
+        teamId,
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.content).toBe('# Edited with code');
+    expect(body.grounded).toBe(true);
+    expect(body.groundingSources).toEqual(['src/foo.ts', 'src/bar.ts']);
+    expect(mockCodeEmbeddingService.fetchRelevantCodeForDocument).toHaveBeenCalledWith(
+      docId,
+      teamId,
+    );
+    // Service called with non-empty codeContents — triggers the grounded prompt
+    expect(mockAiService.editDocument).toHaveBeenCalledWith(
+      '# Old',
+      'Fix these',
+      undefined,
+      [
+        { path: 'src/foo.ts', content: 'export function foo() {}' },
+        { path: 'src/bar.ts', content: 'export const BAR = 42;' },
+      ],
+    );
+  });
+
+  it('POST /api/ai/edit-document falls back to ungrounded when no code chunks', async () => {
+    const docId = '11111111-1111-1111-1111-111111111111';
+    const teamId = '22222222-2222-2222-2222-222222222222';
+    mockCodeEmbeddingService.fetchRelevantCodeForDocument.mockResolvedValueOnce({
+      chunks: [],
+      sources: [],
+    });
+    mockAiService.editDocument.mockResolvedValueOnce('# Edited conservative');
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/edit-document',
+      payload: { content: '# Old', instruction: 'Fix these', documentId: docId, teamId },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.grounded).toBe(false);
+    expect(body.groundingSources).toBeUndefined();
+    expect(mockAiService.editDocument).toHaveBeenCalledWith(
+      '# Old',
+      'Fix these',
+      undefined,
+      [],
+    );
+  });
+
+  it('POST /api/ai/edit-document handles retrieval throwing by falling back to ungrounded', async () => {
+    const docId = '11111111-1111-1111-1111-111111111111';
+    const teamId = '22222222-2222-2222-2222-222222222222';
+    mockCodeEmbeddingService.fetchRelevantCodeForDocument.mockRejectedValueOnce(
+      new Error('pgvector exploded'),
+    );
+    mockAiService.editDocument.mockResolvedValueOnce('# Edited conservative');
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/edit-document',
+      payload: { content: '# Old', instruction: 'Fix these', documentId: docId, teamId },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.content).toBe('# Edited conservative');
+    expect(body.grounded).toBe(false);
+  });
+
+  it('POST /api/ai/edit-document returns 400 when only documentId is provided', async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/edit-document',
+      payload: {
+        content: '# Old',
+        instruction: 'Fix',
+        documentId: '11111111-1111-1111-1111-111111111111',
+      },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /api/ai/edit-document returns 400 when only teamId is provided', async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/edit-document',
+      payload: {
+        content: '# Old',
+        instruction: 'Fix',
+        teamId: '22222222-2222-2222-2222-222222222222',
+      },
+    });
+    expect(res.statusCode).toBe(400);
   });
 
   it('POST /api/ai/generate-ticket returns ticket', async () => {

@@ -808,6 +808,7 @@ export function DocumentEditor() {
           content={content}
           stage={docStage}
           documentId={id}
+          teamId={doc.teamId}
           onApplyEdit={setAiProposedContent}
           onStageChange={handleStageChange}
         />
