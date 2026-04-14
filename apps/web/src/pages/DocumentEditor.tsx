@@ -482,7 +482,7 @@ export function DocumentEditor() {
             data-testid="bulk-generate-tickets"
             onClick={() => setBulkTicketOpen(true)}
             title="Bulk Tickets"
-            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
+            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
           >
             <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0 4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0-5.571 3-5.571-3" />
