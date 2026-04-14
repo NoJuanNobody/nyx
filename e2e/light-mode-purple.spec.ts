@@ -63,12 +63,27 @@ test.describe('Light mode purple accent (#347)', () => {
     const button = page.locator('[data-testid="manage-repos-button"]').first();
     await expect(button).toBeVisible({ timeout: 10_000 });
 
-    const bg = await button.evaluate((el) => window.getComputedStyle(el).backgroundColor);
+    // Resolve the computed background-color into sRGB channels. Modern browsers
+    // preserve gamut-wide color spaces in getComputedStyle (so our oklch(...)
+    // values come back as literal "oklch(...)" strings, not rgb()). Draw the
+    // color into a 1×1 canvas to force sRGB normalization — canvas fillStyle
+    // accepts any CSS color and getImageData returns Uint8 RGBA.
+    const [r, g, b, bg] = await button.evaluate((el) => {
+      const raw = window.getComputedStyle(el).backgroundColor;
+      const canvas = document.createElement('canvas');
+      canvas.width = 1;
+      canvas.height = 1;
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = raw;
+      ctx.fillRect(0, 0, 1, 1);
+      const data = ctx.getImageData(0, 0, 1, 1).data;
+      return [data[0], data[1], data[2], raw] as const;
+    });
 
-    // Parse rgb / rgba string into channels.
-    const match = bg.match(/rgba?\((\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?)/);
-    expect(match, `unable to parse computed background-color: ${bg}`).not.toBeNull();
-    const [r, g, b] = [Number(match![1]), Number(match![2]), Number(match![3])];
+    expect(
+      Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b),
+      `unable to resolve computed background-color: ${bg}`,
+    ).toBe(true);
 
     // 1. Purple/violet always has red > green. Pure Tailwind blue-600
     //    (rgb 37, 99, 235) does NOT — green > red. This single check

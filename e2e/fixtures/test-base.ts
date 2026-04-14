@@ -993,6 +993,12 @@ async function setupApiMocks(page: Page) {
     if (/\/ai\/generate-document/.test(pathname)) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockGenerateResponse()) });
     }
+    // New in #350: context-aware suggestions endpoint. Return empty array so
+    // the frontend falls back to STAGE_SUGGESTIONS without hanging on a real
+    // Anthropic call.
+    if (/\/ai\/suggestions/.test(pathname)) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ suggestions: [] }) });
+    }
     return route.fallback();
   });
 
@@ -1060,6 +1066,12 @@ export const test = base.extend<NyxFixtures>({
         }
         if (/\/ai\/proposals/.test(pathname)) {
           return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(overrides?.proposals ?? mockProposalResponse()) });
+        }
+        // New in #350: context-aware suggestions endpoint. Return empty so the
+        // frontend falls back to STAGE_SUGGESTIONS / workflow chips without
+        // blocking on a real Anthropic call.
+        if (/\/ai\/suggestions/.test(pathname)) {
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ suggestions: [] }) });
         }
         return route.fallback();
       });
