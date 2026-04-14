@@ -37,6 +37,7 @@ export interface AIAdvisorProps {
   content: string;
   stage?: DocumentStage | null;
   documentId?: string;
+  teamId?: string;
   onApplyEdit?: (content: string) => void;
   onStageChange?: (stage: DocumentStage) => void;
   onOpenAIChat?: (context?: Record<string, unknown>) => void;
@@ -166,6 +167,7 @@ export function AIAdvisor({
   content,
   stage,
   documentId,
+  teamId,
   onApplyEdit,
   onStageChange,
 }: AIAdvisorProps) {
@@ -322,9 +324,18 @@ export function AIAdvisor({
                       setNotifStatus(id, 'loading');
                       try {
                         const instruction = `Fix the following quality issues in this document:\n${suggestions.join('\n')}`;
-                        const result = await editDocumentAI(content, instruction);
+                        const result = await editDocumentAI(
+                          content,
+                          instruction,
+                          undefined,
+                          undefined,
+                          documentId && teamId ? { documentId, teamId } : undefined,
+                        );
                         onApplyEdit?.(result.content);
-                        setNotifStatus(id, 'success', 'Fixes applied — review the proposed changes in the editor');
+                        const groundedMsg = result.grounded
+                          ? `Fixes applied — grounded in ${result.groundingSources?.length ?? 0} code file${(result.groundingSources?.length ?? 0) === 1 ? '' : 's'}`
+                          : 'Fixes applied — no codebase connected, conservative edits only';
+                        setNotifStatus(id, 'success', groundedMsg);
                       } catch {
                         setNotifStatus(id, 'idle');
                       }
@@ -360,7 +371,7 @@ export function AIAdvisor({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [content, stage, dismissNotification, setNotifStatus, onApplyEdit]);
+  }, [content, stage, documentId, teamId, dismissNotification, setNotifStatus, onApplyEdit]);
 
   // ── Pre-fill offer notification (Tier 2) — offer to seed next stage ─
   const lastPrefillStageRef = useRef<string | null | undefined>(undefined);
@@ -466,9 +477,18 @@ export function AIAdvisor({
                 setNotifStatus(id, 'loading');
                 try {
                   const instruction = `Add the following missing sections to this document:\n${missing.map((s) => `- ${s.name}: ${s.description}`).join('\n')}`;
-                  const result = await editDocumentAI(content, instruction);
+                  const result = await editDocumentAI(
+                    content,
+                    instruction,
+                    undefined,
+                    undefined,
+                    documentId && teamId ? { documentId, teamId } : undefined,
+                  );
                   onApplyEdit?.(result.content);
-                  setNotifStatus(id, 'success', 'Missing sections added — review the proposed changes');
+                  const groundedMsg = result.grounded
+                    ? `Missing sections added — grounded in ${result.groundingSources?.length ?? 0} code file${(result.groundingSources?.length ?? 0) === 1 ? '' : 's'}`
+                    : 'Missing sections added — no codebase connected, conservative edits only';
+                  setNotifStatus(id, 'success', groundedMsg);
                 } catch {
                   setNotifStatus(id, 'idle');
                 }
@@ -492,7 +512,7 @@ export function AIAdvisor({
     }, 5000); // slightly delayed after quality analysis
 
     return () => clearTimeout(timer);
-  }, [content, stage, qualityScore, qualityLoading, dismissNotification, setNotifStatus, onApplyEdit]);
+  }, [content, stage, documentId, teamId, qualityScore, qualityLoading, dismissNotification, setNotifStatus, onApplyEdit]);
 
   // ── Reply handler — send reply to notification-reply endpoint ───────
   const handleSendReply = useCallback(async () => {

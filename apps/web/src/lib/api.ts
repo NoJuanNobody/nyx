@@ -412,15 +412,27 @@ export function generateAllDocuments(
   });
 }
 
+export interface EditDocumentAIResult {
+  content: string;
+  grounded: boolean;
+  groundingSources?: string[];
+}
+
 export function editDocumentAI(
   content: string,
   instruction: string,
   history?: Array<{ role: string; content: string }>,
   signal?: AbortSignal,
-): Promise<{ content: string }> {
-  return request<{ content: string }>('/ai/edit-document', {
+  options?: { documentId?: string; teamId?: string },
+): Promise<EditDocumentAIResult> {
+  const body: Record<string, unknown> = { content, instruction, history };
+  if (options?.documentId && options?.teamId) {
+    body.documentId = options.documentId;
+    body.teamId = options.teamId;
+  }
+  return request<EditDocumentAIResult>('/ai/edit-document', {
     method: 'POST',
-    body: JSON.stringify({ content, instruction, history }),
+    body: JSON.stringify(body),
     signal,
   });
 }
