@@ -127,7 +127,7 @@ export function ContextMatches({ matches, signals, isLoading }: ContextMatchesPr
                 >
                   <div className="flex items-center gap-2">
                     <Link
-                      to={`/documents/${match.documentId}`}
+                      to={`/app/documents/${match.documentId}`}
                       className="text-sm font-medium text-blue-600 hover:underline"
                     >
                       {match.title}

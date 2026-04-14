@@ -18,7 +18,7 @@ import { SEL } from './fixtures/selectors';
  *      counterpart in the preview.
  */
 
-const DOC_URL = `/documents/${SEED.DOC_API_SPEC_ID}`;
+const DOC_URL = `/app/documents/${SEED.DOC_API_SPEC_ID}`;
 
 // Build a long markdown document so the scroll containers actually have
 // somewhere to scroll. ~400 lines is enough to comfortably exceed any

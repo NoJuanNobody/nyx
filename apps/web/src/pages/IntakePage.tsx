@@ -403,7 +403,7 @@ export function IntakePage() {
               </button>
               {phase === 'saved' ? (
                 <a
-                  href={`/documents/${savedDocId}`}
+                  href={`/app/documents/${savedDocId}`}
                   className="rounded-lg bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700"
                   data-testid="view-document-link"
                 >

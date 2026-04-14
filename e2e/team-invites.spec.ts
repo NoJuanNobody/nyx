@@ -3,7 +3,7 @@ import { SEL } from './fixtures/selectors';
 
 test.describe.serial('Team Invites', () => {
   test.beforeEach(async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.teamTab).click();
     // Wait for team panel to load — scope to main to avoid sidebar match
     await expect(page.locator('main').locator('text=Dev User')).toBeVisible({ timeout: 10_000 });

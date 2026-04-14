@@ -3,7 +3,7 @@ import { SEL } from './fixtures/selectors';
 
 test.describe('Settings — Team tab', () => {
   test('20.1: Team tab shows member list', async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.teamTab).click();
     // Scope to main to avoid matching the sidebar "Dev User" text
     await expect(page.locator('main').getByText('Dev User').first()).toBeVisible({ timeout: 10_000 });
@@ -12,7 +12,7 @@ test.describe('Settings — Team tab', () => {
   });
 
   test('20.2: Invite form sends invitation', async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.teamTab).click();
 
     const emailInput = page.locator(SEL.settings.inviteEmailInput);
@@ -26,7 +26,7 @@ test.describe('Settings — Team tab', () => {
   });
 
   test('20.3: Change member role', async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.teamTab).click();
 
     // Wait for member list to load
@@ -41,7 +41,7 @@ test.describe('Settings — Team tab', () => {
   });
 
   test('20.4: Remove member', async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.teamTab).click();
 
     // Wait for member list
@@ -60,7 +60,7 @@ test.describe('Settings — Team tab', () => {
   });
 
   test('30c.1: Members load from API — at least 2 members', async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.teamTab).click();
 
     // Wait for the member list to render — scope to main
@@ -73,7 +73,7 @@ test.describe('Settings — Team tab', () => {
 
 test.describe('Settings — Account tab', () => {
   test('22.1: Account tab shows profile form', async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.accountTab).click();
 
     // Profile section should have display name and email inputs
@@ -82,7 +82,7 @@ test.describe('Settings — Account tab', () => {
   });
 
   test('22.2: Update display name', async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.accountTab).click();
 
     // Wait for profile form
@@ -97,7 +97,7 @@ test.describe('Settings — Account tab', () => {
   });
 
   test('22.3: Delete account flow', async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.accountTab).click();
 
     const deleteBtn = page.locator(SEL.settings.deleteAccountButton);
@@ -113,7 +113,7 @@ test.describe('Settings — Account tab', () => {
   });
 
   test('30c.2: Profile update persists after reload', async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.accountTab).click();
 
     await expect(page.locator('main').getByText('Display name', { exact: true })).toBeVisible({ timeout: 10_000 });
@@ -133,7 +133,7 @@ test.describe('Settings — Account tab', () => {
 
 test.describe('Settings — API Keys tab', () => {
   test('30c.3: Create API key', async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.apiKeysTab).click();
 
     await expect(page.locator(SEL.settings.keyNameInput)).toBeVisible({ timeout: 10_000 });
@@ -145,7 +145,7 @@ test.describe('Settings — API Keys tab', () => {
   });
 
   test('30c.4: Revoke API key', async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.apiKeysTab).click();
 
     // Find the seeded "CI/CD Key" row

@@ -9,7 +9,7 @@ test.describe('Claude Action Insights — board display', () => {
   test('50.1: Claude insight panel renders on GitHub ticket with stored insight', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
@@ -18,7 +18,7 @@ test.describe('Claude Action Insights — board display', () => {
   });
 
   test('50.2: Insight panel shows the parsed title', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
@@ -29,7 +29,7 @@ test.describe('Claude Action Insights — board display', () => {
   });
 
   test('50.3: Insight panel is collapsed by default', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator(SEL.claudeInsight.panel).first()).toBeVisible({ timeout: 5_000 });
 
@@ -38,7 +38,7 @@ test.describe('Claude Action Insights — board display', () => {
   });
 
   test('50.4: Clicking the toggle expands the insight panel', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator(SEL.claudeInsight.panel).first()).toBeVisible({ timeout: 5_000 });
 
@@ -50,7 +50,7 @@ test.describe('Claude Action Insights — board display', () => {
   });
 
   test('50.5: Expanded panel shows summary bullets', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await page.locator(SEL.claudeInsight.toggleButton).first().click();
 
@@ -60,7 +60,7 @@ test.describe('Claude Action Insights — board display', () => {
   });
 
   test('50.6: Expanded panel shows files changed', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await page.locator(SEL.claudeInsight.toggleButton).first().click();
 
@@ -71,7 +71,7 @@ test.describe('Claude Action Insights — board display', () => {
   });
 
   test('50.7: "View comment" link has correct href', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await page.locator(SEL.claudeInsight.toggleButton).first().click();
 
@@ -87,7 +87,7 @@ test.describe('Claude Action Insights — board display', () => {
   test('50.8: GitHub ticket without insight shows "No Claude insight" and Fetch button', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('text=Fix rate limiting')).toBeVisible({ timeout: 10_000 });
 
@@ -103,7 +103,7 @@ test.describe('Claude Action Insights — board display', () => {
   test('50.9: Jira tickets do not render a Claude insight panel', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('text=Review architecture')).toBeVisible({ timeout: 10_000 });
 
@@ -120,7 +120,7 @@ test.describe('Claude Action Insights — board display', () => {
   test('50.10: Collapsing an expanded panel hides details again', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator(SEL.claudeInsight.panel).first()).toBeVisible({ timeout: 5_000 });
 
@@ -142,7 +142,7 @@ test.describe('Claude Action Insights — refresh flow', () => {
   test('50.11: Refresh button in expanded panel triggers re-fetch and updates content', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     // Expand the insight panel for the ticket with an existing insight
@@ -162,7 +162,7 @@ test.describe('Claude Action Insights — refresh flow', () => {
   test('50.12: Fetch button on no-insight card calls refresh endpoint', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('text=Fix rate limiting')).toBeVisible({ timeout: 10_000 });
 
@@ -177,7 +177,7 @@ test.describe('Claude Action Insights — refresh flow', () => {
   test('50.13: Refresh button shows loading state while pending', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     await page.locator(SEL.claudeInsight.toggleButton).first().click();
@@ -215,7 +215,7 @@ test.describe('Claude Action Insights — API mock validation', () => {
   test('50.14: GET /api/tickets/:id/insights returns stored insight', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     // Intercept and validate the shape of the insights API response
@@ -245,7 +245,7 @@ test.describe('Claude Action Insights — API mock validation', () => {
   test('50.15: GET /api/tickets/:id/insights returns 404 for ticket with no insight', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     const result = await page.evaluate(async (ticketId) => {
@@ -260,7 +260,7 @@ test.describe('Claude Action Insights — API mock validation', () => {
   test('50.16: POST /api/tickets/:id/insights/refresh returns refreshed insight', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     const result = await page.evaluate(async (ticketId) => {
@@ -287,7 +287,7 @@ test.describe('Claude Action Insights — provider filter interaction', () => {
   test('50.17: Filtering to GitHub shows insight panels', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
@@ -300,7 +300,7 @@ test.describe('Claude Action Insights — provider filter interaction', () => {
   test('50.18: Filtering to Jira hides all Claude insight panels', async ({
     authenticatedPage: page,
   }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
@@ -323,7 +323,7 @@ test.describe('Claude Action Insights — error handling', () => {
       }),
     );
 
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await page.locator(SEL.claudeInsight.toggleButton).first().click();
 

@@ -253,7 +253,7 @@ export function DocumentEditor() {
         stage: next,
       });
       queryClient.invalidateQueries({ queryKey: ['documents'] });
-      navigate(`/documents/${newDoc.id}`);
+      navigate(`/app/documents/${newDoc.id}`);
     } catch (err) {
       console.error('Seeding failed:', err);
     } finally {
@@ -453,7 +453,7 @@ export function DocumentEditor() {
 
           {/* Trace */}
           <Link
-            to={`/documents/${id}/trace`}
+            to={`/app/documents/${id}/trace`}
             title="Trace"
             className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
           >

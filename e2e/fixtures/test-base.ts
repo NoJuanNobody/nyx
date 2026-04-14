@@ -1028,7 +1028,7 @@ type NyxFixtures = {
 export const test = base.extend<NyxFixtures>({
   authenticatedPage: async ({ page }, use) => {
     await setupApiMocks(page);
-    await page.goto('/dashboard');
+    await page.goto('/app/dashboard');
     // Wait for the sidebar logo to confirm auth loaded
     await page.waitForSelector('a:has-text("Nyx")', { timeout: 30_000 });
     // Wait for the user section to load (confirms auth/me resolved)

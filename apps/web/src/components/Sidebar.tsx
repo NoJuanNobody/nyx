@@ -178,7 +178,7 @@ function CreditBalance({ collapsed }: { collapsed: boolean }) {
 
 const primaryNavItems = [
   {
-    to: '/intake',
+    to: '/app/intake',
     label: 'Intake',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -187,7 +187,7 @@ const primaryNavItems = [
     ),
   },
   {
-    to: '/sprint',
+    to: '/app/sprint',
     label: 'Sprint',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -196,7 +196,7 @@ const primaryNavItems = [
     ),
   },
   {
-    to: '/board',
+    to: '/app/board',
     label: 'Board',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -205,7 +205,7 @@ const primaryNavItems = [
     ),
   },
   {
-    to: '/repositories',
+    to: '/app/repositories',
     label: 'Repos',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -214,7 +214,7 @@ const primaryNavItems = [
     ),
   },
   {
-    to: '/operations',
+    to: '/app/operations',
     label: 'Operations',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -255,7 +255,7 @@ export function Sidebar() {
         {/* Logo + collapse toggle */}
         <div className="flex h-14 items-center border-b border-slate-200">
           <NavLink
-            to="/dashboard"
+            to="/app/dashboard"
             onClick={() => setSidebarOpen(false)}
             className={`flex flex-1 items-center gap-2 h-full hover:bg-slate-50 transition-colors ${sidebarCollapsed ? 'justify-center px-2' : 'px-5'}`}
           >
@@ -329,7 +329,7 @@ export function Sidebar() {
         {/* Utility nav — Getting Started + Settings + Feedback */}
         <div className="border-t border-slate-200 pt-1 pb-1">
           <NavLink
-            to="/getting-started"
+            to="/app/getting-started"
             onClick={() => setSidebarOpen(false)}
             title={sidebarCollapsed ? 'Getting Started' : undefined}
             data-testid="getting-started-link"
@@ -358,7 +358,7 @@ export function Sidebar() {
           </NavLink>
           <div className={`flex items-center ${sidebarCollapsed ? 'flex-col gap-1 py-1' : ''}`}>
             <NavLink
-              to="/settings"
+              to="/app/settings"
               onClick={() => setSidebarOpen(false)}
               title={sidebarCollapsed ? 'Settings' : undefined}
               className={({ isActive }) =>

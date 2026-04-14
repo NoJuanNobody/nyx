@@ -56,7 +56,7 @@ export function DashboardAIPrompt({ teamId }: DashboardAIPromptProps) {
         content: result.content,
         teamId,
       });
-      navigate(`/documents/${doc.id}`);
+      navigate(`/app/documents/${doc.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create document');
       setIsLoading(false);

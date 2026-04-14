@@ -14,8 +14,8 @@ test.describe('Document Editor — stale doc save (issue #344)', () => {
   test('switching files within debounce window does not corrupt target doc', async ({
     authenticatedPage: page,
   }) => {
-    const DOC_A = `/documents/${SEED.DOC_API_SPEC_ID}`;
-    const DOC_B = `/documents/${SEED.DOC_ARCHITECTURE_ID}`;
+    const DOC_A = `/app/documents/${SEED.DOC_API_SPEC_ID}`;
+    const DOC_B = `/app/documents/${SEED.DOC_ARCHITECTURE_ID}`;
 
     // 1. Load doc B first and capture its current content as the baseline.
     await page.goto(DOC_B);

@@ -41,7 +41,7 @@ test.describe('Dark mode button contrast (#333)', () => {
     // <html> element has the `dark` class. The toggle cycles
     // System -> Dark -> Light, so a single click from System lands
     // on Dark in the seeded test environment.
-    await page.goto('/repositories');
+    await page.goto('/app/repositories');
     const toggle = page.locator(SEL.sidebar.themeToggle);
     await toggle.click();
     await expect(page.locator('html')).toHaveClass(/dark/);

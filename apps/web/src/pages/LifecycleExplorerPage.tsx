@@ -9,7 +9,7 @@ export function LifecycleExplorerPage() {
   return (
     <LifecycleExplorer
       mode={isOnboarding ? 'onboarding' : 'dashboard'}
-      onComplete={isOnboarding ? () => navigate('/dashboard') : undefined}
+      onComplete={isOnboarding ? () => navigate('/app/dashboard') : undefined}
     />
   );
 }

@@ -141,7 +141,7 @@ export function AdminDocuments() {
                   >
                     <td className="px-4 py-3 font-medium text-slate-800">
                       <Link
-                        to={`/documents/${doc.id}`}
+                        to={`/app/documents/${doc.id}`}
                         className="hover:text-blue-600 transition-colors"
                         data-testid={`admin-doc-link-${doc.id}`}
                       >

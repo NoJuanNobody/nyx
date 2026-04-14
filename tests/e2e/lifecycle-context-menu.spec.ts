@@ -51,7 +51,7 @@ async function rightClickEmptyTreeSpace(page: Page) {
 }
 
 async function rightClickDocument(page: Page, docTitle: string) {
-  const docLink = page.locator('nav a, a[href*="/documents/"]', { hasText: docTitle });
+  const docLink = page.locator('nav a, a[href*="/app/documents/"]', { hasText: docTitle });
   await docLink.click({ button: 'right' });
   await page.waitForSelector('[role="menu"]');
 }
@@ -593,7 +593,7 @@ test.describe('Stage tooltips and API integration', () => {
     await submenu.locator('button', { hasText: 'PRD' }).click();
 
     await page.waitForResponse((r) => r.url().includes('/api/documents') && r.request().method() === 'POST');
-    await page.goto(`/documents/${newDoc.id}`);
+    await page.goto(`/app/documents/${newDoc.id}`);
 
     // Open version history panel
     await page.click('[data-testid="drawer-toggle-history"], button[title="Version History"]');

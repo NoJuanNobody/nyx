@@ -290,7 +290,7 @@ export const slackRoutes: FastifyPluginAsync = async (app) => {
     }
 
     // Redirect back to settings
-    reply.redirect('/settings?tab=integrations&slack=connected');
+    reply.redirect('/app/settings?tab=integrations&slack=connected');
   });
 
   /**

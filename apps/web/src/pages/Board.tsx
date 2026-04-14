@@ -37,7 +37,7 @@ function TicketCard({ ticket, onStatusChange }: { ticket: Ticket; onStatusChange
           <p className="text-sm font-medium text-slate-800 leading-snug">{ticket.title}</p>
           {ticket.documentTitle && (
             <a
-              href={`/documents/${ticket.documentId}`}
+              href={`/app/documents/${ticket.documentId}`}
               className="mt-1 block text-xs text-blue-500 hover:text-blue-700 truncate"
             >
               {ticket.documentTitle}

@@ -559,7 +559,7 @@ function DocItem({
       onMouseLeave={() => setShowActions(false)}
     >
       <NavLink
-        to={`/documents/${doc.id}`}
+        to={`/app/documents/${doc.id}`}
         className={({ isActive }) =>
           `group flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors ${
             isActive
@@ -785,7 +785,7 @@ export function FileTree() {
       createDocument(data),
     onSuccess: (doc) => {
       queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
-      navigate(`/documents/${doc.id}`);
+      navigate(`/app/documents/${doc.id}`);
     },
   });
 
@@ -803,8 +803,8 @@ export function FileTree() {
     onSuccess: (_data, deletedId) => {
       queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
       // Navigate away if the deleted doc is currently open
-      if (location.pathname === `/documents/${deletedId}`) {
-        navigate('/');
+      if (location.pathname === `/app/documents/${deletedId}`) {
+        navigate('/app/dashboard');
       }
     },
   });
@@ -856,7 +856,7 @@ export function FileTree() {
     },
     onSuccess: (newDoc) => {
       queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
-      navigate(`/documents/${newDoc.id}`);
+      navigate(`/app/documents/${newDoc.id}`);
     },
   });
 

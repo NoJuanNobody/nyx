@@ -14,7 +14,7 @@ export function SignIn() {
         routing="path"
         path="/sign-in"
         signUpUrl="/sign-up"
-        afterSignInUrl="/"
+        afterSignInUrl="/app/dashboard"
       />
     </div>
   );

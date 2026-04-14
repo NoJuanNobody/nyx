@@ -45,7 +45,7 @@ test.describe('Dashboard', () => {
 
     // Should navigate to a new document URL
     await page.waitForURL(/\/documents\//, { timeout: 10_000 });
-    expect(page.url()).toContain('/documents/');
+    expect(page.url()).toContain('/app/documents/');
   });
 
   test('D.5 — AI prompt textarea is visible and accepts text', async ({ authenticatedPage: page }) => {
@@ -75,7 +75,7 @@ test.describe('Dashboard', () => {
     await expect(page.locator(SEL.dashboard.aiPrompt.createDocButton)).toBeVisible({ timeout: 10_000 });
     await page.locator(SEL.dashboard.aiPrompt.createDocButton).click();
     await page.waitForURL(/\/documents\//, { timeout: 10_000 });
-    expect(page.url()).toContain('/documents/');
+    expect(page.url()).toContain('/app/documents/');
   });
 
   test('D.9 — All 5 phase cards are visible', async ({ authenticatedPage: page }) => {
@@ -89,7 +89,7 @@ test.describe('Dashboard', () => {
     await expect(page.locator(SEL.dashboard.phases.createButton('Conception'))).toBeVisible({ timeout: 10_000 });
     await page.locator(SEL.dashboard.phases.createButton('Conception')).click();
     await page.waitForURL(/\/documents\//, { timeout: 10_000 });
-    expect(page.url()).toContain('/documents/');
+    expect(page.url()).toContain('/app/documents/');
   });
 
   test('D.11 — Recent documents section shows at most 5 documents', async ({ authenticatedPage: page }) => {

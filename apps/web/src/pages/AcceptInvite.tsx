@@ -231,7 +231,7 @@ function ClerkAcceptInvite() {
       onClearError={() => setAcceptError(null)}
       onSignUp={() => navigate(`/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}`)}
       onSignIn={() => navigate(`/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`)}
-      onDashboard={() => navigate('/dashboard', { replace: true })}
+      onDashboard={() => navigate('/app/dashboard', { replace: true })}
     />
   );
 }
@@ -273,7 +273,7 @@ function DevAcceptInvite() {
       onClearError={() => setAcceptError(null)}
       onSignUp={() => navigate('/')}
       onSignIn={() => navigate('/')}
-      onDashboard={() => navigate('/dashboard', { replace: true })}
+      onDashboard={() => navigate('/app/dashboard', { replace: true })}
     />
   );
 }
