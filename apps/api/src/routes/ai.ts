@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { documents } from '../db/schema.js';
+import { documents, integrations } from '../db/schema.js';
 import { aiService } from '../services/ai.service.js';
 import { codeEmbeddingService } from '../services/code-embedding.service.js';
 import {
@@ -19,6 +19,7 @@ import {
   decisionWeightBody,
   seedNextStageBody,
   generateAllBody,
+  suggestionsBody,
 } from '@nyx/shared';
 
 export const aiRoutes: FastifyPluginAsync = async (app) => {
@@ -150,6 +151,101 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
     const result = await aiService.seedNextStage(content, fromStage, toStage);
     return result;
   });
+
+  // POST /api/ai/suggestions — context-aware prompt chips for the AI panel
+  app.post(
+    '/suggestions',
+    { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
+    async (request, _reply) => {
+      const input = suggestionsBody.parse(request.body);
+
+      try {
+        // Load the document (title + content + stage) scoped to the team.
+        const [doc] = await db
+          .select({
+            id: documents.id,
+            title: documents.title,
+            content: documents.content,
+            stage: documents.stage,
+            teamId: documents.teamId,
+          })
+          .from(documents)
+          .where(and(eq(documents.id, input.documentId), eq(documents.teamId, input.teamId)))
+          .limit(1);
+
+        if (!doc) {
+          // Don't leak existence — just fall back to empty suggestions.
+          return { suggestions: [] };
+        }
+
+        if (input.kind === 'pre-session') {
+          // Optional: fetch relevant code chunks + the connected repo name so
+          // the model can reference the codebase when suggesting prompts. All
+          // failure modes are non-fatal.
+          let codebaseHint: { repoFullName?: string; chunks?: Array<{ path: string; content: string }> } | undefined;
+          try {
+            const [integration] = await db
+              .select({ type: integrations.type, config: integrations.config })
+              .from(integrations)
+              .where(and(eq(integrations.teamId, input.teamId), eq(integrations.type, 'github')))
+              .limit(1);
+
+            if (integration) {
+              const ghConfig = integration.config as {
+                selectedRepos?: Array<{ owner: string; name: string; fullName: string }>;
+                owner?: string;
+                repo?: string;
+              };
+              const repoFullName =
+                ghConfig.selectedRepos?.[0]?.fullName ??
+                (ghConfig.owner && ghConfig.repo ? `${ghConfig.owner}/${ghConfig.repo}` : undefined);
+
+              // Retrieval is best-effort. If it fails, we still send the
+              // repo name alone as a hint.
+              let chunks: Array<{ path: string; content: string }> = [];
+              try {
+                const retrieved = await codeEmbeddingService.fetchRelevantCodeForDocument(
+                  input.documentId,
+                  input.teamId,
+                );
+                chunks = retrieved.chunks;
+              } catch (err) {
+                request.log.warn({ err }, '[ai/suggestions] code retrieval failed — continuing without chunks');
+              }
+
+              codebaseHint = { repoFullName, chunks };
+            }
+          } catch (err) {
+            request.log.warn({ err }, '[ai/suggestions] integration lookup failed — continuing without codebase hint');
+          }
+
+          const suggestions = await aiService.generateSuggestions({
+            kind: 'pre-session',
+            documentTitle: doc.title,
+            stage: input.stage ?? doc.stage ?? null,
+            contentPreview: (input.content ?? doc.content ?? '').slice(0, 500),
+            codebaseHint,
+          });
+          return { suggestions: suggestions.length === 3 ? suggestions : [] };
+        }
+
+        // post-session
+        const suggestions = await aiService.generateSuggestions({
+          kind: 'post-session',
+          documentTitle: doc.title,
+          stage: input.stage ?? doc.stage ?? null,
+          history: input.history,
+          toolCallSummary: input.toolCallSummary,
+          finalResult: input.finalResult,
+          incomplete: input.incomplete ?? false,
+        });
+        return { suggestions: suggestions.length === 3 ? suggestions : [] };
+      } catch (err) {
+        request.log.warn({ err }, '[ai/suggestions] generation failed — returning empty');
+        return { suggestions: [] };
+      }
+    },
+  );
 
   // POST /api/ai/generate-all — batch-generate AI content for all documents in a team
   app.post('/generate-all', { config: { rateLimit: { max: 2, timeWindow: '1 minute' } } }, async (request, _reply) => {

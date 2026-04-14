@@ -384,4 +384,159 @@ describe('AI Service', () => {
     expect(result.headline).toBe('Fenced Article');
   });
 
+  // ── generateSuggestions ──────────────────────────────────────
+  describe('generateSuggestions', () => {
+    it('returns 3 suggestions from a valid JSON-array response', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('["Add rate-limit handling", "Document webhook retries", "Cite billing.service.ts"]'),
+      );
+
+      const result = await aiService.generateSuggestions({
+        kind: 'pre-session',
+        documentTitle: 'Billing API',
+        stage: 'implementation',
+        contentPreview: '# Billing API\n\nHandles invoices.',
+      });
+
+      expect(result).toHaveLength(3);
+      expect(result).toEqual([
+        'Add rate-limit handling',
+        'Document webhook retries',
+        'Cite billing.service.ts',
+      ]);
+    });
+
+    it('trims responses with more than 3 items down to exactly 3', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('["one", "two", "three", "four", "five"]'),
+      );
+
+      const result = await aiService.generateSuggestions({
+        kind: 'pre-session',
+        documentTitle: 'Billing API',
+        contentPreview: 'preview',
+      });
+
+      expect(result).toHaveLength(3);
+      expect(result).toEqual(['one', 'two', 'three']);
+    });
+
+    it('returns [] on malformed JSON', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('this is not JSON at all, just prose explaining things'),
+      );
+
+      const result = await aiService.generateSuggestions({
+        kind: 'pre-session',
+        documentTitle: 'Billing API',
+        contentPreview: 'preview',
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    it('tolerates code-fence wrappers around the JSON array', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('```json\n["one", "two", "three"]\n```'),
+      );
+
+      const result = await aiService.generateSuggestions({
+        kind: 'post-session',
+        history: [{ role: 'user', content: 'Tell me about rate limits' }],
+        toolCallSummary: [{ name: 'search_code', count: 2 }],
+        finalResult: 'I found rate limits configured at 20/min',
+        incomplete: false,
+      });
+
+      expect(result).toEqual(['one', 'two', 'three']);
+    });
+
+    it('returns [] when the model call throws', async () => {
+      mockCreate.mockRejectedValueOnce(new Error('api exploded'));
+
+      const result = await aiService.generateSuggestions({
+        kind: 'pre-session',
+        documentTitle: 'Billing API',
+        contentPreview: 'preview',
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    it('pre-session system prompt includes anti-boilerplate instruction', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('["a", "b", "c"]'),
+      );
+
+      await aiService.generateSuggestions({
+        kind: 'pre-session',
+        documentTitle: 'Billing API',
+        stage: 'definition',
+        contentPreview: 'preview',
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      expect(callArgs.model).toMatch(/haiku/i); // must use MODEL_FAST, not Sonnet
+      expect(callArgs.system).toContain('Do NOT produce generic prompts');
+      expect(callArgs.system).toContain('Add error handling');
+      // The user prompt should include the title and stage and preview.
+      const userMsg = callArgs.messages[0].content as string;
+      expect(userMsg).toContain('Billing API');
+      expect(userMsg).toContain('definition');
+    });
+
+    it('post-session system prompt includes anti-boilerplate + incomplete note when flag set', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('["a", "b", "c"]'),
+      );
+
+      await aiService.generateSuggestions({
+        kind: 'post-session',
+        history: [{ role: 'user', content: 'Scan codebase for intake' }],
+        toolCallSummary: [
+          { name: 'search_code', count: 3 },
+          { name: 'get_github_files', count: 2 },
+        ],
+        finalResult: 'I found 5 files related to intake',
+        incomplete: true,
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      expect(callArgs.model).toMatch(/haiku/i);
+      expect(callArgs.system).toContain('Do NOT produce generic prompts');
+      const userMsg = callArgs.messages[0].content as string;
+      expect(userMsg).toContain('Scan codebase for intake');
+      expect(userMsg).toContain('search_code×3');
+      expect(userMsg).toContain('get_github_files×2');
+      expect(userMsg).toContain('I found 5 files related to intake');
+      expect(userMsg).toContain('terminated early');
+    });
+
+    it('pre-session includes codebase hint when provided', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('["a", "b", "c"]'),
+      );
+
+      await aiService.generateSuggestions({
+        kind: 'pre-session',
+        documentTitle: 'Auth API',
+        stage: 'architecture',
+        contentPreview: 'preview',
+        codebaseHint: {
+          repoFullName: 'acme/backend',
+          chunks: [
+            { path: 'src/auth.ts', content: '...' },
+            { path: 'src/middleware/session.ts', content: '...' },
+          ],
+        },
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      const userMsg = callArgs.messages[0].content as string;
+      expect(userMsg).toContain('acme/backend');
+      expect(userMsg).toContain('src/auth.ts');
+      expect(userMsg).toContain('src/middleware/session.ts');
+    });
+  });
+
 });

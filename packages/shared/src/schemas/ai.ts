@@ -92,3 +92,29 @@ export const seedNextStageBody = z.object({
 export const generateAllBody = z.object({
   teamId: z.string().min(1),
 });
+
+export const suggestionsBody = z.object({
+  kind: z.enum(['pre-session', 'post-session']),
+  documentId: z.string().uuid(),
+  teamId: z.string().uuid(),
+  content: z.string().optional(),
+  stage: z.string().nullable().optional(),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string(),
+      }),
+    )
+    .optional(),
+  toolCallSummary: z
+    .array(
+      z.object({
+        name: z.string(),
+        count: z.number(),
+      }),
+    )
+    .optional(),
+  finalResult: z.string().optional(),
+  incomplete: z.boolean().optional(),
+});

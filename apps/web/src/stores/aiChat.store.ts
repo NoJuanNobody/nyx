@@ -33,6 +33,12 @@ export interface AIChatSession {
   streamingContent: string;
   status: SessionStatus;
   tokenUsage: TokenUsage | null;
+  /** Set when the agent loop terminates early (e.g. hit iteration ceiling — #349). */
+  incomplete: boolean;
+  /** Monotonic marker that bumps each time the session transitions to `completed`.
+   *  Used by the AI panel as a useEffect key to fire post-session suggestion
+   *  generation exactly once per completed run. */
+  completionCounter: number;
 }
 
 export const QUICK_EDIT_VALUE = 'quick';
@@ -45,6 +51,8 @@ function createEmptySession(): AIChatSession {
     streamingContent: '',
     status: 'idle',
     tokenUsage: null,
+    incomplete: false,
+    completionCounter: 0,
   };
 }
 
@@ -63,6 +71,9 @@ interface AIChatState {
   setStreamingContent: (documentId: string, content: string) => void;
   setStatus: (documentId: string, status: SessionStatus) => void;
   setTokenUsage: (documentId: string, tokenUsage: TokenUsage | null) => void;
+  /** Mark the session complete, optionally as incomplete (#349), and bump the
+   *  completion counter so the UI can fire post-session effects exactly once. */
+  markCompleted: (documentId: string, incomplete: boolean) => void;
   reset: (documentId: string) => void;
 }
 
@@ -163,6 +174,23 @@ export const useAIChatStore = create<AIChatState>((set, get) => ({
     });
   },
 
+  markCompleted: (documentId, incomplete) => {
+    set((state) => {
+      const current = state.sessions[documentId] ?? createEmptySession();
+      return {
+        sessions: {
+          ...state.sessions,
+          [documentId]: {
+            ...current,
+            status: 'completed',
+            incomplete,
+            completionCounter: current.completionCounter + 1,
+          },
+        },
+      };
+    });
+  },
+
   reset: (documentId) => {
     set((state) => ({
       sessions: { ...state.sessions, [documentId]: createEmptySession() },
@@ -192,6 +220,7 @@ export function useAIChatSession(documentId: string) {
   const setStreamingContent = useAIChatStore((state) => state.setStreamingContent);
   const setStatus = useAIChatStore((state) => state.setStatus);
   const setTokenUsage = useAIChatStore((state) => state.setTokenUsage);
+  const markCompleted = useAIChatStore((state) => state.markCompleted);
   const reset = useAIChatStore((state) => state.reset);
 
   return {
@@ -201,6 +230,8 @@ export function useAIChatSession(documentId: string) {
     streamingContent: session.streamingContent,
     status: session.status,
     tokenUsage: session.tokenUsage,
+    incomplete: session.incomplete,
+    completionCounter: session.completionCounter,
     appendMessage: (msg: UnifiedMessageBase, nextId: number) =>
       appendMessage(documentId, msg, nextId),
     updateMessage: (updater: (prev: UnifiedMessage[]) => UnifiedMessage[]) =>
@@ -212,6 +243,7 @@ export function useAIChatSession(documentId: string) {
     setStreamingContent: (content: string) => setStreamingContent(documentId, content),
     setStatus: (status: SessionStatus) => setStatus(documentId, status),
     setTokenUsage: (tokenUsage: TokenUsage | null) => setTokenUsage(documentId, tokenUsage),
+    markCompleted: (incomplete: boolean) => markCompleted(documentId, incomplete),
     reset: () => reset(documentId),
   };
 }

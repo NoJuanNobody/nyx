@@ -418,6 +418,31 @@ export interface EditDocumentAIResult {
   groundingSources?: string[];
 }
 
+// ── AI Suggestions (context-aware prompt chips) ──────────────────
+
+export type AISuggestionKind = 'pre-session' | 'post-session';
+
+export interface AISuggestionsPayload {
+  kind: AISuggestionKind;
+  documentId: string;
+  teamId: string;
+  content?: string;
+  stage?: string | null;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  toolCallSummary?: Array<{ name: string; count: number }>;
+  finalResult?: string;
+  incomplete?: boolean;
+}
+
+export function fetchAISuggestions(
+  payload: AISuggestionsPayload,
+): Promise<{ suggestions: string[] }> {
+  return request<{ suggestions: string[] }>('/ai/suggestions', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export function editDocumentAI(
   content: string,
   instruction: string,
