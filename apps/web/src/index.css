@@ -66,6 +66,40 @@
   color: #fff;
 }
 
+/* ── Dark mode primary-button surfaces ───────────────────
+   The slate variable swap above remaps --color-slate-700/800/900
+   to NEAR-WHITE so that text-slate-900 / text-slate-700 (body text)
+   render as light text on dark surfaces. But Tailwind's
+   bg-slate-900 / bg-slate-800 / bg-slate-700 utilities use the
+   SAME variable, which would make canonical primary buttons
+   (bg-slate-900 + text-white) render white-on-white in dark mode.
+
+   These overrides force those background utilities to dark surfaces
+   in dark mode while leaving the slate text utilities alone. They
+   target the literal Tailwind class names so they win over the
+   variable-driven background-color declarations.
+   ───────────────────────────────────────────────────────── */
+.dark .bg-slate-900 { background-color: oklch(28% 0.04 285); }
+.dark .bg-slate-800 { background-color: oklch(33% 0.045 285); }
+.dark .bg-slate-700 { background-color: oklch(38% 0.05 285); }
+
+.dark .hover\:bg-slate-900:hover { background-color: oklch(33% 0.045 285); }
+.dark .hover\:bg-slate-800:hover { background-color: oklch(38% 0.05 285); }
+.dark .hover\:bg-slate-700:hover { background-color: oklch(43% 0.055 285); }
+
+/* Defensive coverage: a handful of components reach for the
+   gray / neutral / zinc near-white scales that the slate swap
+   does not touch. Map them to the same dark surfaces so that
+   any text-white sitting on top stays legible. Only the very
+   light end of each scale is remapped (50/100); mid/dark stops
+   are left alone since they already render fine on dark. */
+.dark .bg-gray-50,
+.dark .bg-neutral-50,
+.dark .bg-zinc-50    { background-color: oklch(17% 0.025 285); }
+.dark .bg-gray-100,
+.dark .bg-neutral-100,
+.dark .bg-zinc-100   { background-color: oklch(22% 0.03 285); }
+
 /* Lighten accent text on darkened accent backgrounds */
 .dark .text-blue-600    { color: oklch(75% 0.18 287); }
 .dark .text-blue-700    { color: oklch(82% 0.12 286); }
