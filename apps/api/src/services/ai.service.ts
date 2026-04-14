@@ -472,8 +472,12 @@ Respond ONLY with valid JSON in this exact format: {"title": "<proposal title>",
       .map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``)
       .join('\n\n');
 
+    // Per-module docs use Haiku (MODEL_FAST) for speed — 4-5x faster
+    // than Sonnet with comparable quality for focused per-module
+    // summaries. The final mergeModuleDocs synthesis step intentionally
+    // stays on Sonnet (MODEL) where quality matters more.
     const response = await ai.messages.create({
-      model: MODEL,
+      model: MODEL_FAST,
       max_tokens: 2048,
       system: `You are a technical documentation generator focused on the "${moduleName}" module of a codebase. Analyze the provided source files and generate focused documentation in Markdown format. Include:
 - **Purpose**: What this module does and its responsibilities

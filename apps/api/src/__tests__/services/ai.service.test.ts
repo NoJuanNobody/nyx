@@ -539,4 +539,37 @@ describe('AI Service', () => {
     });
   });
 
+  describe('onboarding scan model split', () => {
+    it('bootstrapModuleDocs uses Haiku (MODEL_FAST) — not Sonnet', async () => {
+      mockCreate.mockResolvedValueOnce(makeResponse('# Module docs'));
+
+      await aiService.bootstrapModuleDocs('Services', [
+        { path: 'src/services/auth.ts', content: 'export const auth = () => {}' },
+      ]);
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      // Must be Haiku for speed (4-5x faster per-module docs).
+      expect(callArgs.model).toMatch(/haiku/i);
+      expect(callArgs.model).not.toMatch(/sonnet/i);
+      // Budget stays at 2048 per spec.
+      expect(callArgs.max_tokens).toBe(2048);
+    });
+
+    it('mergeModuleDocs still uses Sonnet (MODEL) for synthesis quality', async () => {
+      mockCreate.mockResolvedValueOnce(makeResponse('# Merged overview'));
+
+      await aiService.mergeModuleDocs(
+        [
+          { module: 'API', docs: '# API module docs' },
+          { module: 'Services', docs: '# Services module docs' },
+        ],
+        'acme/widgets',
+      );
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      // Synthesis stays on Sonnet — do NOT regress this to Haiku.
+      expect(callArgs.model).toMatch(/sonnet/i);
+      expect(callArgs.model).not.toMatch(/haiku/i);
+    });
+  });
 });

@@ -56,33 +56,41 @@ export const onboardingRoutes: FastifyPluginAsync = async (app) => {
 
     const result = await onboardingService.scanRepository(accessToken, owner, repo);
 
-    // Auto-save documents to DB
+    // Auto-save documents to DB.
+    //
+    // Bulk-insert every module doc and the merged overview in a single
+    // round-trip. Ordering matters: the response `documents` array must
+    // list per-module docs (in the same order as `result.moduleDocs`)
+    // followed by the overview. Every row preserves the
+    // `stage: SCAN_DEFAULT_STAGE` default from #342.
     const basePath = `/repos/${owner}/${repo}`;
-    const savedDocs: Array<{ id: string; title: string; path: string }> = [];
 
-    // Save per-module docs
-    for (const { module: moduleName, docs } of result.moduleDocs) {
-      const [doc] = await db.insert(documents).values({
-        title: moduleName,
-        content: docs,
-        path: basePath,
-        teamId,
-        createdById: userId,
-        stage: SCAN_DEFAULT_STAGE,
-      }).returning();
-      savedDocs.push({ id: doc.id, title: doc.title, path: doc.path });
-    }
+    const moduleRows = result.moduleDocs.map(({ module: moduleName, docs }) => ({
+      title: moduleName,
+      content: docs,
+      path: basePath,
+      teamId,
+      createdById: userId,
+      stage: SCAN_DEFAULT_STAGE,
+    }));
 
-    // Save the merged overview doc
-    const [overviewDoc] = await db.insert(documents).values({
+    const overviewRow = {
       title: `${owner}/${repo} Overview`,
       content: result.suggestedDocs,
       path: basePath,
       teamId,
       createdById: userId,
       stage: SCAN_DEFAULT_STAGE,
-    }).returning();
-    savedDocs.push({ id: overviewDoc.id, title: overviewDoc.title, path: overviewDoc.path });
+    };
+
+    const insertedDocs = await db
+      .insert(documents)
+      .values([...moduleRows, overviewRow])
+      .returning();
+
+    const savedDocs: Array<{ id: string; title: string; path: string }> = insertedDocs.map(
+      (doc) => ({ id: doc.id, title: doc.title, path: doc.path }),
+    );
 
     return {
       documents: savedDocs,
