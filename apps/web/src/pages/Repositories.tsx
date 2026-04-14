@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { fetchIntegrations, fetchSyncedRepos, disconnectRepo, createGitHubRepo, GitHubTokenExpiredError, type SyncedRepo, type ScanResult } from '../lib/api';
+import { fetchIntegrations, fetchSyncedRepos, disconnectRepo, reconnectRepo, createGitHubRepo, GitHubTokenExpiredError, type SyncedRepo, type ScanResult } from '../lib/api';
 import { GitHubReconnectBanner } from '../components/GitHubReconnectBanner';
 import { ScanRepositoryModal, ScanResultView } from '../components/ScanRepositoryModal';
 import { RepoPickerModal } from '../components/RepoPickerModal';
 import { useAuthStore } from '../stores/auth.store';
 
-function StatusBadge({ status }: { status: SyncedRepo['syncStatus'] }) {
+function StatusBadge({ status, webhookRegistrationEnabled }: { status: SyncedRepo['syncStatus']; webhookRegistrationEnabled: boolean }) {
   if (status === 'active') {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
@@ -16,11 +16,50 @@ function StatusBadge({ status }: { status: SyncedRepo['syncStatus'] }) {
       </span>
     );
   }
+  // When server-wide registration is off, every repo will appear disconnected.
+  // Re-label so the user understands the cause is server-side, not per-repo.
+  if (!webhookRegistrationEnabled) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+        data-testid="repo-status-sync-disabled"
+        title="Live sync is disabled because the API server has no WEBHOOK_BASE_URL configured."
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+        Sync disabled
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
       <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
       Disconnected
     </span>
+  );
+}
+
+function WebhookRegistrationDisabledBanner() {
+  return (
+    <div
+      role="alert"
+      data-testid="webhook-registration-disabled-banner"
+      className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4"
+    >
+      <div className="flex items-start gap-3">
+        <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+        </svg>
+        <div className="flex-1">
+          <h3 className="text-sm font-semibold text-amber-900">Live sync is disabled on the server</h3>
+          <p className="mt-1 text-xs text-amber-800">
+            The API has no <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-[11px]">WEBHOOK_BASE_URL</code> configured,
+            so GitHub webhook registration is skipped. Every synced repo will show as
+            <span className="font-medium"> Sync disabled </span>
+            until an operator sets that environment variable on the API and restarts it.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -195,6 +234,8 @@ export function Repositories() {
     },
   });
 
+  const [actionError, setActionError] = useState<{ repo: string; message: string } | null>(null);
+
   const disconnectMutation = useMutation({
     mutationFn: (repoFullName: string) => disconnectRepo(githubIntegration!.id, repoFullName),
     onSuccess: () => {
@@ -204,7 +245,20 @@ export function Repositories() {
     },
   });
 
+  const reconnectMutation = useMutation({
+    mutationFn: (repoFullName: string) => reconnectRepo(githubIntegration!.id, repoFullName),
+    onSuccess: () => {
+      setActionError(null);
+      queryClient.invalidateQueries({ queryKey: ['synced-repos'] });
+      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+    },
+    onError: (err: Error, repoFullName) => {
+      setActionError({ repo: repoFullName, message: err.message });
+    },
+  });
+
   const repos = syncedData?.repos ?? [];
+  const webhookRegistrationEnabled = syncedData?.webhookRegistrationEnabled ?? true;
   const isLoading = integrationsLoading || reposLoading;
 
   const handleDisconnect = useCallback((fullName: string) => {
@@ -291,6 +345,7 @@ export function Repositories() {
             </div>
           )}
         </div>
+        {!webhookRegistrationEnabled && <WebhookRegistrationDisabledBanner />}
         <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
           <svg className="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
@@ -364,6 +419,30 @@ export function Repositories() {
         )}
       </div>
 
+      {!webhookRegistrationEnabled && <WebhookRegistrationDisabledBanner />}
+
+      {actionError && (
+        <div
+          role="alert"
+          data-testid="repo-action-error"
+          className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3"
+        >
+          <div className="text-xs text-red-800">
+            <span className="font-semibold">{actionError.repo}:</span> {actionError.message}
+          </div>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            className="rounded p-1 text-red-500 hover:bg-red-100"
+            aria-label="Dismiss error"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
           <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
@@ -401,7 +480,7 @@ export function Repositories() {
 
                 {/* Status */}
                 <div>
-                  <StatusBadge status={repo.syncStatus} />
+                  <StatusBadge status={repo.syncStatus} webhookRegistrationEnabled={webhookRegistrationEnabled} />
                 </div>
 
                 {/* Last push */}
@@ -442,6 +521,17 @@ export function Repositories() {
                     </>
                   ) : (
                     <>
+                      {webhookRegistrationEnabled && repo.syncStatus === 'disconnected' && (
+                        <button
+                          type="button"
+                          onClick={() => reconnectMutation.mutate(repo.fullName)}
+                          disabled={reconnectMutation.isPending && reconnectMutation.variables === repo.fullName}
+                          className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-medium text-amber-700 hover:border-amber-300 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+                          data-testid={`reconnect-repo-${repo.fullName}`}
+                        >
+                          {reconnectMutation.isPending && reconnectMutation.variables === repo.fullName ? '...' : 'Reconnect'}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setScanTarget({ owner: repo.owner, repo: repo.name })}
