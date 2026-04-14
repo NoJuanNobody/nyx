@@ -1,27 +1,15 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { generateDocument, editDocumentAI, fetchWorkflows } from '../lib/api';
-import { startAgentStream, type AgentStreamEvent, type SessionStatus } from '../lib/agent-stream';
+import { startAgentStream, type AgentStreamEvent } from '../lib/agent-stream';
 import { STAGE_SUGGESTIONS, type DocumentStage } from '../lib/stages';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MarkdownPreview } from './MarkdownPreview';
-
-interface ToolCallEntry {
-  toolName: string;
-  input: Record<string, unknown>;
-  output?: unknown;
-  durationMs?: number;
-  error?: string;
-  sequence: number;
-  collapsed: boolean;
-}
-
-type UnifiedMessageBase =
-  | { kind: 'user'; content: string; timestamp: Date }
-  | { kind: 'assistant'; content: string; timestamp: Date }
-  | { kind: 'tool_call'; entry: ToolCallEntry }
-  | { kind: 'proposed_edit'; proposed: string; resolved: boolean; accepted?: boolean };
-
-type UnifiedMessage = UnifiedMessageBase & { id: number };
+import {
+  useAIChatSession,
+  type SessionStatus,
+  type UnifiedMessage,
+  type UnifiedMessageBase,
+} from '../stores/aiChat.store';
 
 const statusText: Record<SessionStatus, string> = {
   idle: '',
@@ -43,6 +31,7 @@ export interface UnifiedAIPanelProps {
 }
 
 const QUICK_EDIT_VALUE = 'quick';
+const NEW_DOC_SESSION_KEY = '__nyx_new_document__';
 
 function AIIcon({ className }: { className: string }) {
   return (
@@ -62,12 +51,24 @@ export function UnifiedAIPanel({
   documentId,
   teamId,
 }: UnifiedAIPanelProps) {
-  const [prompt, setPrompt] = useState('');
-  const [selectedWorkflow, setSelectedWorkflow] = useState<string>(QUICK_EDIT_VALUE);
-  const [messages, setMessages] = useState<UnifiedMessage[]>([]);
-  const [streamingContent, setStreamingContent] = useState('');
-  const [status, setStatus] = useState<SessionStatus>('idle');
-  const [tokenUsage, setTokenUsage] = useState<{ inputTokens: number; outputTokens: number } | null>(null);
+  const sessionKey = documentId ?? NEW_DOC_SESSION_KEY;
+  const {
+    messages,
+    prompt,
+    selectedWorkflow,
+    streamingContent,
+    status,
+    tokenUsage,
+    appendMessage: storeAppendMessage,
+    updateMessage: storeUpdateMessage,
+    setMessages: storeSetMessages,
+    setPrompt,
+    setSelectedWorkflow,
+    setStreamingContent,
+    setStatus,
+    setTokenUsage,
+    reset: resetSession,
+  } = useAIChatSession(sessionKey);
 
   const queryClient = useQueryClient();
   const abortRef = useRef<(() => void) | null>(null);
@@ -81,6 +82,39 @@ export function UnifiedAIPanel({
     queryFn: fetchWorkflows,
   });
 
+  // Rebase msgIdRef on mount (or when sessionKey changes) so new IDs don't
+  // collide with persisted message IDs from the store.
+  useEffect(() => {
+    const maxId = messages.reduce((acc, m) => (m.id > acc ? m.id : acc), 0);
+    if (maxId > msgIdRef.current) {
+      msgIdRef.current = maxId;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionKey]);
+
+  // Track the latest status without re-running the unmount effect.
+  const statusRef = useRef<SessionStatus>(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  // On unmount: abort any in-flight stream and clear stale 'running' status so
+  // the next mount on this session doesn't see a phantom running indicator.
+  useEffect(() => {
+    return () => {
+      abortRef.current?.();
+      abortRef.current = null;
+      streamingContentRef.current = '';
+      // Reset transient stream state but preserve message history.
+      setStreamingContent('');
+      if (statusRef.current === 'running') {
+        setStatus('idle');
+      }
+    };
+    // We intentionally only run this on unmount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingContent]);
@@ -93,10 +127,13 @@ export function UnifiedAIPanel({
     }
   }, [prompt]);
 
-  const appendMessage = useCallback((msg: UnifiedMessageBase) => {
-    const id = ++msgIdRef.current;
-    setMessages((prev) => [...prev, { ...msg, id } as UnifiedMessage]);
-  }, []);
+  const appendMessage = useCallback(
+    (msg: UnifiedMessageBase) => {
+      const id = ++msgIdRef.current;
+      storeAppendMessage(msg, id);
+    },
+    [storeAppendMessage],
+  );
 
   const commitStreamingContent = useCallback(() => {
     if (streamingContentRef.current) {
@@ -107,7 +144,7 @@ export function UnifiedAIPanel({
     } else {
       setStreamingContent('');
     }
-  }, [appendMessage]);
+  }, [appendMessage, setStreamingContent]);
 
   const handleAgentEvent = useCallback((event: AgentStreamEvent) => {
     switch (event.type) {
@@ -137,7 +174,7 @@ export function UnifiedAIPanel({
         }
         break;
       case 'tool_result':
-        setMessages((prev) =>
+        storeUpdateMessage((prev) =>
           prev.map((msg) =>
             msg.kind === 'tool_call' && msg.entry.sequence === event.sequence
               ? {
@@ -170,7 +207,14 @@ export function UnifiedAIPanel({
         });
         break;
     }
-  }, [appendMessage, commitStreamingContent, queryClient]);
+  }, [
+    appendMessage,
+    commitStreamingContent,
+    queryClient,
+    storeUpdateMessage,
+    setStatus,
+    setTokenUsage,
+  ]);
 
   const handleSubmit = useCallback(async () => {
     const trimmed = prompt.trim();
@@ -279,16 +323,20 @@ export function UnifiedAIPanel({
     commitStreamingContent,
     onGenerate,
     onProposedEdit,
+    setPrompt,
+    setStatus,
+    setTokenUsage,
+    setStreamingContent,
   ]);
 
   const cancelSession = useCallback(() => {
     abortRef.current?.();
     commitStreamingContent();
     setStatus('cancelled');
-  }, [commitStreamingContent]);
+  }, [commitStreamingContent, setStatus]);
 
   const toggleToolCall = (sequence: number) => {
-    setMessages((prev) =>
+    storeSetMessages((prev) =>
       prev.map((msg) =>
         msg.kind === 'tool_call' && msg.entry.sequence === sequence
           ? { ...msg, entry: { ...msg.entry, collapsed: !msg.entry.collapsed } }
@@ -299,7 +347,7 @@ export function UnifiedAIPanel({
 
   const handleAcceptEdit = (proposed: string, id: number) => {
     onProposedEdit(proposed);
-    setMessages((prev) =>
+    storeSetMessages((prev) =>
       prev.map((msg) =>
         msg.id === id && msg.kind === 'proposed_edit' ? { ...msg, resolved: true, accepted: true } : msg,
       ),
@@ -307,7 +355,7 @@ export function UnifiedAIPanel({
   };
 
   const handleRejectEdit = (id: number) => {
-    setMessages((prev) =>
+    storeSetMessages((prev) =>
       prev.map((msg) =>
         msg.id === id && msg.kind === 'proposed_edit' ? { ...msg, resolved: true, accepted: false } : msg,
       ),
@@ -315,12 +363,10 @@ export function UnifiedAIPanel({
   };
 
   const clearHistory = useCallback(() => {
-    setMessages([]);
     streamingContentRef.current = '';
-    setStreamingContent('');
-    setStatus('idle');
-    setTokenUsage(null);
-  }, []);
+    msgIdRef.current = 0;
+    resetSession();
+  }, [resetSession]);
 
   const isRunning = status === 'running';
   const isEmpty = messages.length === 0 && !streamingContent;
