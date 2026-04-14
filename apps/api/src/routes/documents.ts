@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { documents, documentTemplates, marketplaceListings } from '../db/schema.js';
+import { documents, documentTemplates } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
 import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
@@ -181,70 +181,6 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       request.log.error({ err, teamId, userId }, 'POST /documents — failed to insert document');
       reply.code(500);
       return { error: 'Failed to create document. Check that the team exists and you have permission.' };
-    }
-  });
-
-  // POST /api/documents/from-template — create a document from a marketplace listing
-  // editors+ can create
-  app.post('/from-template', { preHandler: [requireRole({ minimumRole: 'editor', source: 'request' })] }, async (request, reply) => {
-    const { listingId, teamId, path } = request.body as {
-      listingId: string;
-      teamId: string;
-      path?: string;
-    };
-    const userId = request.user.id;
-
-    if (!teamId) {
-      reply.code(400);
-      return { error: 'teamId is required' };
-    }
-
-    if (!listingId) {
-      reply.code(400);
-      return { error: 'listingId is required' };
-    }
-
-    // Fetch the marketplace listing
-    const [listing] = await db
-      .select()
-      .from(marketplaceListings)
-      .where(and(eq(marketplaceListings.id, listingId), eq(marketplaceListings.published, true)));
-
-    if (!listing) {
-      reply.code(404);
-      return { error: 'Marketplace listing not found' };
-    }
-
-    try {
-      // Create a document pre-filled with the listing content
-      const [doc] = await db
-        .insert(documents)
-        .values({
-          title: listing.title,
-          content: listing.content,
-          path: path ?? '/',
-          stage: listing.stage,
-          teamId,
-          createdById: userId,
-        })
-        .returning();
-
-      // Increment download count on the listing (fire-and-forget)
-      setImmediate(async () => {
-        try {
-          await db
-            .update(marketplaceListings)
-            .set({ downloadCount: sql`${marketplaceListings.downloadCount} + 1` })
-            .where(eq(marketplaceListings.id, listingId));
-        } catch {}
-      });
-
-      reply.code(201);
-      return doc;
-    } catch (err) {
-      request.log.error({ err, teamId, userId, listingId }, 'POST /documents/from-template — failed');
-      reply.code(500);
-      return { error: 'Failed to create document from template.' };
     }
   });
 

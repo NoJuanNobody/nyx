@@ -122,26 +122,6 @@ export function createDocument(
   });
 }
 
-export function createDocumentFromTemplate(
-  data: {
-    listingId: string;
-    teamId: string;
-    path?: string;
-  },
-): Promise<Document> {
-  if (!data.teamId) {
-    return Promise.reject(
-      new Error(
-        'Cannot create document: no team selected. Please refresh or check your team membership.',
-      ),
-    );
-  }
-  return request<Document>('/documents/from-template', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
 export function updateDocument(
   id: string,
   data: Partial<Pick<Document, 'title' | 'content' | 'status' | 'path'>> & {
@@ -1269,37 +1249,6 @@ export function updateNotificationPreference(eventType: string, data: Partial<No
   });
 }
 
-// ── Marketplace ─────────────────────────────────────────────────────
-
-export interface MarketplaceListing {
-  id: string;
-  type: 'template' | 'workflow' | 'prompt';
-  title: string;
-  description: string;
-  content: string;
-  priceType: 'free' | 'paid';
-  priceAmountCents: number | null;
-  creditPrice: number | null;
-  category: string | null;
-  tags: string[];
-  stage: string | null;
-  downloadCount: number;
-  authorId: string;
-  published: boolean;
-  createdAt: string;
-  avgRating?: number | null;
-  reviews?: MarketplaceReview[];
-}
-
-export interface MarketplaceReview {
-  id: string;
-  listingId: string;
-  userId: string;
-  rating: number;
-  comment: string | null;
-  createdAt: string;
-}
-
 export interface FeatureRequest {
   id: string;
   title: string;
@@ -1330,26 +1279,6 @@ export interface ProjectShowcase {
   imageUrl: string | null;
   authorId: string;
   createdAt: string;
-}
-
-export function fetchMarketplaceListings(type?: string, search?: string): Promise<MarketplaceListing[]> {
-  const params = new URLSearchParams();
-  if (type) params.set('type', type);
-  if (search) params.set('search', search);
-  const qs = params.toString();
-  return request<MarketplaceListing[]>(`/marketplace${qs ? `?${qs}` : ''}`);
-}
-
-export function fetchMarketplaceListing(id: string): Promise<MarketplaceListing> {
-  return request<MarketplaceListing>(`/marketplace/${id}`);
-}
-
-export function createMarketplaceListing(data: { type: string; title: string; description: string; content: string; priceType?: string; creditPrice?: number; priceAmountCents?: number; category?: string; tags?: string[]; stage?: string }): Promise<MarketplaceListing> {
-  return request<MarketplaceListing>('/marketplace', { method: 'POST', body: JSON.stringify(data) });
-}
-
-export function downloadMarketplaceListing(id: string): Promise<{ content: string; title: string }> {
-  return request<{ content: string; title: string }>(`/marketplace/${id}/download`, { method: 'POST' });
 }
 
 export function fetchCreditCosts(): Promise<{ costs: Record<string, number> }> {
@@ -1408,10 +1337,6 @@ export function activatePipeline(data: {
 
 export function checkPipelineAccess(pipelineId: string): Promise<{ owned: boolean }> {
   return request<{ owned: boolean }>(`/pipelines/check/${pipelineId}`);
-}
-
-export function reviewMarketplaceListing(id: string, data: { rating: number; comment?: string }): Promise<MarketplaceReview> {
-  return request<MarketplaceReview>(`/marketplace/${id}/reviews`, { method: 'POST', body: JSON.stringify(data) });
 }
 
 export function fetchFeatureRequests(sort?: string): Promise<FeatureRequest[]> {
@@ -1736,12 +1661,6 @@ export function purchaseCredits(amount: number): Promise<{ balance: number; adde
   return request<{ balance: number; added: number }>('/credits/purchase', {
     method: 'POST',
     body: JSON.stringify({ amount }),
-  });
-}
-
-export function purchaseMarketplaceListing(listingId: string): Promise<{ content: string; title: string; balance: number }> {
-  return request<{ content: string; title: string; balance: number }>(`/marketplace/${listingId}/purchase`, {
-    method: 'POST',
   });
 }
 

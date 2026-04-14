@@ -10,7 +10,6 @@ import { Repositories } from './pages/Repositories';
 import { IntakePage } from './pages/IntakePage';
 import { SprintPage } from './pages/SprintPage';
 import { TracePage } from './pages/TracePage';
-import { Marketplace } from './pages/Marketplace';
 import { OperationsPage } from './pages/OperationsPage';
 import { GettingStarted } from './pages/GettingStarted';
 import { SignIn } from './pages/SignIn';
@@ -49,7 +48,6 @@ export function App() {
             <Route path="/repositories" element={<Repositories />} />
             <Route path="/intake" element={<IntakePage />} />
             <Route path="/sprint" element={<SprintPage />} />
-            <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/operations" element={<OperationsPage />} />
             {/* Redirects from old routes */}
             <Route path="/agent-map" element={<Navigate to="/operations?tab=agents" replace />} />
