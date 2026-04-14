@@ -1,3 +1,7 @@
+import { Readable } from 'node:stream';
+import { createGunzip } from 'node:zlib';
+import { pipeline } from 'node:stream/promises';
+import tarStream from 'tar-stream';
 import { aiService } from './ai.service.js';
 
 export interface RepoFile {
@@ -16,6 +20,14 @@ export interface ModuleFiles {
   files: RepoFile[];
 }
 
+export interface ScanResult {
+  files: RepoFile[];
+  suggestedDocs: string;
+  moduleDocs: Array<{ module: string; docs: string }>;
+  moduleCount: number;
+  fileCount: number;
+}
+
 // ── Module detection patterns ────────────────────────────────────────
 
 const MODULE_PATTERNS: Record<string, RegExp[]> = {
@@ -31,8 +43,21 @@ const MODULE_PATTERNS: Record<string, RegExp[]> = {
 const MAX_FILE_SIZE = 100_000; // 100KB limit per file
 const MAX_PER_MODULE = 8;
 const MAX_TOTAL_FILES = 80;
-const FETCH_CONCURRENCY = 10;
 const SMALL_REPO_THRESHOLD = 5;
+
+// Bounded concurrency for per-module AI calls.
+//
+// Anthropic's default tier comfortably handles 6 concurrent
+// messages.create requests per team; do NOT raise further without
+// checking current limits. The bound MUST stay enforced — a single
+// unbounded Promise.all over all modules will trip the rate limiter
+// on larger repos.
+const AI_CONCURRENCY = 6;
+
+// Scan-result cache TTL. Re-scans of the same { owner, repo, headSha }
+// within this window return the cached result with zero GitHub/AI
+// calls.
+const SCAN_CACHE_TTL_MS = 10 * 60 * 1000;
 
 // Files/dirs to always skip
 const SKIP_PATTERNS = [
@@ -51,6 +76,38 @@ const SKIP_PATTERNS = [
 // Source file extensions we care about
 const SOURCE_EXTENSIONS = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|rb|php|cs|swift|kt|scala|vue|svelte|astro)$/;
 const CONFIG_EXTENSIONS = /\.(json|ya?ml|toml)$/;
+
+// ── In-memory scan cache ────────────────────────────────────────────
+
+interface ScanCacheEntry {
+  result: ScanResult;
+  expiresAt: number;
+}
+
+const scanResultCache = new Map<string, ScanCacheEntry>();
+
+function scanCacheKey(owner: string, repo: string, headSha: string): string {
+  return `${owner}/${repo}@${headSha}`;
+}
+
+/**
+ * Manually invalidate all cached scan results for a given {owner, repo}.
+ * Exposed for future use (e.g., webhook-triggered cache busting); not
+ * called by the main scan pipeline today.
+ */
+export function invalidateScanCache(owner: string, repo: string): void {
+  const prefix = `${owner}/${repo}@`;
+  for (const key of scanResultCache.keys()) {
+    if (key.startsWith(prefix)) {
+      scanResultCache.delete(key);
+    }
+  }
+}
+
+/** Test helper: wipe the cache completely. */
+export function _resetScanCache(): void {
+  scanResultCache.clear();
+}
 
 // ── Scoring for smart sampling ───────────────────────────────────────
 
@@ -159,11 +216,16 @@ function sampleFilesFromModule(files: GitHubTreeItem[], maxPerModule = MAX_PER_M
 
 // ── GitHub API helpers ───────────────────────────────────────────────
 
+interface RepoTreeResult {
+  tree: GitHubTreeItem[];
+  headSha: string;
+}
+
 async function fetchGitHubFileTree(
   accessToken: string,
   owner: string,
   repo: string,
-): Promise<GitHubTreeItem[]> {
+): Promise<RepoTreeResult> {
   const response = await fetch(
     `https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`,
     {
@@ -178,64 +240,119 @@ async function fetchGitHubFileTree(
     throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
   }
 
-  const data = (await response.json()) as { tree: GitHubTreeItem[] };
-  return data.tree;
+  const data = (await response.json()) as { tree: GitHubTreeItem[]; sha?: string };
+  return { tree: data.tree, headSha: data.sha ?? '' };
 }
 
-async function fetchFileContent(
+/**
+ * Download a repository as a gzipped tarball in a single request, stream
+ * it through gunzip + tar-stream, and return only the entries that pass
+ * the existing shouldSkip / isSourceFile / MAX_FILE_SIZE filters.
+ *
+ * The tarball endpoint returns a 302 redirect to codeload.github.com.
+ * Node's `fetch` follows redirects by default and GitHub honors the
+ * Authorization header through the redirect for both PAT and
+ * installation tokens.
+ *
+ * The tarball path prefix is `{repo}-{shortSha}/...`. We strip that
+ * prefix before using paths as map keys so downstream code can look
+ * them up by the repo-relative path it already knows.
+ */
+async function fetchRepoTarball(
   accessToken: string,
   owner: string,
   repo: string,
-  path: string,
-): Promise<string> {
+  ref: string = 'HEAD',
+): Promise<Map<string, string>> {
   const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+    `https://api.github.com/repos/${owner}/${repo}/tarball/${ref}`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: 'application/vnd.github.v3+json',
       },
+      redirect: 'follow',
     },
   );
 
-  if (!response.ok) {
-    return '';
-  }
-
-  const data = (await response.json()) as { content?: string; encoding?: string };
-  if (data.content && data.encoding === 'base64') {
-    return Buffer.from(data.content, 'base64').toString('utf-8');
-  }
-
-  return '';
-}
-
-async function fetchFilesParallel(
-  accessToken: string,
-  owner: string,
-  repo: string,
-  paths: string[],
-): Promise<RepoFile[]> {
-  const results: RepoFile[] = [];
-  for (let i = 0; i < paths.length; i += FETCH_CONCURRENCY) {
-    const batch = paths.slice(i, i + FETCH_CONCURRENCY);
-    const fetched = await Promise.all(
-      batch.map(async (path) => {
-        const content = await fetchFileContent(accessToken, owner, repo, path);
-        return content ? { path, content } : null;
-      }),
+  if (!response.ok || !response.body) {
+    throw new Error(
+      `GitHub tarball fetch failed: ${response.status} ${response.statusText}`,
     );
-    results.push(...(fetched.filter(Boolean) as RepoFile[]));
   }
-  return results;
+
+  const fileMap = new Map<string, string>();
+  const extract = tarStream.extract();
+
+  extract.on('entry', (header, stream, next) => {
+    // Only keep regular files
+    if (header.type !== 'file') {
+      stream.on('end', next);
+      stream.resume();
+      return;
+    }
+
+    // Strip the `{repo}-{shortSha}/` prefix so keys are repo-relative.
+    const firstSlash = header.name.indexOf('/');
+    const relPath = firstSlash === -1 ? header.name : header.name.slice(firstSlash + 1);
+
+    // Apply the same filters we used to apply per file.
+    if (!relPath || shouldSkip(relPath) || !isSourceFile(relPath)) {
+      stream.on('end', next);
+      stream.resume();
+      return;
+    }
+
+    const declaredSize = header.size ?? 0;
+    if (declaredSize >= MAX_FILE_SIZE) {
+      stream.on('end', next);
+      stream.resume();
+      return;
+    }
+
+    const chunks: Buffer[] = [];
+    let total = 0;
+    let overflowed = false;
+    stream.on('data', (chunk: Buffer) => {
+      if (overflowed) return;
+      total += chunk.length;
+      if (total >= MAX_FILE_SIZE) {
+        overflowed = true;
+        return;
+      }
+      chunks.push(chunk);
+    });
+    stream.on('end', () => {
+      if (!overflowed) {
+        fileMap.set(relPath, Buffer.concat(chunks).toString('utf-8'));
+      }
+      next();
+    });
+    stream.on('error', (err) => next(err));
+  });
+
+  // Convert the web ReadableStream from fetch into a Node stream, then
+  // pipe it through gunzip into the tar extractor.
+  const bodyStream =
+    typeof (response.body as unknown as { pipe?: unknown }).pipe === 'function'
+      ? (response.body as unknown as NodeJS.ReadableStream)
+      : Readable.fromWeb(response.body as unknown as import('node:stream/web').ReadableStream);
+
+  try {
+    await pipeline(bodyStream, createGunzip(), extract);
+  } catch (err) {
+    throw new Error(
+      `GitHub tarball stream failed: ${(err as Error).message ?? 'unknown error'}`,
+    );
+  }
+
+  return fileMap;
 }
 
 // ── Legacy single-prompt scan (for small repos) ─────────────────────
 
 async function scanSmallRepo(
-  accessToken: string,
-  owner: string,
-  repo: string,
+  tarballFiles: Map<string, string>,
   tree: GitHubTreeItem[],
 ): Promise<{ files: RepoFile[]; suggestedDocs: string }> {
   const validFiles = tree.filter(
@@ -247,8 +364,13 @@ async function scanSmallRepo(
       (item.size ?? 0) < MAX_FILE_SIZE,
   );
 
-  const paths = validFiles.map((item) => item.path as string);
-  const files = await fetchFilesParallel(accessToken, owner, repo, paths);
+  const files: RepoFile[] = [];
+  for (const item of validFiles) {
+    const content = tarballFiles.get(item.path!);
+    if (content !== undefined) {
+      files.push({ path: item.path!, content });
+    }
+  }
   const suggestedDocs = await aiService.bootstrapDocsFromCode(files);
 
   return { files, suggestedDocs };
@@ -261,15 +383,23 @@ export const onboardingService = {
     accessToken: string,
     owner: string,
     repo: string,
-  ): Promise<{
-    files: RepoFile[];
-    suggestedDocs: string;
-    moduleDocs: Array<{ module: string; docs: string }>;
-    moduleCount: number;
-    fileCount: number;
-  }> {
-    // Phase 1: Get the file tree from GitHub
-    const tree = await fetchGitHubFileTree(accessToken, owner, repo);
+  ): Promise<ScanResult> {
+    // Phase 1: Get the file tree from GitHub (for module grouping and
+    // a stable HEAD SHA used as the cache key).
+    const { tree, headSha } = await fetchGitHubFileTree(accessToken, owner, repo);
+
+    // Phase 1b: Cache check — if we've scanned this exact commit
+    // recently, return the cached result with zero further GitHub or
+    // AI work.
+    if (headSha) {
+      const key = scanCacheKey(owner, repo, headSha);
+      const cached = scanResultCache.get(key);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.result;
+      }
+      // Opportunistic GC of expired entries.
+      if (cached) scanResultCache.delete(key);
+    }
 
     // Count valid source files
     const validFileCount = tree.filter(
@@ -281,21 +411,34 @@ export const onboardingService = {
         (item.size ?? 0) < MAX_FILE_SIZE,
     ).length;
 
-    // For small repos, use the legacy single-prompt approach
+    // Phase 2: Fetch the entire repository as a single tarball. This
+    // replaces up to 80 per-file Contents API calls with one streamed
+    // HTTP request, unpacked in memory with the existing shouldSkip /
+    // isSourceFile / MAX_FILE_SIZE filters applied during extraction.
+    const tarballFiles = await fetchRepoTarball(accessToken, owner, repo);
+
+    // For small repos, use the legacy single-prompt approach.
     if (validFileCount < SMALL_REPO_THRESHOLD) {
-      const result = await scanSmallRepo(accessToken, owner, repo, tree);
-      return {
+      const result = await scanSmallRepo(tarballFiles, tree);
+      const scanResult: ScanResult = {
         ...result,
         moduleDocs: [{ module: 'Overview', docs: result.suggestedDocs }],
         moduleCount: 1,
         fileCount: result.files.length,
       };
+      if (headSha) {
+        scanResultCache.set(scanCacheKey(owner, repo, headSha), {
+          result: scanResult,
+          expiresAt: Date.now() + SCAN_CACHE_TTL_MS,
+        });
+      }
+      return scanResult;
     }
 
-    // Phase 2: Group into modules
+    // Phase 3: Group into modules
     const modules = groupFilesIntoModules(tree);
 
-    // Phase 3: Sample representative files per module
+    // Phase 4: Sample representative files per module
     const sampled = new Map<string, string[]>();
     let totalSampled = 0;
 
@@ -310,19 +453,28 @@ export const onboardingService = {
       totalSampled += paths.length;
     }
 
-    // Phase 4: Fetch files in parallel per module
+    // Phase 5: Build per-module file maps from the in-memory tarball.
+    // No network I/O — just Map lookups. The outer per-module fetch
+    // loop from the previous implementation has been deleted.
     const allFiles: RepoFile[] = [];
     const moduleFileMap = new Map<string, RepoFile[]>();
 
     for (const [mod, paths] of sampled) {
-      const files = await fetchFilesParallel(accessToken, owner, repo, paths);
+      const files: RepoFile[] = [];
+      for (const path of paths) {
+        const content = tarballFiles.get(path);
+        if (content !== undefined) {
+          files.push({ path, content });
+        }
+      }
       moduleFileMap.set(mod, files);
       allFiles.push(...files);
     }
 
-    // Phase 5: Generate docs per module in parallel (concurrency 3)
+    // Phase 6: Generate docs per module in parallel, bounded by
+    // AI_CONCURRENCY. We keep the explicit batching loop — do NOT
+    // replace with a single Promise.all over every module.
     const moduleEntries = [...moduleFileMap.entries()].filter(([, files]) => files.length > 0);
-    const AI_CONCURRENCY = 3;
     const moduleDocs: Array<{ module: string; docs: string }> = [];
 
     for (let i = 0; i < moduleEntries.length; i += AI_CONCURRENCY) {
@@ -336,21 +488,37 @@ export const onboardingService = {
       moduleDocs.push(...results);
     }
 
-    // Phase 6: Merge module docs into a structured document
+    // Phase 7: Merge module docs into a structured document
     const suggestedDocs = await aiService.mergeModuleDocs(
       moduleDocs,
       `${owner}/${repo}`,
     );
 
-    return {
+    const scanResult: ScanResult = {
       files: allFiles,
       suggestedDocs,
       moduleDocs,
       moduleCount: moduleDocs.length,
       fileCount: allFiles.length,
     };
+
+    if (headSha) {
+      scanResultCache.set(scanCacheKey(owner, repo, headSha), {
+        result: scanResult,
+        expiresAt: Date.now() + SCAN_CACHE_TTL_MS,
+      });
+    }
+
+    return scanResult;
   },
 };
 
 // Export helpers for testing
-export { groupFilesIntoModules, sampleFilesFromModule, scoreFile, fetchFilesParallel };
+export {
+  groupFilesIntoModules,
+  sampleFilesFromModule,
+  scoreFile,
+  fetchRepoTarball,
+  AI_CONCURRENCY,
+  SCAN_CACHE_TTL_MS,
+};

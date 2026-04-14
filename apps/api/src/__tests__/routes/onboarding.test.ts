@@ -38,29 +38,40 @@ async function buildApp() {
   return app;
 }
 
-// Helper to make mockDb.insert().values().returning() resolve with given docs.
-// Captures the values passed to `.values(...)` so tests can assert on them.
-function mockDbInsertReturning(
-  doc: { id: string; title: string; path: string },
-  capturedValues?: Array<Record<string, unknown>>,
+/**
+ * Helper to mock a single bulk `db.insert(documents).values([...]).returning()`
+ * call. Captures the array passed to `.values(...)` for assertions.
+ *
+ * The returned mock resolves to an array of doc rows derived from the
+ * captured `values` so tests can observe order preservation.
+ */
+function mockBulkInsert(
+  capturedRows: Array<Array<Record<string, unknown>>>,
+  basePath: string,
 ) {
-  const chain: Record<string, unknown> = {};
-  chain.values = vi.fn((vals: Record<string, unknown>) => {
-    capturedValues?.push(vals);
+  mockDb.insert.mockImplementation(() => {
+    const chain: Record<string, unknown> = {};
+    chain.values = vi.fn((vals: unknown) => {
+      const asArray = Array.isArray(vals)
+        ? (vals as Array<Record<string, unknown>>)
+        : [vals as Record<string, unknown>];
+      capturedRows.push(asArray);
+      const resolved = asArray.map((row, i) => ({
+        id: `doc-${capturedRows.length}-${i + 1}`,
+        title: row.title,
+        path: row.path ?? basePath,
+        content: row.content,
+        teamId: row.teamId,
+        createdById: row.createdById,
+        stage: row.stage,
+      }));
+      chain.returning = vi.fn(() => Promise.resolve(resolved));
+      chain.then = (resolve: (v: unknown) => void) =>
+        Promise.resolve(resolved).then(resolve);
+      return chain;
+    });
     return chain;
   });
-  const resolved = [
-    {
-      ...doc,
-      content: '',
-      teamId: 'team-1',
-      createdById: 'user-1',
-      stage: 'implementation',
-    },
-  ];
-  chain.returning = vi.fn(() => Promise.resolve(resolved));
-  chain.then = (resolve: (v: unknown) => void) => Promise.resolve(resolved).then(resolve);
-  return chain;
 }
 
 describe('Onboarding Routes', () => {
@@ -113,16 +124,8 @@ describe('Onboarding Routes', () => {
       fileCount: 0,
     });
 
-    // Mock db.insert for the overview doc
-    let insertCallCount = 0;
-    mockDb.insert.mockImplementation(() => {
-      insertCallCount++;
-      return mockDbInsertReturning({
-        id: `doc-${insertCallCount}`,
-        title: 'test/repo Overview',
-        path: '/repos/test/repo',
-      });
-    });
+    const captured: Array<Array<Record<string, unknown>>> = [];
+    mockBulkInsert(captured, '/repos/test/repo');
 
     const app = await buildApp();
     const res = await app.inject({
@@ -141,6 +144,11 @@ describe('Onboarding Routes', () => {
     expect(body.documents).toBeDefined();
     expect(body.moduleCount).toBe(0);
     expect(body.fileCount).toBe(0);
+    // With no module docs there is still one overview row inserted.
+    expect(mockDb.insert).toHaveBeenCalledTimes(1);
+    expect(captured).toHaveLength(1);
+    expect(captured[0]).toHaveLength(1);
+    expect(captured[0][0].title).toBe('test/repo Overview');
     await app.close();
   });
 
@@ -157,16 +165,8 @@ describe('Onboarding Routes', () => {
     };
     mockOnboardingService.scanRepository.mockResolvedValueOnce(scanResult);
 
-    let insertCallCount = 0;
-    mockDb.insert.mockImplementation(() => {
-      insertCallCount++;
-      const titles = ['Services', 'Components', 'myorg/myrepo Overview'];
-      return mockDbInsertReturning({
-        id: `doc-${insertCallCount}`,
-        title: titles[insertCallCount - 1] ?? `Doc ${insertCallCount}`,
-        path: '/repos/myorg/myrepo',
-      });
-    });
+    const captured: Array<Array<Record<string, unknown>>> = [];
+    mockBulkInsert(captured, '/repos/myorg/myrepo');
 
     const app = await buildApp();
     const res = await app.inject({
@@ -181,6 +181,21 @@ describe('Onboarding Routes', () => {
     expect(body.documents).toHaveLength(3);
     expect(body.moduleCount).toBe(2);
     expect(body.fileCount).toBe(1);
+
+    // Bulk insert, not N+1
+    expect(mockDb.insert).toHaveBeenCalledTimes(1);
+    expect(captured).toHaveLength(1);
+    // Preserve order: module docs first, then overview
+    expect(captured[0].map((r) => r.title)).toEqual([
+      'Services',
+      'Components',
+      'myorg/myrepo Overview',
+    ]);
+    expect(body.documents.map((d: { title: string }) => d.title)).toEqual([
+      'Services',
+      'Components',
+      'myorg/myrepo Overview',
+    ]);
     await app.close();
   });
 
@@ -201,22 +216,8 @@ describe('Onboarding Routes', () => {
     };
     mockOnboardingService.scanRepository.mockResolvedValueOnce(scanResult);
 
-    // Capture every `.values(...)` payload across all insert calls so we can
-    // assert on stage for each row written to the documents table.
-    const capturedValues: Array<Record<string, unknown>> = [];
-    let insertCallCount = 0;
-    mockDb.insert.mockImplementation(() => {
-      insertCallCount++;
-      const titles = ['Auth', 'API', 'Web', 'acme/widgets Overview'];
-      return mockDbInsertReturning(
-        {
-          id: `doc-${insertCallCount}`,
-          title: titles[insertCallCount - 1] ?? `Doc ${insertCallCount}`,
-          path: '/repos/acme/widgets',
-        },
-        capturedValues,
-      );
-    });
+    const captured: Array<Array<Record<string, unknown>>> = [];
+    mockBulkInsert(captured, '/repos/acme/widgets');
 
     const app = await buildApp();
     const res = await app.inject({
@@ -231,21 +232,21 @@ describe('Onboarding Routes', () => {
     // 3 module docs + 1 overview = 4 documents
     expect(body.documents).toHaveLength(4);
 
-    // Every captured insert payload must have stage === 'implementation'.
-    expect(capturedValues).toHaveLength(4);
-    for (const vals of capturedValues) {
-      expect(vals.stage).toBe('implementation');
+    // Single bulk insert of 4 rows, every row stage === 'implementation'
+    expect(mockDb.insert).toHaveBeenCalledTimes(1);
+    expect(captured).toHaveLength(1);
+    expect(captured[0]).toHaveLength(4);
+    for (const row of captured[0]) {
+      expect(row.stage).toBe('implementation');
     }
 
-    // Sanity check the per-module insert and the overview insert each
-    // received the expected stage.
-    const moduleInserts = capturedValues.filter((v) =>
+    const moduleInserts = captured[0].filter((v) =>
       ['Auth', 'API', 'Web'].includes(v.title as string),
     );
     expect(moduleInserts).toHaveLength(3);
     moduleInserts.forEach((v) => expect(v.stage).toBe('implementation'));
 
-    const overviewInsert = capturedValues.find(
+    const overviewInsert = captured[0].find(
       (v) => v.title === 'acme/widgets Overview',
     );
     expect(overviewInsert).toBeDefined();
