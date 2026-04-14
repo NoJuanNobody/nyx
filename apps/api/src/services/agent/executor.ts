@@ -481,7 +481,49 @@ export async function executeTool(
     case 'index_codebase': {
       assertCanWrite(ctx);
       const teamId = (input.team_id as string) || ctx.teamId;
-      return codeEmbeddingService.indexRepo(teamId);
+      const indexResult = await codeEmbeddingService.indexRepo(teamId);
+      // Return a BOUNDED summary by design — never the full file tree.
+      // Fetch a small sample of indexable file paths to give the model
+      // something to drill into with `search_code` / `get_github_files`,
+      // plus a per-top-level-directory count so it can navigate the layout.
+      try {
+        const [integration] = await db
+          .select()
+          .from(integrations)
+          .where(and(eq(integrations.teamId, teamId), eq(integrations.type, 'github')))
+          .limit(1);
+        const ghConfig = (integration?.config ?? {}) as {
+          accessToken?: string;
+          selectedRepos?: Array<{ owner: string; name: string }>;
+          owner?: string;
+          repo?: string;
+        };
+        const token = ghConfig.accessToken;
+        const owner = ghConfig.selectedRepos?.[0]?.owner ?? ghConfig.owner;
+        const repo = ghConfig.selectedRepos?.[0]?.name ?? ghConfig.repo;
+        if (!token || !owner || !repo) return indexResult;
+        const tree = await githubService.getFileTree(token, owner, repo);
+        const indexable = tree.filter(isIndexableFile);
+        const dirCounts: Record<string, number> = {};
+        for (const entry of indexable) {
+          const top = entry.path.split('/')[0] || '(root)';
+          dirCounts[top] = (dirCounts[top] ?? 0) + 1;
+        }
+        const sampleFilePaths = indexable.slice(0, 50).map((e) => e.path);
+        return {
+          ...indexResult,
+          totalIndexableFiles: indexable.length,
+          directoryCounts: dirCounts,
+          sampleFilePaths,
+          note:
+            indexable.length > sampleFilePaths.length
+              ? `Showing ${sampleFilePaths.length} of ${indexable.length} indexable files. Use search_code to find specifics.`
+              : undefined,
+        };
+      } catch {
+        // Indexing succeeded — never let summary-fetch failures break the tool.
+        return indexResult;
+      }
     }
 
     default:
