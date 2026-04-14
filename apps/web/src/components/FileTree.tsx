@@ -112,6 +112,60 @@ function getDescendantFolders(folders: string[], parentPath: string): string[] {
   return folders.filter((f) => f === parentPath || f.startsWith(prefix));
 }
 
+/**
+ * Rewrite descendant paths (folders or document paths) when a folder is renamed
+ * or moved. Any path equal to `oldPrefix` becomes `newPrefix`, and any path that
+ * starts with `oldPrefix + '/'` has that prefix replaced with `newPrefix`.
+ *
+ * Used by both `handleFolderRenameSubmit` and `handleDropFolder` so the
+ * rewrite logic lives in exactly one place.
+ *
+ * Exported for unit tests.
+ */
+export function rewriteDescendantPaths(
+  items: string[],
+  oldPrefix: string,
+  newPrefix: string,
+): string[] {
+  return items.map((p) => {
+    if (p === oldPrefix) return newPrefix;
+    if (p.startsWith(`${oldPrefix}/`)) return newPrefix + p.substring(oldPrefix.length);
+    return p;
+  });
+}
+
+/**
+ * Returns true if moving `sourcePath` into `targetParentPath` would create a
+ * cycle (i.e. the target is the source itself, or a descendant of the source).
+ *
+ * Exported for unit tests.
+ */
+export function wouldCreateCycle(sourcePath: string, targetParentPath: string): boolean {
+  if (targetParentPath === sourcePath) return true;
+  if (targetParentPath.startsWith(`${sourcePath}/`)) return true;
+  return false;
+}
+
+/**
+ * Compute the new path for a folder being moved into a target parent. Strips
+ * the leaf segment off `sourcePath` and re-parents it under `targetParentPath`
+ * (which may be `'/'` for the root).
+ */
+export function computeMovedFolderPath(sourcePath: string, targetParentPath: string): string {
+  const leaf = sourcePath.substring(sourcePath.lastIndexOf('/') + 1);
+  return targetParentPath === '/' ? `/${leaf}` : `${targetParentPath}/${leaf}`;
+}
+
+// MIME types for drag and drop payloads
+const DRAG_MIME_DOC = 'application/nyx-doc-id';
+const DRAG_MIME_FOLDER = 'application/nyx-folder-path';
+
+// Module-scoped source tracker. The HTML5 drag-and-drop API does not allow
+// reading dataTransfer payload values during `dragover` (only during `drop`),
+// so we stash the in-flight folder source path here to support live cycle/self
+// detection in the highlight logic.
+let activeFolderDragSource: string | null = null;
+
 // ── Inline input ──────────────────────────────────────
 
 function InlineInput({
@@ -207,6 +261,7 @@ function Folder({
   onFolderRenameCancel,
   onDeleteFolder,
   onDropDoc,
+  onDropFolder,
 }: {
   node: FolderNode;
   depth: number;
@@ -232,17 +287,49 @@ function Folder({
   onFolderRenameCancel: () => void;
   onDeleteFolder: (path: string) => void;
   onDropDoc: (docId: string, targetPath: string) => void;
+  onDropFolder: (sourcePath: string, targetParentPath: string) => void;
 }) {
   const isOpen = expandedFolders.has(node.path);
   const [showActions, setShowActions] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const isRenaming = renamingFolderPath === node.path;
 
+  const handleDragStart = (e: React.DragEvent) => {
+    if (isRenaming) {
+      e.preventDefault();
+      return;
+    }
+    e.stopPropagation();
+    e.dataTransfer.setData(DRAG_MIME_FOLDER, node.path);
+    e.dataTransfer.effectAllowed = 'move';
+    activeFolderDragSource = node.path;
+  };
+
+  const handleDragEnd = () => {
+    activeFolderDragSource = null;
+    setDragOver(false);
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes('application/nyx-doc-id')) {
+    const types = e.dataTransfer.types;
+    if (types.includes(DRAG_MIME_DOC)) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       setDragOver(true);
+      return;
+    }
+    if (types.includes(DRAG_MIME_FOLDER)) {
+      // Reject drop-on-self and drop-into-descendant (cycle).
+      const source = activeFolderDragSource;
+      if (source && wouldCreateCycle(source, node.path)) {
+        e.dataTransfer.dropEffect = 'none';
+        setDragOver(false);
+        return;
+      }
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      setDragOver(true);
+      return;
     }
   };
 
@@ -255,10 +342,17 @@ function Folder({
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
-    const docId = e.dataTransfer.getData('application/nyx-doc-id');
+    const docId = e.dataTransfer.getData(DRAG_MIME_DOC);
     if (docId) {
       onDropDoc(docId, node.path);
+      return;
+    }
+    const folderPath = e.dataTransfer.getData(DRAG_MIME_FOLDER);
+    if (folderPath) {
+      onDropFolder(folderPath, node.path);
+      activeFolderDragSource = null;
     }
   };
 
@@ -271,6 +365,9 @@ function Folder({
             : 'hover:bg-slate-100/60'
         }`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
+        draggable={!isRenaming}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
         onClick={() => !isRenaming && toggleFolder(node.path)}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
@@ -386,6 +483,7 @@ function Folder({
                 onFolderRenameCancel={onFolderRenameCancel}
                 onDeleteFolder={onDeleteFolder}
                 onDropDoc={onDropDoc}
+                onDropFolder={onDropFolder}
               />
             ) : (
               <DocItem
@@ -813,41 +911,63 @@ export function FileTree() {
     const parentPath = oldPath.substring(0, oldPath.lastIndexOf('/')) || '/';
     const newPath = parentPath === '/' ? `/${newName}` : `${parentPath}/${newName}`;
 
-    // Rename in folders list: update all descendants
-    const updated = folders.map((f) => {
-      if (f === oldPath) return newPath;
-      if (f.startsWith(`${oldPath}/`)) return newPath + f.substring(oldPath.length);
-      return f;
-    });
-    setFolders(updated);
-    saveFolders(updated);
-
-    // Update expanded folders
-    setExpandedFolders((prev) => {
-      const next = new Set<string>();
-      for (const p of prev) {
-        if (p === oldPath) next.add(newPath);
-        else if (p.startsWith(`${oldPath}/`)) next.add(newPath + p.substring(oldPath.length));
-        else next.add(p);
-      }
-      return next;
-    });
-
-    // Update doc paths for documents in the renamed folder
-    if (documents) {
-      for (const doc of documents) {
-        const docPath = doc.path || '/';
-        if (docPath === oldPath) {
-          updateDocument(doc.id, { path: newPath });
-        } else if (docPath.startsWith(`${oldPath}/`)) {
-          updateDocument(doc.id, { path: newPath + docPath.substring(oldPath.length) });
-        }
-      }
-      queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
-    }
-
+    applyFolderMove(oldPath, newPath);
     setRenamingFolderPath(null);
   };
+
+  /**
+   * Shared core for both folder-rename and folder-move (drag-and-drop).
+   * Rewrites folders list, expandedFolders set, and persists updated doc paths
+   * for every descendant of `oldPath`.
+   */
+  const applyFolderMove = useCallback(
+    (oldPath: string, newPath: string) => {
+      if (oldPath === newPath) return;
+
+      // Rewrite the folders list
+      const updatedFolders = rewriteDescendantPaths(folders, oldPath, newPath);
+      setFolders(updatedFolders);
+      saveFolders(updatedFolders);
+
+      // Rewrite expandedFolders so anything that was expanded under the old
+      // path stays expanded under the new path.
+      setExpandedFolders((prev) => {
+        const rewritten = rewriteDescendantPaths([...prev], oldPath, newPath);
+        return new Set(rewritten);
+      });
+
+      // Persist new paths for every descendant document
+      if (documents) {
+        for (const doc of documents) {
+          const docPath = doc.path || '/';
+          if (docPath === oldPath) {
+            updateDocument(doc.id, { path: newPath });
+          } else if (docPath.startsWith(`${oldPath}/`)) {
+            updateDocument(doc.id, {
+              path: newPath + docPath.substring(oldPath.length),
+            });
+          }
+        }
+        queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
+      }
+    },
+    [folders, documents, queryClient, teamId],
+  );
+
+  const handleDropFolder = useCallback(
+    (sourcePath: string, targetParentPath: string) => {
+      // Cycle / self guards
+      if (wouldCreateCycle(sourcePath, targetParentPath)) return;
+
+      const newPath = computeMovedFolderPath(sourcePath, targetParentPath);
+
+      // No-op when already living at the target location
+      if (newPath === sourcePath) return;
+
+      applyFolderMove(sourcePath, newPath);
+    },
+    [applyFolderMove],
+  );
 
   const handleDeleteFolder = (folderPath: string) => {
     // Remove the folder and all its descendant folders
@@ -944,6 +1064,34 @@ export function FileTree() {
     ];
 
     if (isFolder) {
+      // Build "Move to..." submenu listing valid destination folders. Exclude
+      // the source folder itself and any of its descendants (cycle prevention),
+      // and also exclude the folder's current parent (no-op move).
+      const currentParent = path.substring(0, path.lastIndexOf('/')) || '/';
+      const destinations: (ContextMenuLeafItem | ContextMenuSeparator)[] = [];
+
+      // Always allow moving back to root, unless already there
+      if (currentParent !== '/') {
+        destinations.push({
+          label: '/  (root)',
+          action: () => handleDropFolder(path, '/'),
+        });
+      }
+
+      const validTargets = folders
+        .filter((f) => !wouldCreateCycle(path, f) && f !== currentParent)
+        .sort((a, b) => a.localeCompare(b));
+
+      if (validTargets.length > 0 && destinations.length > 0) {
+        destinations.push({ type: 'separator' });
+      }
+      for (const target of validTargets) {
+        destinations.push({
+          label: target,
+          action: () => handleDropFolder(path, target),
+        });
+      }
+
       items.push(
         { type: 'separator' },
         {
@@ -952,6 +1100,16 @@ export function FileTree() {
         },
         { type: 'separator' },
         { label: 'Rename folder', action: () => setRenamingFolderPath(path) },
+        destinations.length > 0
+          ? {
+              label: 'Move to…',
+              submenu: destinations,
+            }
+          : ({
+              label: 'Move to…',
+              disabled: true,
+              action: () => {},
+            } as ContextMenuLeafItem),
         { label: 'Delete folder', danger: true, action: () => handleDeleteFolder(path) },
       );
     }
@@ -1130,15 +1288,23 @@ export function FileTree() {
           }
         }}
         onDragOver={(e) => {
-          if (e.dataTransfer.types.includes('application/nyx-doc-id')) {
+          const types = e.dataTransfer.types;
+          if (types.includes(DRAG_MIME_DOC) || types.includes(DRAG_MIME_FOLDER)) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
           }
         }}
         onDrop={(e) => {
           e.preventDefault();
-          const docId = e.dataTransfer.getData('application/nyx-doc-id');
-          if (docId) handleDropDoc(docId, '/');
+          const docId = e.dataTransfer.getData(DRAG_MIME_DOC);
+          if (docId) {
+            handleDropDoc(docId, '/');
+            return;
+          }
+          const folderPath = e.dataTransfer.getData(DRAG_MIME_FOLDER);
+          if (folderPath) {
+            handleDropFolder(folderPath, '/');
+          }
         }}
       >
         {isLoading && (
@@ -1185,6 +1351,7 @@ export function FileTree() {
             onFolderRenameCancel={() => setRenamingFolderPath(null)}
             onDeleteFolder={handleDeleteFolder}
             onDropDoc={handleDropDoc}
+            onDropFolder={handleDropFolder}
           />
         ))}
 
