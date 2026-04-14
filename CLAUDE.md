@@ -110,3 +110,23 @@ pnpm dev
 4. **Do not** modify unrelated code, styles, or configs.
 5. If the fix requires an environment variable or external service that isn't available in CI, output `CANNOT_FIX: <reason>` instead of guessing.
 6. Commit with format: `fix(e2e): <concise description>`.
+
+## Parallel Agents / Worktrees
+
+- When running parallel agent swarms or worktree-based implementations, always ensure branches are pushed/updated BEFORE cleaning up worktrees. Verify merge results by running the full test suite after combining parallel branches.
+
+## CI / Debugging
+
+- Before diagnosing CI failures, first check if the failure is an infrastructure/billing issue (e.g., GitHub Actions runner problems) rather than a code problem. Ask the user or check the raw logs before attempting code fixes.
+
+## Git Workflow
+
+- When fixing bugs, apply changes on the correct branch before editing files. Always verify the current branch with `git branch --show-current` before starting edits.
+
+## Testing
+
+- This project uses TypeScript. Always run the full test suite (`pnpm test`) after multi-file changes, especially after merging parallel agent work. Expect and fix TypeScript errors, mock hoisting issues, and duplicate exports from merges.
+
+## Debugging Guidelines
+
+- When the user reports something isn't working (e.g., 'server not running', 'changes not visible'), verify the actual state before insisting otherwise. Check if the user might be viewing staging vs localhost, or if a service actually crashed.

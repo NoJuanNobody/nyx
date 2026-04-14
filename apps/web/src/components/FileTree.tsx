@@ -205,6 +205,7 @@ function Folder({
   renamingFolderPath,
   onFolderRenameSubmit,
   onFolderRenameCancel,
+  onDeleteFolder,
   onDropDoc,
 }: {
   node: FolderNode;
