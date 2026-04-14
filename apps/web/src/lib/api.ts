@@ -819,8 +819,15 @@ export function fetchGitHubRepos(integrationId: string): Promise<{ repos: GitHub
   return request<{ repos: GitHubRepoItem[] }>(`/integrations/${integrationId}/github/repos`);
 }
 
-export function saveSelectedRepos(integrationId: string, repos: Array<{ owner: string; name: string; fullName: string }>): Promise<{ ok: boolean }> {
-  return request<{ ok: boolean }>(`/integrations/${integrationId}/github/repos`, {
+export interface SaveSelectedReposResponse {
+  ok: boolean;
+  webhookRegistrationEnabled: boolean;
+  failed: Array<{ repo: string; error: string }>;
+  skipped: string[];
+}
+
+export function saveSelectedRepos(integrationId: string, repos: Array<{ owner: string; name: string; fullName: string }>): Promise<SaveSelectedReposResponse> {
+  return request<SaveSelectedReposResponse>(`/integrations/${integrationId}/github/repos`, {
     method: 'PUT',
     body: JSON.stringify({ repos }),
   });
@@ -836,8 +843,19 @@ export interface SyncedRepo {
   linkedDocCount: number;
 }
 
-export function fetchSyncedRepos(integrationId: string): Promise<{ repos: SyncedRepo[] }> {
-  return request<{ repos: SyncedRepo[] }>(`/integrations/${integrationId}/github/synced-repos`);
+export interface SyncedReposResponse {
+  repos: SyncedRepo[];
+  webhookRegistrationEnabled: boolean;
+}
+
+export function fetchSyncedRepos(integrationId: string): Promise<SyncedReposResponse> {
+  return request<SyncedReposResponse>(`/integrations/${integrationId}/github/synced-repos`);
+}
+
+export function reconnectRepo(integrationId: string, repoFullName: string): Promise<{ ok: boolean; fullName: string; webhookId: number; syncStatus: 'active' }> {
+  return request(`/integrations/${integrationId}/github/repos/${encodeURIComponent(repoFullName)}/reconnect`, {
+    method: 'POST',
+  });
 }
 
 export function createGitHubRepo(

@@ -20,7 +20,9 @@ vi.mock('../../lib/api', () => ({
         linkedDocCount: 2,
       },
     ],
+    webhookRegistrationEnabled: true,
   }),
+  reconnectRepo: vi.fn().mockResolvedValue({ ok: true, fullName: 'nyx/app', webhookId: 1, syncStatus: 'active' }),
   fetchGitHubRepos: vi.fn().mockResolvedValue({
     repos: [
       { id: 1, full_name: 'nyx/app', private: false, default_branch: 'main' },

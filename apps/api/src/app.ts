@@ -81,6 +81,14 @@ import { config } from './lib/config.js';
 export function buildApp() {
   const app = Fastify({ logger: true });
 
+  // Surface degraded modes early so operators don't have to read source code
+  // to understand why every synced repo shows as "Disconnected".
+  if (!config.WEBHOOK_BASE_URL) {
+    app.log.warn(
+      'WEBHOOK_BASE_URL not configured — GitHub webhook registration is disabled; all synced repos will appear Disconnected',
+    );
+  }
+
   const allowedOrigins = config.CORS_ORIGINS
     ? config.CORS_ORIGINS.split(',').map(o => o.trim())
     : ['http://localhost:5173'];

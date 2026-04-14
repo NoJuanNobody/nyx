@@ -14,6 +14,40 @@ import { config } from '../lib/config.js';
 // Simple state signing for OAuth CSRF protection
 const STATE_SECRET = config.CLERK_SECRET_KEY ?? randomBytes(32).toString('hex');
 
+// ── Webhook registration helper ──────────────────────────────────────
+// Centralizes webhook creation so PUT /repos, POST /repos/create, and
+// POST /repos/:repoName/reconnect all share the same logic and error shape.
+type WebhookRegistrationResult =
+  | { status: 'ok'; webhookId: number }
+  | { status: 'skipped'; reason: 'webhook_base_url_unset' }
+  | { status: 'error'; error: string };
+
+async function registerRepoWebhook(params: {
+  accessToken: string;
+  owner: string;
+  name: string;
+  webhookSecret: string;
+}): Promise<WebhookRegistrationResult> {
+  const webhookBaseUrl = config.WEBHOOK_BASE_URL;
+  if (!webhookBaseUrl) {
+    return { status: 'skipped', reason: 'webhook_base_url_unset' };
+  }
+
+  try {
+    const hook = await githubService.createWebhook(
+      params.accessToken,
+      params.owner,
+      params.name,
+      `${webhookBaseUrl}/api/webhooks/github`,
+      params.webhookSecret,
+    );
+    return { status: 'ok', webhookId: hook.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error creating webhook';
+    return { status: 'error', error: message };
+  }
+}
+
 function signState(payload: string): string {
   const sig = createHmac('sha256', STATE_SECRET).update(payload).digest('hex');
   return `${Buffer.from(payload).toString('base64url')}.${sig}`;
@@ -534,7 +568,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
     // Generate webhook secret if missing
     const webhookSecret = (cfg.webhookSecret as string) ?? randomBytes(32).toString('hex');
 
-    const webhookBaseUrl = config.WEBHOOK_BASE_URL;
+    const webhookRegistrationEnabled = !!config.WEBHOOK_BASE_URL;
 
     // Diff: find added and removed repos
     const currentNames = new Set(currentRepos.map((r) => r.fullName));
@@ -543,25 +577,30 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
     const removed = currentRepos.filter((r) => !newNames.has(r.fullName));
 
     const updatedWebhookIds = { ...webhookIds };
+    const failed: Array<{ repo: string; error: string }> = [];
+    const skipped: string[] = [];
 
     // Register webhooks for added repos
-    if (webhookBaseUrl) {
-      for (const repo of added) {
-        try {
-          const hook = await githubService.createWebhook(
-            accessToken,
-            repo.owner,
-            repo.name,
-            `${webhookBaseUrl}/api/webhooks/github`,
-            webhookSecret,
-          );
-          updatedWebhookIds[repo.fullName] = hook.id;
-        } catch (err) {
-          request.log.warn({ repo: repo.fullName, err }, 'Failed to create webhook');
-        }
+    for (const repo of added) {
+      const result = await registerRepoWebhook({
+        accessToken,
+        owner: repo.owner,
+        name: repo.name,
+        webhookSecret,
+      });
+      if (result.status === 'ok') {
+        updatedWebhookIds[repo.fullName] = result.webhookId;
+      } else if (result.status === 'error') {
+        request.log.warn({ repo: repo.fullName, err: result.error }, 'Failed to create webhook');
+        failed.push({ repo: repo.fullName, error: result.error });
+      } else {
+        skipped.push(repo.fullName);
       }
+    }
 
-      // Delete webhooks for removed repos
+    // Delete webhooks for removed repos (only when registration is enabled —
+    // otherwise there's nothing to delete server-side)
+    if (webhookRegistrationEnabled) {
       for (const repo of removed) {
         const hookId = webhookIds[repo.fullName];
         if (hookId) {
@@ -583,7 +622,12 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       })
       .where(eq(integrations.id, id));
 
-    return { ok: true };
+    return {
+      ok: true,
+      webhookRegistrationEnabled,
+      failed,
+      skipped,
+    };
   });
 
   // POST /api/integrations/:id/github/repos/create — create a new GitHub repo
@@ -638,7 +682,6 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       const selectedRepos = (cfg.selectedRepos as Array<{ owner: string; name: string; fullName: string }>) ?? [];
       const webhookIds = (cfg.webhookIds as Record<string, number>) ?? {};
       const webhookSecret = (cfg.webhookSecret as string) ?? randomBytes(32).toString('hex');
-      const webhookBaseUrl = config.WEBHOOK_BASE_URL;
 
       const [owner, repoName] = repo.full_name.split('/');
       const newEntry = { owner, name: repoName, fullName: repo.full_name };
@@ -648,20 +691,24 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
         : [...selectedRepos, newEntry];
 
       const updatedWebhookIds = { ...webhookIds };
+      let webhookFailure: string | null = null;
+      let webhookSkipped = false;
 
       // Register webhook for the new repo
-      if (webhookBaseUrl && !webhookIds[repo.full_name]) {
-        try {
-          const hook = await githubService.createWebhook(
-            accessToken,
-            owner,
-            repoName,
-            `${webhookBaseUrl}/api/webhooks/github`,
-            webhookSecret,
-          );
-          updatedWebhookIds[repo.full_name] = hook.id;
-        } catch (webhookErr) {
-          request.log.warn({ repo: repo.full_name, err: webhookErr }, 'Failed to create webhook for newly created repo');
+      if (!webhookIds[repo.full_name]) {
+        const result = await registerRepoWebhook({
+          accessToken,
+          owner,
+          name: repoName,
+          webhookSecret,
+        });
+        if (result.status === 'ok') {
+          updatedWebhookIds[repo.full_name] = result.webhookId;
+        } else if (result.status === 'error') {
+          request.log.warn({ repo: repo.full_name, err: result.error }, 'Failed to create webhook for newly created repo');
+          webhookFailure = result.error;
+        } else {
+          webhookSkipped = true;
         }
       }
 
@@ -674,7 +721,12 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
         .where(eq(integrations.id, id));
 
       reply.code(201);
-      return { repo };
+      return {
+        repo,
+        webhookRegistrationEnabled: !!config.WEBHOOK_BASE_URL,
+        webhookSkipped,
+        webhookError: webhookFailure,
+      };
     } catch (err) {
       if (err instanceof GitHubTokenExpiredError) {
         reply.code(401);
@@ -761,7 +813,98 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       };
     });
 
-    return { repos: enrichedRepos };
+    return {
+      repos: enrichedRepos,
+      webhookRegistrationEnabled: !!config.WEBHOOK_BASE_URL,
+    };
+  });
+
+  // POST /api/integrations/:id/github/repos/:repoName/reconnect — retry webhook
+  // registration for a single repo. Used by the Repositories UI when a repo
+  // shows as "Disconnected" because a previous webhook creation failed
+  // (env was correct, GitHub call errored). Reuses the shared helper so the
+  // success path stays centralized with the bulk save flow.
+  app.post('/:id/github/repos/:repoName/reconnect', { preHandler: [requireRole({ minimumRole: 'admin', source: 'integration' })] }, async (request, reply) => {
+    const { id, repoName } = request.params as { id: string; repoName: string };
+    const fullName = decodeURIComponent(repoName);
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(eq(integrations.id, id));
+
+    if (!integration || integration.type !== 'github') {
+      reply.code(404);
+      return { error: 'GitHub integration not found' };
+    }
+
+    const cfg = integration.config as Record<string, unknown>;
+    const accessToken = cfg.accessToken as string | undefined;
+    const selectedRepos = (cfg.selectedRepos as Array<{ owner: string; name: string; fullName: string }>) ?? [];
+    const webhookIds = (cfg.webhookIds as Record<string, number>) ?? {};
+    const webhookSecret = (cfg.webhookSecret as string) ?? randomBytes(32).toString('hex');
+
+    if (!accessToken) {
+      reply.code(400);
+      return { error: 'GitHub access token is missing. Please reconnect the integration.' };
+    }
+
+    if (!config.WEBHOOK_BASE_URL) {
+      reply.code(503);
+      return {
+        error: 'webhook_registration_disabled',
+        message: 'WEBHOOK_BASE_URL is not configured on the server. Live sync cannot be enabled until an operator sets this environment variable.',
+      };
+    }
+
+    const repo = selectedRepos.find((r) => r.fullName === fullName);
+    if (!repo) {
+      reply.code(404);
+      return { error: 'Repository not found in synced repos' };
+    }
+
+    const result = await registerRepoWebhook({
+      accessToken,
+      owner: repo.owner,
+      name: repo.name,
+      webhookSecret,
+    });
+
+    if (result.status === 'error') {
+      request.log.warn({ repo: fullName, err: result.error }, 'Reconnect: failed to create webhook');
+      reply.code(502);
+      return {
+        error: 'webhook_creation_failed',
+        message: result.error,
+      };
+    }
+
+    // result.status === 'skipped' is unreachable here because we already
+    // checked WEBHOOK_BASE_URL above, but handle it defensively.
+    if (result.status === 'skipped') {
+      reply.code(503);
+      return {
+        error: 'webhook_registration_disabled',
+        message: 'Webhook registration is disabled on the server.',
+      };
+    }
+
+    const updatedWebhookIds = { ...webhookIds, [fullName]: result.webhookId };
+
+    await db
+      .update(integrations)
+      .set({
+        config: { ...cfg, webhookSecret, webhookIds: updatedWebhookIds },
+        updatedAt: new Date(),
+      })
+      .where(eq(integrations.id, id));
+
+    return {
+      ok: true,
+      fullName,
+      webhookId: result.webhookId,
+      syncStatus: 'active' as const,
+    };
   });
 
   // DELETE /api/integrations/:id/github/repos/:repoName — disconnect a single repo
