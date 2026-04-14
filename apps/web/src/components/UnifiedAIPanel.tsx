@@ -93,11 +93,13 @@ export function UnifiedAIPanel({
   // Rebase msgIdRef on mount (or when sessionKey changes) so new IDs don't
   // collide with persisted message IDs from the store.
   useEffect(() => {
+    // Intentionally only re-run when the session key changes; rebase msgIdRef
+    // from the persisted messages' max id so newly appended messages don't
+    // collide. `messages` is deliberately excluded from the dep array.
     const maxId = messages.reduce((acc, m) => (m.id > acc ? m.id : acc), 0);
     if (maxId > msgIdRef.current) {
       msgIdRef.current = maxId;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionKey]);
 
   // Track the latest status without re-running the unmount effect.
@@ -119,8 +121,9 @@ export function UnifiedAIPanel({
         setStatus('idle');
       }
     };
-    // We intentionally only run this on unmount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Intentionally only runs on unmount — abort in-flight stream and reset
+    // a stale 'running' status so the next mount doesn't see a misleading
+    // running indicator. Empty dep array is deliberate.
   }, []);
 
   useEffect(() => {

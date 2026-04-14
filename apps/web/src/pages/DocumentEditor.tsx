@@ -108,9 +108,9 @@ export function DocumentEditor() {
       setTitle(doc.title);
       setContent(doc.content);
     }
-    // We intentionally exclude `title` and `content` from the dep array so
-    // user edits do not re-trigger this effect and overwrite themselves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Intentionally excludes `title` and `content` from the dep array so user
+    // edits don't re-trigger this effect and overwrite themselves. Only re-run
+    // when `id` or the fetched `doc` changes.
   }, [id, doc]);
 
   // Cleanup: cancel any pending debounced save when the route id changes
