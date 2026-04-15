@@ -88,16 +88,6 @@ export function fetchRecentDocuments(teamId: string, limit = 5): Promise<Documen
   );
 }
 
-export function fetchArchivedDocuments(teamId: string): Promise<Document[]> {
-  return request<Document[]>(
-    `/documents?teamId=${encodeURIComponent(teamId)}&includeArchived=true`,
-  ).then((docs) => docs.filter((d) => d.status === 'archived'));
-}
-
-export function restoreDocument(id: string): Promise<Document> {
-  return updateDocument(id, { status: 'draft' });
-}
-
 export function fetchDocument(id: string): Promise<Document> {
   return request<Document>(`/documents/${id}`);
 }

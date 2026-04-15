@@ -13,7 +13,6 @@ vi.mock('../../lib/api', () => ({
     {
       id: 'doc-1',
       title: 'API Spec',
-      status: 'draft',
       path: '/specs',
       teamId: 'team-1',
       updatedAt: '2025-01-01T00:00:00Z',
@@ -21,18 +20,15 @@ vi.mock('../../lib/api', () => ({
     {
       id: 'doc-2',
       title: 'Root Doc',
-      status: 'draft',
       path: '/',
       teamId: 'team-1',
       updatedAt: '2025-01-01T00:00:00Z',
     },
   ]),
-  fetchArchivedDocuments: vi.fn().mockResolvedValue([]),
   fetchTemplates: vi.fn().mockResolvedValue([]),
   createDocument: vi.fn(),
   updateDocument: vi.fn(),
   deleteDocument: vi.fn(),
-  restoreDocument: vi.fn(),
   generateFolderTicketSuggestions: (...args: unknown[]) =>
     mockGenerateFolderTicketSuggestions(...args),
 }));

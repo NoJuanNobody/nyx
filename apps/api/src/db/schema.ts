@@ -1,7 +1,6 @@
 import { pgTable, uuid, text, timestamp, integer, jsonb, pgEnum, boolean, uniqueIndex, index, vector } from 'drizzle-orm/pg-core';
 
 export const userRoleEnum = pgEnum('user_role', ['owner', 'admin', 'developer', 'editor', 'viewer']);
-export const documentStatusEnum = pgEnum('document_status', ['draft', 'published', 'archived']);
 export const ticketProviderEnum = pgEnum('ticket_provider', ['github', 'jira']);
 export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'closed']);
 export const integrationTypeEnum = pgEnum('integration_type', ['github', 'gitlab', 'bitbucket', 'jira', 'confluence']);
@@ -127,7 +126,6 @@ export const documents = pgTable('documents', {
   title: text('title').notNull(),
   content: text('content').notNull().default(''),
   path: text('path').notNull().default('/'),
-  status: documentStatusEnum('status').notNull().default('draft'),
   teamId: uuid('team_id')
     .notNull()
     .references(() => teams.id),
@@ -138,6 +136,10 @@ export const documents = pgTable('documents', {
   lifecycleId: uuid('lifecycle_id').references(() => lifecycles.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  // Soft-delete tombstone (replaced the draft/published/archived enum). NULL
+  // means the document is live; non-NULL means it was soft-deleted at that
+  // timestamp. Every list endpoint filters on `isNull(deletedAt)`.
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });
 
 export const meetingDocuments = pgTable('meeting_documents', {

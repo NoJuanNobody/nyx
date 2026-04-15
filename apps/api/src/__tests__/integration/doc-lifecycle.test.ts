@@ -278,7 +278,6 @@ describe('Integration: Document Lifecycle', () => {
       title: 'First Doc',
       teamId: team.id,
       createdById: user.id,
-      status: 'draft',
       updatedAt: new Date('2025-01-02'),
     });
     const doc2 = makeDocument({
@@ -286,7 +285,6 @@ describe('Integration: Document Lifecycle', () => {
       title: 'Second Doc',
       teamId: team.id,
       createdById: user.id,
-      status: 'published',
       updatedAt: new Date('2025-01-03'),
     });
 
@@ -340,15 +338,14 @@ describe('Integration: Document Lifecycle', () => {
   });
 
   // ────────────────────────────────────────────────────────────────────
-  // 5. Archive a document — it no longer appears in active list
+  // 5. Soft-delete a document — it no longer appears in the active list
   // ────────────────────────────────────────────────────────────────────
-  it('archiving a document excludes it from the active list', async () => {
+  it('soft-deleting a document excludes it from the active list', async () => {
     const doc = makeDocument({
       id: 'doc-archive-1',
-      title: 'To Be Archived',
+      title: 'To Be Deleted',
       teamId: team.id,
       createdById: user.id,
-      status: 'draft',
     });
 
     // Create the document
@@ -361,17 +358,18 @@ describe('Integration: Document Lifecycle', () => {
     const createRes = await app.inject({
       method: 'POST',
       url: '/api/documents',
-      payload: { title: 'To Be Archived', content: '# Archive me', teamId: team.id },
+      payload: { title: 'To Be Deleted', content: '# Delete me', teamId: team.id },
     });
     expect(createRes.statusCode).toBe(201);
 
-    // Archive via DELETE (soft delete)
-    const archivedDoc = { ...doc, status: 'archived', updatedAt: new Date() };
+    // Soft delete via DELETE — sets deletedAt tombstone
+    const now = new Date();
+    const deletedDoc = { ...doc, deletedAt: now, updatedAt: now };
 
     mockDb.update.mockReturnValue({
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([archivedDoc]),
+          returning: vi.fn().mockResolvedValue([deletedDoc]),
         }),
       }),
     } as any);
@@ -383,13 +381,13 @@ describe('Integration: Document Lifecycle', () => {
 
     expect(deleteRes.statusCode).toBe(200);
     const deleted = JSON.parse(deleteRes.body);
-    expect(deleted.status).toBe('archived');
+    expect(deleted.deletedAt).toBeTruthy();
 
-    // Now list documents — the DB returns the archived doc in the raw query,
-    // but the route filters it out by default (includeArchived !== 'true')
+    // Now list documents — the route filters on isNull(deletedAt) at the SQL
+    // layer, so the mock returns the empty active list.
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([archivedDoc]),
+        where: vi.fn().mockResolvedValue([]),
       }),
     } as any);
 
@@ -400,19 +398,26 @@ describe('Integration: Document Lifecycle', () => {
 
     expect(listRes.statusCode).toBe(200);
     const list = JSON.parse(listRes.body);
-    // Archived documents are excluded by default
+    // Soft-deleted documents are excluded by default
     expect(list).toHaveLength(0);
 
-    // With includeArchived=true, it should appear
+    // With includeDeleted=true (or legacy includeArchived=true), the route
+    // skips the isNull filter and the mock returns the tombstoned row.
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([deletedDoc]),
+      }),
+    } as any);
+
     const listAllRes = await app.inject({
       method: 'GET',
-      url: `/api/documents?teamId=${team.id}&includeArchived=true`,
+      url: `/api/documents?teamId=${team.id}&includeDeleted=true`,
     });
 
     expect(listAllRes.statusCode).toBe(200);
     const listAll = JSON.parse(listAllRes.body);
     expect(listAll).toHaveLength(1);
-    expect(listAll[0].status).toBe('archived');
+    expect(listAll[0].deletedAt).toBeTruthy();
   });
 
   // ────────────────────────────────────────────────────────────────────

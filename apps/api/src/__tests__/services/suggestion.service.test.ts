@@ -295,8 +295,8 @@ describe('Suggestion Service', () => {
 
   describe('generateFolderSuggestions', () => {
     it('fetches docs in folder, calls AI, and inserts suggestions', async () => {
-      const doc1 = makeDocument({ id: 'doc-1', path: '/specs', content: 'Spec A content', title: 'Spec A', stage: 'definition', teamId: 'team-1', status: 'draft' });
-      const doc2 = makeDocument({ id: 'doc-2', path: '/specs', content: 'Spec B content', title: 'Spec B', stage: 'architecture', teamId: 'team-1', status: 'draft' });
+      const doc1 = makeDocument({ id: 'doc-1', path: '/specs', content: 'Spec A content', title: 'Spec A', stage: 'definition', teamId: 'team-1' });
+      const doc2 = makeDocument({ id: 'doc-2', path: '/specs', content: 'Spec B content', title: 'Spec B', stage: 'architecture', teamId: 'team-1' });
 
       const aiResults = [
         { title: '[M] Review API contracts', description: 'Review all API contracts', labels: ['spec-review'] },
@@ -352,9 +352,9 @@ describe('Suggestion Service', () => {
     });
 
     it('filters docs to only those in the specified folder path', async () => {
-      const docInFolder = makeDocument({ id: 'doc-1', path: '/specs', content: 'In folder', title: 'In', teamId: 'team-1', status: 'draft' });
-      const docInSubfolder = makeDocument({ id: 'doc-2', path: '/specs/api', content: 'In subfolder', title: 'Sub', teamId: 'team-1', status: 'draft' });
-      const docOutside = makeDocument({ id: 'doc-3', path: '/other', content: 'Outside', title: 'Out', teamId: 'team-1', status: 'draft' });
+      const docInFolder = makeDocument({ id: 'doc-1', path: '/specs', content: 'In folder', title: 'In', teamId: 'team-1' });
+      const docInSubfolder = makeDocument({ id: 'doc-2', path: '/specs/api', content: 'In subfolder', title: 'Sub', teamId: 'team-1' });
+      const docOutside = makeDocument({ id: 'doc-3', path: '/other', content: 'Outside', title: 'Out', teamId: 'team-1' });
 
       // Select returns all draft docs for the team
       mockDb.select.mockReturnValueOnce({

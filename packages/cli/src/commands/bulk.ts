@@ -109,45 +109,10 @@ export function registerBulkCommand(program: Command): void {
       }
     });
 
-  bulk
-    .command('status')
-    .description('Bulk update document status')
-    .option('--team-id <teamId>', 'Team ID')
-    .requiredOption('--status <status>', 'New status (draft|published|archived)')
-    .option('--stage <stage>', 'Filter by lifecycle stage')
-    .option('--format <format>', 'Output format (json|table)', 'json')
-    .action(async (opts: {
-      teamId?: string;
-      status: string;
-      stage?: string;
-      format: OutputFormat;
-    }) => {
-      const teamId = resolveTeamId(opts.teamId);
-      const client = new NyxClient();
-      try {
-        const params = new URLSearchParams({ teamId });
-        if (opts.stage) params.set('stage', opts.stage);
-
-        const docs = await client.get<Document[]>(`/api/documents?${params}`);
-
-        if (!Array.isArray(docs) || docs.length === 0) {
-          process.stderr.write('No documents found.\n');
-          console.log(formatOutput({ updated: 0 }, opts.format));
-          return;
-        }
-
-        let updated = 0;
-        for (const doc of docs) {
-          await client.put(`/api/documents/${doc.id}`, { status: opts.status });
-          updated++;
-        }
-
-        process.stderr.write(`Updated ${updated} document(s) to status "${opts.status}".\n`);
-        console.log(formatOutput({ updated, status: opts.status }, opts.format));
-      } catch (err) {
-        error(err instanceof Error ? err.message : String(err));
-      }
-    });
+  // `nyx bulk status` was removed when the draft/published/archived enum
+  // was retired. Documents are now either live (deletedAt IS NULL) or
+  // soft-deleted (deletedAt IS NOT NULL) — there is no per-doc status to
+  // bulk-update.
 
   bulk
     .command('sync')

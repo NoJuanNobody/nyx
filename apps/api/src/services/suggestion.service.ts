@@ -1,4 +1,4 @@
-import { eq, and, desc, inArray, like } from 'drizzle-orm';
+import { eq, and, desc, inArray, like, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { ticketSuggestions, documents, documentVersions, integrations } from '../db/schema.js';
 import { aiService } from './ai.service.js';
@@ -266,7 +266,7 @@ export const suggestionService = {
       .where(
         and(
           eq(documents.teamId, teamId),
-          eq(documents.status, 'draft'),
+          isNull(documents.deletedAt),
         ),
       );
 

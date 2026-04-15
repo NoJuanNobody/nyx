@@ -44,15 +44,15 @@ export async function executeTool(
         .where(eq(documents.id, input.document_id as string))
         .limit(1);
       if (!doc) throw new Error('Document not found');
-      return { id: doc.id, title: doc.title, content: doc.content, status: doc.status, path: doc.path };
+      return { id: doc.id, title: doc.title, content: doc.content, path: doc.path };
     }
 
     case 'list_documents': {
       const teamId = (input.team_id as string) || ctx.teamId;
       const docs = await db
-        .select({ id: documents.id, title: documents.title, status: documents.status, path: documents.path })
+        .select({ id: documents.id, title: documents.title, path: documents.path })
         .from(documents)
-        .where(eq(documents.teamId, teamId));
+        .where(and(eq(documents.teamId, teamId), isNull(documents.deletedAt)));
       return docs;
     }
 
@@ -69,7 +69,7 @@ export async function executeTool(
         .where(eq(documents.id, docId))
         .returning();
       if (!updated) throw new Error('Document not found');
-      return { id: updated.id, title: updated.title, status: updated.status };
+      return { id: updated.id, title: updated.title, updatedAt: updated.updatedAt };
     }
 
     case 'get_version_diff': {
@@ -400,7 +400,7 @@ export async function executeTool(
         })
         .returning();
 
-      return { id: created.id, title: created.title, status: created.status, stage: created.stage };
+      return { id: created.id, title: created.title, stage: created.stage };
     }
 
     case 'delete_document': {
@@ -408,14 +408,15 @@ export async function executeTool(
       const docId = input.document_id as string;
       if (!docId) throw new Error('delete_document requires document_id');
 
+      const now = new Date();
       const [updated] = await db
         .update(documents)
-        .set({ status: 'archived', updatedAt: new Date() })
+        .set({ deletedAt: now, updatedAt: now })
         .where(eq(documents.id, docId))
         .returning();
       if (!updated) throw new Error('Document not found');
 
-      return { id: updated.id, title: updated.title, status: updated.status };
+      return { id: updated.id, title: updated.title, deletedAt: updated.deletedAt };
     }
 
     case 'list_versions': {

@@ -65,8 +65,8 @@ test.describe('File Tree', () => {
     await expect(page.locator('aside').locator('text=API Specification')).toBeHidden({ timeout: 5_000 });
   });
 
-  // ── 26.4b: Delete a document moves it to Trash ──────────────────
-  test('26.4b — delete document moves it to Trash', async ({ authenticatedPage: page }) => {
+  // ── 26.4b: Delete removes a document from the tree ──────────────
+  test('26.4b — delete document removes it from the tree', async ({ authenticatedPage: page }) => {
     // Wait for file tree to load
     await expect(page.locator('aside').locator('text=Architecture Overview')).toBeVisible({ timeout: 10_000 });
 
@@ -78,26 +78,8 @@ test.describe('File Tree', () => {
     await expect(deleteButton).toBeVisible({ timeout: 3_000 });
     await deleteButton.click();
 
-    // The document should disappear from the active file tree
+    // The document should disappear from the file tree
     await expect(page.locator('aside').locator('text=Architecture Overview')).toBeHidden({ timeout: 5_000 });
-
-    // Open Trash and verify it moved there
-    const trashToggle = page.locator(SEL.fileTree.trashToggle);
-    await trashToggle.click();
-    await expect(page.locator('aside').locator('text=Architecture Overview')).toBeVisible({ timeout: 5_000 });
-  });
-
-  // ── 26.5: Archived doc visible in Trash section ─────────────────
-  test('26.5 — archived doc visible in Trash section', async ({ authenticatedPage: page }) => {
-    // Click the Trash toggle to expand the trash section
-    const trashToggle = page.locator(SEL.fileTree.trashToggle);
-    await expect(trashToggle).toBeVisible({ timeout: 5_000 });
-    await trashToggle.click();
-
-    // Verify the seeded archived document appears
-    await expect(
-      page.locator('aside').locator('text=Deprecated Guide'),
-    ).toBeVisible({ timeout: 5_000 });
   });
 
   // ── 26.7: Reorganize nested folders via drag-and-drop (#335) ────
@@ -201,24 +183,4 @@ test.describe('File Tree', () => {
     expect(stored).not.toContain('/A/Child');
   });
 
-  // ── 26.6: Restore document from Trash ───────────────────────────
-  test('26.6 — restore document from Trash', async ({ authenticatedPage: page }) => {
-    // Open the Trash section
-    const trashToggle = page.locator(SEL.fileTree.trashToggle);
-    await expect(trashToggle).toBeVisible({ timeout: 5_000 });
-    await trashToggle.click();
-
-    // Find the deprecated doc trash row — it's a <div> containing the doc title with line-through
-    const trashRow = page.locator('aside div').filter({ hasText: 'Deprecated Guide' }).last();
-    await expect(trashRow).toBeVisible({ timeout: 5_000 });
-
-    // Hover the row to reveal the Restore button (React state toggles on mouseEnter)
-    await trashRow.hover();
-    const restoreButton = trashRow.locator('button[title="Restore"]');
-    await expect(restoreButton).toBeVisible({ timeout: 3_000 });
-    await restoreButton.click();
-
-    // After restoring, the document should no longer be in trash
-    await expect(page.locator('aside').locator('text=Deprecated Guide')).toBeHidden({ timeout: 5_000 });
-  });
 });

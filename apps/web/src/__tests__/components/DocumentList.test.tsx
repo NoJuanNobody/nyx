@@ -13,8 +13,8 @@ vi.mock('react-router-dom', async () => {
 const mockApi = vi.hoisted(() => ({
   fetchTeams: vi.fn().mockResolvedValue([{ id: 'team-1', name: 'Test Team' }]),
   fetchDocuments: vi.fn().mockResolvedValue([
-    { id: 'doc-1', title: 'Feature Spec', content: '# Feature', status: 'draft', updatedAt: '2026-01-15T00:00:00Z' },
-    { id: 'doc-2', title: 'API Design', content: '# API', status: 'published', updatedAt: '2026-01-14T00:00:00Z' },
+    { id: 'doc-1', title: 'Feature Spec', content: '# Feature', updatedAt: '2026-01-15T00:00:00Z' },
+    { id: 'doc-2', title: 'API Design', content: '# API', updatedAt: '2026-01-14T00:00:00Z' },
   ]),
   createDocument: vi.fn().mockResolvedValue({ id: 'new-doc-1' }),
   generateAllDocuments: vi.fn().mockResolvedValue({
@@ -46,8 +46,8 @@ describe('DocumentList', () => {
     vi.clearAllMocks();
     mockApi.fetchTeams.mockResolvedValue([{ id: 'team-1', name: 'Test Team' }]);
     mockApi.fetchDocuments.mockResolvedValue([
-      { id: 'doc-1', title: 'Feature Spec', content: '# Feature', status: 'draft', updatedAt: '2026-01-15T00:00:00Z' },
-      { id: 'doc-2', title: 'API Design', content: '# API', status: 'published', updatedAt: '2026-01-14T00:00:00Z' },
+      { id: 'doc-1', title: 'Feature Spec', content: '# Feature', updatedAt: '2026-01-15T00:00:00Z' },
+      { id: 'doc-2', title: 'API Design', content: '# API', updatedAt: '2026-01-14T00:00:00Z' },
     ]);
     mockApi.generateAllDocuments.mockResolvedValue({
       results: [

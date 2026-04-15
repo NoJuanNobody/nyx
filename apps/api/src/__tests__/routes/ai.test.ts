@@ -5,13 +5,21 @@ import { ZodError } from 'zod';
 import { aiRoutes } from '../../routes/ai.js';
 
 vi.mock('../../db/schema.js', () => ({
-  documents: { id: 'id', teamId: 'teamId', status: 'status', title: 'title', content: 'content', stage: 'stage' },
+  documents: {
+    id: 'id',
+    teamId: 'teamId',
+    title: 'title',
+    content: 'content',
+    stage: 'stage',
+    deletedAt: 'deletedAt',
+  },
   integrations: { teamId: 'teamId', type: 'type', config: 'config' },
 }));
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn((...args: unknown[]) => args),
   and: vi.fn((...args: unknown[]) => args),
+  isNull: vi.fn((col: unknown) => ['isNull', col]),
 }));
 
 const mockAiService = vi.hoisted(() => ({
@@ -386,8 +394,8 @@ describe('AI Routes', () => {
 
   it('POST /api/ai/generate-all generates content for all documents', async () => {
     const mockDocs = [
-      { id: 'doc-1', title: 'Feature Spec', content: '', status: 'draft', teamId: 'team-1' },
-      { id: 'doc-2', title: 'API Design', content: '', status: 'published', teamId: 'team-1' },
+      { id: 'doc-1', title: 'Feature Spec', content: '', teamId: 'team-1', deletedAt: null },
+      { id: 'doc-2', title: 'API Design', content: '', teamId: 'team-1', deletedAt: null },
     ];
 
     // Mock db.select for fetching documents
@@ -431,8 +439,8 @@ describe('AI Routes', () => {
 
   it('POST /api/ai/generate-all handles partial failures gracefully', async () => {
     const mockDocs = [
-      { id: 'doc-1', title: 'Good Doc', content: '', status: 'draft', teamId: 'team-1' },
-      { id: 'doc-2', title: 'Bad Doc', content: '', status: 'draft', teamId: 'team-1' },
+      { id: 'doc-1', title: 'Good Doc', content: '', teamId: 'team-1', deletedAt: null },
+      { id: 'doc-2', title: 'Bad Doc', content: '', teamId: 'team-1', deletedAt: null },
     ];
 
     const selectChain = {
@@ -471,10 +479,12 @@ describe('AI Routes', () => {
     expect(body.results[1].error).toBe('AI provider error');
   });
 
-  it('POST /api/ai/generate-all skips archived documents', async () => {
+  it('POST /api/ai/generate-all only processes live (non-deleted) documents', async () => {
+    // Soft-deleted docs are filtered out at the SQL layer via
+    // isNull(documents.deletedAt), so the mock simulates the DB returning
+    // only the one live row.
     const mockDocs = [
-      { id: 'doc-1', title: 'Active Doc', content: '', status: 'draft', teamId: 'team-1' },
-      { id: 'doc-2', title: 'Archived Doc', content: '', status: 'archived', teamId: 'team-1' },
+      { id: 'doc-1', title: 'Active Doc', content: '', teamId: 'team-1', deletedAt: null },
     ];
 
     const selectChain = {

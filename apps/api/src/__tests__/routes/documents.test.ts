@@ -132,8 +132,8 @@ describe('Document Routes', () => {
     expect(setArg).toHaveProperty('content', '# Updated content');
   });
 
-  it('DELETE /api/documents/:id soft-deletes (archives)', async () => {
-    const doc = makeDocument({ status: 'archived' });
+  it('DELETE /api/documents/:id soft-deletes via deletedAt tombstone', async () => {
+    const doc = makeDocument({ deletedAt: new Date() });
 
     mockDb.update.mockReturnValue({
       set: vi.fn().mockReturnValue({
@@ -151,7 +151,7 @@ describe('Document Routes', () => {
 
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body.status).toBe('archived');
+    expect(body.deletedAt).toBeTruthy();
   });
 
   it('GET /api/documents/:id returns 404 for missing doc', async () => {

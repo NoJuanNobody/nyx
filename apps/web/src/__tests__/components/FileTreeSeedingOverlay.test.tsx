@@ -11,18 +11,15 @@ vi.mock('../../lib/api', () => ({
     {
       id: 'doc-1',
       title: 'Test Document',
-      status: 'draft',
       path: '/',
       teamId: 'team-1',
       updatedAt: '2025-01-01T00:00:00Z',
     },
   ]),
-  fetchArchivedDocuments: vi.fn().mockResolvedValue([]),
   fetchTemplates: vi.fn().mockResolvedValue([]),
   createDocument: vi.fn(),
   updateDocument: vi.fn(),
   deleteDocument: vi.fn(),
-  restoreDocument: vi.fn(),
 }));
 
 function renderComponent() {

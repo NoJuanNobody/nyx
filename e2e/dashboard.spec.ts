@@ -12,17 +12,13 @@ test.describe('Dashboard', () => {
     await expect(main.locator('text=Quick Start')).toBeVisible();
   });
 
-  test('D.2 — document cards show title and status badge', async ({ authenticatedPage: page }) => {
+  test('D.2 — document cards show title', async ({ authenticatedPage: page }) => {
     await expect(page.locator(SEL.dashboard.title)).toBeVisible({ timeout: 10_000 });
 
     // Each document row is a link to /documents/:id
     const docRows = page.locator(SEL.dashboard.docRow);
     await expect(docRows.first()).toBeVisible({ timeout: 10_000 });
     expect(await docRows.count()).toBeGreaterThanOrEqual(1);
-
-    // At least one badge with a status like "draft" or "published" should be visible
-    const badge = page.locator('text=/draft|published|archived/i').first();
-    await expect(badge).toBeVisible({ timeout: 5_000 });
   });
 
   // Skip: DocumentList always uses first team from fetchTeams(), not the auth store's currentTeamId

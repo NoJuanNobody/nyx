@@ -110,11 +110,11 @@ function makeDocResponse(d: DocFixture) {
   return {
     ...d,
     path: '/',
-    status: 'draft',
     createdById: 'user-1',
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
     stage: null,
+    deletedAt: null,
   };
 }
 

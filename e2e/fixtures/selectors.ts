@@ -23,7 +23,6 @@ export const SEL = {
   // ── File Tree ────────────────────────────────────────
   fileTree: {
     docLink: (id: string) => `a[href="/app/documents/${id}"]`,
-    trashToggle: 'button:has-text("Trash")',
   },
 
   // ── Dashboard ────────────────────────────────────────

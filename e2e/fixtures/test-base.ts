@@ -30,49 +30,35 @@ const SEEDED_DOCUMENTS = [
   {
     id: SEED.DOC_API_SPEC_ID,
     title: 'API Specification',
-    content: `# API Specification\n\n## Authentication\n\nAll API endpoints require authentication via Bearer token (JWT or API key).\n\n### Endpoints\n\n| Method | Path | Description |\n|--------|------|-------------|\n| GET | /api/documents | List all documents |\n| POST | /api/documents | Create a document |\n| GET | /api/documents/:id | Get document by ID |\n| PUT | /api/documents/:id | Update document |\n| DELETE | /api/documents/:id | Archive document |\n\n### Request Headers\n\n\`\`\`\nAuthorization: Bearer <token>\nContent-Type: application/json\n\`\`\`\n\n## Rate Limiting\n\nAPI requests are rate-limited to **100 requests per minute** per API key.\n\n### Error Responses\n\n\`\`\`json\n{\n  "error": "Rate limit exceeded",\n  "retryAfter": 60\n}\n\`\`\`\n`,
+    content: `# API Specification\n\n## Authentication\n\nAll API endpoints require authentication via Bearer token (JWT or API key).\n\n### Endpoints\n\n| Method | Path | Description |\n|--------|------|-------------|\n| GET | /api/documents | List all documents |\n| POST | /api/documents | Create a document |\n| GET | /api/documents/:id | Get document by ID |\n| PUT | /api/documents/:id | Update document |\n| DELETE | /api/documents/:id | Delete document |\n\n### Request Headers\n\n\`\`\`\nAuthorization: Bearer <token>\nContent-Type: application/json\n\`\`\`\n\n## Rate Limiting\n\nAPI requests are rate-limited to **100 requests per minute** per API key.\n\n### Error Responses\n\n\`\`\`json\n{\n  "error": "Rate limit exceeded",\n  "retryAfter": 60\n}\n\`\`\`\n`,
     path: '/api',
-    status: 'draft',
     teamId: SEED.DEFAULT_TEAM_ID,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
+    deletedAt: null,
   },
   {
     id: SEED.DOC_ARCHITECTURE_ID,
     title: 'Architecture Overview',
     content: '# Architecture Overview\n\n## System Design\n\nNyx uses a monorepo architecture.',
     path: '/',
-    status: 'published',
     teamId: SEED.DEFAULT_TEAM_ID,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
+    deletedAt: null,
   },
   {
     id: SEED.DOC_QUICKSTART_ID,
     title: 'Quick Start',
     content: '# Quick Start\n\nGet up and running with Nyx in 5 minutes.',
     path: '/',
-    status: 'draft',
     teamId: SEED.DEFAULT_TEAM_ID,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
-  },
-];
-
-const SEEDED_ARCHIVED_DOCS = [
-  {
-    id: SEED.DOC_DEPRECATED_ID,
-    title: 'Deprecated Guide',
-    content: '# Deprecated Guide\n\nThis document is no longer maintained.',
-    path: '/api',
-    status: 'archived',
-    teamId: SEED.DEFAULT_TEAM_ID,
-    createdById: SEED.DEV_USER_ID,
-    createdAt: '2025-01-01T00:00:00Z',
-    updatedAt: '2025-01-01T00:00:00Z',
+    deletedAt: null,
   },
 ];
 
@@ -82,11 +68,11 @@ const SEEDED_SECOND_TEAM_DOCS = [
     title: 'Second Team Doc',
     content: '# Second Team\n\nDocumentation for the second team.',
     path: '/',
-    status: 'draft',
     teamId: SEED.SECOND_TEAM_ID,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
+    deletedAt: null,
   },
 ];
 
@@ -407,7 +393,6 @@ const SEEDED_TEMPLATES = [
 
 let _newDocCounter = 0;
 let _createdDocs: Array<Record<string, unknown>> = [];
-let _restoredDocIds: Set<string> = new Set();
 let _deletedDocIds: Set<string> = new Set();
 let _generatedProposals: Array<Record<string, unknown>> = [];
 
@@ -415,7 +400,6 @@ async function setupApiMocks(page: Page) {
   // Reset per-test mutable state
   _newDocCounter = 0;
   _createdDocs = [];
-  _restoredDocIds = new Set();
   _deletedDocIds = new Set();
   _generatedProposals = [];
 
@@ -656,16 +640,10 @@ async function setupApiMocks(page: Page) {
     const isListRoute = /\/api\/documents$/.test(pathname);
     if (isListRoute && method === 'GET') {
       const teamIdParam = urlObj.searchParams.get('teamId');
-      const includeArchived = urlObj.searchParams.get('includeArchived');
       if (teamIdParam === SEED.SECOND_TEAM_ID) {
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SEEDED_SECOND_TEAM_DOCS) });
       }
-      const activeDocs = SEEDED_DOCUMENTS.filter((d) => !_deletedDocIds.has(d.id));
-      const newlyDeleted = SEEDED_DOCUMENTS.filter((d) => _deletedDocIds.has(d.id)).map((d) => ({ ...d, status: 'archived' }));
-      const archivedDocs = [...SEEDED_ARCHIVED_DOCS.filter((d) => !_restoredDocIds.has(d.id)), ...newlyDeleted];
-      const docs = includeArchived === 'true'
-        ? [...activeDocs, ...archivedDocs]
-        : activeDocs;
+      const docs = SEEDED_DOCUMENTS.filter((d) => !_deletedDocIds.has(d.id));
 
       const sortParam = urlObj.searchParams.get('sort');
       const limitParam = urlObj.searchParams.get('limit');
@@ -693,11 +671,11 @@ async function setupApiMocks(page: Page) {
         title: body.title ?? 'Untitled Document',
         content: body.content ?? '',
         path: body.path ?? '/',
-        status: 'draft',
         teamId: body.teamId ?? SEED.DEFAULT_TEAM_ID,
         createdById: SEED.DEV_USER_ID,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        deletedAt: null,
       };
       _createdDocs.push(newDoc);
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(newDoc) });
@@ -708,7 +686,7 @@ async function setupApiMocks(page: Page) {
     if (singleDocMatch) {
       const docId = singleDocMatch[1];
       if (method === 'GET') {
-        const allDocs = [...SEEDED_DOCUMENTS, ...SEEDED_ARCHIVED_DOCS, ...SEEDED_SECOND_TEAM_DOCS, ..._createdDocs];
+        const allDocs = [...SEEDED_DOCUMENTS, ...SEEDED_SECOND_TEAM_DOCS, ..._createdDocs];
         const doc = allDocs.find((d) => d.id === docId);
         if (doc) {
           return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(doc) });
@@ -721,28 +699,25 @@ async function setupApiMocks(page: Page) {
           title: 'Untitled Document',
           content: '',
           path: '/',
-          status: 'draft',
           teamId: SEED.DEFAULT_TEAM_ID,
           createdById: SEED.DEV_USER_ID,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          deletedAt: null,
         };
         return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(newDoc) });
       }
       if (method === 'PUT') {
-        const allDocs = [...SEEDED_DOCUMENTS, ...SEEDED_ARCHIVED_DOCS, ...SEEDED_SECOND_TEAM_DOCS, ..._createdDocs];
+        const allDocs = [...SEEDED_DOCUMENTS, ...SEEDED_SECOND_TEAM_DOCS, ..._createdDocs];
         const doc = allDocs.find((d) => d.id === docId);
         const body = route.request().postDataJSON?.() ?? {};
-        // Track status changes (e.g., restoring from trash sets status to 'draft')
-        if (body.status === 'draft' && SEEDED_ARCHIVED_DOCS.some((d) => d.id === docId)) {
-          _restoredDocIds.add(docId);
-        }
         const updated = { ...(doc ?? SEEDED_DOCUMENTS[0]), ...body, updatedAt: new Date().toISOString() };
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(updated) });
       }
       if (method === 'DELETE') {
         _deletedDocIds.add(docId);
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: docId, status: 'archived' }) });
+        const now = new Date().toISOString();
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: docId, deletedAt: now }) });
       }
     }
 

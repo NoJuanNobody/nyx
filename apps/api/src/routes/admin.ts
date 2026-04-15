@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { inArray, and, eq, ne, desc } from 'drizzle-orm';
+import { inArray, and, eq, desc, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { teamMembers, teams, users, documents } from '../db/schema.js';
 import { config } from '../lib/config.js';
@@ -59,12 +59,11 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
 
     const teamIds = allTeams.map((t) => t.teamId);
 
-    // Fetch all non-archived documents from relevant teams
+    // Fetch all non-deleted documents from relevant teams
     const docs = await db
       .select({
         id: documents.id,
         title: documents.title,
-        status: documents.status,
         stage: documents.stage,
         path: documents.path,
         teamId: documents.teamId,
@@ -80,7 +79,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
       .where(
         and(
           inArray(documents.teamId, teamIds),
-          ne(documents.status, 'archived'),
+          isNull(documents.deletedAt),
         ),
       )
       .orderBy(desc(documents.updatedAt));

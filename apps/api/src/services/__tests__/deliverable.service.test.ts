@@ -53,7 +53,7 @@ describe('deliverableService', () => {
 
   describe('generateDeliverable', () => {
     it('generates a markdown deliverable', async () => {
-      const doc = { id: 'doc-1', title: 'Test Doc', content: '# Hello', status: 'draft' };
+      const doc = { id: 'doc-1', title: 'Test Doc', content: '# Hello' };
       const insertedDeliverable = {
         id: 'del-1',
         documentId: 'doc-1',
@@ -62,7 +62,7 @@ describe('deliverableService', () => {
         fileName: 'Test_Doc_definition.md',
         fileUrl: '/deliverables/doc-1/Test_Doc_definition.md',
         generatedAt: new Date().toISOString(),
-        metadata: { title: 'Test Doc', status: 'draft' },
+        metadata: { title: 'Test Doc' },
       };
 
       // Mock select for document lookup
@@ -82,7 +82,7 @@ describe('deliverableService', () => {
     });
 
     it('generates a pdf deliverable', async () => {
-      const doc = { id: 'doc-1', title: 'Test Doc', content: '# Hello', status: 'draft' };
+      const doc = { id: 'doc-1', title: 'Test Doc', content: '# Hello' };
       const insertedDeliverable = {
         id: 'del-2',
         documentId: 'doc-1',
@@ -107,7 +107,7 @@ describe('deliverableService', () => {
     });
 
     it('generates a report deliverable', async () => {
-      const doc = { id: 'doc-1', title: 'My Report', content: 'content', status: 'published' };
+      const doc = { id: 'doc-1', title: 'My Report', content: 'content' };
       const insertedDeliverable = {
         id: 'del-3',
         documentId: 'doc-1',
@@ -142,7 +142,7 @@ describe('deliverableService', () => {
     });
 
     it('returns null when pdf export fails', async () => {
-      const doc = { id: 'doc-1', title: 'Test', content: '', status: 'draft' };
+      const doc = { id: 'doc-1', title: 'Test', content: '' };
       mockDb.select.mockReturnValue(chainable([doc]));
       mockExportService.toPdf.mockResolvedValue(null);
 
@@ -156,7 +156,7 @@ describe('deliverableService', () => {
     });
 
     it('returns null when markdown export fails', async () => {
-      const doc = { id: 'doc-1', title: 'Test', content: '', status: 'draft' };
+      const doc = { id: 'doc-1', title: 'Test', content: '' };
       mockDb.select.mockReturnValue(chainable([doc]));
       mockExportService.toMarkdown.mockResolvedValue(null);
 

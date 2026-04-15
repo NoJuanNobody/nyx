@@ -39,7 +39,7 @@ describe('Agent Executor', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
   it('read_document returns document data', async () => {
-    const doc = { id: 'doc-1', title: 'Test', content: '# Hello', status: 'draft', path: '/' };
+    const doc = { id: 'doc-1', title: 'Test', content: '# Hello', path: '/' };
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
@@ -49,7 +49,7 @@ describe('Agent Executor', () => {
     } as any);
 
     const result = await executeTool('read_document', { document_id: 'doc-1' }, ctx);
-    expect(result).toEqual({ id: 'doc-1', title: 'Test', content: '# Hello', status: 'draft', path: '/' });
+    expect(result).toEqual({ id: 'doc-1', title: 'Test', content: '# Hello', path: '/' });
   });
 
   it('read_document throws if not found', async () => {
@@ -65,7 +65,7 @@ describe('Agent Executor', () => {
   });
 
   it('list_documents returns documents', async () => {
-    const docs = [{ id: 'doc-1', title: 'T', status: 'draft', path: '/' }];
+    const docs = [{ id: 'doc-1', title: 'T', path: '/' }];
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue(docs),
@@ -77,7 +77,8 @@ describe('Agent Executor', () => {
   });
 
   it('update_document updates and returns doc', async () => {
-    const updated = { id: 'doc-1', title: 'New', status: 'draft' };
+    const updatedAt = new Date('2026-01-15T00:00:00Z');
+    const updated = { id: 'doc-1', title: 'New', updatedAt };
     mockDb.update.mockReturnValue({
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
@@ -87,7 +88,7 @@ describe('Agent Executor', () => {
     } as any);
 
     const result = await executeTool('update_document', { document_id: 'doc-1', title: 'New' }, ctx);
-    expect(result).toEqual({ id: 'doc-1', title: 'New', status: 'draft' });
+    expect(result).toEqual({ id: 'doc-1', title: 'New', updatedAt });
   });
 
   it('update_document throws for viewer role', async () => {

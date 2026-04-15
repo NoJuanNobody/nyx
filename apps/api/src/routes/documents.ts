@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { eq } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { documents, documentTemplates } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
@@ -23,17 +23,22 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       return { error: 'teamId query parameter is required' };
     }
 
-    const rows = await db
-      .select()
-      .from(documents)
-      .where(eq(documents.teamId, teamId));
+    // Filter out soft-deleted documents (deletedAt IS NOT NULL) unless the
+    // caller explicitly asks for them via ?includeDeleted=true. The legacy
+    // ?includeArchived=true query string continues to work as an alias for
+    // backwards compat with older clients.
+    const includeDeleted =
+      includeArchived === 'true' ||
+      (request.query as { includeDeleted?: string }).includeDeleted === 'true';
+
+    const rows = includeDeleted
+      ? await db.select().from(documents).where(eq(documents.teamId, teamId))
+      : await db
+          .select()
+          .from(documents)
+          .where(and(eq(documents.teamId, teamId), isNull(documents.deletedAt)));
 
     let filtered = rows;
-
-    // Filter out archived documents by default
-    if (includeArchived !== 'true') {
-      filtered = filtered.filter((doc) => doc.status !== 'archived');
-    }
 
     // Filter by stage if provided
     if (stage) {
@@ -192,7 +197,6 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       title?: string;
       content?: string;
       path?: string;
-      status?: 'draft' | 'published' | 'archived';
       stage?: string | null;
     };
 
@@ -228,7 +232,6 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
     if ('title' in body) updates.title = body.title;
     if ('content' in body) updates.content = body.content;
     if ('path' in body) updates.path = body.path;
-    if ('status' in body) updates.status = body.status;
     if ('stage' in body) updates.stage = body.stage;
 
     const [doc] = await db
@@ -280,14 +283,15 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
     return doc;
   });
 
-  // DELETE /api/documents/:id — soft delete (set status to 'archived')
+  // DELETE /api/documents/:id — soft delete (set deletedAt tombstone)
   // admins+ can delete
   app.delete('/:id', { preHandler: [requireRole({ minimumRole: 'admin', source: 'document' })] }, async (request, reply) => {
     const { id } = request.params as { id: string };
 
+    const now = new Date();
     const [doc] = await db
       .update(documents)
-      .set({ status: 'archived', updatedAt: new Date() })
+      .set({ deletedAt: now, updatedAt: now })
       .where(eq(documents.id, id))
       .returning();
 

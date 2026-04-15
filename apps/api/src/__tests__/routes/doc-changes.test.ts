@@ -75,14 +75,12 @@ describe('GET /changes', () => {
         id: 'doc-1',
         title: 'API Auth Guide',
         updatedAt: now,
-        status: 'published',
         stage: 'implementation',
       },
       {
         id: 'doc-2',
         title: 'Getting Started',
         updatedAt: new Date('2026-03-15T09:00:00Z'),
-        status: 'draft',
         stage: 'definition',
       },
     ];

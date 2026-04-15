@@ -90,9 +90,9 @@ export function registerSyncCommand(program: Command): void {
         let updated = 0;
         let unchanged = 0;
 
+        // The API already filters out soft-deleted documents by default
+        // (deletedAt IS NOT NULL). No per-doc filter needed here.
         for (const doc of docs) {
-          if (doc.status === 'archived') continue;
-
           const filePath = localFilePath(doc.path, doc.title);
           const absPath = join(cwd, filePath);
           const existing = manifest.docs[filePath];

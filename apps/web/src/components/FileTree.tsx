@@ -4,11 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Document, DocumentTemplate } from '@nyx/shared';
 import {
   fetchDocuments,
-  fetchArchivedDocuments,
   createDocument,
   updateDocument,
   deleteDocument,
-  restoreDocument,
   fetchTeams,
   fetchTemplates,
 } from '../lib/api';
@@ -540,11 +538,6 @@ function DocItem({
     e.dataTransfer.setData('application/nyx-doc-id', doc.id);
     e.dataTransfer.effectAllowed = 'move';
   };
-  const statusDot: Record<string, string> = {
-    draft: 'bg-amber-400',
-    published: 'bg-green-400',
-    archived: 'bg-slate-300',
-  };
 
   const activeLifecycleSlug = useUIStore((s) => s.activeLifecycleSlug);
   const [showActions, setShowActions] = useState(false);
@@ -602,7 +595,6 @@ function DocItem({
             </span>
           ) : null;
         })()}
-        <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${statusDot[doc.status] ?? 'bg-slate-300'}`} />
       </NavLink>
 
       {/* Hover action buttons */}
@@ -645,44 +637,6 @@ function DocItem({
   );
 }
 
-// ── Trash item ────────────────────────────────────────
-
-function TrashItem({
-  doc,
-  onRestore,
-}: {
-  doc: Document;
-  onRestore: (id: string) => void;
-}) {
-  const [showActions, setShowActions] = useState(false);
-
-  return (
-    <div
-      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-slate-400 hover:bg-slate-100/60 transition-colors"
-      style={{ paddingLeft: '20px' }}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <svg className="h-3.5 w-3.5 flex-shrink-0 opacity-40" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-      </svg>
-      <span className="flex-1 truncate text-xs line-through">{doc.title || 'Untitled'}</span>
-      {showActions && (
-        <button
-          type="button"
-          title="Restore"
-          onClick={() => onRestore(doc.id)}
-          className="rounded p-0.5 text-slate-400 hover:text-green-600 hover:bg-green-50"
-        >
-          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
-          </svg>
-        </button>
-      )}
-    </div>
-  );
-}
-
 // ── Main FileTree component ───────────────────────────
 
 export function FileTree() {
@@ -695,7 +649,6 @@ export function FileTree() {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [renamingDocId, setRenamingDocId] = useState<string | null>(null);
   const [renamingFolderPath, setRenamingFolderPath] = useState<string | null>(null);
-  const [showTrash, setShowTrash] = useState(false);
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [bulkTicketFolderPath, setBulkTicketFolderPath] = useState<string | null>(null);
@@ -715,12 +668,6 @@ export function FileTree() {
     queryKey: ['documents', teamId],
     queryFn: () => fetchDocuments(teamId!),
     enabled: !!teamId,
-  });
-
-  const { data: archivedDocs } = useQuery<Document[]>({
-    queryKey: ['documents', teamId, 'archived'],
-    queryFn: () => fetchArchivedDocuments(teamId!),
-    enabled: !!teamId && showTrash,
   });
 
   // Pre-fetch templates so context menu opens instantly
@@ -806,14 +753,6 @@ export function FileTree() {
       if (location.pathname === `/app/documents/${deletedId}`) {
         navigate('/app/dashboard');
       }
-    },
-  });
-
-  const restoreMutation = useMutation({
-    mutationFn: (id: string) => restoreDocument(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
-      queryClient.invalidateQueries({ queryKey: ['documents', teamId, 'archived'] });
     },
   });
 
@@ -1377,50 +1316,6 @@ export function FileTree() {
             onRenameCancel={() => setRenamingDocId(null)}
           />
         ))}
-      </div>
-
-      {/* Trash section */}
-      <div className="border-t border-slate-200">
-        <button
-          type="button"
-          onClick={() => setShowTrash((v) => !v)}
-          className="flex w-full items-center gap-2 px-4 py-2 text-xs text-slate-400 hover:bg-slate-50 transition-colors"
-        >
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-          </svg>
-          <span className="font-medium">Trash</span>
-          {archivedDocs && archivedDocs.length > 0 && (
-            <span className="ml-auto rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-              {archivedDocs.length}
-            </span>
-          )}
-          <svg
-            className={`h-3 w-3 ml-auto transition-transform ${showTrash ? 'rotate-180' : ''}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-          </svg>
-        </button>
-
-        {showTrash && (
-          <div className="max-h-48 overflow-y-auto pb-2">
-            {!archivedDocs || archivedDocs.length === 0 ? (
-              <p className="px-4 py-2 text-[10px] text-slate-300">Trash is empty</p>
-            ) : (
-              archivedDocs.map((doc) => (
-                <TrashItem
-                  key={doc.id}
-                  doc={doc}
-                  onRestore={(id) => restoreMutation.mutate(id)}
-                />
-              ))
-            )}
-          </div>
-        )}
       </div>
 
       {/* Context menu */}

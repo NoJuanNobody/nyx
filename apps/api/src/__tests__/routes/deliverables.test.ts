@@ -50,7 +50,7 @@ describe('Deliverable Routes', () => {
         fileName: 'Test_Doc_definition.md',
         fileUrl: '/deliverables/doc-1/Test_Doc_definition.md',
         generatedAt: new Date().toISOString(),
-        metadata: { title: 'Test Doc', status: 'draft' },
+        metadata: { title: 'Test Doc' },
       };
       mockDeliverableService.generateDeliverable.mockResolvedValue(created);
 

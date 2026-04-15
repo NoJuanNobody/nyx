@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { agentSessions, agentToolCalls, teams, documents } from '../db/schema.js';
 import { runAgentLoop } from '../services/agent/loop.js';
@@ -95,14 +95,14 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const [teamRows, recentDocs] = await Promise.all([
         db.select({ name: teams.name }).from(teams).where(eq(teams.id, teamId)).limit(1),
-        db.select({ id: documents.id, title: documents.title, stage: documents.stage, status: documents.status })
-          .from(documents).where(eq(documents.teamId, teamId))
+        db.select({ id: documents.id, title: documents.title, stage: documents.stage })
+          .from(documents).where(and(eq(documents.teamId, teamId), isNull(documents.deletedAt)))
           .orderBy(desc(documents.updatedAt)).limit(5),
       ]);
 
       const teamName = teamRows[0]?.name ?? 'Unknown';
       const docsContext = recentDocs.length > 0
-        ? `Recent documents:\n${recentDocs.map(d => `- "${d.title}" (${d.id}, stage: ${d.stage ?? 'none'}, status: ${d.status})`).join('\n')}`
+        ? `Recent documents:\n${recentDocs.map(d => `- "${d.title}" (${d.id}, stage: ${d.stage ?? 'none'})`).join('\n')}`
         : 'No documents in this team yet.';
 
       systemPrompt = `${baseSystemPrompt}\n\n--- Context ---\nUser: ${user.name} (${user.email}), role: ${user.role}\nTeam: ${teamName} (ID: ${teamId})\nWhen calling tools that accept a team_id parameter, always use "${teamId}".\n${docsContext}\n---`;

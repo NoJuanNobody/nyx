@@ -63,7 +63,6 @@ export const voiceDocumentRoutes: FastifyPluginAsync = async (app) => {
         participants: meetingDocuments.participants,
         createdAt: meetingDocuments.createdAt,
         docTitle: documents.title,
-        docStatus: documents.status,
         docStage: documents.stage,
       })
       .from(meetingDocuments)
@@ -89,7 +88,6 @@ export const voiceDocumentRoutes: FastifyPluginAsync = async (app) => {
         createdAt: meetingDocuments.createdAt,
         docTitle: documents.title,
         docContent: documents.content,
-        docStatus: documents.status,
         docStage: documents.stage,
       })
       .from(meetingDocuments)

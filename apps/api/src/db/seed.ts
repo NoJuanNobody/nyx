@@ -197,7 +197,6 @@ async function seed() {
       title: 'API Specification',
       content: API_SPEC_CONTENT,
       path: '/api',
-      status: 'draft',
       teamId: ID.DEFAULT_TEAM,
       createdById: ID.DEV_USER,
     },
@@ -206,7 +205,6 @@ async function seed() {
       title: 'Architecture Overview',
       content: ARCHITECTURE_CONTENT,
       path: '/',
-      status: 'published',
       teamId: ID.DEFAULT_TEAM,
       createdById: ID.DEV_USER,
     },
@@ -215,7 +213,10 @@ async function seed() {
       title: 'Deprecated Guide',
       content: '# Deprecated Guide\n\nThis document is no longer maintained.',
       path: '/api',
-      status: 'archived',
+      // Previously seeded as status='archived'. After the draft/published/
+      // archived enum was retired, soft-delete uses deletedAt instead — this
+      // row is tombstoned at seed time so list endpoints hide it by default.
+      deletedAt: new Date(),
       teamId: ID.DEFAULT_TEAM,
       createdById: ID.DEV_USER,
     },
@@ -224,7 +225,6 @@ async function seed() {
       title: 'Quick Start',
       content: '# Quick Start\n\nGet up and running with Nyx in 5 minutes.',
       path: '/',
-      status: 'draft',
       teamId: ID.DEFAULT_TEAM,
       createdById: ID.DEV_USER,
     },
@@ -233,7 +233,6 @@ async function seed() {
       title: 'Second Team Doc',
       content: '# Second Team\n\nDocumentation for the second team.',
       path: '/',
-      status: 'draft',
       teamId: ID.SECOND_TEAM,
       createdById: ID.DEV_USER,
     },

@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { eq, and, gt, desc } from 'drizzle-orm';
+import { eq, and, gt, desc, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { documents } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
@@ -37,7 +37,6 @@ export const docChangesRoutes: FastifyPluginAsync = async (app) => {
           id: documents.id,
           title: documents.title,
           updatedAt: documents.updatedAt,
-          status: documents.status,
           stage: documents.stage,
         })
         .from(documents)
@@ -45,6 +44,7 @@ export const docChangesRoutes: FastifyPluginAsync = async (app) => {
           and(
             eq(documents.teamId, teamId),
             gt(documents.updatedAt, sinceDate),
+            isNull(documents.deletedAt),
           ),
         )
         .orderBy(desc(documents.updatedAt))
@@ -60,7 +60,6 @@ export const docChangesRoutes: FastifyPluginAsync = async (app) => {
           id: r.id,
           title: r.title,
           updatedAt: r.updatedAt.toISOString(),
-          status: r.status,
           stage: r.stage,
         })),
         since: sinceDate.toISOString(),

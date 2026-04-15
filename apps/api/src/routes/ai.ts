@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { documents, integrations } from '../db/schema.js';
 import { aiService } from '../services/ai.service.js';
@@ -252,12 +252,10 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
     const { teamId } = generateAllBody.parse(request.body);
 
     // Fetch all non-archived documents for the team
-    const docs = await db
+    const activeDocs = await db
       .select()
       .from(documents)
-      .where(eq(documents.teamId, teamId));
-
-    const activeDocs = docs.filter((doc) => doc.status !== 'archived');
+      .where(and(eq(documents.teamId, teamId), isNull(documents.deletedAt)));
 
     if (activeDocs.length === 0) {
       return { results: [], total: 0, succeeded: 0, failed: 0 };
