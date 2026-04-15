@@ -36,9 +36,12 @@ test.describe('AI Features', () => {
       page.locator('text=/TIMELINE/i').first(),
     ).toBeVisible({ timeout: 5_000 });
 
-    // Verify seeded timeline events appear (labels from EVENT_CONFIG)
+    // Verify seeded timeline events appear (labels from EVENT_CONFIG).
+    // Match the full labels only — "Updated" / "Version" alone would also
+    // match the toolbar "Save Version" button label added in #337, which is
+    // hidden below 1400px and causes `toBeVisible()` to fail.
     await expect(
-      page.locator('text=/Document updated|Version created|Updated|Version/').first(),
+      page.locator('text=/Document updated|Version created/').first(),
     ).toBeVisible({ timeout: 5_000 });
   });
 

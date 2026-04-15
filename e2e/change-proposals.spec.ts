@@ -110,9 +110,11 @@ test.describe('Change Proposals', () => {
     // Push as tickets
     await page.locator('button:has-text("Push as Tickets")').click();
 
-    // Verify success feedback — toast, text, or ticket link
+    // Verify success feedback — the proposal status badge flips to "pushed"
+    // after the tickets are created. Avoid matching "Create Ticket" on the
+    // toolbar (hidden below 1400px) or "Push as Tickets" on the button.
     await expect(
-      page.locator('text=/[Tt]icket|[Cc]reated|[Pp]ushed|[Ss]uccess|github\\.com/i').first(),
+      page.locator('text=/\\bpushed\\b|\\bsuccess\\b|github\\.com/i').first(),
     ).toBeVisible({ timeout: 10_000 });
   });
 });

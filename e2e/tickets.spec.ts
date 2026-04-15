@@ -31,9 +31,11 @@ test.describe('Tickets', () => {
     // Push as tickets
     await page.locator('button:has-text("Push as Tickets")').click();
 
-    // Verify success feedback
+    // Verify success feedback — the proposal status badge flips to "pushed".
+    // Avoid matching "Create Ticket" on the toolbar (hidden below 1400px)
+    // or "Push as Tickets" on the button itself.
     await expect(
-      page.locator('text=/[Tt]icket|[Cc]reated|[Pp]ushed|[Ss]uccess/i').first(),
+      page.locator('text=/\\bpushed\\b|\\bsuccess\\b/i').first(),
     ).toBeVisible({ timeout: 10_000 });
   });
 
