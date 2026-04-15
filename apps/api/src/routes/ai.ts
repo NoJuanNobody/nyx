@@ -1,16 +1,15 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { eq } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { documents } from '../db/schema.js';
+import { documents, integrations } from '../db/schema.js';
 import { aiService } from '../services/ai.service.js';
+import { codeEmbeddingService } from '../services/code-embedding.service.js';
 import {
   analyzeSpecBody,
   detectDriftBody,
   generateDocumentBody,
   editDocumentBody,
   generateTicketBody,
-  jsxPreviewBody,
-  jsxPreviewRefineBody,
   meetingQualityBody,
   meetingApplySuggestionsBody,
   generateNewsArticleBody,
@@ -20,6 +19,7 @@ import {
   decisionWeightBody,
   seedNextStageBody,
   generateAllBody,
+  suggestionsBody,
 } from '@nyx/shared';
 
 export const aiRoutes: FastifyPluginAsync = async (app) => {
@@ -46,9 +46,43 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /api/ai/edit-document — edit a document with AI
   app.post('/edit-document', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
-    const { content, instruction, history } = editDocumentBody.parse(request.body);
-    const result = await aiService.editDocument(content, instruction, history);
-    return { content: result };
+    const { content, instruction, history, documentId, teamId } =
+      editDocumentBody.parse(request.body);
+
+    // If caller asked for grounded mode, retrieve relevant code from the
+    // team's indexed codebase. All failure modes are non-fatal — a failure
+    // simply means we fall back to the ungrounded-but-conservative prompt.
+    let codeContents: Array<{ path: string; content: string }> = [];
+    let groundingSources: string[] = [];
+    if (documentId && teamId) {
+      try {
+        const retrieved = await codeEmbeddingService.fetchRelevantCodeForDocument(
+          documentId,
+          teamId,
+        );
+        codeContents = retrieved.chunks;
+        groundingSources = retrieved.sources;
+      } catch (err) {
+        request.log.warn(
+          { err },
+          '[ai/edit-document] grounded retrieval failed — falling back to ungrounded',
+        );
+      }
+    }
+
+    const result = await aiService.editDocument(
+      content,
+      instruction,
+      history,
+      codeContents,
+    );
+
+    const grounded = codeContents.length > 0;
+    return {
+      content: result,
+      grounded,
+      ...(grounded ? { groundingSources } : {}),
+    };
   });
 
   // POST /api/ai/generate-ticket — generate a ticket from a spec diff
@@ -56,20 +90,6 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
     const { diff, context } = generateTicketBody.parse(request.body);
     const result = await aiService.generateTicketFromDiff(diff, context);
     return result;
-  });
-
-  // POST /api/ai/jsx-preview — generate a self-contained JSX component from a prompt
-  app.post('/jsx-preview', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
-    const { prompt, context, allStates } = jsxPreviewBody.parse(request.body);
-    const jsx = await aiService.generateJSXPreview(prompt, context, allStates);
-    return { jsx };
-  });
-
-  // POST /api/ai/jsx-preview/refine — refine an existing JSX component
-  app.post('/jsx-preview/refine', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
-    const { currentJSX, prompt } = jsxPreviewRefineBody.parse(request.body);
-    const jsx = await aiService.refineJSXPreview(currentJSX, prompt);
-    return { jsx };
   });
 
   // POST /api/ai/meeting-quality — analyze meeting note quality
@@ -132,17 +152,110 @@ export const aiRoutes: FastifyPluginAsync = async (app) => {
     return result;
   });
 
+  // POST /api/ai/suggestions — context-aware prompt chips for the AI panel
+  app.post(
+    '/suggestions',
+    { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
+    async (request, _reply) => {
+      const input = suggestionsBody.parse(request.body);
+
+      try {
+        // Load the document (title + content + stage) scoped to the team.
+        const [doc] = await db
+          .select({
+            id: documents.id,
+            title: documents.title,
+            content: documents.content,
+            stage: documents.stage,
+            teamId: documents.teamId,
+          })
+          .from(documents)
+          .where(and(eq(documents.id, input.documentId), eq(documents.teamId, input.teamId)))
+          .limit(1);
+
+        if (!doc) {
+          // Don't leak existence — just fall back to empty suggestions.
+          return { suggestions: [] };
+        }
+
+        if (input.kind === 'pre-session') {
+          // Optional: fetch relevant code chunks + the connected repo name so
+          // the model can reference the codebase when suggesting prompts. All
+          // failure modes are non-fatal.
+          let codebaseHint: { repoFullName?: string; chunks?: Array<{ path: string; content: string }> } | undefined;
+          try {
+            const [integration] = await db
+              .select({ type: integrations.type, config: integrations.config })
+              .from(integrations)
+              .where(and(eq(integrations.teamId, input.teamId), eq(integrations.type, 'github')))
+              .limit(1);
+
+            if (integration) {
+              const ghConfig = integration.config as {
+                selectedRepos?: Array<{ owner: string; name: string; fullName: string }>;
+                owner?: string;
+                repo?: string;
+              };
+              const repoFullName =
+                ghConfig.selectedRepos?.[0]?.fullName ??
+                (ghConfig.owner && ghConfig.repo ? `${ghConfig.owner}/${ghConfig.repo}` : undefined);
+
+              // Retrieval is best-effort. If it fails, we still send the
+              // repo name alone as a hint.
+              let chunks: Array<{ path: string; content: string }> = [];
+              try {
+                const retrieved = await codeEmbeddingService.fetchRelevantCodeForDocument(
+                  input.documentId,
+                  input.teamId,
+                );
+                chunks = retrieved.chunks;
+              } catch (err) {
+                request.log.warn({ err }, '[ai/suggestions] code retrieval failed — continuing without chunks');
+              }
+
+              codebaseHint = { repoFullName, chunks };
+            }
+          } catch (err) {
+            request.log.warn({ err }, '[ai/suggestions] integration lookup failed — continuing without codebase hint');
+          }
+
+          const suggestions = await aiService.generateSuggestions({
+            kind: 'pre-session',
+            documentTitle: doc.title,
+            stage: input.stage ?? doc.stage ?? null,
+            contentPreview: (input.content ?? doc.content ?? '').slice(0, 500),
+            codebaseHint,
+          });
+          return { suggestions: suggestions.length === 3 ? suggestions : [] };
+        }
+
+        // post-session
+        const suggestions = await aiService.generateSuggestions({
+          kind: 'post-session',
+          documentTitle: doc.title,
+          stage: input.stage ?? doc.stage ?? null,
+          history: input.history,
+          toolCallSummary: input.toolCallSummary,
+          finalResult: input.finalResult,
+          incomplete: input.incomplete ?? false,
+        });
+        return { suggestions: suggestions.length === 3 ? suggestions : [] };
+      } catch (err) {
+        request.log.warn({ err }, '[ai/suggestions] generation failed — returning empty');
+        return { suggestions: [] };
+      }
+    },
+  );
+
   // POST /api/ai/generate-all — batch-generate AI content for all documents in a team
   app.post('/generate-all', { config: { rateLimit: { max: 2, timeWindow: '1 minute' } } }, async (request, _reply) => {
     const { teamId } = generateAllBody.parse(request.body);
 
     // Fetch all non-archived documents for the team
-    const docs = await db
+    const activeDocs = await db
       .select()
       .from(documents)
-      .where(eq(documents.teamId, teamId));
-
-    const activeDocs = docs.filter((doc) => doc.status !== 'archived');
+      .where(and(eq(documents.teamId, teamId), isNull(documents.deletedAt)));
 
     if (activeDocs.length === 0) {
       return { results: [], total: 0, succeeded: 0, failed: 0 };

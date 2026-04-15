@@ -48,7 +48,7 @@ program
   Content:
     podcast               Generate podcast scripts & audio
     deliverables          Export docs (PDF, LaTeX, DOCX, etc.)
-    templates / marketplace  Templates & marketplace
+    templates             Document templates
     video                 Video generation
 
   Operations:
@@ -85,7 +85,7 @@ const commands: Array<[string[], string, string[]]> = [
   [['ai'], './commands/ai.js', ['registerAiCommand']],
   [['branches'], './commands/branches.js', ['registerBranchesCommand']],
   [['search', 'context'], './commands/search.js', ['registerSearchCommand', 'registerContextCommand']],
-  [['templates', 'marketplace'], './commands/templates.js', ['registerTemplatesCommand', 'registerMarketplaceCommand']],
+  [['templates'], './commands/templates.js', ['registerTemplatesCommand']],
   [['deliverables'], './commands/deliverables.js', ['registerDeliverablesCommand']],
   [['timeline'], './commands/timeline.js', ['registerTimelineCommand']],
   [['snapshot'], './commands/snapshot.js', ['registerSnapshotCommand']],

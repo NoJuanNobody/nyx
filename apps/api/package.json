@@ -28,6 +28,7 @@
     "@google/genai": "^1.46.0",
     "@nyx/shared": "workspace:*",
     "@sentry/node": "^10.47.0",
+    "@types/tar-stream": "^3.1.4",
     "archiver": "^7.0.1",
     "docx": "^9.6.1",
     "dotenv": "^16",
@@ -40,6 +41,7 @@
     "puppeteer": "^24",
     "puppeteer-cluster": "^0.24",
     "stripe": "^20.4.1",
+    "tar-stream": "^3.1.8",
     "zod": "^3"
   },
   "devDependencies": {

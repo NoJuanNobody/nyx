@@ -81,10 +81,10 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
     }
     // Navigate based on metadata
     if (item.metadata?.documentId) {
-      navigate(`/documents/${item.metadata.documentId}`);
+      navigate(`/app/documents/${item.metadata.documentId}`);
       onClose();
     } else if (item.metadata?.ticketId) {
-      navigate('/board');
+      navigate('/app/board');
       onClose();
     }
   };

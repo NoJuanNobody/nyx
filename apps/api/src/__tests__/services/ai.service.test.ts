@@ -119,33 +119,43 @@ describe('AI Service', () => {
     expect(callArgs.messages.length).toBe(3); // 2 history + 1 current
   });
 
-  it('generateJSXPreview: returns JSX with code fences stripped', async () => {
-    mockCreate.mockResolvedValueOnce(
-      makeResponse('```jsx\nfunction App() { return <div>Hello</div>; }\n```'),
-    );
+  it('editDocument: uses the grounded system prompt and embeds code files when codeContents provided', async () => {
+    mockCreate.mockResolvedValueOnce(makeResponse('# Grounded edit'));
 
-    const result = await aiService.generateJSXPreview('A hello component');
-    expect(result).toContain('function App()');
-    expect(result).not.toContain('```');
+    const result = await aiService.editDocument(
+      '# Old Content',
+      'Fix these',
+      undefined,
+      [
+        { path: 'src/foo.ts', content: 'export function foo() {}' },
+        { path: 'src/bar.ts', content: 'export const BAR = 42;' },
+      ],
+    );
+    expect(result).toBe('# Grounded edit');
+
+    const callArgs = mockCreate.mock.calls[0][0];
+    // Grounded system prompt must be the strict one that treats code as ground truth
+    expect(callArgs.system).toContain('Treat');
+    expect(callArgs.system).toContain('ground truth');
+    expect(callArgs.system).toContain('source files');
+    // User message must embed both files
+    const userMsg = callArgs.messages[0].content as string;
+    expect(userMsg).toContain('src/foo.ts');
+    expect(userMsg).toContain('export function foo()');
+    expect(userMsg).toContain('src/bar.ts');
+    expect(userMsg).toContain('export const BAR = 42;');
   });
 
-  it('generateJSXPreview: strips import statements', async () => {
-    mockCreate.mockResolvedValueOnce(
-      makeResponse('import React from "react";\nfunction App() { return <div/>; }'),
-    );
+  it('editDocument: uses the ungrounded conservative prompt when no codeContents', async () => {
+    mockCreate.mockResolvedValueOnce(makeResponse('# Conservative edit'));
 
-    const result = await aiService.generateJSXPreview('A component');
-    expect(result).not.toContain('import');
-    expect(result).toContain('function App()');
-  });
+    await aiService.editDocument('# Old', 'Fix these', undefined, []);
 
-  it('refineJSXPreview: returns refined component', async () => {
-    mockCreate.mockResolvedValueOnce(
-      makeResponse('function App() { return <div style={{color: "blue"}}>Updated</div>; }'),
-    );
-
-    const result = await aiService.refineJSXPreview('<div>Old</div>', 'Make it blue');
-    expect(result).toContain('blue');
+    const callArgs = mockCreate.mock.calls[0][0];
+    // Conservative prompt must forbid fabrication
+    expect(callArgs.system).toContain('NO source code');
+    expect(callArgs.system).toContain('not fabricate');
+    expect(callArgs.system).toContain('TODO: needs codebase context');
   });
 
   it('analyzeChangesForTickets: returns parsed ticket suggestions', async () => {
@@ -317,16 +327,6 @@ describe('AI Service', () => {
     expect(callArgs.system).toContain('markdown');
   });
 
-  it('refineJSXPreview: strips code fences with language tags', async () => {
-    mockCreate.mockResolvedValueOnce(
-      makeResponse('```jsx\nfunction App() { return <div>Refined</div>; }\n```'),
-    );
-
-    const result = await aiService.refineJSXPreview('<div>Old</div>', 'Update it');
-    expect(result).toContain('function App()');
-    expect(result).not.toContain('```');
-  });
-
   it('generateNewsArticle: returns parsed JSON on valid response', async () => {
     mockCreate.mockResolvedValueOnce(
       makeResponse(
@@ -384,14 +384,192 @@ describe('AI Service', () => {
     expect(result.headline).toBe('Fenced Article');
   });
 
+  // ── generateSuggestions ──────────────────────────────────────
+  describe('generateSuggestions', () => {
+    it('returns 3 suggestions from a valid JSON-array response', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('["Add rate-limit handling", "Document webhook retries", "Cite billing.service.ts"]'),
+      );
 
-  it('refineJSXPreview: strips import statements', async () => {
-    mockCreate.mockResolvedValueOnce(
-      makeResponse('import React from "react";\nfunction App() { return <div/>; }'),
-    );
+      const result = await aiService.generateSuggestions({
+        kind: 'pre-session',
+        documentTitle: 'Billing API',
+        stage: 'implementation',
+        contentPreview: '# Billing API\n\nHandles invoices.',
+      });
 
-    const result = await aiService.refineJSXPreview('<div/>', 'Add state');
-    expect(result).not.toContain('import');
-    expect(result).toContain('function App()');
+      expect(result).toHaveLength(3);
+      expect(result).toEqual([
+        'Add rate-limit handling',
+        'Document webhook retries',
+        'Cite billing.service.ts',
+      ]);
+    });
+
+    it('trims responses with more than 3 items down to exactly 3', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('["one", "two", "three", "four", "five"]'),
+      );
+
+      const result = await aiService.generateSuggestions({
+        kind: 'pre-session',
+        documentTitle: 'Billing API',
+        contentPreview: 'preview',
+      });
+
+      expect(result).toHaveLength(3);
+      expect(result).toEqual(['one', 'two', 'three']);
+    });
+
+    it('returns [] on malformed JSON', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('this is not JSON at all, just prose explaining things'),
+      );
+
+      const result = await aiService.generateSuggestions({
+        kind: 'pre-session',
+        documentTitle: 'Billing API',
+        contentPreview: 'preview',
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    it('tolerates code-fence wrappers around the JSON array', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('```json\n["one", "two", "three"]\n```'),
+      );
+
+      const result = await aiService.generateSuggestions({
+        kind: 'post-session',
+        history: [{ role: 'user', content: 'Tell me about rate limits' }],
+        toolCallSummary: [{ name: 'search_code', count: 2 }],
+        finalResult: 'I found rate limits configured at 20/min',
+        incomplete: false,
+      });
+
+      expect(result).toEqual(['one', 'two', 'three']);
+    });
+
+    it('returns [] when the model call throws', async () => {
+      mockCreate.mockRejectedValueOnce(new Error('api exploded'));
+
+      const result = await aiService.generateSuggestions({
+        kind: 'pre-session',
+        documentTitle: 'Billing API',
+        contentPreview: 'preview',
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    it('pre-session system prompt includes anti-boilerplate instruction', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('["a", "b", "c"]'),
+      );
+
+      await aiService.generateSuggestions({
+        kind: 'pre-session',
+        documentTitle: 'Billing API',
+        stage: 'definition',
+        contentPreview: 'preview',
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      expect(callArgs.model).toMatch(/haiku/i); // must use MODEL_FAST, not Sonnet
+      expect(callArgs.system).toContain('Do NOT produce generic prompts');
+      expect(callArgs.system).toContain('Add error handling');
+      // The user prompt should include the title and stage and preview.
+      const userMsg = callArgs.messages[0].content as string;
+      expect(userMsg).toContain('Billing API');
+      expect(userMsg).toContain('definition');
+    });
+
+    it('post-session system prompt includes anti-boilerplate + incomplete note when flag set', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('["a", "b", "c"]'),
+      );
+
+      await aiService.generateSuggestions({
+        kind: 'post-session',
+        history: [{ role: 'user', content: 'Scan codebase for intake' }],
+        toolCallSummary: [
+          { name: 'search_code', count: 3 },
+          { name: 'get_github_files', count: 2 },
+        ],
+        finalResult: 'I found 5 files related to intake',
+        incomplete: true,
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      expect(callArgs.model).toMatch(/haiku/i);
+      expect(callArgs.system).toContain('Do NOT produce generic prompts');
+      const userMsg = callArgs.messages[0].content as string;
+      expect(userMsg).toContain('Scan codebase for intake');
+      expect(userMsg).toContain('search_code×3');
+      expect(userMsg).toContain('get_github_files×2');
+      expect(userMsg).toContain('I found 5 files related to intake');
+      expect(userMsg).toContain('terminated early');
+    });
+
+    it('pre-session includes codebase hint when provided', async () => {
+      mockCreate.mockResolvedValueOnce(
+        makeResponse('["a", "b", "c"]'),
+      );
+
+      await aiService.generateSuggestions({
+        kind: 'pre-session',
+        documentTitle: 'Auth API',
+        stage: 'architecture',
+        contentPreview: 'preview',
+        codebaseHint: {
+          repoFullName: 'acme/backend',
+          chunks: [
+            { path: 'src/auth.ts', content: '...' },
+            { path: 'src/middleware/session.ts', content: '...' },
+          ],
+        },
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      const userMsg = callArgs.messages[0].content as string;
+      expect(userMsg).toContain('acme/backend');
+      expect(userMsg).toContain('src/auth.ts');
+      expect(userMsg).toContain('src/middleware/session.ts');
+    });
+  });
+
+  describe('onboarding scan model split', () => {
+    it('bootstrapModuleDocs uses Haiku (MODEL_FAST) — not Sonnet', async () => {
+      mockCreate.mockResolvedValueOnce(makeResponse('# Module docs'));
+
+      await aiService.bootstrapModuleDocs('Services', [
+        { path: 'src/services/auth.ts', content: 'export const auth = () => {}' },
+      ]);
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      // Must be Haiku for speed (4-5x faster per-module docs).
+      expect(callArgs.model).toMatch(/haiku/i);
+      expect(callArgs.model).not.toMatch(/sonnet/i);
+      // Budget stays at 2048 per spec.
+      expect(callArgs.max_tokens).toBe(2048);
+    });
+
+    it('mergeModuleDocs still uses Sonnet (MODEL) for synthesis quality', async () => {
+      mockCreate.mockResolvedValueOnce(makeResponse('# Merged overview'));
+
+      await aiService.mergeModuleDocs(
+        [
+          { module: 'API', docs: '# API module docs' },
+          { module: 'Services', docs: '# Services module docs' },
+        ],
+        'acme/widgets',
+      );
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      // Synthesis stays on Sonnet — do NOT regress this to Haiku.
+      expect(callArgs.model).toMatch(/sonnet/i);
+      expect(callArgs.model).not.toMatch(/haiku/i);
+    });
   });
 });

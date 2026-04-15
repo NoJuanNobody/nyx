@@ -1,7 +1,7 @@
 import { test, expect, SEED } from './fixtures/test-base';
 import { SEL } from './fixtures/selectors';
 
-const DOC_URL = `/documents/${SEED.DOC_API_SPEC_ID}`;
+const DOC_URL = `/app/documents/${SEED.DOC_API_SPEC_ID}`;
 
 test.describe('AI Chat Panel', () => {
   // ── 27b.1: AI Edit drawer opens ─────────────────────────────────
@@ -38,9 +38,16 @@ test.describe('AI Chat Panel', () => {
     const sendButton = page.locator('button[title="Send"]').first();
     await sendButton.click();
 
-    // Verify AI response appears — the mock returns content and the panel shows "Changes ready for review"
+    // Verify the assistant chat message appears. We intentionally match
+    // "Changes ready for review" — the exact string appended by
+    // UnifiedAIPanel.handleSubmit — rather than generic text from the mock
+    // response content. The mock's "# Updated Document" body is rendered
+    // inside DiffView, which since #336 renders BOTH a side-by-side and a
+    // unified-mobile variant in the DOM with hidden md:block / md:hidden
+    // toggling visibility. A broad text regex with .first() would pick the
+    // hidden mobile variant at CI's default viewport.
     await expect(
-      page.locator('text=/Changes ready|Updated Document|edited by AI|Improved/i').first(),
+      page.locator('text=Changes ready for review').first(),
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -82,9 +89,11 @@ test.describe('AI Chat Panel', () => {
     const sendButton = page.locator('button[title="Send"]').first();
     await sendButton.click();
 
-    // Wait for a response to appear
+    // Wait for the assistant chat message to appear. Same reasoning as 27b.2:
+    // match "Changes ready for review" (the unique chat-message text) rather
+    // than text that also appears inside the hidden mobile DiffView variant.
     await expect(
-      page.locator('text=/Changes ready|Updated Document|edited by AI/i').first(),
+      page.locator('text=Changes ready for review').first(),
     ).toBeVisible({ timeout: 10_000 });
 
     // Click Clear button (has title="Clear chat")

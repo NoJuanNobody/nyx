@@ -33,7 +33,7 @@ test.describe('Repositories', () => {
       });
     });
 
-    await page.goto('/repositories');
+    await page.goto('/app/repositories');
     await expect(page.locator('h1:has-text("Repositories")')).toBeVisible({ timeout: 10_000 });
   });
 

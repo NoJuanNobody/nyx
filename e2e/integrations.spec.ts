@@ -3,7 +3,7 @@ import { SEL } from './fixtures/selectors';
 
 test.describe('Integrations', () => {
   test.beforeEach(async ({ authenticatedPage: page }) => {
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.integrationsTab).click();
     // Wait for the integrations panel to render
     await expect(page.locator('text=GitHub')).toBeVisible({ timeout: 10_000 });

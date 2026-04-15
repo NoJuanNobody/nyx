@@ -1,6 +1,6 @@
 // Codebase Scanner Service — scans connected GitHub repos and fills missing spec sections
 
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { documents, integrations, changeProposals } from '../db/schema.js';
 import { githubService, type GitHubTreeEntry } from './github.service.js';
@@ -132,22 +132,13 @@ export const codebaseScannerService = {
     const relevantFiles = fileTree.filter(isRelevantFile);
     const filePathList = relevantFiles.map((f) => f.path);
 
-    // 3. Get all team documents
+    // 3. Get all non-deleted team documents (the published/draft split is
+    // retired — every doc is equally scan-eligible now).
     const teamDocs = await db
       .select()
       .from(documents)
-      .where(and(eq(documents.teamId, teamId), eq(documents.status, 'published')))
+      .where(and(eq(documents.teamId, teamId), isNull(documents.deletedAt)))
       .orderBy(desc(documents.updatedAt));
-
-    // Also include drafts if no published docs
-    if (teamDocs.length === 0) {
-      const draftDocs = await db
-        .select()
-        .from(documents)
-        .where(and(eq(documents.teamId, teamId), eq(documents.status, 'draft')))
-        .orderBy(desc(documents.updatedAt));
-      teamDocs.push(...draftDocs);
-    }
 
     if (teamDocs.length === 0) {
       scanResult.error = 'No documents found for this team';

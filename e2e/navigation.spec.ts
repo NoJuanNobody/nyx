@@ -11,21 +11,21 @@ test.describe('Navigation', () => {
     await page.locator(SEL.sidebar.logo).click();
 
     await page.waitForURL(/\/dashboard/, { timeout: 10_000 });
-    expect(page.url()).toContain('/dashboard');
+    expect(page.url()).toContain('/app/dashboard');
   });
 
   test('N.2 — clicking Board link navigates to /board', async ({ authenticatedPage: page }) => {
     await page.locator(SEL.sidebar.boardLink).click();
 
     await page.waitForURL(/\/board/, { timeout: 10_000 });
-    expect(page.url()).toContain('/board');
+    expect(page.url()).toContain('/app/board');
   });
 
   test('N.3 — clicking Settings link navigates to /settings', async ({ authenticatedPage: page }) => {
     await page.locator(SEL.sidebar.settingsLink).click();
 
     await page.waitForURL(/\/settings/, { timeout: 10_000 });
-    expect(page.url()).toContain('/settings');
+    expect(page.url()).toContain('/app/settings');
   });
 
   test('N.4 — hamburger menu visible at 640px viewport width', async ({ authenticatedPage: page }) => {
@@ -47,6 +47,6 @@ test.describe('Navigation', () => {
     await docLink.click();
 
     await page.waitForURL(/\/documents\//, { timeout: 10_000 });
-    expect(page.url()).toContain(`/documents/${SEED.DOC_API_SPEC_ID}`);
+    expect(page.url()).toContain(`/app/documents/${SEED.DOC_API_SPEC_ID}`);
   });
 });

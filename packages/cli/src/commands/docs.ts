@@ -122,13 +122,11 @@ export function registerDocsCommand(program: Command): void {
     .description('Update a document')
     .option('--title <title>', 'New title')
     .option('--content <content>', 'New content')
-    .option('--status <status>', 'New status (draft|published|archived)')
     .option('--stage <stage>', 'New lifecycle stage')
     .option('--format <format>', 'Output format (json|table)', 'json')
     .action(async (id: string, opts: {
       title?: string;
       content?: string;
-      status?: string;
       stage?: string;
       format: OutputFormat;
     }) => {
@@ -136,7 +134,6 @@ export function registerDocsCommand(program: Command): void {
       const body: Record<string, string> = {};
       if (opts.title) body.title = opts.title;
       if (opts.content) body.content = opts.content;
-      if (opts.status) body.status = opts.status;
       if (opts.stage) body.stage = opts.stage;
 
       try {
@@ -149,7 +146,7 @@ export function registerDocsCommand(program: Command): void {
 
   docs
     .command('delete <id>')
-    .description('Archive a document')
+    .description('Soft-delete a document (tombstoned via deletedAt)')
     .option('--format <format>', 'Output format (json|table)', 'json')
     .action(async (id: string, opts: { format: OutputFormat }) => {
       const client = new NyxClient();

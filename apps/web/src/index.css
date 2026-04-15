@@ -3,6 +3,42 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ── Brand accent: blue → purple (both modes) ───────────
+   Nyx's brand accent is purple at hue ~287°, but components
+   throughout the app use Tailwind's blue-* utilities under
+   the assumption that --color-blue-* is remapped to purple.
+   Originally that swap lived only inside .dark, which left
+   light mode rendering actual Tailwind blue. Moving the
+   remap to :root means every bg-blue-*, text-blue-*,
+   border-blue-*, ring-blue-*, outline-blue-*, divide-blue-*,
+   decoration-blue-*, and from/via/to-blue-* utility renders
+   as the brand purple in BOTH modes — without touching any
+   component file.
+
+   The .dark block below overrides these same variables with
+   shades tuned for dark surfaces (lighter, less saturated).
+   Same hue (287°) in both modes for brand coherence.
+
+   Light-mode contrast (verified):
+   - bg-blue-600 (oklch 53% 0.23 287, ≈ #6c2cd9) + text-white
+     → contrast ≈ 5.6:1 on #fff (passes WCAG AA).
+   - text-blue-600 on bg-white → same ≈ 5.6:1 (passes AA).
+   - text-blue-700 on bg-white → contrast ≈ 7.4:1 (passes AAA).
+   ─────────────────────────────────────────────────────── */
+:root {
+  --color-blue-50:  oklch(97% 0.018 287);
+  --color-blue-100: oklch(94% 0.04 287);
+  --color-blue-200: oklch(88% 0.07 287);
+  --color-blue-300: oklch(80% 0.12 287);
+  --color-blue-400: oklch(70% 0.18 287);
+  --color-blue-500: oklch(60% 0.22 287);
+  --color-blue-600: oklch(53% 0.23 287);
+  --color-blue-700: oklch(46% 0.22 287);
+  --color-blue-800: oklch(38% 0.19 287);
+  --color-blue-900: oklch(30% 0.15 288);
+  --color-blue-950: oklch(20% 0.10 290);
+}
+
 /* ── Dark Mode: CSS variable swap ─────────────────────
    Swapping the slate scale means ALL Tailwind utilities
    using slate colors (text, bg, border, ring, etc.)
@@ -66,6 +102,40 @@
   color: #fff;
 }
 
+/* ── Dark mode primary-button surfaces ───────────────────
+   The slate variable swap above remaps --color-slate-700/800/900
+   to NEAR-WHITE so that text-slate-900 / text-slate-700 (body text)
+   render as light text on dark surfaces. But Tailwind's
+   bg-slate-900 / bg-slate-800 / bg-slate-700 utilities use the
+   SAME variable, which would make canonical primary buttons
+   (bg-slate-900 + text-white) render white-on-white in dark mode.
+
+   These overrides force those background utilities to dark surfaces
+   in dark mode while leaving the slate text utilities alone. They
+   target the literal Tailwind class names so they win over the
+   variable-driven background-color declarations.
+   ───────────────────────────────────────────────────────── */
+.dark .bg-slate-900 { background-color: oklch(28% 0.04 285); }
+.dark .bg-slate-800 { background-color: oklch(33% 0.045 285); }
+.dark .bg-slate-700 { background-color: oklch(38% 0.05 285); }
+
+.dark .hover\:bg-slate-900:hover { background-color: oklch(33% 0.045 285); }
+.dark .hover\:bg-slate-800:hover { background-color: oklch(38% 0.05 285); }
+.dark .hover\:bg-slate-700:hover { background-color: oklch(43% 0.055 285); }
+
+/* Defensive coverage: a handful of components reach for the
+   gray / neutral / zinc near-white scales that the slate swap
+   does not touch. Map them to the same dark surfaces so that
+   any text-white sitting on top stays legible. Only the very
+   light end of each scale is remapped (50/100); mid/dark stops
+   are left alone since they already render fine on dark. */
+.dark .bg-gray-50,
+.dark .bg-neutral-50,
+.dark .bg-zinc-50    { background-color: oklch(17% 0.025 285); }
+.dark .bg-gray-100,
+.dark .bg-neutral-100,
+.dark .bg-zinc-100   { background-color: oklch(22% 0.03 285); }
+
 /* Lighten accent text on darkened accent backgrounds */
 .dark .text-blue-600    { color: oklch(75% 0.18 287); }
 .dark .text-blue-700    { color: oklch(82% 0.12 286); }
@@ -85,6 +155,16 @@
 /* Syne font for headings — matches landing page premium typography */
 h1, h2, h3 {
   font-family: 'Syne', sans-serif;
+}
+
+/* Prose light mode — link color follows brand purple
+   Tailwind Typography defaults to a slate-900-ish link color,
+   which would render as dark-grey-on-white in light mode and
+   ignore the brand purple set on --color-blue-*. Pin links
+   to the same purple as text-blue-700 so rendered markdown
+   links match the rest of the accent system. */
+.prose {
+  --tw-prose-links: oklch(46% 0.22 287);
 }
 
 /* Prose dark mode — purple-tinted typography */

@@ -3,7 +3,7 @@ import { SEL } from './fixtures/selectors';
 
 test.describe('Board', () => {
   test('31.1: Three columns visible', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator(SEL.board.columnOpen).first()).toBeVisible();
     await expect(page.locator(SEL.board.columnInProgress).first()).toBeVisible();
@@ -11,13 +11,13 @@ test.describe('Board', () => {
   });
 
   test('31.2: Ticket card shows title', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('31.3: Provider badge visible', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     // Wait for ticket cards to render
@@ -31,7 +31,7 @@ test.describe('Board', () => {
   });
 
   test('31.4: External URL link opens in new tab', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     // Wait for ticket cards to render
@@ -44,7 +44,7 @@ test.describe('Board', () => {
   });
 
   test('31.5: Provider filter — GitHub only', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
@@ -57,7 +57,7 @@ test.describe('Board', () => {
   });
 
   test('31.6: Provider filter — All restores full list', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('text=Implement auth endpoints').first()).toBeVisible({ timeout: 10_000 });
 
@@ -71,7 +71,7 @@ test.describe('Board', () => {
   });
 
   test('31.7: Sync All button triggers sync', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     const syncButton = page.locator(SEL.board.syncAllButton);
@@ -82,7 +82,7 @@ test.describe('Board', () => {
   });
 
   test('31.8: Ticket count per column', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     // Wait for tickets to load
@@ -96,7 +96,7 @@ test.describe('Board', () => {
   });
 
   test('31.9: Board link active in sidebar', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     const boardLink = page.locator(SEL.sidebar.boardLink);

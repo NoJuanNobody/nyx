@@ -44,7 +44,6 @@ import { impactGraphRoutes } from './routes/impact-graph.js';
 import { invitationRoutes } from './routes/invitations.js';
 import { notificationRoutes } from './routes/notifications.js';
 import { subscriptionRoutes } from './routes/subscriptions.js';
-import { marketplaceRoutes } from './routes/marketplace.js';
 import { featureRequestRoutes } from './routes/feature-requests.js';
 import { projectShowcaseRoutes } from './routes/project-showcases.js';
 import { governanceRoutes } from './routes/governance.js';
@@ -82,6 +81,14 @@ import { config } from './lib/config.js';
 export function buildApp() {
   const app = Fastify({ logger: true });
 
+  // Surface degraded modes early so operators don't have to read source code
+  // to understand why every synced repo shows as "Disconnected".
+  if (!config.WEBHOOK_BASE_URL) {
+    app.log.warn(
+      'WEBHOOK_BASE_URL not configured — GitHub webhook registration is disabled; all synced repos will appear Disconnected',
+    );
+  }
+
   const allowedOrigins = config.CORS_ORIGINS
     ? config.CORS_ORIGINS.split(',').map(o => o.trim())
     : ['http://localhost:5173'];
@@ -100,7 +107,7 @@ export function buildApp() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com/", "https://cdn.tailwindcss.com/", "https://*.clerk.accounts.dev/"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://*.clerk.accounts.dev/"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com/"],
         fontSrc: ["'self'", "https://fonts.gstatic.com/"],
         connectSrc: ["'self'", "https://api.anthropic.com/", "https://fonts.googleapis.com/", "https://*.clerk.accounts.dev/"],
@@ -227,7 +234,6 @@ export function buildApp() {
   app.register(invitationRoutes, { prefix: '/api/invitations' });
   app.register(notificationRoutes, { prefix: '/api/notifications' });
   app.register(subscriptionRoutes, { prefix: '/api/subscriptions' });
-  app.register(marketplaceRoutes, { prefix: '/api/marketplace' });
   app.register(featureRequestRoutes, { prefix: '/api/feature-requests' });
   app.register(projectShowcaseRoutes, { prefix: '/api/project-showcases' });
   app.register(governanceRoutes, { prefix: '/api/governance' });

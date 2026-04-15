@@ -33,11 +33,11 @@ export function makeDocument(overrides?: Record<string, unknown>) {
     title: 'Test Document',
     content: '# Test\n\nSome content',
     path: '/',
-    status: 'draft' as const,
     teamId: randomUUID(),
     createdById: randomUUID(),
     createdAt: new Date(),
     updatedAt: new Date(),
+    deletedAt: null,
     ...overrides,
   };
 }

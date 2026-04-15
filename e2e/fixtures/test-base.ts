@@ -30,49 +30,35 @@ const SEEDED_DOCUMENTS = [
   {
     id: SEED.DOC_API_SPEC_ID,
     title: 'API Specification',
-    content: `# API Specification\n\n## Authentication\n\nAll API endpoints require authentication via Bearer token (JWT or API key).\n\n### Endpoints\n\n| Method | Path | Description |\n|--------|------|-------------|\n| GET | /api/documents | List all documents |\n| POST | /api/documents | Create a document |\n| GET | /api/documents/:id | Get document by ID |\n| PUT | /api/documents/:id | Update document |\n| DELETE | /api/documents/:id | Archive document |\n\n### Request Headers\n\n\`\`\`\nAuthorization: Bearer <token>\nContent-Type: application/json\n\`\`\`\n\n## Rate Limiting\n\nAPI requests are rate-limited to **100 requests per minute** per API key.\n\n### Error Responses\n\n\`\`\`json\n{\n  "error": "Rate limit exceeded",\n  "retryAfter": 60\n}\n\`\`\`\n`,
+    content: `# API Specification\n\n## Authentication\n\nAll API endpoints require authentication via Bearer token (JWT or API key).\n\n### Endpoints\n\n| Method | Path | Description |\n|--------|------|-------------|\n| GET | /api/documents | List all documents |\n| POST | /api/documents | Create a document |\n| GET | /api/documents/:id | Get document by ID |\n| PUT | /api/documents/:id | Update document |\n| DELETE | /api/documents/:id | Delete document |\n\n### Request Headers\n\n\`\`\`\nAuthorization: Bearer <token>\nContent-Type: application/json\n\`\`\`\n\n## Rate Limiting\n\nAPI requests are rate-limited to **100 requests per minute** per API key.\n\n### Error Responses\n\n\`\`\`json\n{\n  "error": "Rate limit exceeded",\n  "retryAfter": 60\n}\n\`\`\`\n`,
     path: '/api',
-    status: 'draft',
     teamId: SEED.DEFAULT_TEAM_ID,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
+    deletedAt: null,
   },
   {
     id: SEED.DOC_ARCHITECTURE_ID,
     title: 'Architecture Overview',
     content: '# Architecture Overview\n\n## System Design\n\nNyx uses a monorepo architecture.',
     path: '/',
-    status: 'published',
     teamId: SEED.DEFAULT_TEAM_ID,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
+    deletedAt: null,
   },
   {
     id: SEED.DOC_QUICKSTART_ID,
     title: 'Quick Start',
     content: '# Quick Start\n\nGet up and running with Nyx in 5 minutes.',
     path: '/',
-    status: 'draft',
     teamId: SEED.DEFAULT_TEAM_ID,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
-  },
-];
-
-const SEEDED_ARCHIVED_DOCS = [
-  {
-    id: SEED.DOC_DEPRECATED_ID,
-    title: 'Deprecated Guide',
-    content: '# Deprecated Guide\n\nThis document is no longer maintained.',
-    path: '/api',
-    status: 'archived',
-    teamId: SEED.DEFAULT_TEAM_ID,
-    createdById: SEED.DEV_USER_ID,
-    createdAt: '2025-01-01T00:00:00Z',
-    updatedAt: '2025-01-01T00:00:00Z',
+    deletedAt: null,
   },
 ];
 
@@ -82,11 +68,11 @@ const SEEDED_SECOND_TEAM_DOCS = [
     title: 'Second Team Doc',
     content: '# Second Team\n\nDocumentation for the second team.',
     path: '/',
-    status: 'draft',
     teamId: SEED.SECOND_TEAM_ID,
     createdById: SEED.DEV_USER_ID,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
+    deletedAt: null,
   },
 ];
 
@@ -353,11 +339,60 @@ const SEEDED_IMPACT_GRAPH = {
   ],
 };
 
+// Templates — built-in templates returned by GET /api/templates.
+// Names match real built-in templates seeded in apps/api/src/db/seed-templates.ts
+// so tests can assert on full names.
+const SEEDED_TEMPLATES = [
+  {
+    id: '00000000-0000-0000-0000-0000000009a0',
+    stage: 'conception',
+    name: 'Problem Statement',
+    description: 'Define the problem you are solving and for whom',
+    content: '# Problem Statement\n',
+    sortOrder: 0,
+    teamId: null,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: '00000000-0000-0000-0000-0000000009a1',
+    stage: 'conception',
+    name: 'Value Proposition Canvas',
+    description: 'Map customer jobs, pains, and gains against your value map',
+    content: '# Value Proposition Canvas\n',
+    sortOrder: 1,
+    teamId: null,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: '00000000-0000-0000-0000-0000000009a2',
+    stage: 'definition',
+    name: 'Product Requirements Document (PRD)',
+    description: 'Complete product specification with goals, user stories, and requirements',
+    content: '# Product Requirements Document\n',
+    sortOrder: 0,
+    teamId: null,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: '00000000-0000-0000-0000-0000000009a3',
+    stage: 'architecture',
+    name: 'Architecture Decision Record (ADR)',
+    description: 'Document a significant architectural decision',
+    content: '# ADR\n',
+    sortOrder: 0,
+    teamId: null,
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+  },
+];
+
 // ── Helper to install all API mocks on a page ───────────────────────
 
 let _newDocCounter = 0;
 let _createdDocs: Array<Record<string, unknown>> = [];
-let _restoredDocIds: Set<string> = new Set();
 let _deletedDocIds: Set<string> = new Set();
 let _generatedProposals: Array<Record<string, unknown>> = [];
 
@@ -365,7 +400,6 @@ async function setupApiMocks(page: Page) {
   // Reset per-test mutable state
   _newDocCounter = 0;
   _createdDocs = [];
-  _restoredDocIds = new Set();
   _deletedDocIds = new Set();
   _generatedProposals = [];
 
@@ -606,16 +640,10 @@ async function setupApiMocks(page: Page) {
     const isListRoute = /\/api\/documents$/.test(pathname);
     if (isListRoute && method === 'GET') {
       const teamIdParam = urlObj.searchParams.get('teamId');
-      const includeArchived = urlObj.searchParams.get('includeArchived');
       if (teamIdParam === SEED.SECOND_TEAM_ID) {
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SEEDED_SECOND_TEAM_DOCS) });
       }
-      const activeDocs = SEEDED_DOCUMENTS.filter((d) => !_deletedDocIds.has(d.id));
-      const newlyDeleted = SEEDED_DOCUMENTS.filter((d) => _deletedDocIds.has(d.id)).map((d) => ({ ...d, status: 'archived' }));
-      const archivedDocs = [...SEEDED_ARCHIVED_DOCS.filter((d) => !_restoredDocIds.has(d.id)), ...newlyDeleted];
-      const docs = includeArchived === 'true'
-        ? [...activeDocs, ...archivedDocs]
-        : activeDocs;
+      const docs = SEEDED_DOCUMENTS.filter((d) => !_deletedDocIds.has(d.id));
 
       const sortParam = urlObj.searchParams.get('sort');
       const limitParam = urlObj.searchParams.get('limit');
@@ -643,11 +671,11 @@ async function setupApiMocks(page: Page) {
         title: body.title ?? 'Untitled Document',
         content: body.content ?? '',
         path: body.path ?? '/',
-        status: 'draft',
         teamId: body.teamId ?? SEED.DEFAULT_TEAM_ID,
         createdById: SEED.DEV_USER_ID,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        deletedAt: null,
       };
       _createdDocs.push(newDoc);
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(newDoc) });
@@ -658,7 +686,7 @@ async function setupApiMocks(page: Page) {
     if (singleDocMatch) {
       const docId = singleDocMatch[1];
       if (method === 'GET') {
-        const allDocs = [...SEEDED_DOCUMENTS, ...SEEDED_ARCHIVED_DOCS, ...SEEDED_SECOND_TEAM_DOCS, ..._createdDocs];
+        const allDocs = [...SEEDED_DOCUMENTS, ...SEEDED_SECOND_TEAM_DOCS, ..._createdDocs];
         const doc = allDocs.find((d) => d.id === docId);
         if (doc) {
           return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(doc) });
@@ -671,28 +699,25 @@ async function setupApiMocks(page: Page) {
           title: 'Untitled Document',
           content: '',
           path: '/',
-          status: 'draft',
           teamId: SEED.DEFAULT_TEAM_ID,
           createdById: SEED.DEV_USER_ID,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          deletedAt: null,
         };
         return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(newDoc) });
       }
       if (method === 'PUT') {
-        const allDocs = [...SEEDED_DOCUMENTS, ...SEEDED_ARCHIVED_DOCS, ...SEEDED_SECOND_TEAM_DOCS, ..._createdDocs];
+        const allDocs = [...SEEDED_DOCUMENTS, ...SEEDED_SECOND_TEAM_DOCS, ..._createdDocs];
         const doc = allDocs.find((d) => d.id === docId);
         const body = route.request().postDataJSON?.() ?? {};
-        // Track status changes (e.g., restoring from trash sets status to 'draft')
-        if (body.status === 'draft' && SEEDED_ARCHIVED_DOCS.some((d) => d.id === docId)) {
-          _restoredDocIds.add(docId);
-        }
         const updated = { ...(doc ?? SEEDED_DOCUMENTS[0]), ...body, updatedAt: new Date().toISOString() };
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(updated) });
       }
       if (method === 'DELETE') {
         _deletedDocIds.add(docId);
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: docId, status: 'archived' }) });
+        const now = new Date().toISOString();
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: docId, deletedAt: now }) });
       }
     }
 
@@ -943,7 +968,23 @@ async function setupApiMocks(page: Page) {
     if (/\/ai\/generate-document/.test(pathname)) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockGenerateResponse()) });
     }
+    // New in #350: context-aware suggestions endpoint. Return empty array so
+    // the frontend falls back to STAGE_SUGGESTIONS without hanging on a real
+    // Anthropic call.
+    if (/\/ai\/suggestions/.test(pathname)) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ suggestions: [] }) });
+    }
     return route.fallback();
+  });
+
+  // Templates — used by the TemplatePicker modal (FileTree "New from template")
+  await page.route('**/api/templates**', (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(SEEDED_TEMPLATES),
+    });
   });
 
   // Waitlist
@@ -968,7 +1009,7 @@ type NyxFixtures = {
 export const test = base.extend<NyxFixtures>({
   authenticatedPage: async ({ page }, use) => {
     await setupApiMocks(page);
-    await page.goto('/dashboard');
+    await page.goto('/app/dashboard');
     // Wait for the sidebar logo to confirm auth loaded
     await page.waitForSelector('a:has-text("Nyx")', { timeout: 30_000 });
     // Wait for the user section to load (confirms auth/me resolved)
@@ -1000,6 +1041,12 @@ export const test = base.extend<NyxFixtures>({
         }
         if (/\/ai\/proposals/.test(pathname)) {
           return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(overrides?.proposals ?? mockProposalResponse()) });
+        }
+        // New in #350: context-aware suggestions endpoint. Return empty so the
+        // frontend falls back to STAGE_SUGGESTIONS / workflow chips without
+        // blocking on a real Anthropic call.
+        if (/\/ai\/suggestions/.test(pathname)) {
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ suggestions: [] }) });
         }
         return route.fallback();
       });

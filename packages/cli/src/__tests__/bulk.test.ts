@@ -42,7 +42,6 @@ describe('bulk command', () => {
     expect(bulk).toBeDefined();
     const subcommands = bulk!.commands.map((c) => c.name());
     expect(subcommands).toContain('export');
-    expect(subcommands).toContain('status');
     expect(subcommands).toContain('sync');
   });
 
@@ -121,63 +120,6 @@ describe('bulk command', () => {
       ]);
 
       expect(mockGetRaw).not.toHaveBeenCalled();
-      expect(stderr).toHaveBeenCalledWith('No documents found.\n');
-      log.mockRestore();
-      stderr.mockRestore();
-    });
-  });
-
-  describe('bulk status', () => {
-    it('updates all documents to the given status', async () => {
-      const docs = [
-        { id: '1', title: 'Doc One' },
-        { id: '2', title: 'Doc Two' },
-      ];
-      mockGet.mockResolvedValue(docs);
-      mockPut.mockResolvedValue({ ok: true });
-
-      const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-
-      await program.parseAsync([
-        'node', 'test', 'bulk', 'status', '--team-id', 'team-1', '--status', 'published',
-      ]);
-
-      expect(mockGet).toHaveBeenCalledWith('/api/documents?teamId=team-1');
-      expect(mockPut).toHaveBeenCalledTimes(2);
-      expect(mockPut).toHaveBeenCalledWith('/api/documents/1', { status: 'published' });
-      expect(mockPut).toHaveBeenCalledWith('/api/documents/2', { status: 'published' });
-      expect(stderr).toHaveBeenCalledWith('Updated 2 document(s) to status "published".\n');
-
-      log.mockRestore();
-      stderr.mockRestore();
-    });
-
-    it('filters by stage when --stage is provided', async () => {
-      mockGet.mockResolvedValue([]);
-      const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-
-      await program.parseAsync([
-        'node', 'test', 'bulk', 'status', '--team-id', 'team-1',
-        '--status', 'archived', '--stage', 'sunset',
-      ]);
-
-      expect(mockGet).toHaveBeenCalledWith('/api/documents?teamId=team-1&stage=sunset');
-      log.mockRestore();
-      stderr.mockRestore();
-    });
-
-    it('handles empty document list', async () => {
-      mockGet.mockResolvedValue([]);
-      const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-
-      await program.parseAsync([
-        'node', 'test', 'bulk', 'status', '--team-id', 'team-1', '--status', 'draft',
-      ]);
-
-      expect(mockPut).not.toHaveBeenCalled();
       expect(stderr).toHaveBeenCalledWith('No documents found.\n');
       log.mockRestore();
       stderr.mockRestore();

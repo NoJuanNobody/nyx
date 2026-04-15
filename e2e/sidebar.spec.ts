@@ -32,6 +32,6 @@ test.describe('Sidebar', () => {
 
     // Should redirect to sign-in or landing page
     await page.waitForURL(/\/(sign-in|landing|$)/, { timeout: 10_000 });
-    expect(page.url()).not.toContain('/dashboard');
+    expect(page.url()).not.toContain('/app/dashboard');
   });
 });

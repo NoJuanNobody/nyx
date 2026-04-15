@@ -12,17 +12,13 @@ test.describe('Dashboard', () => {
     await expect(main.locator('text=Quick Start')).toBeVisible();
   });
 
-  test('D.2 — document cards show title and status badge', async ({ authenticatedPage: page }) => {
+  test('D.2 — document cards show title', async ({ authenticatedPage: page }) => {
     await expect(page.locator(SEL.dashboard.title)).toBeVisible({ timeout: 10_000 });
 
     // Each document row is a link to /documents/:id
     const docRows = page.locator(SEL.dashboard.docRow);
     await expect(docRows.first()).toBeVisible({ timeout: 10_000 });
     expect(await docRows.count()).toBeGreaterThanOrEqual(1);
-
-    // At least one badge with a status like "draft" or "published" should be visible
-    const badge = page.locator('text=/draft|published|archived/i').first();
-    await expect(badge).toBeVisible({ timeout: 5_000 });
   });
 
   // Skip: DocumentList always uses first team from fetchTeams(), not the auth store's currentTeamId
@@ -45,7 +41,7 @@ test.describe('Dashboard', () => {
 
     // Should navigate to a new document URL
     await page.waitForURL(/\/documents\//, { timeout: 10_000 });
-    expect(page.url()).toContain('/documents/');
+    expect(page.url()).toContain('/app/documents/');
   });
 
   test('D.5 — AI prompt textarea is visible and accepts text', async ({ authenticatedPage: page }) => {
@@ -75,7 +71,7 @@ test.describe('Dashboard', () => {
     await expect(page.locator(SEL.dashboard.aiPrompt.createDocButton)).toBeVisible({ timeout: 10_000 });
     await page.locator(SEL.dashboard.aiPrompt.createDocButton).click();
     await page.waitForURL(/\/documents\//, { timeout: 10_000 });
-    expect(page.url()).toContain('/documents/');
+    expect(page.url()).toContain('/app/documents/');
   });
 
   test('D.9 — All 5 phase cards are visible', async ({ authenticatedPage: page }) => {
@@ -89,7 +85,7 @@ test.describe('Dashboard', () => {
     await expect(page.locator(SEL.dashboard.phases.createButton('Conception'))).toBeVisible({ timeout: 10_000 });
     await page.locator(SEL.dashboard.phases.createButton('Conception')).click();
     await page.waitForURL(/\/documents\//, { timeout: 10_000 });
-    expect(page.url()).toContain('/documents/');
+    expect(page.url()).toContain('/app/documents/');
   });
 
   test('D.11 — Recent documents section shows at most 5 documents', async ({ authenticatedPage: page }) => {

@@ -66,7 +66,7 @@ export const deliverableService = {
         type,
         fileName,
         fileUrl,
-        metadata: { title: doc.title, status: doc.status },
+        metadata: { title: doc.title },
       })
       .returning();
 

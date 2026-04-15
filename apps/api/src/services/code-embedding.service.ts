@@ -7,7 +7,7 @@
 
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { codeChunks, integrations } from '../db/schema.js';
+import { codeChunks, documents, integrations } from '../db/schema.js';
 import { githubService, type GitHubTreeEntry } from './github.service.js';
 import { chunkText } from './chunking.service.js';
 import { embeddingService } from './embedding.service.js';
@@ -226,5 +226,94 @@ export const codeEmbeddingService = {
       score: Number(row.score),
       chunkIndex: row.chunk_index,
     }));
+  },
+
+  /**
+   * Fetch the most relevant code chunks for a given document, used to ground
+   * AI-assisted document edits in the connected codebase.
+   *
+   * Non-fatal on any failure: if the team has no code chunks indexed, the
+   * embedding call fails, or the query times out, returns an empty result
+   * rather than throwing. The caller should fall back to an ungrounded prompt.
+   */
+  async fetchRelevantCodeForDocument(
+    documentId: string,
+    teamId: string,
+  ): Promise<{
+    chunks: Array<{ path: string; content: string }>;
+    sources: string[];
+  }> {
+    const EMPTY = { chunks: [], sources: [] as string[] };
+    // Soft timeout budget for the whole embed + query step.
+    const TIMEOUT_MS = 6000;
+
+    try {
+      // 1. Load the document scoped to the team
+      const [doc] = await db
+        .select({
+          id: documents.id,
+          title: documents.title,
+          content: documents.content,
+          teamId: documents.teamId,
+        })
+        .from(documents)
+        .where(and(eq(documents.id, documentId), eq(documents.teamId, teamId)))
+        .limit(1);
+
+      if (!doc) {
+        console.warn(
+          `[code-embedding] fetchRelevantCodeForDocument: document ${documentId} not found for team ${teamId}`,
+        );
+        return EMPTY;
+      }
+
+      // 2. Build the retrieval query string from title + content preview
+      const queryText = `${doc.title ?? ''}\n\n${(doc.content ?? '').slice(0, 2000)}`.trim();
+      if (!queryText) return EMPTY;
+
+      // 3. Run embedding + vector search with a soft timeout
+      const timeoutPromise = new Promise<typeof EMPTY>((resolve) => {
+        setTimeout(() => {
+          console.warn(
+            `[code-embedding] fetchRelevantCodeForDocument: timed out after ${TIMEOUT_MS}ms for document ${documentId}`,
+          );
+          resolve(EMPTY);
+        }, TIMEOUT_MS);
+      });
+
+      const retrievalPromise = (async () => {
+        try {
+          const results = await this.searchCode(queryText, teamId, {
+            topK: 8,
+          });
+          if (results.length === 0) return EMPTY;
+
+          // De-duplicate by file path while preserving order (highest score first)
+          const seen = new Set<string>();
+          const chunks: Array<{ path: string; content: string }> = [];
+          const sources: string[] = [];
+          for (const r of results) {
+            chunks.push({ path: r.filePath, content: r.content });
+            if (!seen.has(r.filePath)) {
+              seen.add(r.filePath);
+              sources.push(r.filePath);
+            }
+          }
+          return { chunks, sources };
+        } catch (err) {
+          console.warn(
+            `[code-embedding] fetchRelevantCodeForDocument: retrieval failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          return EMPTY;
+        }
+      })();
+
+      return await Promise.race([retrievalPromise, timeoutPromise]);
+    } catch (err) {
+      console.warn(
+        `[code-embedding] fetchRelevantCodeForDocument: unexpected error: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return EMPTY;
+    }
   },
 };

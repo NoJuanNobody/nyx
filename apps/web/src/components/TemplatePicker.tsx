@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { DocumentTemplate } from '@nyx/shared';
 import { fetchTemplates, createTemplate, deleteTemplate } from '../lib/api';
 import { STAGES, type DocumentStage } from '../lib/stages';
+import { Portal } from './Portal';
 
 interface TemplatePickerProps {
   onClose: () => void;
@@ -48,11 +49,17 @@ export function TemplatePicker({ onClose, onCreate, teamId }: TemplatePickerProp
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+    <Portal>
       <div
-        className="relative w-full max-w-2xl rounded-xl bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+        onClick={onClose}
+        data-testid="template-picker-backdrop"
       >
+        <div
+          className="relative w-full max-w-2xl rounded-xl bg-white shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+          data-testid="template-picker-card"
+        >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <h2 className="text-lg font-semibold text-slate-900">Create Document</h2>
@@ -323,7 +330,8 @@ export function TemplatePicker({ onClose, onCreate, teamId }: TemplatePickerProp
             </div>
           )}
         </div>
+        </div>
       </div>
-    </div>
+    </Portal>
   );
 }

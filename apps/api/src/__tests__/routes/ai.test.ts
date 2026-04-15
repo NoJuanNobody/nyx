@@ -5,11 +5,21 @@ import { ZodError } from 'zod';
 import { aiRoutes } from '../../routes/ai.js';
 
 vi.mock('../../db/schema.js', () => ({
-  documents: { id: 'id', teamId: 'teamId', status: 'status' },
+  documents: {
+    id: 'id',
+    teamId: 'teamId',
+    title: 'title',
+    content: 'content',
+    stage: 'stage',
+    deletedAt: 'deletedAt',
+  },
+  integrations: { teamId: 'teamId', type: 'type', config: 'config' },
 }));
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn((...args: unknown[]) => args),
+  and: vi.fn((...args: unknown[]) => args),
+  isNull: vi.fn((col: unknown) => ['isNull', col]),
 }));
 
 const mockAiService = vi.hoisted(() => ({
@@ -18,14 +28,20 @@ const mockAiService = vi.hoisted(() => ({
   generateDocument: vi.fn(),
   editDocument: vi.fn(),
   generateTicketFromDiff: vi.fn(),
-  generateJSXPreview: vi.fn(),
-  refineJSXPreview: vi.fn(),
   seedNextStage: vi.fn(),
   analyzeMissingSections: vi.fn(),
   notificationReply: vi.fn(),
   generateNewsArticle: vi.fn(),
+  generateSuggestions: vi.fn(),
 }));
 vi.mock('../../services/ai.service.js', () => ({ aiService: mockAiService }));
+
+const mockCodeEmbeddingService = vi.hoisted(() => ({
+  fetchRelevantCodeForDocument: vi.fn(),
+}));
+vi.mock('../../services/code-embedding.service.js', () => ({
+  codeEmbeddingService: mockCodeEmbeddingService,
+}));
 vi.mock('../../middleware/permissions.js', () => ({ requireRole: () => async () => {} }));
 
 async function buildApp() {
@@ -80,26 +96,140 @@ describe('AI Routes', () => {
     const app = await buildApp();
     const res = await app.inject({ method: 'POST', url: '/api/ai/edit-document', payload: { content: '# Old', instruction: 'Update' } });
     expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.content).toBe('# Edited');
+    expect(body.grounded).toBe(false);
+    // No retrieval should happen when documentId/teamId are absent
+    expect(mockCodeEmbeddingService.fetchRelevantCodeForDocument).not.toHaveBeenCalled();
+    // Service called with empty codeContents
+    expect(mockAiService.editDocument).toHaveBeenCalledWith(
+      '# Old',
+      'Update',
+      undefined,
+      [],
+    );
+  });
+
+  it('POST /api/ai/edit-document grounds in codebase when documentId+teamId provided', async () => {
+    const docId = '11111111-1111-1111-1111-111111111111';
+    const teamId = '22222222-2222-2222-2222-222222222222';
+    mockCodeEmbeddingService.fetchRelevantCodeForDocument.mockResolvedValueOnce({
+      chunks: [
+        { path: 'src/foo.ts', content: 'export function foo() {}' },
+        { path: 'src/bar.ts', content: 'export const BAR = 42;' },
+      ],
+      sources: ['src/foo.ts', 'src/bar.ts'],
+    });
+    mockAiService.editDocument.mockResolvedValueOnce('# Edited with code');
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/edit-document',
+      payload: {
+        content: '# Old',
+        instruction: 'Fix these',
+        documentId: docId,
+        teamId,
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.content).toBe('# Edited with code');
+    expect(body.grounded).toBe(true);
+    expect(body.groundingSources).toEqual(['src/foo.ts', 'src/bar.ts']);
+    expect(mockCodeEmbeddingService.fetchRelevantCodeForDocument).toHaveBeenCalledWith(
+      docId,
+      teamId,
+    );
+    // Service called with non-empty codeContents — triggers the grounded prompt
+    expect(mockAiService.editDocument).toHaveBeenCalledWith(
+      '# Old',
+      'Fix these',
+      undefined,
+      [
+        { path: 'src/foo.ts', content: 'export function foo() {}' },
+        { path: 'src/bar.ts', content: 'export const BAR = 42;' },
+      ],
+    );
+  });
+
+  it('POST /api/ai/edit-document falls back to ungrounded when no code chunks', async () => {
+    const docId = '11111111-1111-1111-1111-111111111111';
+    const teamId = '22222222-2222-2222-2222-222222222222';
+    mockCodeEmbeddingService.fetchRelevantCodeForDocument.mockResolvedValueOnce({
+      chunks: [],
+      sources: [],
+    });
+    mockAiService.editDocument.mockResolvedValueOnce('# Edited conservative');
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/edit-document',
+      payload: { content: '# Old', instruction: 'Fix these', documentId: docId, teamId },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.grounded).toBe(false);
+    expect(body.groundingSources).toBeUndefined();
+    expect(mockAiService.editDocument).toHaveBeenCalledWith(
+      '# Old',
+      'Fix these',
+      undefined,
+      [],
+    );
+  });
+
+  it('POST /api/ai/edit-document handles retrieval throwing by falling back to ungrounded', async () => {
+    const docId = '11111111-1111-1111-1111-111111111111';
+    const teamId = '22222222-2222-2222-2222-222222222222';
+    mockCodeEmbeddingService.fetchRelevantCodeForDocument.mockRejectedValueOnce(
+      new Error('pgvector exploded'),
+    );
+    mockAiService.editDocument.mockResolvedValueOnce('# Edited conservative');
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/edit-document',
+      payload: { content: '# Old', instruction: 'Fix these', documentId: docId, teamId },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.content).toBe('# Edited conservative');
+    expect(body.grounded).toBe(false);
+  });
+
+  it('POST /api/ai/edit-document returns 400 when only documentId is provided', async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/edit-document',
+      payload: {
+        content: '# Old',
+        instruction: 'Fix',
+        documentId: '11111111-1111-1111-1111-111111111111',
+      },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /api/ai/edit-document returns 400 when only teamId is provided', async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ai/edit-document',
+      payload: {
+        content: '# Old',
+        instruction: 'Fix',
+        teamId: '22222222-2222-2222-2222-222222222222',
+      },
+    });
+    expect(res.statusCode).toBe(400);
   });
 
   it('POST /api/ai/generate-ticket returns ticket', async () => {
     mockAiService.generateTicketFromDiff.mockResolvedValueOnce({ title: 'Fix bug', description: 'desc', labels: [] });
     const app = await buildApp();
     const res = await app.inject({ method: 'POST', url: '/api/ai/generate-ticket', payload: { diff: 'diff content' } });
-    expect(res.statusCode).toBe(200);
-  });
-
-  it('POST /api/ai/jsx-preview returns JSX', async () => {
-    mockAiService.generateJSXPreview.mockResolvedValueOnce('<div>Hello</div>');
-    const app = await buildApp();
-    const res = await app.inject({ method: 'POST', url: '/api/ai/jsx-preview', payload: { prompt: 'A button' } });
-    expect(res.statusCode).toBe(200);
-  });
-
-  it('POST /api/ai/jsx-preview/refine returns refined JSX', async () => {
-    mockAiService.refineJSXPreview.mockResolvedValueOnce('<div>Updated</div>');
-    const app = await buildApp();
-    const res = await app.inject({ method: 'POST', url: '/api/ai/jsx-preview/refine', payload: { currentJSX: '<div/>', prompt: 'Make it blue' } });
     expect(res.statusCode).toBe(200);
   });
 
@@ -264,8 +394,8 @@ describe('AI Routes', () => {
 
   it('POST /api/ai/generate-all generates content for all documents', async () => {
     const mockDocs = [
-      { id: 'doc-1', title: 'Feature Spec', content: '', status: 'draft', teamId: 'team-1' },
-      { id: 'doc-2', title: 'API Design', content: '', status: 'published', teamId: 'team-1' },
+      { id: 'doc-1', title: 'Feature Spec', content: '', teamId: 'team-1', deletedAt: null },
+      { id: 'doc-2', title: 'API Design', content: '', teamId: 'team-1', deletedAt: null },
     ];
 
     // Mock db.select for fetching documents
@@ -309,8 +439,8 @@ describe('AI Routes', () => {
 
   it('POST /api/ai/generate-all handles partial failures gracefully', async () => {
     const mockDocs = [
-      { id: 'doc-1', title: 'Good Doc', content: '', status: 'draft', teamId: 'team-1' },
-      { id: 'doc-2', title: 'Bad Doc', content: '', status: 'draft', teamId: 'team-1' },
+      { id: 'doc-1', title: 'Good Doc', content: '', teamId: 'team-1', deletedAt: null },
+      { id: 'doc-2', title: 'Bad Doc', content: '', teamId: 'team-1', deletedAt: null },
     ];
 
     const selectChain = {
@@ -349,10 +479,12 @@ describe('AI Routes', () => {
     expect(body.results[1].error).toBe('AI provider error');
   });
 
-  it('POST /api/ai/generate-all skips archived documents', async () => {
+  it('POST /api/ai/generate-all only processes live (non-deleted) documents', async () => {
+    // Soft-deleted docs are filtered out at the SQL layer via
+    // isNull(documents.deletedAt), so the mock simulates the DB returning
+    // only the one live row.
     const mockDocs = [
-      { id: 'doc-1', title: 'Active Doc', content: '', status: 'draft', teamId: 'team-1' },
-      { id: 'doc-2', title: 'Archived Doc', content: '', status: 'archived', teamId: 'team-1' },
+      { id: 'doc-1', title: 'Active Doc', content: '', teamId: 'team-1', deletedAt: null },
     ];
 
     const selectChain = {
@@ -385,5 +517,223 @@ describe('AI Routes', () => {
     expect(body.total).toBe(1);
     expect(body.succeeded).toBe(1);
     expect(mockAiService.generateDocument).toHaveBeenCalledTimes(1);
+  });
+
+  // ── POST /api/ai/suggestions ───────────────────────────────
+  describe('POST /api/ai/suggestions', () => {
+    const docId = '11111111-1111-1111-1111-111111111111';
+    const teamId = '22222222-2222-2222-2222-222222222222';
+
+    function mockDocLookup(doc: Record<string, unknown> | null) {
+      const chain = {
+        select: vi.fn().mockReturnThis(),
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        then: (resolve: (v: unknown) => void) =>
+          Promise.resolve(doc ? [doc] : []).then(resolve),
+      };
+      mockDb.select.mockReturnValueOnce(chain as any);
+    }
+
+    function mockIntegrationLookup(row: Record<string, unknown> | null) {
+      const chain = {
+        select: vi.fn().mockReturnThis(),
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        then: (resolve: (v: unknown) => void) =>
+          Promise.resolve(row ? [row] : []).then(resolve),
+      };
+      mockDb.select.mockReturnValueOnce(chain as any);
+    }
+
+    it('pre-session: returns 3 suggestions when the service produces them', async () => {
+      mockDocLookup({
+        id: docId,
+        title: 'Billing API',
+        content: '# Billing API\n\nHandles invoices.',
+        stage: 'implementation',
+        teamId,
+      });
+      // No GitHub integration connected
+      mockIntegrationLookup(null);
+
+      mockAiService.generateSuggestions.mockResolvedValueOnce([
+        'Document webhook retries',
+        'Cite billing.service.ts',
+        'Add rate-limit handling',
+      ]);
+
+      const app = await buildApp();
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/ai/suggestions',
+        payload: {
+          kind: 'pre-session',
+          documentId: docId,
+          teamId,
+          content: 'Draft billing doc',
+          stage: 'implementation',
+        },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.suggestions).toHaveLength(3);
+      expect(body.suggestions).toContain('Cite billing.service.ts');
+    });
+
+    it('pre-session: uses fetchRelevantCodeForDocument when GitHub integration exists', async () => {
+      mockDocLookup({
+        id: docId,
+        title: 'Auth API',
+        content: 'preview',
+        stage: 'architecture',
+        teamId,
+      });
+      mockIntegrationLookup({
+        type: 'github',
+        config: {
+          selectedRepos: [{ owner: 'acme', name: 'backend', fullName: 'acme/backend' }],
+        },
+      });
+      mockCodeEmbeddingService.fetchRelevantCodeForDocument.mockResolvedValueOnce({
+        chunks: [
+          { path: 'src/auth.ts', content: '...' },
+          { path: 'src/session.ts', content: '...' },
+        ],
+        sources: ['src/auth.ts', 'src/session.ts'],
+      });
+      mockAiService.generateSuggestions.mockResolvedValueOnce([
+        'Verify session rotation',
+        'Add MFA check in auth.ts',
+        'Document JWT expiry',
+      ]);
+
+      const app = await buildApp();
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/ai/suggestions',
+        payload: { kind: 'pre-session', documentId: docId, teamId },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.suggestions).toHaveLength(3);
+      // Verify the service received a codebase hint with the repo and chunks
+      const call = mockAiService.generateSuggestions.mock.calls[0][0];
+      expect(call.kind).toBe('pre-session');
+      expect(call.codebaseHint).toBeDefined();
+      expect(call.codebaseHint.repoFullName).toBe('acme/backend');
+      expect(call.codebaseHint.chunks).toHaveLength(2);
+    });
+
+    it('returns 200 with { suggestions: [] } on service failure', async () => {
+      mockDocLookup({
+        id: docId,
+        title: 'Billing API',
+        content: 'preview',
+        stage: null,
+        teamId,
+      });
+      mockIntegrationLookup(null);
+      mockAiService.generateSuggestions.mockRejectedValueOnce(new Error('anthropic exploded'));
+
+      const app = await buildApp();
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/ai/suggestions',
+        payload: { kind: 'pre-session', documentId: docId, teamId },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body)).toEqual({ suggestions: [] });
+    });
+
+    it('returns 200 with [] when service returns malformed (fewer than 3) suggestions', async () => {
+      mockDocLookup({
+        id: docId,
+        title: 'Billing API',
+        content: 'preview',
+        stage: null,
+        teamId,
+      });
+      mockIntegrationLookup(null);
+      mockAiService.generateSuggestions.mockResolvedValueOnce(['only one']);
+
+      const app = await buildApp();
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/ai/suggestions',
+        payload: { kind: 'pre-session', documentId: docId, teamId },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body)).toEqual({ suggestions: [] });
+    });
+
+    it('post-session: returns 3 suggestions and passes history/toolCallSummary/incomplete', async () => {
+      mockDocLookup({
+        id: docId,
+        title: 'Intake Flow',
+        content: 'intake doc',
+        stage: 'execution',
+        teamId,
+      });
+      mockAiService.generateSuggestions.mockResolvedValueOnce([
+        'Deep-dive on file upload limits',
+        'Narrow to API routes',
+        'Split this into two tasks',
+      ]);
+
+      const app = await buildApp();
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/ai/suggestions',
+        payload: {
+          kind: 'post-session',
+          documentId: docId,
+          teamId,
+          history: [{ role: 'user', content: 'Scan codebase for intake, file uploads, audio' }],
+          toolCallSummary: [
+            { name: 'search_code', count: 3 },
+            { name: 'get_github_files', count: 2 },
+          ],
+          finalResult: 'I found intake.ts and upload.ts',
+          incomplete: true,
+        },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.suggestions).toHaveLength(3);
+
+      const call = mockAiService.generateSuggestions.mock.calls[0][0];
+      expect(call.kind).toBe('post-session');
+      expect(call.history).toHaveLength(1);
+      expect(call.toolCallSummary).toHaveLength(2);
+      expect(call.incomplete).toBe(true);
+      expect(call.finalResult).toContain('intake.ts');
+    });
+
+    it('returns 400 when required fields are missing', async () => {
+      const app = await buildApp();
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/ai/suggestions',
+        payload: { kind: 'pre-session' }, // missing documentId + teamId
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('returns { suggestions: [] } when document is not found', async () => {
+      mockDocLookup(null);
+
+      const app = await buildApp();
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/ai/suggestions',
+        payload: { kind: 'pre-session', documentId: docId, teamId },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body)).toEqual({ suggestions: [] });
+      expect(mockAiService.generateSuggestions).not.toHaveBeenCalled();
+    });
   });
 });

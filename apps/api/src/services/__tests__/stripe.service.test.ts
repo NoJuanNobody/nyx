@@ -124,7 +124,7 @@ describe('stripe.service', () => {
 
       const url = await createPortalSession(
         'cus_test123',
-        'https://app.nyx.dev/settings',
+        'https://app.nyx.dev/app/settings',
       );
 
       expect(url).toContain('https://billing.stripe.com/mock/portal');

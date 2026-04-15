@@ -120,7 +120,6 @@ export async function createMeetingDocument(
       content,
       teamId,
       createdById,
-      status: 'draft',
       stage: 'definition',
     })
     .returning();

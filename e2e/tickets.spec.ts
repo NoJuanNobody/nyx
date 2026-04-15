@@ -1,7 +1,7 @@
 import { test, expect, SEED } from './fixtures/test-base';
 import { SEL } from './fixtures/selectors';
 
-const DOC_URL = `/documents/${SEED.DOC_API_SPEC_ID}`;
+const DOC_URL = `/app/documents/${SEED.DOC_API_SPEC_ID}`;
 
 test.describe('Tickets', () => {
   // ── 11.1: Create ticket from document ───────────────────────────
@@ -31,15 +31,17 @@ test.describe('Tickets', () => {
     // Push as tickets
     await page.locator('button:has-text("Push as Tickets")').click();
 
-    // Verify success feedback
+    // Verify success feedback — the proposal status badge flips to "pushed".
+    // Avoid matching "Create Ticket" on the toolbar (hidden below 1400px)
+    // or "Push as Tickets" on the button itself.
     await expect(
-      page.locator('text=/[Tt]icket|[Cc]reated|[Pp]ushed|[Ss]uccess/i').first(),
+      page.locator('text=/\\bpushed\\b|\\bsuccess\\b/i').first(),
     ).toBeVisible({ timeout: 10_000 });
   });
 
   // ── 11.2: Ticket appears on board ──────────────────────────────
   test('11.2 — seeded ticket visible on board', async ({ authenticatedPage: page }) => {
-    await page.goto('/board');
+    await page.goto('/app/board');
     await expect(page.locator(SEL.board.title)).toBeVisible({ timeout: 10_000 });
 
     // Verify the seeded ticket is visible on the board

@@ -337,6 +337,7 @@ Respond ONLY with valid JSON in this exact format: {"title": "<short title>", "d
     currentContent: string,
     instruction: string,
     history?: Array<{ role: 'user' | 'assistant'; content: string }>,
+    codeContents?: Array<{ path: string; content: string }>,
   ): Promise<string> {
     const ai = requireClient();
 
@@ -348,16 +349,33 @@ Respond ONLY with valid JSON in this exact format: {"title": "<short title>", "d
       messages.push(...recentHistory);
     }
 
-    messages.push({
-      role: 'user',
-      content: `Here is the current document:\n\n${currentContent}\n\n---\n\nInstruction: ${instruction}`,
-    });
+    const isGrounded = Array.isArray(codeContents) && codeContents.length > 0;
+
+    // ── System prompt variants ─────────────────────────────
+    // Grounded: source files are provided; treat them as ground truth.
+    // Ungrounded: no code — refuse to fabricate concrete implementation details.
+    const groundedSystemPrompt =
+      'You are an expert spec editor. You have been given the document, the editing instruction, AND the relevant source files from the project. Treat the source files as ground truth: prefer facts derived from code over facts in the existing document, correct the document where they disagree, and only fill in details that are either already in the document or clearly supported by the code. If the instruction asks for information you cannot verify from either source, leave that section unchanged — do not invent function names, file paths, endpoints, env vars, flags, error codes, or numeric limits. Return ONLY the updated markdown — no code fences, no explanations.';
+    const ungroundedSystemPrompt =
+      'You have been given the document and an editing instruction but NO source code. You must not fabricate concrete implementation details. Specifically: no invented function signatures, module names, API paths, env var names, CLI flags, error codes, or numeric limits. For any quality suggestion that would require such details, leave that section unchanged and insert a brief inline marker like `> TODO: needs codebase context`. Return ONLY the updated markdown — no code fences, no explanations.';
+
+    // ── User message ───────────────────────────────────────
+    let userMessage: string;
+    if (isGrounded) {
+      const codeBlock = codeContents!
+        .map((f) => `### ${f.path}\n\n\`\`\`\n${f.content}\n\`\`\``)
+        .join('\n\n');
+      userMessage = `Here is the current document:\n\n${currentContent}\n\n---\n\nHere are the relevant source files from the project (treat as ground truth):\n\n${codeBlock}\n\n---\n\nInstruction: ${instruction}`;
+    } else {
+      userMessage = `Here is the current document:\n\n${currentContent}\n\n---\n\nInstruction: ${instruction}`;
+    }
+
+    messages.push({ role: 'user', content: userMessage });
 
     const response = await ai.messages.create({
       model: MODEL_FAST,
       max_tokens: 4096,
-      system:
-        'You are an expert document editor. Given a document and an editing instruction, return ONLY the updated markdown content. Do not wrap the output in code fences. Do not include any explanations — just the raw updated markdown.',
+      system: isGrounded ? groundedSystemPrompt : ungroundedSystemPrompt,
       messages,
     });
 
@@ -417,84 +435,6 @@ Respond ONLY with valid JSON in this exact format: {"title": "<proposal title>",
     }
   },
 
-  async generateJSXPreview(
-    prompt: string,
-    context?: string,
-    allStates?: boolean,
-  ): Promise<string> {
-    const ai = requireClient();
-
-    const contextBlock = context ? `\n\nAdditional context from the spec:\n${context}` : '';
-
-    const statesBlock = allStates
-      ? '\n\nIMPORTANT: Render ALL meaningful component states in a single vertically-scrollable layout. Use labeled sections with a small heading/badge for each state: Loading, Empty, Error, Populated (default), and Disabled/Read-only where applicable. Each section should be visually distinct but share the same component design.'
-      : '';
-
-    const response = await ai.messages.create({
-      model: MODEL,
-      max_tokens: 4096,
-      system:
-        `You are an expert React component generator. Given a description, generate a single self-contained React component that can be rendered in a browser.
-
-STRICT RULES:
-1. Output ONLY the raw JSX/JavaScript code — no markdown, no code fences, no explanations
-2. The component MUST be a plain function named "App": function App() { ... } — do NOT use export default
-3. Use ONLY inline Tailwind CSS classes for styling (Tailwind is available via CDN)
-4. Do NOT use any imports — React, ReactDOM, and Tailwind are available as globals
-5. Do NOT use TypeScript — plain JavaScript/JSX only
-6. The component must be entirely self-contained with its own sample data
-7. For charts, use inline SVG elements (no external chart libraries)
-8. Keep the component realistic and visually polished`,
-      messages: [
-        {
-          role: 'user',
-          content: `Generate a React component for: ${prompt}${contextBlock}${statesBlock}`,
-        },
-      ],
-    });
-
-    let text = response.content[0].type === 'text' ? response.content[0].text : '';
-    // Strip code fences if model wraps output (global match for robustness)
-    text = text.replace(/```(?:jsx?|javascript|tsx?)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
-    // Strip any import statements the model may have included
-    text = text.replace(/^\s*import\s+.*?(?:from\s+['"].*?['"]|['"].*?['"])\s*;?\s*$/gm, '');
-    return text;
-  },
-
-  async refineJSXPreview(
-    currentJSX: string,
-    refinementPrompt: string,
-  ): Promise<string> {
-    const ai = requireClient();
-
-    const response = await ai.messages.create({
-      model: MODEL,
-      max_tokens: 4096,
-      system:
-        `You are an expert React component editor. Given an existing React component and a refinement instruction, return the updated component.
-
-STRICT RULES:
-1. Output ONLY the raw JSX/JavaScript code — no markdown, no code fences, no explanations
-2. The component MUST be a plain function named "App": function App() { ... } — do NOT use export default
-3. Use ONLY inline Tailwind CSS classes for styling
-4. Do NOT use any imports — React, ReactDOM, and Tailwind are available as globals
-5. Do NOT use TypeScript — plain JavaScript/JSX only
-6. Apply ONLY the requested changes; preserve all other aspects of the component`,
-      messages: [
-        {
-          role: 'user',
-          content: `Here is the current component:\n\n${currentJSX}\n\n---\n\nRefinement instruction: ${refinementPrompt}`,
-        },
-      ],
-    });
-
-    let text = response.content[0].type === 'text' ? response.content[0].text : '';
-    text = text.replace(/```(?:jsx?|javascript|tsx?)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
-    // Strip any import statements the model may have included
-    text = text.replace(/^\s*import\s+.*?(?:from\s+['"].*?['"]|['"].*?['"])\s*;?\s*$/gm, '');
-    return text;
-  },
-
   async bootstrapDocsFromCode(
     files: Array<{ path: string; content: string }>,
   ): Promise<string> {
@@ -532,8 +472,12 @@ STRICT RULES:
       .map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``)
       .join('\n\n');
 
+    // Per-module docs use Haiku (MODEL_FAST) for speed — 4-5x faster
+    // than Sonnet with comparable quality for focused per-module
+    // summaries. The final mergeModuleDocs synthesis step intentionally
+    // stays on Sonnet (MODEL) where quality matters more.
     const response = await ai.messages.create({
-      model: MODEL,
+      model: MODEL_FAST,
       max_tokens: 2048,
       system: `You are a technical documentation generator focused on the "${moduleName}" module of a codebase. Analyze the provided source files and generate focused documentation in Markdown format. Include:
 - **Purpose**: What this module does and its responsibilities
@@ -1186,6 +1130,136 @@ Respond ONLY with valid JSON in this exact format:
     } catch {
       return { headline: 'Breaking News', content: text, summary: '' };
     }
+  },
+
+  /**
+   * Generate exactly 3 context-aware prompt suggestions for the AI panel.
+   *
+   * Used for both:
+   * - `pre-session` empty-state chips (before a user has asked anything)
+   * - `post-session` follow-up chips (after an agent run has completed)
+   *
+   * Uses Haiku (`MODEL_FAST`) because this is a cheap, frequent call. On any
+   * failure path — missing client, model error, malformed JSON — returns `[]`
+   * rather than throwing, so the route can gracefully fall back.
+   */
+  async generateSuggestions(input: {
+    kind: 'pre-session' | 'post-session';
+    documentTitle?: string | null;
+    stage?: string | null;
+    contentPreview?: string;
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+    toolCallSummary?: Array<{ name: string; count: number }>;
+    finalResult?: string;
+    incomplete?: boolean;
+    codebaseHint?: { repoFullName?: string; chunks?: Array<{ path: string; content: string }> };
+  }): Promise<string[]> {
+    if (!client) return [];
+
+    const ANTI_BOILERPLATE =
+      "Do NOT produce generic prompts like 'Add error handling', 'Rewrite the intro', or 'Add more detail'. " +
+      'Each suggestion must name a specific concept from the provided document or conversation.';
+
+    let systemPrompt: string;
+    let userPrompt: string;
+
+    if (input.kind === 'pre-session') {
+      const title = (input.documentTitle ?? '').trim() || 'Untitled Document';
+      const stage = input.stage ?? 'unspecified';
+      const preview = (input.contentPreview ?? '').slice(0, 500);
+
+      const codebaseLine = input.codebaseHint?.repoFullName
+        ? `codebase connected: ${input.codebaseHint.repoFullName}`
+        : '';
+
+      // Use at most the first 3 retrieved code paths as a hint; the model
+      // doesn't need full file contents for suggestion generation.
+      const topPaths = (input.codebaseHint?.chunks ?? [])
+        .slice(0, 3)
+        .map((c) => c.path)
+        .filter(Boolean);
+      const pathsLine = topPaths.length > 0 ? `relevant files: ${topPaths.join(', ')}` : '';
+
+      systemPrompt = `You help a product team pick the next useful thing to ask an AI assistant about a specific document they're editing.
+
+${ANTI_BOILERPLATE}
+
+Return EXACTLY 3 suggestions as a JSON array of strings. Each suggestion must be ≤ 80 characters. Each suggestion must reference a concrete concept from the document title, stage, content preview, or connected codebase. Do NOT wrap the array in any object or explanation — return ONLY a JSON array like ["suggestion one", "suggestion two", "suggestion three"].`;
+
+      userPrompt = `Document title: ${title}
+Stage: ${stage}
+${codebaseLine}
+${pathsLine}
+
+Content preview (first 500 chars):
+${preview || '(empty document)'}
+
+Generate 3 next-step prompts the user could ask the AI assistant about THIS document.`;
+    } else {
+      // post-session
+      const lastUser = [...(input.history ?? [])].reverse().find((m) => m.role === 'user')?.content ?? '';
+      const toolSummaryStr =
+        input.toolCallSummary && input.toolCallSummary.length > 0
+          ? input.toolCallSummary.map((t) => `${t.name}×${t.count}`).join(', ')
+          : '(no tool calls)';
+      const finalResult = (input.finalResult ?? '').slice(0, 1000);
+      const incompleteNote = input.incomplete
+        ? '\n\nNOTE: The agent terminated early (hit iteration ceiling). Suggestions should help the user split, narrow, or re-scope the task.'
+        : '';
+
+      systemPrompt = `You help a product team pick the next useful thing to ask an AI assistant after an agent session has just completed.
+
+${ANTI_BOILERPLATE}
+
+Return EXACTLY 3 suggestions as a JSON array of strings. Each suggestion must be ≤ 80 characters. Each suggestion must logically extend the conversation that just happened — reference a specific file, concept, tool result, or topic from the user's prompt or the agent's output. Do NOT wrap the array in any object or explanation — return ONLY a JSON array like ["suggestion one", "suggestion two", "suggestion three"].`;
+
+      userPrompt = `Last user prompt: ${lastUser || '(none)'}
+
+Tools called: ${toolSummaryStr}
+
+Agent's final output (truncated to 1000 chars):
+${finalResult || '(no output)'}${incompleteNote}
+
+Generate 3 follow-up prompts the user could ask next.`;
+    }
+
+    let rawText = '';
+    try {
+      const response = await client.messages.create({
+        model: MODEL_FAST,
+        max_tokens: 512,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      });
+      rawText = response.content[0]?.type === 'text' ? response.content[0].text : '';
+    } catch (err) {
+      Sentry.captureException(err);
+      return [];
+    }
+
+    // Parse the JSON array out of the response — tolerate code fences and
+    // leading/trailing prose, but reject anything that isn't a clean array of
+    // strings.
+    let text = rawText.replace(/```(?:json)?\s*\n?/g, '').replace(/\n?\s*```/g, '').trim();
+    const first = text.indexOf('[');
+    const last = text.lastIndexOf(']');
+    if (first === -1 || last <= first) return [];
+    text = text.slice(first, last + 1);
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      return [];
+    }
+
+    if (!Array.isArray(parsed)) return [];
+    const strings = parsed.filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
+    if (strings.length === 0) return [];
+
+    // Cap to exactly 3 items (trim extras; if fewer than 3, return what we have —
+    // the route layer can decide whether that counts as a successful response).
+    return strings.slice(0, 3).map((s) => s.trim());
   },
 
   async seedNextStage(

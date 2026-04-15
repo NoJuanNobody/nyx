@@ -9,10 +9,13 @@ import { checkCredits, deductCredits, getAgentCost } from '../credits.service.js
 import type { AgentContext, TokenUsage, ToolCallRecord } from './types.js';
 
 const MODEL = 'claude-sonnet-4-20250514';
-const MAX_ITERATIONS = 10;
+const MAX_ITERATIONS = 25;
+const SOFT_ITERATION_WARNING = 20;
 const MAX_TOOL_RESULT_CHARS = 6_000; // ~1.5K tokens — truncate large tool outputs
 const TOKEN_BUDGET = 120_000; // Stop looping well before API's 200K limit
-const COMPRESS_AFTER_ITERATION = 3; // Summarize old tool results after this many iterations
+const STOP_NOTE = '\n\n[Stopped at iteration limit — output may be incomplete.]';
+const TOKEN_STOP_NOTE =
+  '\n\n[Stopping early — approaching token limit. Please start a new message for further exploration.]';
 
 /**
  * Truncate a tool result string to stay within token budget.
@@ -25,11 +28,12 @@ function truncateToolResult(content: string): string {
 }
 
 /**
- * Compress older tool results in the message history to reduce token usage.
- * Keeps the last `keep` user messages at full fidelity, replaces older
- * tool_result blocks with a short summary.
+ * Compress older tool results AND old tool_use payloads in the message history
+ * to reduce token usage. Keeps the last `keep` user messages at full fidelity,
+ * replaces older tool_result blocks (in user messages) and tool_use input
+ * payloads (in assistant messages) with a short summary.
  */
-function compressOldToolResults(messages: Anthropic.MessageParam[], keep = 2): void {
+function compressOldToolResults(messages: Anthropic.MessageParam[], keep = 1): void {
   // Find the cutoff: we want to compress all but the last `keep` user messages
   let userMsgCount = 0;
   let cutoffIndex = messages.length;
@@ -43,22 +47,37 @@ function compressOldToolResults(messages: Anthropic.MessageParam[], keep = 2): v
     }
   }
 
-  // Replace tool_result content in messages before the cutoff
+  // Replace tool_result and tool_use content in messages before the cutoff
   for (let i = 0; i <= cutoffIndex; i++) {
     const msg = messages[i];
-    if (msg.role !== 'user' || typeof msg.content === 'string') continue;
+    if (typeof msg.content === 'string') continue;
     if (!Array.isArray(msg.content)) continue;
 
-    for (let j = 0; j < msg.content.length; j++) {
-      const block = msg.content[j] as Anthropic.ToolResultBlockParam;
-      if (block.type !== 'tool_result') continue;
-      if (typeof block.content !== 'string') continue;
-      if (block.content.length <= 200) continue; // already short
+    if (msg.role === 'user') {
+      for (let j = 0; j < msg.content.length; j++) {
+        const block = msg.content[j] as Anthropic.ToolResultBlockParam;
+        if (block.type !== 'tool_result') continue;
+        if (typeof block.content !== 'string') continue;
+        if (block.content.length <= 200) continue; // already short
 
-      // Replace with a short summary
-      const preview = block.content.slice(0, 150).replace(/\n/g, ' ');
-      (msg.content[j] as Anthropic.ToolResultBlockParam).content =
-        `[Compressed] ${preview}... (${block.content.length} chars)`;
+        // Replace with a short summary
+        const preview = block.content.slice(0, 150).replace(/\n/g, ' ');
+        (msg.content[j] as Anthropic.ToolResultBlockParam).content =
+          `[Compressed] ${preview}... (${block.content.length} chars)`;
+      }
+    } else if (msg.role === 'assistant') {
+      for (let j = 0; j < msg.content.length; j++) {
+        const block = msg.content[j] as Anthropic.ToolUseBlockParam;
+        if (block.type !== 'tool_use') continue;
+        const inputJson = JSON.stringify(block.input ?? {});
+        if (inputJson.length <= 200) continue;
+
+        const preview = inputJson.slice(0, 150).replace(/\n/g, ' ');
+        // Replace the input with a tiny stand-in object that explains the compression.
+        (msg.content[j] as Anthropic.ToolUseBlockParam).input = {
+          _compressed: `[Compressed] ${preview}... (${inputJson.length} chars)`,
+        };
+      }
     }
   }
 }
@@ -83,6 +102,7 @@ export interface AgentLoopResult {
   result: string;
   toolCalls: ToolCallRecord[];
   tokenUsage: TokenUsage;
+  incomplete?: boolean;
 }
 
 /**
@@ -98,7 +118,9 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
   const creditCost = getAgentCost(workflowId);
   const creditCheck = await checkCredits(context.userId, creditCost);
   if (!creditCheck.allowed) {
-    await db.update(agentSessions).set({ status: 'failed', result: 'Insufficient credits' })
+    await db
+      .update(agentSessions)
+      .set({ status: 'failed', result: 'Insufficient credits' })
       .where(eq(agentSessions.id, context.sessionId));
     context.onEvent?.({ type: 'status', status: 'failed' });
     context.onEvent?.({
@@ -128,8 +150,12 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
   messages.push({ role: 'user', content: userPrompt });
 
   const allToolCalls: ToolCallRecord[] = [];
-  const tokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
+  const tokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0 };
   let sequence = 0;
+  // Preserve the most recent non-empty text the model produced — used as
+  // the fallback `result` when we hit a terminal early-exit branch.
+  let lastTextOutput = '';
+  let softWarningEmitted = false;
 
   // Emit initial status
   context.onEvent?.({ type: 'status', status: 'running' });
@@ -137,30 +163,49 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
     // Check for cancellation
     if (context.cancelled?.()) {
-      await db.update(agentSessions).set({ status: 'cancelled' }).where(eq(agentSessions.id, context.sessionId));
+      await db
+        .update(agentSessions)
+        .set({ status: 'cancelled' })
+        .where(eq(agentSessions.id, context.sessionId));
       context.onEvent?.({ type: 'status', status: 'cancelled' });
       break;
     }
 
-    // Compress old tool results to keep context window lean
-    if (iteration >= COMPRESS_AFTER_ITERATION) {
+    // Soft-warning: tell the user we're approaching the ceiling so they can
+    // see it on the streaming UI before we actually terminate.
+    if (iteration === SOFT_ITERATION_WARNING && !softWarningEmitted) {
+      softWarningEmitted = true;
+      context.onEvent?.({
+        type: 'text',
+        text: '\n\n[Warning: approaching iteration ceiling — the agent may wrap up soon.]',
+      });
+    }
+
+    // Compress old tool results / tool_use payloads every iteration after the first
+    if (iteration >= 1) {
       compressOldToolResults(messages);
     }
 
     const response = await client.messages.create({
       model: MODEL,
       max_tokens: 4096,
-      system: systemPrompt,
-      tools,
+      system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+      tools: tools.map((t, i) =>
+        i === tools.length - 1 ? { ...t, cache_control: { type: 'ephemeral' } } : t,
+      ),
       messages,
     });
 
-    // Track token usage
+    // Track token usage (regular + cached read)
     tokenUsage.inputTokens += response.usage.input_tokens;
     tokenUsage.outputTokens += response.usage.output_tokens;
+    const cachedRead =
+      (response.usage as { cache_read_input_tokens?: number | null }).cache_read_input_tokens ?? 0;
+    if (cachedRead) {
+      tokenUsage.cachedInputTokens = (tokenUsage.cachedInputTokens ?? 0) + cachedRead;
+    }
 
     // Process content blocks
-    const toolUseBlocks: Anthropic.ContentBlockParam[] = [];
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
     let textOutput = '';
 
@@ -179,8 +224,6 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
           sequence,
         });
 
-        toolUseBlocks.push(block);
-
         // Execute the tool
         const start = Date.now();
         let output: unknown;
@@ -191,7 +234,10 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
         } catch (err) {
           error = err instanceof Error ? err.message : String(err);
           output = { error };
-          console.error(`[agent] Tool "${block.name}" failed (session=${context.sessionId}):`, error);
+          console.error(
+            `[agent] Tool "${block.name}" failed (session=${context.sessionId}):`,
+            error,
+          );
         }
 
         const durationMs = Date.now() - start;
@@ -235,14 +281,30 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
       }
     }
 
+    // Track the latest non-empty text so the early-exit branches can
+    // preserve it instead of overwriting with a generic message.
+    if (textOutput.trim().length > 0) {
+      lastTextOutput = textOutput;
+    }
+
     // If there were tool uses, feed results back and continue
     if (toolResults.length > 0) {
-      // Check token budget before continuing — stop early to avoid 400 errors
+      // ── Token-budget early-exit (its own terminal block, NOT a fallthrough) ──
       if (tokenUsage.inputTokens + tokenUsage.outputTokens > TOKEN_BUDGET) {
-        context.onEvent?.({ type: 'text', text: '\n\n[Stopping early — approaching token limit. Please start a new message for further exploration.]' });
-        break;
+        return await terminateIncomplete({
+          context,
+          workflowId,
+          creditCost,
+          allToolCalls,
+          tokenUsage,
+          lastTextOutput,
+          stopNote: TOKEN_STOP_NOTE,
+        });
       }
-      messages.push({ role: 'assistant', content: response.content as Anthropic.ContentBlockParam[] });
+      messages.push({
+        role: 'assistant',
+        content: response.content as Anthropic.ContentBlockParam[],
+      });
       messages.push({ role: 'user', content: toolResults });
       continue;
     }
@@ -260,12 +322,15 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
     );
 
     // Update session
-    await db.update(agentSessions).set({
-      status: 'completed',
-      result: finalResult,
-      toolCallCount: allToolCalls.length,
-      tokenUsage,
-    }).where(eq(agentSessions.id, context.sessionId));
+    await db
+      .update(agentSessions)
+      .set({
+        status: 'completed',
+        result: finalResult,
+        toolCallCount: allToolCalls.length,
+        tokenUsage,
+      })
+      .where(eq(agentSessions.id, context.sessionId));
 
     context.onEvent?.({
       type: 'done',
@@ -279,31 +344,76 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
     return { result: finalResult, toolCalls: allToolCalls, tokenUsage };
   }
 
-  // Max iterations reached — still deduct credits since compute was consumed
-  const workflowLabel = workflowId ?? 'custom';
-  const deductResult = await deductCredits(
-    context.userId,
+  // Max iterations reached — terminal block (preserve text, conditional credit charge)
+  return await terminateIncomplete({
+    context,
+    workflowId,
     creditCost,
-    `agent_${workflowLabel}`,
-    `Agent workflow "${workflowLabel}" max iterations (session ${context.sessionId})`,
-  );
-
-  const maxResult = 'Agent reached maximum iteration limit.';
-  await db.update(agentSessions).set({
-    status: 'completed',
-    result: maxResult,
-    toolCallCount: allToolCalls.length,
+    allToolCalls,
     tokenUsage,
-  }).where(eq(agentSessions.id, context.sessionId));
+    lastTextOutput,
+    stopNote: STOP_NOTE,
+  });
+}
+
+/**
+ * Shared terminal handler for early-exit branches (max iterations, token budget).
+ *
+ * - Preserves the last non-empty text the model produced (with a trailing stop note)
+ *   instead of overwriting with a generic literal.
+ * - Marks the session `status` as `'failed'` (reused enum value) to distinguish from
+ *   a clean completion.
+ * - Only deducts credits when the model actually produced usable text — runs that
+ *   die mid-research with no output do NOT bill the user.
+ * - Emits a `done` event with `incomplete: true` so the UI can render a distinct state.
+ */
+async function terminateIncomplete(args: {
+  context: AgentContext;
+  workflowId?: string;
+  creditCost: number;
+  allToolCalls: ToolCallRecord[];
+  tokenUsage: TokenUsage;
+  lastTextOutput: string;
+  stopNote: string;
+}): Promise<AgentLoopResult> {
+  const { context, workflowId, creditCost, allToolCalls, tokenUsage, lastTextOutput, stopNote } =
+    args;
+
+  const hasUsableText = lastTextOutput.trim().length > 0;
+  const result = hasUsableText ? `${lastTextOutput}${stopNote}` : stopNote.trim();
+
+  let creditBalance: number | undefined;
+  if (hasUsableText) {
+    const workflowLabel = workflowId ?? 'custom';
+    const deductResult = await deductCredits(
+      context.userId,
+      creditCost,
+      `agent_${workflowLabel}`,
+      `Agent workflow "${workflowLabel}" incomplete (session ${context.sessionId})`,
+    );
+    creditBalance = deductResult.balance;
+  }
+
+  await db
+    .update(agentSessions)
+    .set({
+      // Reuse the existing 'failed' enum value to avoid an additional Drizzle migration.
+      status: 'failed',
+      result,
+      toolCallCount: allToolCalls.length,
+      tokenUsage,
+    })
+    .where(eq(agentSessions.id, context.sessionId));
 
   context.onEvent?.({
     type: 'done',
-    result: maxResult,
+    result,
     toolCallCount: allToolCalls.length,
     tokenUsage,
-    creditsUsed: creditCost,
-    creditBalance: deductResult.balance,
+    creditsUsed: hasUsableText ? creditCost : 0,
+    creditBalance,
+    incomplete: true,
   });
 
-  return { result: maxResult, toolCalls: allToolCalls, tokenUsage };
+  return { result, toolCalls: allToolCalls, tokenUsage, incomplete: true };
 }

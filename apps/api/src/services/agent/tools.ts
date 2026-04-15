@@ -398,7 +398,7 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
 
   index_codebase: {
     name: 'index_codebase',
-    description: 'Index (or re-index) the connected GitHub repository for semantic code search. Run this once to enable the search_code tool, or re-run after major code changes.',
+    description: 'Index (or re-index) the connected GitHub repository for semantic code search. Run this once to enable the search_code tool, or re-run after major code changes. Returns a bounded summary: total indexable file count, per-top-level-directory counts, and up to ~50 representative file paths — not the full enumeration. Use search_code to find specifics afterward.',
     input_schema: {
       type: 'object' as const,
       properties: {

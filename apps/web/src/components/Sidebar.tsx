@@ -178,7 +178,7 @@ function CreditBalance({ collapsed }: { collapsed: boolean }) {
 
 const primaryNavItems = [
   {
-    to: '/intake',
+    to: '/app/intake',
     label: 'Intake',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -187,7 +187,7 @@ const primaryNavItems = [
     ),
   },
   {
-    to: '/sprint',
+    to: '/app/sprint',
     label: 'Sprint',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -196,7 +196,7 @@ const primaryNavItems = [
     ),
   },
   {
-    to: '/board',
+    to: '/app/board',
     label: 'Board',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -205,16 +205,7 @@ const primaryNavItems = [
     ),
   },
   {
-    to: '/marketplace',
-    label: 'Marketplace',
-    icon: (
-      <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" />
-      </svg>
-    ),
-  },
-  {
-    to: '/repositories',
+    to: '/app/repositories',
     label: 'Repos',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -223,7 +214,7 @@ const primaryNavItems = [
     ),
   },
   {
-    to: '/operations',
+    to: '/app/operations',
     label: 'Operations',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -264,7 +255,7 @@ export function Sidebar() {
         {/* Logo + collapse toggle */}
         <div className="flex h-14 items-center border-b border-slate-200">
           <NavLink
-            to="/dashboard"
+            to="/app/dashboard"
             onClick={() => setSidebarOpen(false)}
             className={`flex flex-1 items-center gap-2 h-full hover:bg-slate-50 transition-colors ${sidebarCollapsed ? 'justify-center px-2' : 'px-5'}`}
           >
@@ -338,7 +329,7 @@ export function Sidebar() {
         {/* Utility nav — Getting Started + Settings + Feedback */}
         <div className="border-t border-slate-200 pt-1 pb-1">
           <NavLink
-            to="/getting-started"
+            to="/app/getting-started"
             onClick={() => setSidebarOpen(false)}
             title={sidebarCollapsed ? 'Getting Started' : undefined}
             data-testid="getting-started-link"
@@ -367,7 +358,7 @@ export function Sidebar() {
           </NavLink>
           <div className={`flex items-center ${sidebarCollapsed ? 'flex-col gap-1 py-1' : ''}`}>
             <NavLink
-              to="/settings"
+              to="/app/settings"
               onClick={() => setSidebarOpen(false)}
               title={sidebarCollapsed ? 'Settings' : undefined}
               className={({ isActive }) =>

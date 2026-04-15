@@ -4,11 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Document, DocumentTemplate } from '@nyx/shared';
 import {
   fetchDocuments,
-  fetchArchivedDocuments,
   createDocument,
   updateDocument,
   deleteDocument,
-  restoreDocument,
   fetchTeams,
   fetchTemplates,
 } from '../lib/api';
@@ -112,6 +110,60 @@ function getDescendantFolders(folders: string[], parentPath: string): string[] {
   return folders.filter((f) => f === parentPath || f.startsWith(prefix));
 }
 
+/**
+ * Rewrite descendant paths (folders or document paths) when a folder is renamed
+ * or moved. Any path equal to `oldPrefix` becomes `newPrefix`, and any path that
+ * starts with `oldPrefix + '/'` has that prefix replaced with `newPrefix`.
+ *
+ * Used by both `handleFolderRenameSubmit` and `handleDropFolder` so the
+ * rewrite logic lives in exactly one place.
+ *
+ * Exported for unit tests.
+ */
+export function rewriteDescendantPaths(
+  items: string[],
+  oldPrefix: string,
+  newPrefix: string,
+): string[] {
+  return items.map((p) => {
+    if (p === oldPrefix) return newPrefix;
+    if (p.startsWith(`${oldPrefix}/`)) return newPrefix + p.substring(oldPrefix.length);
+    return p;
+  });
+}
+
+/**
+ * Returns true if moving `sourcePath` into `targetParentPath` would create a
+ * cycle (i.e. the target is the source itself, or a descendant of the source).
+ *
+ * Exported for unit tests.
+ */
+export function wouldCreateCycle(sourcePath: string, targetParentPath: string): boolean {
+  if (targetParentPath === sourcePath) return true;
+  if (targetParentPath.startsWith(`${sourcePath}/`)) return true;
+  return false;
+}
+
+/**
+ * Compute the new path for a folder being moved into a target parent. Strips
+ * the leaf segment off `sourcePath` and re-parents it under `targetParentPath`
+ * (which may be `'/'` for the root).
+ */
+export function computeMovedFolderPath(sourcePath: string, targetParentPath: string): string {
+  const leaf = sourcePath.substring(sourcePath.lastIndexOf('/') + 1);
+  return targetParentPath === '/' ? `/${leaf}` : `${targetParentPath}/${leaf}`;
+}
+
+// MIME types for drag and drop payloads
+const DRAG_MIME_DOC = 'application/nyx-doc-id';
+const DRAG_MIME_FOLDER = 'application/nyx-folder-path';
+
+// Module-scoped source tracker. The HTML5 drag-and-drop API does not allow
+// reading dataTransfer payload values during `dragover` (only during `drop`),
+// so we stash the in-flight folder source path here to support live cycle/self
+// detection in the highlight logic.
+let activeFolderDragSource: string | null = null;
+
 // ── Inline input ──────────────────────────────────────
 
 function InlineInput({
@@ -207,6 +259,7 @@ function Folder({
   onFolderRenameCancel,
   onDeleteFolder,
   onDropDoc,
+  onDropFolder,
 }: {
   node: FolderNode;
   depth: number;
@@ -232,17 +285,49 @@ function Folder({
   onFolderRenameCancel: () => void;
   onDeleteFolder: (path: string) => void;
   onDropDoc: (docId: string, targetPath: string) => void;
+  onDropFolder: (sourcePath: string, targetParentPath: string) => void;
 }) {
   const isOpen = expandedFolders.has(node.path);
   const [showActions, setShowActions] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const isRenaming = renamingFolderPath === node.path;
 
+  const handleDragStart = (e: React.DragEvent) => {
+    if (isRenaming) {
+      e.preventDefault();
+      return;
+    }
+    e.stopPropagation();
+    e.dataTransfer.setData(DRAG_MIME_FOLDER, node.path);
+    e.dataTransfer.effectAllowed = 'move';
+    activeFolderDragSource = node.path;
+  };
+
+  const handleDragEnd = () => {
+    activeFolderDragSource = null;
+    setDragOver(false);
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes('application/nyx-doc-id')) {
+    const types = e.dataTransfer.types;
+    if (types.includes(DRAG_MIME_DOC)) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       setDragOver(true);
+      return;
+    }
+    if (types.includes(DRAG_MIME_FOLDER)) {
+      // Reject drop-on-self and drop-into-descendant (cycle).
+      const source = activeFolderDragSource;
+      if (source && wouldCreateCycle(source, node.path)) {
+        e.dataTransfer.dropEffect = 'none';
+        setDragOver(false);
+        return;
+      }
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      setDragOver(true);
+      return;
     }
   };
 
@@ -255,10 +340,17 @@ function Folder({
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
-    const docId = e.dataTransfer.getData('application/nyx-doc-id');
+    const docId = e.dataTransfer.getData(DRAG_MIME_DOC);
     if (docId) {
       onDropDoc(docId, node.path);
+      return;
+    }
+    const folderPath = e.dataTransfer.getData(DRAG_MIME_FOLDER);
+    if (folderPath) {
+      onDropFolder(folderPath, node.path);
+      activeFolderDragSource = null;
     }
   };
 
@@ -271,6 +363,9 @@ function Folder({
             : 'hover:bg-slate-100/60'
         }`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
+        draggable={!isRenaming}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
         onClick={() => !isRenaming && toggleFolder(node.path)}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
@@ -386,6 +481,7 @@ function Folder({
                 onFolderRenameCancel={onFolderRenameCancel}
                 onDeleteFolder={onDeleteFolder}
                 onDropDoc={onDropDoc}
+                onDropFolder={onDropFolder}
               />
             ) : (
               <DocItem
@@ -411,37 +507,6 @@ function Folder({
         </div>
       )}
     </div>
-  );
-}
-
-// ── JSX Preview virtual file item ─────────────────────
-
-function _JSXPreviewItem({ docId, depth }: { docId: string; depth: number }) {
-  return (
-    <NavLink
-      to={`/documents/${docId}?layout=jsx-preview`}
-      className={({ isActive }) =>
-        `group/preview flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-all duration-150 ${
-          isActive
-            ? 'bg-gradient-to-r from-amber-50 to-orange-50 ring-1 ring-amber-200/60'
-            : 'hover:bg-slate-50'
-        }`
-      }
-      style={{ paddingLeft: `${(depth + 2) * 12 + 8}px` }}
-    >
-      <span
-        className={`inline-flex items-center justify-center h-4 w-4 rounded flex-shrink-0 transition-colors duration-150 ${
-          'bg-gradient-to-br from-amber-400 to-orange-500 group-hover/preview:from-amber-500 group-hover/preview:to-orange-600'
-        }`}
-      >
-        <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
-        </svg>
-      </span>
-      <span className="text-[10px] font-semibold tracking-wide uppercase text-slate-400 group-hover/preview:text-amber-700 transition-colors duration-150">
-        Preview
-      </span>
-    </NavLink>
   );
 }
 
@@ -473,11 +538,6 @@ function DocItem({
     e.dataTransfer.setData('application/nyx-doc-id', doc.id);
     e.dataTransfer.effectAllowed = 'move';
   };
-  const statusDot: Record<string, string> = {
-    draft: 'bg-amber-400',
-    published: 'bg-green-400',
-    archived: 'bg-slate-300',
-  };
 
   const activeLifecycleSlug = useUIStore((s) => s.activeLifecycleSlug);
   const [showActions, setShowActions] = useState(false);
@@ -492,7 +552,7 @@ function DocItem({
       onMouseLeave={() => setShowActions(false)}
     >
       <NavLink
-        to={`/documents/${doc.id}`}
+        to={`/app/documents/${doc.id}`}
         className={({ isActive }) =>
           `group flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors ${
             isActive
@@ -535,7 +595,6 @@ function DocItem({
             </span>
           ) : null;
         })()}
-        <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${statusDot[doc.status] ?? 'bg-slate-300'}`} />
       </NavLink>
 
       {/* Hover action buttons */}
@@ -578,44 +637,6 @@ function DocItem({
   );
 }
 
-// ── Trash item ────────────────────────────────────────
-
-function TrashItem({
-  doc,
-  onRestore,
-}: {
-  doc: Document;
-  onRestore: (id: string) => void;
-}) {
-  const [showActions, setShowActions] = useState(false);
-
-  return (
-    <div
-      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-slate-400 hover:bg-slate-100/60 transition-colors"
-      style={{ paddingLeft: '20px' }}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <svg className="h-3.5 w-3.5 flex-shrink-0 opacity-40" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-      </svg>
-      <span className="flex-1 truncate text-xs line-through">{doc.title || 'Untitled'}</span>
-      {showActions && (
-        <button
-          type="button"
-          title="Restore"
-          onClick={() => onRestore(doc.id)}
-          className="rounded p-0.5 text-slate-400 hover:text-green-600 hover:bg-green-50"
-        >
-          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
-          </svg>
-        </button>
-      )}
-    </div>
-  );
-}
-
 // ── Main FileTree component ───────────────────────────
 
 export function FileTree() {
@@ -628,7 +649,6 @@ export function FileTree() {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [renamingDocId, setRenamingDocId] = useState<string | null>(null);
   const [renamingFolderPath, setRenamingFolderPath] = useState<string | null>(null);
-  const [showTrash, setShowTrash] = useState(false);
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [bulkTicketFolderPath, setBulkTicketFolderPath] = useState<string | null>(null);
@@ -648,12 +668,6 @@ export function FileTree() {
     queryKey: ['documents', teamId],
     queryFn: () => fetchDocuments(teamId!),
     enabled: !!teamId,
-  });
-
-  const { data: archivedDocs } = useQuery<Document[]>({
-    queryKey: ['documents', teamId, 'archived'],
-    queryFn: () => fetchArchivedDocuments(teamId!),
-    enabled: !!teamId && showTrash,
   });
 
   // Pre-fetch templates so context menu opens instantly
@@ -718,7 +732,7 @@ export function FileTree() {
       createDocument(data),
     onSuccess: (doc) => {
       queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
-      navigate(`/documents/${doc.id}`);
+      navigate(`/app/documents/${doc.id}`);
     },
   });
 
@@ -736,17 +750,9 @@ export function FileTree() {
     onSuccess: (_data, deletedId) => {
       queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
       // Navigate away if the deleted doc is currently open
-      if (location.pathname === `/documents/${deletedId}`) {
-        navigate('/');
+      if (location.pathname === `/app/documents/${deletedId}`) {
+        navigate('/app/dashboard');
       }
-    },
-  });
-
-  const restoreMutation = useMutation({
-    mutationFn: (id: string) => restoreDocument(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
-      queryClient.invalidateQueries({ queryKey: ['documents', teamId, 'archived'] });
     },
   });
 
@@ -789,7 +795,7 @@ export function FileTree() {
     },
     onSuccess: (newDoc) => {
       queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
-      navigate(`/documents/${newDoc.id}`);
+      navigate(`/app/documents/${newDoc.id}`);
     },
   });
 
@@ -844,41 +850,63 @@ export function FileTree() {
     const parentPath = oldPath.substring(0, oldPath.lastIndexOf('/')) || '/';
     const newPath = parentPath === '/' ? `/${newName}` : `${parentPath}/${newName}`;
 
-    // Rename in folders list: update all descendants
-    const updated = folders.map((f) => {
-      if (f === oldPath) return newPath;
-      if (f.startsWith(`${oldPath}/`)) return newPath + f.substring(oldPath.length);
-      return f;
-    });
-    setFolders(updated);
-    saveFolders(updated);
-
-    // Update expanded folders
-    setExpandedFolders((prev) => {
-      const next = new Set<string>();
-      for (const p of prev) {
-        if (p === oldPath) next.add(newPath);
-        else if (p.startsWith(`${oldPath}/`)) next.add(newPath + p.substring(oldPath.length));
-        else next.add(p);
-      }
-      return next;
-    });
-
-    // Update doc paths for documents in the renamed folder
-    if (documents) {
-      for (const doc of documents) {
-        const docPath = doc.path || '/';
-        if (docPath === oldPath) {
-          updateDocument(doc.id, { path: newPath });
-        } else if (docPath.startsWith(`${oldPath}/`)) {
-          updateDocument(doc.id, { path: newPath + docPath.substring(oldPath.length) });
-        }
-      }
-      queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
-    }
-
+    applyFolderMove(oldPath, newPath);
     setRenamingFolderPath(null);
   };
+
+  /**
+   * Shared core for both folder-rename and folder-move (drag-and-drop).
+   * Rewrites folders list, expandedFolders set, and persists updated doc paths
+   * for every descendant of `oldPath`.
+   */
+  const applyFolderMove = useCallback(
+    (oldPath: string, newPath: string) => {
+      if (oldPath === newPath) return;
+
+      // Rewrite the folders list
+      const updatedFolders = rewriteDescendantPaths(folders, oldPath, newPath);
+      setFolders(updatedFolders);
+      saveFolders(updatedFolders);
+
+      // Rewrite expandedFolders so anything that was expanded under the old
+      // path stays expanded under the new path.
+      setExpandedFolders((prev) => {
+        const rewritten = rewriteDescendantPaths([...prev], oldPath, newPath);
+        return new Set(rewritten);
+      });
+
+      // Persist new paths for every descendant document
+      if (documents) {
+        for (const doc of documents) {
+          const docPath = doc.path || '/';
+          if (docPath === oldPath) {
+            updateDocument(doc.id, { path: newPath });
+          } else if (docPath.startsWith(`${oldPath}/`)) {
+            updateDocument(doc.id, {
+              path: newPath + docPath.substring(oldPath.length),
+            });
+          }
+        }
+        queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
+      }
+    },
+    [folders, documents, queryClient, teamId],
+  );
+
+  const handleDropFolder = useCallback(
+    (sourcePath: string, targetParentPath: string) => {
+      // Cycle / self guards
+      if (wouldCreateCycle(sourcePath, targetParentPath)) return;
+
+      const newPath = computeMovedFolderPath(sourcePath, targetParentPath);
+
+      // No-op when already living at the target location
+      if (newPath === sourcePath) return;
+
+      applyFolderMove(sourcePath, newPath);
+    },
+    [applyFolderMove],
+  );
 
   const handleDeleteFolder = (folderPath: string) => {
     // Remove the folder and all its descendant folders
@@ -975,6 +1003,34 @@ export function FileTree() {
     ];
 
     if (isFolder) {
+      // Build "Move to..." submenu listing valid destination folders. Exclude
+      // the source folder itself and any of its descendants (cycle prevention),
+      // and also exclude the folder's current parent (no-op move).
+      const currentParent = path.substring(0, path.lastIndexOf('/')) || '/';
+      const destinations: (ContextMenuLeafItem | ContextMenuSeparator)[] = [];
+
+      // Always allow moving back to root, unless already there
+      if (currentParent !== '/') {
+        destinations.push({
+          label: '/  (root)',
+          action: () => handleDropFolder(path, '/'),
+        });
+      }
+
+      const validTargets = folders
+        .filter((f) => !wouldCreateCycle(path, f) && f !== currentParent)
+        .sort((a, b) => a.localeCompare(b));
+
+      if (validTargets.length > 0 && destinations.length > 0) {
+        destinations.push({ type: 'separator' });
+      }
+      for (const target of validTargets) {
+        destinations.push({
+          label: target,
+          action: () => handleDropFolder(path, target),
+        });
+      }
+
       items.push(
         { type: 'separator' },
         {
@@ -983,6 +1039,16 @@ export function FileTree() {
         },
         { type: 'separator' },
         { label: 'Rename folder', action: () => setRenamingFolderPath(path) },
+        destinations.length > 0
+          ? {
+              label: 'Move to…',
+              submenu: destinations,
+            }
+          : ({
+              label: 'Move to…',
+              disabled: true,
+              action: () => {},
+            } as ContextMenuLeafItem),
         { label: 'Delete folder', danger: true, action: () => handleDeleteFolder(path) },
       );
     }
@@ -1161,15 +1227,23 @@ export function FileTree() {
           }
         }}
         onDragOver={(e) => {
-          if (e.dataTransfer.types.includes('application/nyx-doc-id')) {
+          const types = e.dataTransfer.types;
+          if (types.includes(DRAG_MIME_DOC) || types.includes(DRAG_MIME_FOLDER)) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
           }
         }}
         onDrop={(e) => {
           e.preventDefault();
-          const docId = e.dataTransfer.getData('application/nyx-doc-id');
-          if (docId) handleDropDoc(docId, '/');
+          const docId = e.dataTransfer.getData(DRAG_MIME_DOC);
+          if (docId) {
+            handleDropDoc(docId, '/');
+            return;
+          }
+          const folderPath = e.dataTransfer.getData(DRAG_MIME_FOLDER);
+          if (folderPath) {
+            handleDropFolder(folderPath, '/');
+          }
         }}
       >
         {isLoading && (
@@ -1216,6 +1290,7 @@ export function FileTree() {
             onFolderRenameCancel={() => setRenamingFolderPath(null)}
             onDeleteFolder={handleDeleteFolder}
             onDropDoc={handleDropDoc}
+            onDropFolder={handleDropFolder}
           />
         ))}
 
@@ -1241,50 +1316,6 @@ export function FileTree() {
             onRenameCancel={() => setRenamingDocId(null)}
           />
         ))}
-      </div>
-
-      {/* Trash section */}
-      <div className="border-t border-slate-200">
-        <button
-          type="button"
-          onClick={() => setShowTrash((v) => !v)}
-          className="flex w-full items-center gap-2 px-4 py-2 text-xs text-slate-400 hover:bg-slate-50 transition-colors"
-        >
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-          </svg>
-          <span className="font-medium">Trash</span>
-          {archivedDocs && archivedDocs.length > 0 && (
-            <span className="ml-auto rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-              {archivedDocs.length}
-            </span>
-          )}
-          <svg
-            className={`h-3 w-3 ml-auto transition-transform ${showTrash ? 'rotate-180' : ''}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-          </svg>
-        </button>
-
-        {showTrash && (
-          <div className="max-h-48 overflow-y-auto pb-2">
-            {!archivedDocs || archivedDocs.length === 0 ? (
-              <p className="px-4 py-2 text-[10px] text-slate-300">Trash is empty</p>
-            ) : (
-              archivedDocs.map((doc) => (
-                <TrashItem
-                  key={doc.id}
-                  doc={doc}
-                  onRestore={(id) => restoreMutation.mutate(id)}
-                />
-              ))
-            )}
-          </div>
-        )}
       </div>
 
       {/* Context menu */}

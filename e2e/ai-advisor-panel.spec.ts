@@ -1,6 +1,6 @@
 import { test, expect, SEED } from './fixtures/test-base';
 
-const DOC_URL = `/documents/${SEED.DOC_API_SPEC_ID}`;
+const DOC_URL = `/app/documents/${SEED.DOC_API_SPEC_ID}`;
 
 /**
  * E2E tests for the AI Advisor Panel (#49).
@@ -88,7 +88,7 @@ test.describe('AI Advisor Panel', () => {
 
     // Navigate to the Architecture doc which has a stage set (implicitly)
     // The architecture doc content contains "System Design"
-    await page.goto(`/documents/${SEED.DOC_ARCHITECTURE_ID}`);
+    await page.goto(`/app/documents/${SEED.DOC_ARCHITECTURE_ID}`);
     await page.locator('input[type="text"]').first().waitFor({ state: 'visible', timeout: 10_000 });
 
     // The old top-banner stage guide used "who · description" text format in a colored banner.
@@ -222,7 +222,7 @@ test.describe('AI Advisor Panel', () => {
     await mockAI(page);
 
     // Use a doc with a stage to get 2 notifications: quality + stage_guide
-    await page.goto(`/documents/${SEED.DOC_API_SPEC_ID}`);
+    await page.goto(`/app/documents/${SEED.DOC_API_SPEC_ID}`);
     await page.locator('textarea').first().waitFor({ state: 'visible', timeout: 10_000 });
 
     // Expand panel

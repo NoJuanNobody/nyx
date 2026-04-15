@@ -19,7 +19,7 @@ test.describe('Role-Based Permissions', () => {
       }),
     );
 
-    await page.goto('/dashboard');
+    await page.goto('/app/dashboard');
     await page.locator(SEL.sidebar.logo).waitFor({ state: 'visible', timeout: 15_000 });
 
     // "New Document" button should be hidden or disabled for viewers
@@ -51,7 +51,7 @@ test.describe('Role-Based Permissions', () => {
       }),
     );
 
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.teamTab).click();
 
     // Wait for team panel to load — scope to main to avoid sidebar match
@@ -97,7 +97,7 @@ test.describe('Role-Based Permissions', () => {
     });
 
     // Default dev user is owner — no mock override needed
-    await page.goto('/settings');
+    await page.goto('/app/settings');
     await page.locator(SEL.settings.teamTab).click();
 
     // Wait for member list to render

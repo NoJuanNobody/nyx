@@ -7,8 +7,8 @@ import { RecentDocuments } from '../../components/RecentDocuments';
 vi.mock('../../lib/api', () => ({
   fetchTeams: vi.fn().mockResolvedValue([{ id: 'team-1', name: 'Test Team', slug: 'test' }]),
   fetchRecentDocuments: vi.fn().mockResolvedValue([
-    { id: 'doc-1', title: 'First Doc', status: 'draft', updatedAt: '2025-01-01T00:00:00Z' },
-    { id: 'doc-2', title: 'Second Doc', status: 'published', updatedAt: '2025-01-02T00:00:00Z' },
+    { id: 'doc-1', title: 'First Doc', updatedAt: '2025-01-01T00:00:00Z' },
+    { id: 'doc-2', title: 'Second Doc', updatedAt: '2025-01-02T00:00:00Z' },
   ]),
 }));
 

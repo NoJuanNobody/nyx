@@ -21,9 +21,12 @@ export function AIEditReview({
   const hasEdits = editedContent !== proposedContent;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center justify-between border-b border-slate-200 bg-amber-50 px-4 py-2">
-        <div className="flex items-center gap-3">
+    <div
+      className="flex flex-1 flex-col overflow-hidden"
+      data-testid="ai-edit-review"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-y-2 border-b border-slate-200 bg-amber-50 px-3 py-2 sm:px-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <span className="text-xs font-semibold text-amber-800">
             AI suggested changes
           </span>
@@ -57,7 +60,7 @@ export function AIEditReview({
             </span>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={onReject}

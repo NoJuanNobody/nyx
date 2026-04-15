@@ -1,8 +1,5 @@
 import { z } from 'zod';
 
-export const DocumentStatus = z.enum(['draft', 'published', 'archived']);
-export type DocumentStatus = z.infer<typeof DocumentStatus>;
-
 // Widened from z.enum to z.string() to support multiple lifecycle pipelines
 export const DocumentStage = z.string();
 export type DocumentStage = z.infer<typeof DocumentStage>;
@@ -12,13 +9,14 @@ export const DocumentSchema = z.object({
   title: z.string(),
   content: z.string(),
   path: z.string(),
-  status: DocumentStatus,
   stage: z.string().nullable().optional(),
   lifecycleId: z.string().uuid().nullable().optional(),
   teamId: z.string().uuid(),
   createdById: z.string().uuid(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
+  // Soft-delete tombstone (replaced the draft/published/archived enum).
+  deletedAt: z.string().datetime().nullable().optional(),
 });
 
 export type Document = z.infer<typeof DocumentSchema>;
@@ -68,7 +66,6 @@ export type DocumentTemplate = z.infer<typeof DocumentTemplateSchema>;
 export const AdminDocumentListItemSchema = z.object({
   id: z.string().uuid(),
   title: z.string(),
-  status: DocumentStatus,
   stage: z.string().nullable(),
   path: z.string(),
   teamId: z.string().uuid(),

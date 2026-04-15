@@ -1,7 +1,7 @@
 import { test, expect, SEED } from './fixtures/test-base';
 import { SEL } from './fixtures/selectors';
 
-const DOC_URL = `/documents/${SEED.DOC_API_SPEC_ID}`;
+const DOC_URL = `/app/documents/${SEED.DOC_API_SPEC_ID}`;
 
 test.describe.serial('Document Branches', () => {
   // Branch creation/merge UI is not yet implemented — skip until the feature is built

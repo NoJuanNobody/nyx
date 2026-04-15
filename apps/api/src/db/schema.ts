@@ -1,7 +1,6 @@
 import { pgTable, uuid, text, timestamp, integer, jsonb, pgEnum, boolean, uniqueIndex, index, vector } from 'drizzle-orm/pg-core';
 
 export const userRoleEnum = pgEnum('user_role', ['owner', 'admin', 'developer', 'editor', 'viewer']);
-export const documentStatusEnum = pgEnum('document_status', ['draft', 'published', 'archived']);
 export const ticketProviderEnum = pgEnum('ticket_provider', ['github', 'jira']);
 export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'closed']);
 export const integrationTypeEnum = pgEnum('integration_type', ['github', 'gitlab', 'bitbucket', 'jira', 'confluence']);
@@ -127,7 +126,6 @@ export const documents = pgTable('documents', {
   title: text('title').notNull(),
   content: text('content').notNull().default(''),
   path: text('path').notNull().default('/'),
-  status: documentStatusEnum('status').notNull().default('draft'),
   teamId: uuid('team_id')
     .notNull()
     .references(() => teams.id),
@@ -138,6 +136,10 @@ export const documents = pgTable('documents', {
   lifecycleId: uuid('lifecycle_id').references(() => lifecycles.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  // Soft-delete tombstone (replaced the draft/published/archived enum). NULL
+  // means the document is live; non-NULL means it was soft-deleted at that
+  // timestamp. Every list endpoint filters on `isNull(deletedAt)`.
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });
 
 export const meetingDocuments = pgTable('meeting_documents', {
@@ -501,8 +503,6 @@ export const stripeCustomers = pgTable('stripe_customers', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-// ── Community Marketplace ─────────────────────────────
-
 // ── Deliverables ──────────────────────────────────────
 
 export const deliverableTypeEnum = pgEnum('deliverable_type', ['pdf', 'markdown', 'report', 'jupyter']);
@@ -520,38 +520,7 @@ export const deliverables = pgTable('deliverables', {
   metadata: jsonb('metadata'),
 });
 
-export const listingTypeEnum = pgEnum('listing_type', ['template', 'workflow', 'prompt']);
-export const listingPriceTypeEnum = pgEnum('listing_price_type', ['free', 'paid']);
 export const featureRequestStatusEnum = pgEnum('feature_request_status', ['submitted', 'under_review', 'planned', 'in_progress', 'shipped', 'declined']);
-
-export const marketplaceListings = pgTable('marketplace_listings', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  type: listingTypeEnum('type').notNull(),
-  title: text('title').notNull(),
-  description: text('description').notNull(),
-  content: text('content').notNull(),
-  priceType: listingPriceTypeEnum('price_type').notNull().default('free'),
-  priceAmountCents: integer('price_amount_cents'),
-  creditPrice: integer('credit_price'),
-  category: text('category'),
-  tags: jsonb('tags').notNull().default([]),
-  stage: text('stage'),
-  downloadCount: integer('download_count').notNull().default(0),
-  authorId: uuid('author_id').notNull().references(() => users.id),
-  teamId: uuid('team_id').references(() => teams.id),
-  published: boolean('published').notNull().default(false),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const marketplaceReviews = pgTable('marketplace_reviews', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  listingId: uuid('listing_id').notNull().references(() => marketplaceListings.id),
-  userId: uuid('user_id').notNull().references(() => users.id),
-  rating: integer('rating').notNull(),
-  comment: text('comment'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
 
 export const featureRequests = pgTable('feature_requests', {
   id: uuid('id').primaryKey().defaultRandom(),

@@ -21,7 +21,7 @@ export function PhaseSuggestions({ teamId }: PhaseSuggestionsProps) {
       }),
     onSuccess: (doc) => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
-      navigate(`/documents/${doc.id}`);
+      navigate(`/app/documents/${doc.id}`);
     },
   });
 

@@ -17,7 +17,7 @@ import { test, expect, Page } from '@playwright/test';
 // ---------------------------------------------------------------------------
 
 async function openDocument(page: Page, documentId = 'test-doc-1') {
-  await page.goto(`/documents/${documentId}`);
+  await page.goto(`/app/documents/${documentId}`);
   await page.waitForSelector('[data-testid="document-editor"]');
 }
 
@@ -558,7 +558,7 @@ test.describe('Chat history & messages', () => {
 
   test('20. New document shows generate document flow', async ({ page }) => {
     // Navigate to a new (empty) document
-    await page.goto('/documents/new');
+    await page.goto('/app/documents/new');
     await page.waitForSelector('[data-testid="document-editor"]');
 
     await mockWorkflowsAPI(page, MOCK_WORKFLOWS);

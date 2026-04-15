@@ -44,15 +44,15 @@ export async function executeTool(
         .where(eq(documents.id, input.document_id as string))
         .limit(1);
       if (!doc) throw new Error('Document not found');
-      return { id: doc.id, title: doc.title, content: doc.content, status: doc.status, path: doc.path };
+      return { id: doc.id, title: doc.title, content: doc.content, path: doc.path };
     }
 
     case 'list_documents': {
       const teamId = (input.team_id as string) || ctx.teamId;
       const docs = await db
-        .select({ id: documents.id, title: documents.title, status: documents.status, path: documents.path })
+        .select({ id: documents.id, title: documents.title, path: documents.path })
         .from(documents)
-        .where(eq(documents.teamId, teamId));
+        .where(and(eq(documents.teamId, teamId), isNull(documents.deletedAt)));
       return docs;
     }
 
@@ -69,7 +69,7 @@ export async function executeTool(
         .where(eq(documents.id, docId))
         .returning();
       if (!updated) throw new Error('Document not found');
-      return { id: updated.id, title: updated.title, status: updated.status };
+      return { id: updated.id, title: updated.title, updatedAt: updated.updatedAt };
     }
 
     case 'get_version_diff': {
@@ -400,7 +400,7 @@ export async function executeTool(
         })
         .returning();
 
-      return { id: created.id, title: created.title, status: created.status, stage: created.stage };
+      return { id: created.id, title: created.title, stage: created.stage };
     }
 
     case 'delete_document': {
@@ -408,14 +408,15 @@ export async function executeTool(
       const docId = input.document_id as string;
       if (!docId) throw new Error('delete_document requires document_id');
 
+      const now = new Date();
       const [updated] = await db
         .update(documents)
-        .set({ status: 'archived', updatedAt: new Date() })
+        .set({ deletedAt: now, updatedAt: now })
         .where(eq(documents.id, docId))
         .returning();
       if (!updated) throw new Error('Document not found');
 
-      return { id: updated.id, title: updated.title, status: updated.status };
+      return { id: updated.id, title: updated.title, deletedAt: updated.deletedAt };
     }
 
     case 'list_versions': {
@@ -481,7 +482,49 @@ export async function executeTool(
     case 'index_codebase': {
       assertCanWrite(ctx);
       const teamId = (input.team_id as string) || ctx.teamId;
-      return codeEmbeddingService.indexRepo(teamId);
+      const indexResult = await codeEmbeddingService.indexRepo(teamId);
+      // Return a BOUNDED summary by design — never the full file tree.
+      // Fetch a small sample of indexable file paths to give the model
+      // something to drill into with `search_code` / `get_github_files`,
+      // plus a per-top-level-directory count so it can navigate the layout.
+      try {
+        const [integration] = await db
+          .select()
+          .from(integrations)
+          .where(and(eq(integrations.teamId, teamId), eq(integrations.type, 'github')))
+          .limit(1);
+        const ghConfig = (integration?.config ?? {}) as {
+          accessToken?: string;
+          selectedRepos?: Array<{ owner: string; name: string }>;
+          owner?: string;
+          repo?: string;
+        };
+        const token = ghConfig.accessToken;
+        const owner = ghConfig.selectedRepos?.[0]?.owner ?? ghConfig.owner;
+        const repo = ghConfig.selectedRepos?.[0]?.name ?? ghConfig.repo;
+        if (!token || !owner || !repo) return indexResult;
+        const tree = await githubService.getFileTree(token, owner, repo);
+        const indexable = tree.filter(isIndexableFile);
+        const dirCounts: Record<string, number> = {};
+        for (const entry of indexable) {
+          const top = entry.path.split('/')[0] || '(root)';
+          dirCounts[top] = (dirCounts[top] ?? 0) + 1;
+        }
+        const sampleFilePaths = indexable.slice(0, 50).map((e) => e.path);
+        return {
+          ...indexResult,
+          totalIndexableFiles: indexable.length,
+          directoryCounts: dirCounts,
+          sampleFilePaths,
+          note:
+            indexable.length > sampleFilePaths.length
+              ? `Showing ${sampleFilePaths.length} of ${indexable.length} indexable files. Use search_code to find specifics.`
+              : undefined,
+        };
+      } catch {
+        // Indexing succeeded — never let summary-fetch failures break the tool.
+        return indexResult;
+      }
     }
 
     default:

@@ -1,7 +1,7 @@
 import { test, expect, SEED } from './fixtures/test-base';
 import { SEL } from './fixtures/selectors';
 
-const DOC_URL = `/documents/${SEED.DOC_API_SPEC_ID}`;
+const DOC_URL = `/app/documents/${SEED.DOC_API_SPEC_ID}`;
 
 test.describe('AI Features', () => {
   // ── 5.1: AI quality panel shows score ────────────────────────────
@@ -36,9 +36,12 @@ test.describe('AI Features', () => {
       page.locator('text=/TIMELINE/i').first(),
     ).toBeVisible({ timeout: 5_000 });
 
-    // Verify seeded timeline events appear (labels from EVENT_CONFIG)
+    // Verify seeded timeline events appear (labels from EVENT_CONFIG).
+    // Match the full labels only — "Updated" / "Version" alone would also
+    // match the toolbar "Save Version" button label added in #337, which is
+    // hidden below 1400px and causes `toBeVisible()` to fail.
     await expect(
-      page.locator('text=/Document updated|Version created|Updated|Version/').first(),
+      page.locator('text=/Document updated|Version created/').first(),
     ).toBeVisible({ timeout: 5_000 });
   });
 

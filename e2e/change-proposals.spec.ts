@@ -1,7 +1,7 @@
 import { test, expect, SEED } from './fixtures/test-base';
 import { SEL } from './fixtures/selectors';
 
-const DOC_URL = `/documents/${SEED.DOC_API_SPEC_ID}`;
+const DOC_URL = `/app/documents/${SEED.DOC_API_SPEC_ID}`;
 
 test.describe('Change Proposals', () => {
   // ── 13.1: Generate proposal ─────────────────────────────────────
@@ -110,9 +110,11 @@ test.describe('Change Proposals', () => {
     // Push as tickets
     await page.locator('button:has-text("Push as Tickets")').click();
 
-    // Verify success feedback — toast, text, or ticket link
+    // Verify success feedback — the proposal status badge flips to "pushed"
+    // after the tickets are created. Avoid matching "Create Ticket" on the
+    // toolbar (hidden below 1400px) or "Push as Tickets" on the button.
     await expect(
-      page.locator('text=/[Tt]icket|[Cc]reated|[Pp]ushed|[Ss]uccess|github\\.com/i').first(),
+      page.locator('text=/\\bpushed\\b|\\bsuccess\\b|github\\.com/i').first(),
     ).toBeVisible({ timeout: 10_000 });
   });
 });

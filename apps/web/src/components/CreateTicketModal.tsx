@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Modal } from './Modal';
 import { GitHubReconnectBanner } from './GitHubReconnectBanner';
-import { fetchIntegrations, createTicket, renderMockupJsx, GitHubTokenExpiredError, request } from '../lib/api';
+import { fetchIntegrations, createTicket, GitHubTokenExpiredError } from '../lib/api';
 import type { Ticket } from '../lib/api';
 
 interface RepoOption {
@@ -18,7 +18,6 @@ interface CreateTicketModalProps {
   teamId: string;
   documentTitle: string;
   documentContent: string;
-  mockupJsx?: string | null;
 }
 
 export function CreateTicketModal({
@@ -28,7 +27,6 @@ export function CreateTicketModal({
   teamId,
   documentTitle,
   documentContent,
-  mockupJsx,
 }: CreateTicketModalProps) {
   const queryClient = useQueryClient();
 
@@ -44,19 +42,16 @@ export function CreateTicketModal({
   useEffect(() => {
     if (open) {
       setTitle(documentTitle);
-      let initialBody = documentContent.length > 500
+      const initialBody = documentContent.length > 500
         ? documentContent.slice(0, 500) + '...'
         : documentContent;
-      if (mockupJsx) {
-        initialBody += '\n\n---\n_A UI mockup will be attached as an image after ticket creation._';
-      }
       setBody(initialBody);
       setSelectedRepo(null);
       setCreatedTicket(null);
       setError(null);
       setTokenExpired(false);
     }
-  }, [open, documentTitle, documentContent, mockupJsx]);
+  }, [open, documentTitle, documentContent]);
 
   const { data: integrations, isLoading: integrationsLoading } = useQuery({
     queryKey: ['integrations', teamId],
@@ -96,29 +91,10 @@ export function CreateTicketModal({
         body,
         repo: provider === 'github' && selectedRepo ? selectedRepo : undefined,
       }),
-    onSuccess: async (ticket) => {
+    onSuccess: (ticket) => {
       queryClient.invalidateQueries({ queryKey: ['tickets', documentId] });
       setCreatedTicket(ticket);
       setError(null);
-
-      // Render and attach mockup image if available (fire-and-forget)
-      if (mockupJsx) {
-        try {
-          const { screenshot } = await renderMockupJsx(mockupJsx);
-          // Attach as image comment via mockups/attach endpoint
-          await request('/mockups/attach-image', {
-            method: 'POST',
-            body: JSON.stringify({
-              screenshot,
-              provider,
-              issueId: ticket.externalId,
-              teamId,
-            }),
-          });
-        } catch {
-          // Non-critical — ticket was already created
-        }
-      }
 
       // Auto-close after showing success
       setTimeout(() => {

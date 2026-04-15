@@ -22,15 +22,14 @@ export const SEL = {
 
   // ── File Tree ────────────────────────────────────────
   fileTree: {
-    docLink: (id: string) => `a[href="/documents/${id}"]`,
-    trashToggle: 'button:has-text("Trash")',
+    docLink: (id: string) => `a[href="/app/documents/${id}"]`,
   },
 
   // ── Dashboard ────────────────────────────────────────
   dashboard: {
     title: 'h1:has-text("Dashboard")',
     newDocButton: 'button:has-text("New Document")',
-    docRow: 'a[href*="/documents/"]',
+    docRow: 'a[href*="/app/documents/"]',
     aiPrompt: {
       textarea: 'main textarea[placeholder*="Ask AI"]',
       generateButton: 'main button:has-text("Generate")',
@@ -46,7 +45,7 @@ export const SEL = {
     recentDocs: {
       section: 'main h2:has-text("Recent Documents")',
       viewAllLink: 'main a:has-text("View all")',
-      docItem: 'main ul a[href*="/documents/"]',
+      docItem: 'main ul a[href*="/app/documents/"]',
     },
   },
 
@@ -145,15 +144,6 @@ export const SEL = {
     confirmYes: 'button:has-text("Yes")',
     confirmNo: 'button:has-text("No")',
     manageReposButton: '[data-testid="manage-repos-button"]',
-  },
-
-  // ── JSX Preview ───────────────────────────────────────
-  jsxPreview: {
-    tab: 'button:has-text("JSX Preview")',
-    allStatesToggle: 'button:has-text("All States")',
-    promptInput: 'textarea[placeholder*="Describe a UI"]',
-    generateButton: 'button[title="Generate"]',
-    previewPane: '.flex.min-h-0.flex-1 > div:last-child',
   },
 
   // ── Feedback ──────────────────────────────────────────

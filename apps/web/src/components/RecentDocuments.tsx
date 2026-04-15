@@ -40,7 +40,7 @@ export function RecentDocuments() {
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-slate-900">Recent Documents</h2>
         <Link
-          to="/documents"
+          to="/app/documents"
           className="text-xs font-medium text-blue-600 transition-colors hover:text-blue-700"
         >
           View all
@@ -51,7 +51,7 @@ export function RecentDocuments() {
           {documents.map((doc) => (
             <li key={doc.id}>
               <Link
-                to={`/documents/${doc.id}`}
+                to={`/app/documents/${doc.id}`}
                 className="flex items-center justify-between px-5 py-3 transition-colors hover:bg-slate-50"
               >
                 <div className="min-w-0 flex-1">

@@ -88,16 +88,6 @@ export function fetchRecentDocuments(teamId: string, limit = 5): Promise<Documen
   );
 }
 
-export function fetchArchivedDocuments(teamId: string): Promise<Document[]> {
-  return request<Document[]>(
-    `/documents?teamId=${encodeURIComponent(teamId)}&includeArchived=true`,
-  ).then((docs) => docs.filter((d) => d.status === 'archived'));
-}
-
-export function restoreDocument(id: string): Promise<Document> {
-  return updateDocument(id, { status: 'draft' });
-}
-
 export function fetchDocument(id: string): Promise<Document> {
   return request<Document>(`/documents/${id}`);
 }
@@ -117,26 +107,6 @@ export function createDocument(
     return Promise.reject(new Error('Cannot create document: no team selected. Please refresh or check your team membership.'));
   }
   return request<Document>('/documents', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-export function createDocumentFromTemplate(
-  data: {
-    listingId: string;
-    teamId: string;
-    path?: string;
-  },
-): Promise<Document> {
-  if (!data.teamId) {
-    return Promise.reject(
-      new Error(
-        'Cannot create document: no team selected. Please refresh or check your team membership.',
-      ),
-    );
-  }
-  return request<Document>('/documents/from-template', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -432,37 +402,53 @@ export function generateAllDocuments(
   });
 }
 
+export interface EditDocumentAIResult {
+  content: string;
+  grounded: boolean;
+  groundingSources?: string[];
+}
+
+// ── AI Suggestions (context-aware prompt chips) ──────────────────
+
+export type AISuggestionKind = 'pre-session' | 'post-session';
+
+export interface AISuggestionsPayload {
+  kind: AISuggestionKind;
+  documentId: string;
+  teamId: string;
+  content?: string;
+  stage?: string | null;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  toolCallSummary?: Array<{ name: string; count: number }>;
+  finalResult?: string;
+  incomplete?: boolean;
+}
+
+export function fetchAISuggestions(
+  payload: AISuggestionsPayload,
+): Promise<{ suggestions: string[] }> {
+  return request<{ suggestions: string[] }>('/ai/suggestions', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export function editDocumentAI(
   content: string,
   instruction: string,
   history?: Array<{ role: string; content: string }>,
   signal?: AbortSignal,
-): Promise<{ content: string }> {
-  return request<{ content: string }>('/ai/edit-document', {
+  options?: { documentId?: string; teamId?: string },
+): Promise<EditDocumentAIResult> {
+  const body: Record<string, unknown> = { content, instruction, history };
+  if (options?.documentId && options?.teamId) {
+    body.documentId = options.documentId;
+    body.teamId = options.teamId;
+  }
+  return request<EditDocumentAIResult>('/ai/edit-document', {
     method: 'POST',
-    body: JSON.stringify({ content, instruction, history }),
+    body: JSON.stringify(body),
     signal,
-  });
-}
-
-export function generateJSXPreview(
-  prompt: string,
-  context?: string,
-  allStates?: boolean,
-): Promise<{ jsx: string }> {
-  return request<{ jsx: string }>('/ai/jsx-preview', {
-    method: 'POST',
-    body: JSON.stringify({ prompt, context, allStates }),
-  });
-}
-
-export function refineJSXPreview(
-  currentJSX: string,
-  prompt: string,
-): Promise<{ jsx: string }> {
-  return request<{ jsx: string }>('/ai/jsx-preview/refine', {
-    method: 'POST',
-    body: JSON.stringify({ currentJSX, prompt }),
   });
 }
 
@@ -860,8 +846,15 @@ export function fetchGitHubRepos(integrationId: string): Promise<{ repos: GitHub
   return request<{ repos: GitHubRepoItem[] }>(`/integrations/${integrationId}/github/repos`);
 }
 
-export function saveSelectedRepos(integrationId: string, repos: Array<{ owner: string; name: string; fullName: string }>): Promise<{ ok: boolean }> {
-  return request<{ ok: boolean }>(`/integrations/${integrationId}/github/repos`, {
+export interface SaveSelectedReposResponse {
+  ok: boolean;
+  webhookRegistrationEnabled: boolean;
+  failed: Array<{ repo: string; error: string }>;
+  skipped: string[];
+}
+
+export function saveSelectedRepos(integrationId: string, repos: Array<{ owner: string; name: string; fullName: string }>): Promise<SaveSelectedReposResponse> {
+  return request<SaveSelectedReposResponse>(`/integrations/${integrationId}/github/repos`, {
     method: 'PUT',
     body: JSON.stringify({ repos }),
   });
@@ -877,8 +870,19 @@ export interface SyncedRepo {
   linkedDocCount: number;
 }
 
-export function fetchSyncedRepos(integrationId: string): Promise<{ repos: SyncedRepo[] }> {
-  return request<{ repos: SyncedRepo[] }>(`/integrations/${integrationId}/github/synced-repos`);
+export interface SyncedReposResponse {
+  repos: SyncedRepo[];
+  webhookRegistrationEnabled: boolean;
+}
+
+export function fetchSyncedRepos(integrationId: string): Promise<SyncedReposResponse> {
+  return request<SyncedReposResponse>(`/integrations/${integrationId}/github/synced-repos`);
+}
+
+export function reconnectRepo(integrationId: string, repoFullName: string): Promise<{ ok: boolean; fullName: string; webhookId: number; syncStatus: 'active' }> {
+  return request(`/integrations/${integrationId}/github/repos/${encodeURIComponent(repoFullName)}/reconnect`, {
+    method: 'POST',
+  });
 }
 
 export function createGitHubRepo(
@@ -1163,15 +1167,6 @@ export function disconnectSlack(teamId: string): Promise<{ disconnected: boolean
   );
 }
 
-// ── Mockups ─────────────────────────────────────────────────────────
-
-export function renderMockupJsx(jsx: string): Promise<{ screenshot: string }> {
-  return request<{ screenshot: string }>('/mockups/render-jsx', {
-    method: 'POST',
-    body: JSON.stringify({ jsx }),
-  });
-}
-
 // ── Intake (Audio / Transcript) ──────────────────────────────────────
 
 export interface IntakeResult {
@@ -1299,37 +1294,6 @@ export function updateNotificationPreference(eventType: string, data: Partial<No
   });
 }
 
-// ── Marketplace ─────────────────────────────────────────────────────
-
-export interface MarketplaceListing {
-  id: string;
-  type: 'template' | 'workflow' | 'prompt';
-  title: string;
-  description: string;
-  content: string;
-  priceType: 'free' | 'paid';
-  priceAmountCents: number | null;
-  creditPrice: number | null;
-  category: string | null;
-  tags: string[];
-  stage: string | null;
-  downloadCount: number;
-  authorId: string;
-  published: boolean;
-  createdAt: string;
-  avgRating?: number | null;
-  reviews?: MarketplaceReview[];
-}
-
-export interface MarketplaceReview {
-  id: string;
-  listingId: string;
-  userId: string;
-  rating: number;
-  comment: string | null;
-  createdAt: string;
-}
-
 export interface FeatureRequest {
   id: string;
   title: string;
@@ -1360,26 +1324,6 @@ export interface ProjectShowcase {
   imageUrl: string | null;
   authorId: string;
   createdAt: string;
-}
-
-export function fetchMarketplaceListings(type?: string, search?: string): Promise<MarketplaceListing[]> {
-  const params = new URLSearchParams();
-  if (type) params.set('type', type);
-  if (search) params.set('search', search);
-  const qs = params.toString();
-  return request<MarketplaceListing[]>(`/marketplace${qs ? `?${qs}` : ''}`);
-}
-
-export function fetchMarketplaceListing(id: string): Promise<MarketplaceListing> {
-  return request<MarketplaceListing>(`/marketplace/${id}`);
-}
-
-export function createMarketplaceListing(data: { type: string; title: string; description: string; content: string; priceType?: string; creditPrice?: number; priceAmountCents?: number; category?: string; tags?: string[]; stage?: string }): Promise<MarketplaceListing> {
-  return request<MarketplaceListing>('/marketplace', { method: 'POST', body: JSON.stringify(data) });
-}
-
-export function downloadMarketplaceListing(id: string): Promise<{ content: string; title: string }> {
-  return request<{ content: string; title: string }>(`/marketplace/${id}/download`, { method: 'POST' });
 }
 
 export function fetchCreditCosts(): Promise<{ costs: Record<string, number> }> {
@@ -1438,10 +1382,6 @@ export function activatePipeline(data: {
 
 export function checkPipelineAccess(pipelineId: string): Promise<{ owned: boolean }> {
   return request<{ owned: boolean }>(`/pipelines/check/${pipelineId}`);
-}
-
-export function reviewMarketplaceListing(id: string, data: { rating: number; comment?: string }): Promise<MarketplaceReview> {
-  return request<MarketplaceReview>(`/marketplace/${id}/reviews`, { method: 'POST', body: JSON.stringify(data) });
 }
 
 export function fetchFeatureRequests(sort?: string): Promise<FeatureRequest[]> {
@@ -1766,12 +1706,6 @@ export function purchaseCredits(amount: number): Promise<{ balance: number; adde
   return request<{ balance: number; added: number }>('/credits/purchase', {
     method: 'POST',
     body: JSON.stringify({ amount }),
-  });
-}
-
-export function purchaseMarketplaceListing(listingId: string): Promise<{ content: string; title: string; balance: number }> {
-  return request<{ content: string; title: string; balance: number }>(`/marketplace/${listingId}/purchase`, {
-    method: 'POST',
   });
 }
 

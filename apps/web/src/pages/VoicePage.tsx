@@ -103,7 +103,7 @@ export function VoicePage() {
   const docMutation = useMutation({
     mutationFn: () => createMeetingDocument(session!.id, currentTeamId ?? ''),
     onSuccess: ({ documentId }) => {
-      navigate(`/documents/${documentId}`);
+      navigate(`/app/documents/${documentId}`);
     },
     onError: (err) => {
       setError(err instanceof Error ? err.message : 'Failed to generate document');
