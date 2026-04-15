@@ -74,9 +74,20 @@ function CodeBlock({ className, children }: { className?: string; children?: Rea
     );
   }
 
-  // Fallback: plain code block (no language or highlighting failed)
+  // Fallback: plain code block (no language or highlighting failed).
+  //
+  // The wrapping `.prose` container in MarkdownPreview sets
+  // `prose-pre:bg-transparent` so the Shiki-rendered path above can supply
+  // its own dark background via inline styles. That override made the
+  // fallback's `<pre>` background transparent too, which normally doesn't
+  // matter — except `prose-slate` also sets `--tw-prose-pre-code: #e2e8f0`
+  // (near-white) on `.prose pre code`. In light mode that left the fallback
+  // rendering near-white text on the near-white wrapper background,
+  // producing unreadable code blocks for unlabeled fences (e.g. ASCII
+  // diagrams). Opt out of prose cascade for this subtree via `not-prose`
+  // and pin an explicit contrast-safe color on the `<pre>`.
   return (
-    <div className="group relative my-3 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-600 dark:bg-slate-800">
+    <div className="not-prose group relative my-3 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-600 dark:bg-slate-800">
       {lang && (
         <div className="flex items-center justify-between bg-slate-100 px-3 py-1.5 dark:bg-slate-700">
           <span className="font-mono text-[10px] font-medium uppercase tracking-wider text-slate-400">
@@ -85,7 +96,7 @@ function CodeBlock({ className, children }: { className?: string; children?: Rea
           <CopyButton text={code} />
         </div>
       )}
-      <pre className="overflow-x-auto px-4 py-3 text-[13px] leading-relaxed">
+      <pre className="overflow-x-auto px-4 py-3 text-[13px] leading-relaxed text-slate-800 dark:text-slate-100">
         <code className={className}>{children}</code>
       </pre>
     </div>
