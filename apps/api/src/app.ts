@@ -32,7 +32,6 @@ import { userRoutes } from './routes/users.js';
 import { waitlistRoutes } from './routes/waitlist.js';
 import { templateRoutes } from './routes/templates.js';
 import { lifecycleRoutes } from './routes/lifecycles.js';
-import { mockupRoutes, setMockupCluster } from './routes/mockups.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { intakeRoutes } from './routes/intake.js';
 import { sprintRoutes } from './routes/sprint.js';
@@ -222,7 +221,6 @@ export function buildApp() {
   app.register(waitlistRoutes, { prefix: '/api/waitlist' });
   app.register(templateRoutes, { prefix: '/api/templates' });
   app.register(lifecycleRoutes, { prefix: '/api/lifecycles' });
-  app.register(mockupRoutes, { prefix: '/api/mockups' });
   app.register(feedbackRoutes, { prefix: '/api/feedback' });
   app.register(intakeRoutes, { prefix: '/api/intake' });
   app.register(sprintRoutes, { prefix: '/api' });
@@ -268,19 +266,4 @@ export function buildApp() {
   app.register(scannerRoutes, { prefix: '/api/scanner' });
 
   return app;
-}
-
-export async function initPuppeteerCluster() {
-  try {
-    const { Cluster } = await import('puppeteer-cluster');
-    const cluster = await Cluster.launch({
-      concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 4,
-    });
-    setMockupCluster(cluster);
-    return cluster;
-  } catch (err) {
-    console.warn('Puppeteer cluster initialization failed:', err);
-    return null;
-  }
 }

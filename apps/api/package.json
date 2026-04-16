@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "concurrently \"tsx watch src/index.ts\" \"ngrok http 3000 --url=osteopathically-pedatifid-giana.ngrok-free.dev\"",
     "build": "tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
@@ -38,8 +38,6 @@
     "openai": "^6.32.0",
     "pdfkit": "^0.16",
     "postgres": "^3",
-    "puppeteer": "^24",
-    "puppeteer-cluster": "^0.24",
     "stripe": "^20.4.1",
     "tar-stream": "^3.1.8",
     "zod": "^3"
@@ -51,6 +49,7 @@
     "@types/pdfkit": "^0.13",
     "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^3",
+    "concurrently": "^9.2.1",
     "drizzle-kit": "^0.30",
     "form-data": "^4.0.5",
     "tsx": "^4",
