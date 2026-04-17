@@ -106,12 +106,12 @@ export function buildApp() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://*.clerk.accounts.dev/"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com/"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com/"],
-        connectSrc: ["'self'", "https://api.anthropic.com/", "https://fonts.googleapis.com/", "https://*.clerk.accounts.dev/"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://clerk.nyx-creative.com", "https://accounts.nyx-creative.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        connectSrc: ["'self'", "https://api.anthropic.com", "https://fonts.googleapis.com", "https://clerk.nyx-creative.com", "https://accounts.nyx-creative.com"],
         imgSrc: ["'self'", "data:", "https:"],
-        frameSrc: ["'self'", "blob:"],
+        frameSrc: ["'self'", "blob:", "https://accounts.nyx-creative.com"],
       },
     },
     hsts: {
