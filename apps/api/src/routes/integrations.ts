@@ -110,10 +110,12 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       path: '/',
     });
 
-    // Derive the real frontend origin (Vite proxy changes the Host header)
-    const origin = request.headers.referer
-      ? new URL(request.headers.referer).origin
-      : `${request.protocol}://${request.host}`;
+    // Use APP_URL if set (required in production behind a proxy where request.protocol is unreliable).
+    // Fall back to deriving origin from the Referer header (set by the Vite dev proxy) or the request itself.
+    const origin = config.APP_URL
+      ?? (request.headers.referer
+        ? new URL(request.headers.referer).origin
+        : `${request.protocol}://${request.host}`);
 
     const params = new URLSearchParams({
       client_id: config.GITHUB_CLIENT_ID,
