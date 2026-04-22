@@ -1,12 +1,10 @@
-import type { VercelConfig } from 'vercel';
-
 const apiUrl = process.env.API_URL;
 
 if (!apiUrl) {
   console.warn('Warning: API_URL is not set. The /api/* rewrite will not proxy correctly.');
 }
 
-const config: VercelConfig = {
+const config = {
   framework: 'vite',
   buildCommand: 'pnpm --filter @nyx/shared build && pnpm --filter @nyx/web build',
   outputDirectory: 'apps/web/dist',
