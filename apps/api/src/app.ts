@@ -88,13 +88,28 @@ export function buildApp() {
     );
   }
 
-  const allowedOrigins = config.CORS_ORIGINS
-    ? config.CORS_ORIGINS.split(',').map(o => o.trim())
-    : ['http://localhost:5173'];
+  // Entries wrapped in slashes (e.g. `/^https:\/\/nyx-git-.*\.vercel\.app$/`)
+  // are treated as regex patterns so Vercel preview URLs can be allowed.
+  const allowedOrigins: Array<string | RegExp> = (config.CORS_ORIGINS
+    ? config.CORS_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+    : ['http://localhost:5173']
+  ).map(entry => {
+    if (entry.startsWith('/') && entry.endsWith('/') && entry.length > 2) {
+      return new RegExp(entry.slice(1, -1));
+    }
+    return entry;
+  });
 
   app.register(cors, {
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      const allowed = allowedOrigins.some(entry =>
+        entry instanceof RegExp ? entry.test(origin) : entry === origin,
+      );
+      if (allowed) {
         callback(null, true);
       } else {
         callback(new Error('CORS: origin not allowed'), false);
