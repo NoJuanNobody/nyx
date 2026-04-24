@@ -10,6 +10,7 @@ import {
   type SubscriptionPlan, type Subscription,
   fetchTeamAiKeyStatus, addTeamAiKey, rotateTeamAiKey, removeTeamAiKey,
   fetchTeamAiUsage, type TeamAiKeyStatus, type AiUsageSummary,
+  API_BASE,
 } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
 import { RepoPickerModal } from '../components/RepoPickerModal';
@@ -489,22 +490,22 @@ function IntegrationsPanel() {
     if (provider === 'github') {
       console.log('[GitHub Connect] Redirecting with teamId:', currentTeamId);
       setConnecting(provider);
-      window.location.href = `/api/integrations/github/connect?teamId=${currentTeamId}`;
+      window.location.href = `${API_BASE}/integrations/github/connect?teamId=${currentTeamId}`;
       return;
     }
     if (provider === 'gitlab') {
       setConnecting(provider);
-      window.location.href = `/api/integrations/gitlab/connect?teamId=${currentTeamId}`;
+      window.location.href = `${API_BASE}/integrations/gitlab/connect?teamId=${currentTeamId}`;
       return;
     }
     if (provider === 'bitbucket') {
       setConnecting(provider);
-      window.location.href = `/api/integrations/bitbucket/connect?teamId=${currentTeamId}`;
+      window.location.href = `${API_BASE}/integrations/bitbucket/connect?teamId=${currentTeamId}`;
       return;
     }
     if (provider === 'jira' || provider === 'confluence') {
       setConnecting(provider);
-      window.location.href = `/api/integrations/atlassian/auth?teamId=${currentTeamId}`;
+      window.location.href = `${API_BASE}/integrations/atlassian/auth?teamId=${currentTeamId}`;
       return;
     }
     setConnecting(provider);

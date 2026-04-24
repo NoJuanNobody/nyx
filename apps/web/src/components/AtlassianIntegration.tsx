@@ -6,6 +6,7 @@ import {
   fetchJiraProjects,
   fetchConfluenceSpaces,
   updateAtlassianPreferences,
+  API_BASE,
   type AtlassianConnectionStatus,
   type JiraProjectItem,
   type ConfluenceSpaceItem,
@@ -79,7 +80,7 @@ export function AtlassianIntegration() {
 
   const handleConnect = useCallback(() => {
     if (!currentTeamId) return;
-    window.location.href = `/api/integrations/atlassian/auth?teamId=${currentTeamId}`;
+    window.location.href = `${API_BASE}/integrations/atlassian/auth?teamId=${currentTeamId}`;
   }, [currentTeamId]);
 
   const handlePreferenceChange = useCallback(

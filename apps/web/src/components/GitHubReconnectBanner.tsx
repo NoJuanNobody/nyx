@@ -1,11 +1,12 @@
 import { useAuthStore } from '../stores/auth.store';
+import { API_BASE } from '../lib/api';
 
 export function GitHubReconnectBanner({ onDismiss }: { onDismiss?: () => void }) {
   const currentTeamId = useAuthStore((s) => s.currentTeamId);
 
   const handleReconnect = () => {
     if (currentTeamId) {
-      window.location.href = `/api/integrations/github/connect?teamId=${currentTeamId}`;
+      window.location.href = `${API_BASE}/integrations/github/connect?teamId=${currentTeamId}`;
     }
   };
 

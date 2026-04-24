@@ -1,7 +1,8 @@
 import type { Document, DocumentVersion, DocumentTemplate, AdminDocumentsResponse } from '@nyx/shared';
 import type { DocumentStage } from './stages';
 
-const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
+export const API_BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
+const BASE = API_BASE;
 
 // ── Auth Token ──────────────────────────────────────────────────────
 // Store either a static token or a getter function (for Clerk's getToken())
