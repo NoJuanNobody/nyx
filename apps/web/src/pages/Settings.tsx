@@ -10,7 +10,7 @@ import {
   type SubscriptionPlan, type Subscription,
   fetchTeamAiKeyStatus, addTeamAiKey, rotateTeamAiKey, removeTeamAiKey,
   fetchTeamAiUsage, type TeamAiKeyStatus, type AiUsageSummary,
-  API_BASE,
+  startIntegrationOAuth,
 } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
 import { RepoPickerModal } from '../components/RepoPickerModal';
@@ -478,7 +478,7 @@ function IntegrationsPanel() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['integrations', currentTeamId] }),
   });
 
-  const handleConnect = useCallback((provider: string) => {
+  const handleConnect = useCallback(async (provider: string) => {
     setConnectError(null);
 
     if (!currentTeamId) {
@@ -487,25 +487,24 @@ function IntegrationsPanel() {
       return;
     }
 
-    if (provider === 'github') {
-      console.log('[GitHub Connect] Redirecting with teamId:', currentTeamId);
+    const paths: Record<string, string> = {
+      github: `/integrations/github/connect?teamId=${currentTeamId}`,
+      gitlab: `/integrations/gitlab/connect?teamId=${currentTeamId}`,
+      bitbucket: `/integrations/bitbucket/connect?teamId=${currentTeamId}`,
+      jira: `/integrations/atlassian/auth?teamId=${currentTeamId}`,
+      confluence: `/integrations/atlassian/auth?teamId=${currentTeamId}`,
+    };
+
+    const path = paths[provider];
+    if (path) {
       setConnecting(provider);
-      window.location.href = `${API_BASE}/integrations/github/connect?teamId=${currentTeamId}`;
-      return;
-    }
-    if (provider === 'gitlab') {
-      setConnecting(provider);
-      window.location.href = `${API_BASE}/integrations/gitlab/connect?teamId=${currentTeamId}`;
-      return;
-    }
-    if (provider === 'bitbucket') {
-      setConnecting(provider);
-      window.location.href = `${API_BASE}/integrations/bitbucket/connect?teamId=${currentTeamId}`;
-      return;
-    }
-    if (provider === 'jira' || provider === 'confluence') {
-      setConnecting(provider);
-      window.location.href = `${API_BASE}/integrations/atlassian/auth?teamId=${currentTeamId}`;
+      try {
+        const url = await startIntegrationOAuth(path);
+        window.location.href = url;
+      } catch (err) {
+        setConnecting(null);
+        setConnectError(err instanceof Error ? err.message : 'Failed to start OAuth flow');
+      }
       return;
     }
     setConnecting(provider);

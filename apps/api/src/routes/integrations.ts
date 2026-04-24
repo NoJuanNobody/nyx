@@ -124,7 +124,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       state,
     });
 
-    reply.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`);
+    return { url: `https://github.com/login/oauth/authorize?${params.toString()}` };
   });
 
   // GET /api/integrations/github/callback — handle GitHub OAuth callback
@@ -259,7 +259,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       state,
     });
 
-    reply.redirect(`${glBase}/oauth/authorize?${params.toString()}`);
+    return { url: `${glBase}/oauth/authorize?${params.toString()}` };
   });
 
   // GET /api/integrations/gitlab/callback — handle GitLab OAuth callback
@@ -415,7 +415,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       state,
     });
 
-    reply.redirect(`https://bitbucket.org/site/oauth2/authorize?${params.toString()}`);
+    return { url: `https://bitbucket.org/site/oauth2/authorize?${params.toString()}` };
   });
 
   // GET /api/integrations/bitbucket/callback — handle Bitbucket OAuth callback

@@ -29,14 +29,15 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
       return { error: 'teamId query parameter is required' };
     }
 
-    const origin = request.headers.referer
-      ? new URL(request.headers.referer).origin
-      : `${request.protocol}://${request.host}`;
+    const origin = config.APP_URL
+      ?? (request.headers.referer
+        ? new URL(request.headers.referer).origin
+        : `${request.protocol}://${request.host}`);
 
     const redirectUri = `${origin}/api/integrations/atlassian/callback`;
 
     const authUrl = await atlassianService.buildAuthUrl(redirectUri, userId, teamId);
-    reply.redirect(authUrl);
+    return { url: authUrl };
   });
 
   // GET /api/integrations/atlassian/callback — OAuth callback
