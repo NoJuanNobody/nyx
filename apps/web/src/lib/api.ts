@@ -1,7 +1,8 @@
 import type { Document, DocumentVersion, DocumentTemplate, AdminDocumentsResponse } from '@nyx/shared';
 import type { DocumentStage } from './stages';
 
-const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
+export const API_BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
+const BASE = API_BASE;
 
 // ── Auth Token ──────────────────────────────────────────────────────
 // Store either a static token or a getter function (for Clerk's getToken())
@@ -33,6 +34,7 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
 
   const res = await fetch(`${BASE}${path}`, {
     headers,
+    credentials: 'include',
     ...options,
   });
 
@@ -70,6 +72,15 @@ export class GitHubTokenExpiredError extends Error {
     super(message);
     this.name = 'GitHubTokenExpiredError';
   }
+}
+
+// ── Integration OAuth ───────────────────────────────────────────────
+// Cross-origin OAuth initiation requires an authenticated fetch (to carry the
+// Clerk JWT) since browser navigation can't send Authorization headers.
+// The API returns `{ url }`; the caller then navigates to it.
+export async function startIntegrationOAuth(path: string): Promise<string> {
+  const { url } = await request<{ url: string }>(path);
+  return url;
 }
 
 // ── Documents ───────────────────────────────────────────────────────

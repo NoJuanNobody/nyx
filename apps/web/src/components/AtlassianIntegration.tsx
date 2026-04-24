@@ -6,6 +6,7 @@ import {
   fetchJiraProjects,
   fetchConfluenceSpaces,
   updateAtlassianPreferences,
+  startIntegrationOAuth,
   type AtlassianConnectionStatus,
   type JiraProjectItem,
   type ConfluenceSpaceItem,
@@ -77,9 +78,10 @@ export function AtlassianIntegration() {
 
   const preferences = (connection?.preferences ?? {}) as Record<string, unknown>;
 
-  const handleConnect = useCallback(() => {
+  const handleConnect = useCallback(async () => {
     if (!currentTeamId) return;
-    window.location.href = `/api/integrations/atlassian/auth?teamId=${currentTeamId}`;
+    const url = await startIntegrationOAuth(`/integrations/atlassian/auth?teamId=${currentTeamId}`);
+    window.location.href = url;
   }, [currentTeamId]);
 
   const handlePreferenceChange = useCallback(

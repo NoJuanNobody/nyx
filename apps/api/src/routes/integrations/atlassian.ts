@@ -29,14 +29,15 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
       return { error: 'teamId query parameter is required' };
     }
 
-    const origin = request.headers.referer
-      ? new URL(request.headers.referer).origin
-      : `${request.protocol}://${request.host}`;
+    const origin = config.APP_URL
+      ?? (request.headers.referer
+        ? new URL(request.headers.referer).origin
+        : `${request.protocol}://${request.host}`);
 
     const redirectUri = `${origin}/api/integrations/atlassian/callback`;
 
     const authUrl = await atlassianService.buildAuthUrl(redirectUri, userId, teamId);
-    reply.redirect(authUrl);
+    return { url: authUrl };
   });
 
   // GET /api/integrations/atlassian/callback — OAuth callback
@@ -48,7 +49,7 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
     };
 
     if (oauthError) {
-      reply.redirect(`/app/settings?tab=integrations&atlassian=error&message=${encodeURIComponent(oauthError)}`);
+      reply.redirect(`${config.FRONTEND_URL ?? ''}/app/settings?tab=integrations&atlassian=error&message=${encodeURIComponent(oauthError)}`);
       return;
     }
 
@@ -82,7 +83,7 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
       const resources = await atlassianService.getAccessibleResources(tokenData.access_token);
 
       if (resources.length === 0) {
-        reply.redirect('/app/settings?tab=integrations&atlassian=error&message=No+accessible+Atlassian+sites+found');
+        reply.redirect(`${config.FRONTEND_URL ?? ''}/app/settings?tab=integrations&atlassian=error&message=No+accessible+Atlassian+sites+found`);
         return;
       }
 
@@ -116,12 +117,12 @@ export const atlassianRoutes: FastifyPluginAsync = async (app) => {
         webhookUrl,
       );
 
-      reply.redirect('/app/settings?tab=integrations&atlassian=connected');
+      reply.redirect(`${config.FRONTEND_URL ?? ''}/app/settings?tab=integrations&atlassian=connected`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       request.log.error({ err }, 'Atlassian OAuth callback failed');
       reply.redirect(
-        `/app/settings?tab=integrations&atlassian=error&message=${encodeURIComponent(message)}`,
+        `${config.FRONTEND_URL ?? ''}/app/settings?tab=integrations&atlassian=error&message=${encodeURIComponent(message)}`,
       );
     }
   });
