@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { db } from './index.js';
 import {
   users, teams, teamMembers, teamInvitations,
-  documents, documentVersions, integrations, tickets,
+  documents, documentVersions, tickets,
   auditTrail, timelineEvents, apiKeys, documentTemplates,
 } from './schema.js';
 
@@ -43,10 +43,6 @@ const ID = {
   VER_API_V1: '00000000-0000-0000-0000-000000000200',
   VER_API_V2: '00000000-0000-0000-0000-000000000201',
   VER_ARCH_V1: '00000000-0000-0000-0000-000000000202',
-
-  // Integrations
-  INT_GITHUB: '00000000-0000-0000-0000-000000000300',
-  INT_JIRA:   '00000000-0000-0000-0000-000000000301',
 
   // Tickets
   TKT_GH_OPEN:    '00000000-0000-0000-0000-000000000400',
@@ -267,32 +263,6 @@ async function seed() {
     },
   ]).onConflictDoNothing();
   console.log('[seed] Document versions: 3');
-
-  // ── Integrations (2) ──────────────────────────────────
-  await db.insert(integrations).values([
-    {
-      id: ID.INT_GITHUB,
-      teamId: ID.DEFAULT_TEAM,
-      type: 'github',
-      config: {
-        accessToken: 'ghp_test_token_for_e2e_seeding',
-        selectedRepos: [{ owner: 'nyx', name: 'app', fullName: 'nyx/app' }],
-        webhookSecret: 'wh-secret-123',
-      },
-    },
-    {
-      id: ID.INT_JIRA,
-      teamId: ID.DEFAULT_TEAM,
-      type: 'jira',
-      config: {
-        baseUrl: 'https://nyx.atlassian.net',
-        email: 'admin@nyx.io',
-        apiToken: 'jira-token-for-e2e',
-        projectKey: 'SD',
-      },
-    },
-  ]).onConflictDoNothing();
-  console.log('[seed] Integrations: github, jira');
 
   // ── Tickets (4) ───────────────────────────────────────
   await db.insert(tickets).values([
