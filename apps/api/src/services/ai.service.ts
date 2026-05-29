@@ -414,15 +414,15 @@ Respond ONLY with valid JSON in this exact format: {"title": "<short title>", "d
 
     messages.push({ role: 'user', content: userMessage });
 
-    const response = await ai.messages.create({
+    // Continue past the per-call token cap so a large edit/expansion returns
+    // the complete document instead of one cut off mid-section. This is the
+    // path the editor's AI panel uses to write/expand content, so truncation
+    // here is what surfaces as "documents not fully generating".
+    let text = await generateComplete(ai, {
       model: MODEL_FAST,
-      max_tokens: 4096,
       system: isGrounded ? groundedSystemPrompt : ungroundedSystemPrompt,
       messages,
     });
-
-    let text =
-      response.content[0].type === 'text' ? response.content[0].text : '';
 
     // Strip leading/trailing triple backticks if AI wraps output
     text = text.replace(/^```(?:markdown)?\n?/, '').replace(/\n?```$/, '');
