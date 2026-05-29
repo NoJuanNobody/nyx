@@ -5,7 +5,6 @@ import { documents, documentTemplates } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
 import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
-import { gatekeeperService } from '../services/gatekeeper.service.js';
 import { embeddingPipelineService } from '../services/embedding-pipeline.service.js';
 import { contextMatchingService } from '../services/context-matching.service.js';
 
@@ -200,32 +199,11 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       stage?: string | null;
     };
 
-    // If stage is changing, enforce gatekeeper rules
-    if ('stage' in body && body.stage !== undefined) {
-      // Fetch the current document to evaluate the gate
-      const [current] = await db.select().from(documents).where(eq(documents.id, id));
-      if (!current) {
-        reply.code(404);
-        return { error: 'Document not found' };
-      }
-
-      // Use the content that will be saved (body.content if provided, otherwise current)
-      const effectiveContent = body.content !== undefined ? body.content : current.content;
-
-      const gateResult = gatekeeperService.evaluateGate(
-        { content: effectiveContent, stage: current.stage },
-        body.stage as string,
-      );
-
-      if (!gateResult.passed) {
-        reply.code(422);
-        return {
-          error: 'Stage transition blocked by gatekeeper',
-          checks: gateResult.checks.filter((c) => !c.passed),
-        };
-      }
-    }
-
+    // Stage changes via the manual editor dropdown are unrestricted: a user may
+    // move a document to any stage in its lifecycle — forward, backward, or
+    // skipping — without content gates. (The sequential gatekeeper, #197, was
+    // written against a single hardcoded stage order and predates the
+    // multi-lifecycle feature, so it blocked virtually all real transitions.)
     const updates: Partial<typeof documents.$inferInsert> = {
       updatedAt: new Date(),
     };
