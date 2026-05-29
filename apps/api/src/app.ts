@@ -76,6 +76,7 @@ import { complianceRoutes } from './routes/compliance.js';
 import { scannerRoutes } from './routes/scanner.js';
 import { authMiddleware } from './middleware/auth.js';
 import { config } from './lib/config.js';
+import { isOriginAllowed } from './lib/cors.js';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -88,28 +89,15 @@ export function buildApp() {
     );
   }
 
-  // Entries wrapped in slashes (e.g. `/^https:\/\/nyx-git-.*\.vercel\.app$/`)
-  // are treated as regex patterns so Vercel preview URLs can be allowed.
-  const allowedOrigins: Array<string | RegExp> = (config.CORS_ORIGINS
-    ? config.CORS_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
-    : ['http://localhost:5173']
-  ).map(entry => {
-    if (entry.startsWith('/') && entry.endsWith('/') && entry.length > 2) {
-      return new RegExp(entry.slice(1, -1));
-    }
-    return entry;
-  });
-
   app.register(cors, {
+    // The allowlist (incl. regex entries for Vercel preview URLs) lives in
+    // lib/cors.ts so SSE routes that write raw responses can share it.
     origin: (origin, callback) => {
       if (!origin) {
         callback(null, true);
         return;
       }
-      const allowed = allowedOrigins.some(entry =>
-        entry instanceof RegExp ? entry.test(origin) : entry === origin,
-      );
-      if (allowed) {
+      if (isOriginAllowed(origin)) {
         callback(null, true);
       } else {
         callback(new Error('CORS: origin not allowed'), false);

@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { queryDocs } from '../services/query.service.js';
+import { sseCorsHeaders } from '../lib/cors.js';
 
 export const queryRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/query — SSE endpoint that streams a RAG-powered answer
@@ -18,11 +19,13 @@ export const queryRoutes: FastifyPluginAsync = async (fastify) => {
       return { error: 'teamId is required' };
     }
 
-    // Set up SSE response
+    // Set up SSE response. Raw responses bypass the @fastify/cors onSend hook,
+    // so set CORS headers explicitly for cross-origin browsers.
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
+      ...sseCorsHeaders(request.headers.origin),
     });
 
     try {
