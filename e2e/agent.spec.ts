@@ -47,6 +47,6 @@ test.describe('Agent Integration', () => {
     await page.locator(SEL.settings.createKeyButton).click();
 
     // Newly created key should display with a Copy button
-    await expect(page.locator('button:has-text("Copy")')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator(SEL.settings.copyKeyButton)).toBeVisible({ timeout: 5_000 });
   });
 });

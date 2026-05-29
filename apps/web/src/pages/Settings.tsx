@@ -1038,6 +1038,7 @@ function ApiKeysPanel() {
               </code>
               <button
                 type="button"
+                data-testid="copy-api-key"
                 onClick={handleCopy}
                 className="rounded-md border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 transition-colors"
               >
@@ -1054,6 +1055,7 @@ function ApiKeysPanel() {
                 </p>
                 <button
                   type="button"
+                  data-testid="copy-mcp-config"
                   onClick={handleCopyConfig}
                   className="rounded-md border border-green-300 bg-white px-3 py-1 text-xs font-medium text-green-700 hover:bg-green-50 transition-colors"
                 >

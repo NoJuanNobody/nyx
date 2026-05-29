@@ -109,6 +109,7 @@ export const SEL = {
     // API Keys
     keyNameInput: 'main input[placeholder*="Key name"]',
     createKeyButton: 'main button:has-text("Create")',
+    copyKeyButton: 'main [data-testid="copy-api-key"]',
     revokeButton: 'main button:has-text("Revoke")',
   },
 
