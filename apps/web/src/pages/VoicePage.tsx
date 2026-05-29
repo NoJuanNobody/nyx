@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { joinCall, leaveCall, createMeetingDocument, type VoiceSession } from '../lib/api';
+import { API_BASE, joinCall, leaveCall, createMeetingDocument, type VoiceSession } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
 
 type Platform = 'zoom' | 'google_meet' | 'teams';
@@ -53,7 +53,11 @@ export function VoicePage() {
   // SSE status stream
   useEffect(() => {
     if (!session?.id) return;
-    const es = new EventSource(`/api/voice/status/${session.id}`);
+    // Must hit the API origin directly (a relative '/api/...' resolves against
+    // the frontend and 404s). NOTE: EventSource cannot send an Authorization
+    // header, so the /api/voice/status/:id endpoint must be reachable via the
+    // session-id capability (cookie creds are sent via withCredentials).
+    const es = new EventSource(`${API_BASE}/voice/status/${session.id}`, { withCredentials: true });
     eventSourceRef.current = es;
 
     es.onmessage = (e) => {
