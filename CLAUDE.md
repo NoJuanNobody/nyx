@@ -130,3 +130,7 @@ pnpm dev
 ## Debugging Guidelines
 
 - When the user reports something isn't working (e.g., 'server not running', 'changes not visible'), verify the actual state before insisting otherwise. Check if the user might be viewing staging vs localhost, or if a service actually crashed.
+
+## Tooling
+
+- Default to the CLI wherever possible instead of asking the user to click through a UI. This is especially true for Railway — use `railway environment <env>`, `railway service <name>`, `railway variables --kv`, `railway variables --set KEY=VALUE`, `railway redeploy --yes`, and `railway logs` rather than directing the user to the Railway dashboard. Same principle for `gh`, `vercel`, and similar tools.
