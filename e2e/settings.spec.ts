@@ -141,7 +141,7 @@ test.describe('Settings — API Keys tab', () => {
     await page.locator(SEL.settings.createKeyButton).click();
 
     // Newly created key is displayed with a Copy button
-    await expect(page.locator('main button:has-text("Copy")')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator(SEL.settings.copyKeyButton)).toBeVisible({ timeout: 5_000 });
   });
 
   test('30c.4: Revoke API key', async ({ authenticatedPage: page }) => {
