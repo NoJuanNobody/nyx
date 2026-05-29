@@ -2,13 +2,15 @@ import { useEffect } from 'react';
 import { useNavigate, Navigate, Outlet } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useAuthStore } from '../stores/auth.store';
-import { setAuthTokenGetter, fetchTeams } from '../lib/api';
+import { API_BASE, setAuthTokenGetter, fetchTeams } from '../lib/api';
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 /** Fetches /api/auth/me for dev bypass mode */
 async function fetchDevUser() {
-  const res = await fetch('/api/auth/me');
+  // Use API_BASE — a relative '/api/...' resolves against the frontend origin
+  // (Vercel) now that the proxy rewrite is gone, and 404s.
+  const res = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
   if (!res.ok) throw new Error('Failed to fetch dev user');
   return res.json();
 }

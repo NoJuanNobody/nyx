@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { API_BASE } from '../lib/api';
 
 const STAGES = [
   { icon: '◎', label: 'Idea', color: '#E8C547' },
@@ -71,7 +72,7 @@ export function Landing() {
     setSubmitting(true);
     setError('');
     try {
-      const res = await fetch('/api/waitlist', {
+      const res = await fetch(`${API_BASE}/waitlist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
