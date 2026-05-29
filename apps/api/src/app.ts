@@ -115,6 +115,13 @@ export function buildApp() {
         callback(new Error('CORS: origin not allowed'), false);
       }
     },
+    // @fastify/cors v11 defaults `methods` to 'GET,HEAD,POST', which silently
+    // blocks PUT/PATCH/DELETE preflight requests. This went unnoticed while the
+    // web app called the API through a same-origin Vercel proxy rewrite; after
+    // switching to direct cross-origin calls (VITE_API_URL) the preflight is
+    // enforced, so the full method set must be declared explicitly.
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
   app.register(helmet, {
