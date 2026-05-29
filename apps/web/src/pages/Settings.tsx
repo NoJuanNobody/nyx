@@ -919,6 +919,26 @@ function ApiKeysPanel() {
   const [name, setName] = useState('');
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedConfig, setCopiedConfig] = useState(false);
+
+  // The MCP server prepends this to `/api/...` paths, so NYX_API_URL is the API
+  // origin (no `/api`) — same value the web client derives API_BASE from.
+  const apiOrigin = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+  const mcpConfig = createdKey
+    ? JSON.stringify(
+        {
+          mcpServers: {
+            nyx: {
+              command: 'node',
+              args: ['/absolute/path/to/nyx/packages/mcp-server/dist/index.js'],
+              env: { NYX_API_KEY: createdKey, NYX_API_URL: apiOrigin },
+            },
+          },
+        },
+        null,
+        2,
+      )
+    : '';
 
   const { data: teams } = useQuery({
     queryKey: ['teams'],
@@ -955,6 +975,14 @@ function ApiKeysPanel() {
       setTimeout(() => setCopied(false), 2000);
     }
   }, [createdKey]);
+
+  const handleCopyConfig = useCallback(() => {
+    if (mcpConfig) {
+      navigator.clipboard.writeText(mcpConfig);
+      setCopiedConfig(true);
+      setTimeout(() => setCopiedConfig(false), 2000);
+    }
+  }, [mcpConfig]);
 
   const handleCreate = useCallback(() => {
     if (!name.trim()) return;
@@ -1015,6 +1043,34 @@ function ApiKeysPanel() {
               >
                 {copied ? 'Copied!' : 'Copy'}
               </button>
+            </div>
+
+            {/* Ready-to-paste MCP config — same `mcpServers` shape works for
+                Claude Code (.mcp.json), Cursor, and Claude Desktop. */}
+            <div className="mt-3 border-t border-green-200 pt-3">
+              <div className="mb-1.5 flex items-center justify-between">
+                <p className="text-xs font-medium text-green-800">
+                  MCP config — paste into your client
+                </p>
+                <button
+                  type="button"
+                  onClick={handleCopyConfig}
+                  className="rounded-md border border-green-300 bg-white px-3 py-1 text-xs font-medium text-green-700 hover:bg-green-50 transition-colors"
+                >
+                  {copiedConfig ? 'Copied!' : 'Copy config'}
+                </button>
+              </div>
+              <pre className="overflow-x-auto rounded bg-white px-3 py-2 font-mono text-[11px] leading-relaxed text-slate-700 border border-green-200">
+                {mcpConfig}
+              </pre>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-green-700">
+                Build the server first with{' '}
+                <code className="rounded bg-green-100 px-1 py-0.5 font-mono">pnpm --filter @nyx/mcp-server build</code>,
+                then set <code className="rounded bg-green-100 px-1 py-0.5 font-mono">args</code> to the absolute path of
+                its <code className="rounded bg-green-100 px-1 py-0.5 font-mono">dist/index.js</code>. Add the block to
+                your client config — Claude Code: <code className="rounded bg-green-100 px-1 py-0.5 font-mono">.mcp.json</code>;
+                Cursor: Settings → MCP; Claude Desktop: <code className="rounded bg-green-100 px-1 py-0.5 font-mono">claude_desktop_config.json</code>.
+              </p>
             </div>
           </div>
         )}
