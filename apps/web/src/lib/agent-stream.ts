@@ -1,4 +1,4 @@
-import { resolveToken } from './api';
+import { API_BASE, resolveToken } from './api';
 
 export type SessionStatus = 'idle' | 'running' | 'completed' | 'failed' | 'cancelled';
 
@@ -37,9 +37,14 @@ export function startAgentStream(options: AgentStreamOptions): { abort: () => vo
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('/api/agent', {
+      // Must hit the API origin directly. A relative '/api/agent' resolves
+      // against the frontend (Vercel) now that the Vercel proxy rewrite is
+      // gone, producing a 404 ("Agent API error 404"). Use API_BASE like every
+      // other client call.
+      const res = await fetch(`${API_BASE}/agent`, {
         method: 'POST',
         headers,
+        credentials: 'include',
         body: JSON.stringify({
           prompt: options.prompt,
           workflowId: options.workflowId,
