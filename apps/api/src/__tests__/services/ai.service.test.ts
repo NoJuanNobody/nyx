@@ -67,6 +67,23 @@ describe('AI Service', () => {
     expect(result).not.toContain('```');
   });
 
+  it('editDocument: continues past a max_tokens cutoff to return the full edit', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        content: [{ type: 'text', text: '# Doc\n\nFirst half ' }],
+        stop_reason: 'max_tokens',
+      })
+      .mockResolvedValueOnce({
+        content: [{ type: 'text', text: 'second half.' }],
+        stop_reason: 'end_turn',
+      });
+
+    const result = await aiService.editDocument('# Old', 'Expand this document fully');
+
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(result).toBe('# Doc\n\nFirst half second half.');
+  });
+
   it('generateTicketFromDiff: returns generic ticket on parse failure', async () => {
     mockCreate.mockResolvedValueOnce(
       makeResponse('Here is a ticket description in plain text'),
