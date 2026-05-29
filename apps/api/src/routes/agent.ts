@@ -6,6 +6,7 @@ import { runAgentLoop } from '../services/agent/loop.js';
 import { getWorkflow, listWorkflows } from '../services/agent/workflows.js';
 import { auditService } from '../services/audit.service.js';
 import type { AgentContext, AgentEvent } from '../services/agent/types.js';
+import { sseCorsHeaders } from '../lib/cors.js';
 
 // Track running sessions for cancellation
 const runningSessions = new Map<string, { cancel: () => void }>();
@@ -140,6 +141,9 @@ export const agentRoutes: FastifyPluginAsync = async (fastify) => {
       'Connection': 'keep-alive',
       'X-Session-Id': session.id,
       'X-Conversation-Id': activeConversationId,
+      // Raw SSE responses bypass the @fastify/cors onSend hook, so set CORS
+      // headers explicitly or the browser blocks the cross-origin stream.
+      ...sseCorsHeaders(request.headers.origin),
     });
 
     const sendEvent = (event: AgentEvent) => {

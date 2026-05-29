@@ -11,6 +11,7 @@ import {
 } from '../services/voice/recall-adapter.js';
 import type { CallLifecycleEvent } from '../services/voice/call-integration.types.js';
 import { voiceAgentService } from '../services/voice/voice-agent.service.js';
+import { sseCorsHeaders } from '../lib/cors.js';
 
 // Register Recall.ai adapters when API key is available, otherwise fall back to stub
 if (process.env.RECALL_AI_API_KEY) {
@@ -130,10 +131,13 @@ export const voiceRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ error: `Unknown session: ${sessionId}` });
     }
 
+    // Raw SSE responses bypass the @fastify/cors onSend hook, so set CORS
+    // headers explicitly for cross-origin browsers.
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
+      ...sseCorsHeaders(request.headers.origin),
     });
 
     // Send initial state
