@@ -113,6 +113,52 @@ function requireClient(): Anthropic {
   return client;
 }
 
+/**
+ * Run a completion to its natural stopping point, transparently continuing
+ * across `max_tokens` boundaries.
+ *
+ * Claude returns `stop_reason: 'max_tokens'` when it hits the per-call output
+ * cap mid-document. Left unhandled — as the document-generation paths were —
+ * that silently produces a truncated document. We re-send the accumulated
+ * output as an assistant prefill and let the model continue from exactly where
+ * it stopped, concatenating until it stops naturally (`end_turn`) or we hit a
+ * safety cap on continuations.
+ */
+async function generateComplete(
+  ai: Anthropic,
+  params: {
+    model: string;
+    system: string;
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    maxTokens?: number;
+    maxContinuations?: number;
+  },
+): Promise<string> {
+  const { model, system, messages, maxTokens = 8192, maxContinuations = 6 } = params;
+  let full = '';
+
+  for (let attempt = 0; attempt <= maxContinuations; attempt++) {
+    // The Anthropic API rejects an assistant prefill that ends in whitespace,
+    // so trim only the prefill copy; `full` keeps the original spacing.
+    const turns = full
+      ? [...messages, { role: 'assistant' as const, content: full.replace(/\s+$/, '') }]
+      : messages;
+
+    const response = await ai.messages.create({
+      model,
+      max_tokens: maxTokens,
+      system,
+      messages: turns,
+    });
+
+    full += response.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+
+    if (response.stop_reason !== 'max_tokens') break;
+  }
+
+  return full;
+}
+
 // Stage-aware quality criteria
 const STAGE_QUALITY_PROMPTS: Record<string, string> = {
   conception:
@@ -307,30 +353,26 @@ Respond ONLY with valid JSON in this exact format: {"title": "<short title>", "d
   ): Promise<{ title: string; content: string }> {
     const ai = requireClient();
 
-    const response = await ai.messages.create({
-      model: MODEL_FAST,
-      max_tokens: 4096,
-      system:
-        'You are a technical documentation writer. Given a prompt, generate a well-structured document with a clear title and markdown content. Respond ONLY with valid JSON in this exact format: {"title": "<document title>", "content": "<full markdown content>"}',
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    });
+    // Markdown-first, not JSON-wrapped: a full multi-section document is too
+    // long to reliably fit inside a single JSON string, and a truncated JSON
+    // response previously failed to parse and fell back to returning raw,
+    // broken JSON as the "document". Emit plain markdown with the title as the
+    // first H1, and continue past the per-call token cap so the document is
+    // complete.
+    const text = (
+      await generateComplete(ai, {
+        model: MODEL_FAST,
+        system:
+          'You are a technical documentation writer. Given a prompt, generate a complete, well-structured markdown document. Start with a single "# Title" heading on the first line, followed by the full document body. Do not wrap the output in code fences or JSON — return only the markdown.',
+        messages: [{ role: 'user', content: prompt }],
+      })
+    ).trim();
 
-    const text =
-      response.content[0].type === 'text' ? response.content[0].text : '';
-    try {
-      const parsed = JSON.parse(text) as { title: string; content: string };
-      return {
-        title: parsed.title || 'Untitled Document',
-        content: parsed.content || text,
-      };
-    } catch {
-      return { title: 'Untitled Document', content: text };
-    }
+    const headingMatch = text.match(/^#\s+(.+)$/m);
+    return {
+      title: headingMatch ? headingMatch[1].trim() : 'Untitled Document',
+      content: text,
+    };
   },
 
   async editDocument(
@@ -1273,21 +1315,21 @@ Generate 3 follow-up prompts the user could ask next.`;
     const seedPrompt = SEED_PROMPTS[transitionKey] ||
       `Based on this ${fromStage} document, generate appropriate content for a ${toStage} stage document.`;
 
-    const response = await ai.messages.create({
-      model: MODEL_FAST,
-      max_tokens: 4096,
-      system:
-        `You are a technical documentation expert helping teams progress through their product lifecycle. ${seedPrompt} Write the output as a well-structured markdown document. Start with a # Title heading on the first line.`,
-      messages: [
-        {
-          role: 'user',
-          content: `Generate the next-stage document from this source:\n\n${content}`,
-        },
-      ],
-    });
-
-    const text =
-      (response.content[0].type === 'text' ? response.content[0].text : '').trim();
+    // Continue past the per-call token cap so the seeded document is complete
+    // rather than cut off mid-section.
+    const text = (
+      await generateComplete(ai, {
+        model: MODEL_FAST,
+        system:
+          `You are a technical documentation expert helping teams progress through their product lifecycle. ${seedPrompt} Write the output as a well-structured markdown document. Start with a # Title heading on the first line.`,
+        messages: [
+          {
+            role: 'user',
+            content: `Generate the next-stage document from this source:\n\n${content}`,
+          },
+        ],
+      })
+    ).trim();
 
     // Extract the title from the first # heading
     const headingMatch = text.match(/^#\s+(.+)$/m);
