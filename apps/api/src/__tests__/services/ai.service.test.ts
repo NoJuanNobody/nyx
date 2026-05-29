@@ -83,24 +83,48 @@ describe('AI Service', () => {
     expect(typeof aiService.analyzeSpecQuality).toBe('function');
   });
 
-  it('generateDocument: returns parsed JSON on valid response', async () => {
+  it('generateDocument: extracts the title from the markdown H1 heading', async () => {
     mockCreate.mockResolvedValueOnce(
-      makeResponse('{"title": "My Doc", "content": "# Hello World"}'),
+      makeResponse('# My Doc\n\nHello world body.'),
     );
 
     const result = await aiService.generateDocument('Create a doc about hello world');
     expect(result.title).toBe('My Doc');
-    expect(result.content).toBe('# Hello World');
+    expect(result.content).toBe('# My Doc\n\nHello world body.');
   });
 
-  it('generateDocument: returns fallback on parse failure', async () => {
+  it('generateDocument: falls back to Untitled when no H1 heading is present', async () => {
     mockCreate.mockResolvedValueOnce(
-      makeResponse('# Some raw markdown content'),
+      makeResponse('Some raw content without a heading'),
     );
 
     const result = await aiService.generateDocument('Create a doc');
     expect(result.title).toBe('Untitled Document');
-    expect(result.content).toBe('# Some raw markdown content');
+    expect(result.content).toBe('Some raw content without a heading');
+  });
+
+  it('generateDocument: continues past a max_tokens cutoff until the document is complete', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        content: [{ type: 'text', text: '# Doc\n\nPart one ' }],
+        stop_reason: 'max_tokens',
+      })
+      .mockResolvedValueOnce({
+        content: [{ type: 'text', text: 'and part two.' }],
+        stop_reason: 'end_turn',
+      });
+
+    const result = await aiService.generateDocument('Create a long doc');
+
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    // Second call must include the partial output as an assistant prefill.
+    const secondCallMessages = mockCreate.mock.calls[1][0].messages;
+    expect(secondCallMessages.at(-1)).toEqual({
+      role: 'assistant',
+      content: '# Doc\n\nPart one',
+    });
+    expect(result.title).toBe('Doc');
+    expect(result.content).toBe('# Doc\n\nPart one and part two.');
   });
 
   it('editDocument: includes history in messages when provided', async () => {
