@@ -134,12 +134,16 @@ describe('AI Service', () => {
     const result = await aiService.generateDocument('Create a long doc');
 
     expect(mockCreate).toHaveBeenCalledTimes(2);
-    // Second call must include the partial output as an assistant prefill.
+    // Second call carries the partial output as a prior assistant turn followed
+    // by a user "continue" nudge. (A trailing assistant prefill 400s on Sonnet
+    // 4.6+, so the continuation request lives in a user turn instead.)
     const secondCallMessages = mockCreate.mock.calls[1][0].messages;
-    expect(secondCallMessages.at(-1)).toEqual({
+    expect(secondCallMessages.at(-2)).toEqual({
       role: 'assistant',
-      content: '# Doc\n\nPart one',
+      content: '# Doc\n\nPart one ',
     });
+    expect(secondCallMessages.at(-1).role).toBe('user');
+    expect(secondCallMessages.at(-1).content).toMatch(/continue/i);
     expect(result.title).toBe('Doc');
     expect(result.content).toBe('# Doc\n\nPart one and part two.');
   });

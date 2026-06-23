@@ -4,7 +4,7 @@ import type { AudioStreamEvent } from '@nyx/shared';
 import { callIntegrationService } from './call-integration.service.js';
 import type { CallLifecycleEvent } from './call-integration.types.js';
 
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'claude-sonnet-4-6';
 
 const client = config.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: config.ANTHROPIC_API_KEY })

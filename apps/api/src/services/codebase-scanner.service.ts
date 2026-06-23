@@ -391,7 +391,7 @@ If no files seem relevant, return an empty array: []`,
       const stageContext = docStage ? ` This is a "${docStage}" stage document.` : '';
 
       const response = await ai.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: `You are a spec completeness analyzer. Given a specification document and the actual implementation code, identify what sections are missing or incomplete in the spec, then generate the missing content based on what the code actually implements.${stageContext}
 
