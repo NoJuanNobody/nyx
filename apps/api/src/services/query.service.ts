@@ -6,7 +6,7 @@
 import { retrieveChunks } from './retrieval.service.js';
 import { config } from '../lib/config.js';
 
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'claude-sonnet-4-6';
 
 /**
  * Retrieve relevant chunks for a query, feed them as context to Claude,

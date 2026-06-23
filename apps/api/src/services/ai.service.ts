@@ -4,7 +4,7 @@ import { eq, and } from 'drizzle-orm';
 import { config } from '../lib/config.js';
 import { decrypt } from './encryption.service.js';
 
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'claude-sonnet-4-6';
 const MODEL_FAST = 'claude-haiku-4-5-20251001';
 
 /** Parse a JSON array from AI text, handling code fences, prose wrapping, and truncation. */
@@ -119,10 +119,11 @@ function requireClient(): Anthropic {
  *
  * Claude returns `stop_reason: 'max_tokens'` when it hits the per-call output
  * cap mid-document. Left unhandled — as the document-generation paths were —
- * that silently produces a truncated document. We re-send the accumulated
- * output as an assistant prefill and let the model continue from exactly where
- * it stopped, concatenating until it stops naturally (`end_turn`) or we hit a
- * safety cap on continuations.
+ * that silently produces a truncated document. We carry the accumulated output
+ * back as a prior assistant turn plus a user "continue" instruction, and let the
+ * model resume from where it stopped, concatenating until it stops naturally
+ * (`end_turn`) or we hit a safety cap on continuations. (A trailing assistant
+ * prefill would be cleaner but returns 400 on Sonnet 4.6+.)
  */
 async function generateComplete(
   ai: Anthropic,
@@ -138,10 +139,20 @@ async function generateComplete(
   let full = '';
 
   for (let attempt = 0; attempt <= maxContinuations; attempt++) {
-    // The Anthropic API rejects an assistant prefill that ends in whitespace,
-    // so trim only the prefill copy; `full` keeps the original spacing.
+    // On a continuation, carry what we have so far as a prior assistant turn
+    // followed by a user nudge to continue. A trailing assistant *prefill* is
+    // rejected with a 400 on Sonnet 4.6+, so the continuation request lives in a
+    // user turn instead of prefilling the assistant.
     const turns = full
-      ? [...messages, { role: 'assistant' as const, content: full.replace(/\s+$/, '') }]
+      ? [
+          ...messages,
+          { role: 'assistant' as const, content: full },
+          {
+            role: 'user' as const,
+            content:
+              'Your previous message was cut off at the maximum length. Continue exactly from where it stopped — do not repeat anything already written and do not add any preamble; output only the remaining content.',
+          },
+        ]
       : messages;
 
     const response = await ai.messages.create({

@@ -8,7 +8,7 @@ import { getToolDefinitions } from './tools.js';
 import { checkCredits, deductCredits, getAgentCost } from '../credits.service.js';
 import type { AgentContext, TokenUsage, ToolCallRecord } from './types.js';
 
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'claude-sonnet-4-6';
 const MAX_ITERATIONS = 25;
 const SOFT_ITERATION_WARNING = 20;
 const MAX_TOOL_RESULT_CHARS = 6_000; // ~1.5K tokens — truncate large tool outputs

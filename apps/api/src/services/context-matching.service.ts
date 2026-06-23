@@ -4,7 +4,7 @@ import { documents } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { config } from '../lib/config.js';
 
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'claude-sonnet-4-6';
 
 const client = config.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: config.ANTHROPIC_API_KEY })
