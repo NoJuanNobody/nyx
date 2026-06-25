@@ -15,19 +15,31 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
 
+      - name: Check database URL
+        run: |
+          if [ -z "$DATABASE_PUBLIC_URL" ]; then
+            echo "::error::DATABASE_PUBLIC_URL secret is not set"
+            exit 1
+          fi
+          echo "DATABASE_PUBLIC_URL is set (length: ${#DATABASE_PUBLIC_URL})"
+        env:
+          DATABASE_PUBLIC_URL: ${{ secrets.DATABASE_PUBLIC_URL }}
+
       - name: Run pg_dump
         run: |
+          DUMP_FILE="nyx-backup-$(date +%Y%m%d-%H%M%S).dump"
           pg_dump "$DATABASE_PUBLIC_URL" \
             --format=custom \
             --no-owner \
             --no-privileges \
-            --file=nyx-backup-$(date +%Y%m%d-%H%M%S).dump
+            --sslmode=require \
+            --file="$DUMP_FILE"
+          echo "DUMP_FILE=$DUMP_FILE" >> $GITHUB_ENV
         env:
           DATABASE_PUBLIC_URL: ${{ secrets.DATABASE_PUBLIC_URL }}
 
       - name: Verify backup file
         run: |
-          DUMP_FILE=$(ls -1 nyx-backup-*.dump)
           FILE_SIZE=$(stat --format=%s "$DUMP_FILE")
           echo "Backup file: $DUMP_FILE ($FILE_SIZE bytes)"
           if [ "$FILE_SIZE" -eq 0 ]; then
