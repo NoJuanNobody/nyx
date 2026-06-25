@@ -97,7 +97,7 @@ function CodeBlock({ className, children }: { className?: string; children?: Rea
         </div>
       )}
       <pre className="overflow-x-auto px-4 py-3 text-[13px] leading-relaxed text-slate-800 dark:text-slate-100">
-        <code className={className}>{children}</code>
+        <code className={className}>{code}</code>
       </pre>
     </div>
   );
