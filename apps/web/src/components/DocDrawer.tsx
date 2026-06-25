@@ -207,7 +207,7 @@ export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVe
             </div>
 
             {/* Panel content */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto">
               {activePanel === 'history' && (
                 <VersionHistory
                   documentId={documentId}
