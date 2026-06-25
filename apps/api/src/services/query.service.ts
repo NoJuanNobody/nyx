@@ -4,9 +4,9 @@
  */
 
 import { retrieveChunks } from './retrieval.service.js';
-import { config } from '../lib/config.js';
+import { createPlatformLlmClient, DEFAULT_MODEL } from '../lib/llm.js';
 
-const MODEL = 'claude-sonnet-4-6';
+const MODEL = DEFAULT_MODEL;
 
 /**
  * Retrieve relevant chunks for a query, feed them as context to Claude,
@@ -30,14 +30,11 @@ export async function* queryDocs(
     .join('\n\n---\n\n');
 
   // 3. Stream response from Claude
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-
-  if (!config.ANTHROPIC_API_KEY) {
-    yield 'Error: ANTHROPIC_API_KEY is not configured.';
+  const client = createPlatformLlmClient();
+  if (!client) {
+    yield 'Error: no LLM provider key is configured.';
     return;
   }
-
-  const client = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY });
 
   const stream = client.messages.stream({
     model: MODEL,

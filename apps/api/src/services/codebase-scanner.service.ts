@@ -5,6 +5,7 @@ import { db } from '../db/index.js';
 import { documents, integrations, changeProposals } from '../db/schema.js';
 import { githubService, type GitHubTreeEntry } from './github.service.js';
 import { aiService } from './ai.service.js';
+import { createPlatformLlmClient, DEFAULT_MODEL, FAST_MODEL } from '../lib/llm.js';
 
 // ── Types ────────────────────────────────────────────────
 
@@ -323,19 +324,15 @@ export const codebaseScannerService = {
     allFilePaths: string[],
   ): Promise<string[]> {
     try {
-      const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const { config } = await import('../lib/config.js');
-
-      if (!config.ANTHROPIC_API_KEY) return [];
-
-      const ai = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY });
+      const ai = createPlatformLlmClient();
+      if (!ai) return [];
 
       // Limit the file list to prevent token overflow
       const fileListStr = allFilePaths.slice(0, 500).join('\n');
       const docSnippet = docContent.slice(0, 2000);
 
       const response = await ai.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model: FAST_MODEL,
         max_tokens: 1024,
         system: `You are a code-to-documentation matcher. Given a spec document and a list of file paths from a repository, identify which code files are most relevant to the spec.
 
@@ -375,14 +372,10 @@ If no files seem relevant, return an empty array: []`,
     proposedContent: string | null;
   }> {
     try {
-      const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const { config } = await import('../lib/config.js');
-
-      if (!config.ANTHROPIC_API_KEY) {
+      const ai = createPlatformLlmClient();
+      if (!ai) {
         return { missingSections: [], proposedContent: null };
       }
-
-      const ai = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY });
 
       const codeBlock = codeContents
         .map((f) => `### ${f.path}\n\`\`\`\n${f.content}\n\`\`\``)
@@ -391,7 +384,7 @@ If no files seem relevant, return an empty array: []`,
       const stageContext = docStage ? ` This is a "${docStage}" stage document.` : '';
 
       const response = await ai.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: DEFAULT_MODEL,
         max_tokens: 4096,
         system: `You are a spec completeness analyzer. Given a specification document and the actual implementation code, identify what sections are missing or incomplete in the spec, then generate the missing content based on what the code actually implements.${stageContext}
 

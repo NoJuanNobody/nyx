@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { eq, and, sql, gte } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { teamAiKeys, aiUsageLog, subscriptions } from '../db/schema.js';
+import { teamAiKeys, aiUsageLog, subscriptions, teams } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
 import { encrypt, decrypt } from '../services/encryption.service.js';
 import { config } from '../lib/config.js';
@@ -103,8 +103,18 @@ export const aiKeyRoutes: FastifyPluginAsync = async (app) => {
       .where(and(eq(teamAiKeys.teamId, teamId), eq(teamAiKeys.isActive, true)))
       .limit(1);
 
+    // Per-team model preferences live on the teams table.
+    const [team] = await db
+      .select({ defaultModel: teams.defaultModel, fastModel: teams.fastModel })
+      .from(teams)
+      .where(eq(teams.id, teamId))
+      .limit(1);
+
+    const defaultModel = team?.defaultModel ?? null;
+    const fastModel = team?.fastModel ?? null;
+
     if (!key) {
-      return { configured: false };
+      return { configured: false, defaultModel, fastModel };
     }
 
     return {
@@ -114,6 +124,32 @@ export const aiKeyRoutes: FastifyPluginAsync = async (app) => {
       isActive: key.isActive,
       createdAt: key.createdAt,
       rotatedAt: key.rotatedAt,
+      defaultModel,
+      fastModel,
+    };
+  });
+
+  // PUT /api/teams/:id/model — update per-team LLM model preferences
+  app.put('/:id/model', {
+    preHandler: [requireRole({ minimumRole: 'admin', source: 'team' })],
+  }, async (request) => {
+    const { id: teamId } = request.params as { id: string };
+    const body = request.body as { defaultModel?: string | null; fastModel?: string | null };
+
+    // Partial update: only set the fields the caller actually provided.
+    const updates: { defaultModel?: string | null; fastModel?: string | null } = {};
+    if ('defaultModel' in body) updates.defaultModel = body.defaultModel ?? null;
+    if ('fastModel' in body) updates.fastModel = body.fastModel ?? null;
+
+    const [updated] = await db
+      .update(teams)
+      .set(updates)
+      .where(eq(teams.id, teamId))
+      .returning({ defaultModel: teams.defaultModel, fastModel: teams.fastModel });
+
+    return {
+      defaultModel: updated?.defaultModel ?? null,
+      fastModel: updated?.fastModel ?? null,
     };
   });
 

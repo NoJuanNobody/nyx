@@ -1,11 +1,12 @@
 import * as Sentry from '@sentry/node';
-import Anthropic from '@anthropic-ai/sdk';
+import type Anthropic from '@anthropic-ai/sdk';
 import { eq, and } from 'drizzle-orm';
 import { config } from '../lib/config.js';
+import { createPlatformLlmClient, createLlmClient, DEFAULT_MODEL, FAST_MODEL, LLM_PROVIDER } from '../lib/llm.js';
 import { decrypt } from './encryption.service.js';
 
-const MODEL = 'claude-sonnet-4-6';
-const MODEL_FAST = 'claude-haiku-4-5-20251001';
+const MODEL = DEFAULT_MODEL;
+const MODEL_FAST = FAST_MODEL;
 
 /** Parse a JSON array from AI text, handling code fences, prose wrapping, and truncation. */
 function parseJsonArray(raw: string): Array<{ title: string; description: string; labels: string[] }> {
@@ -33,9 +34,7 @@ function parseJsonArray(raw: string): Array<{ title: string; description: string
   return [];
 }
 
-const client = config.ANTHROPIC_API_KEY
-  ? new Anthropic({ apiKey: config.ANTHROPIC_API_KEY })
-  : null;
+const client = createPlatformLlmClient();
 
 // ── BYOK client cache ────────────────────────────────────────────────
 const teamClientCache = new Map<string, { client: Anthropic; expiresAt: number }>();
@@ -56,7 +55,7 @@ function getOrCreateCachedClient(teamId: string, apiKey: string): Anthropic {
   if (cached && cached.expiresAt > Date.now()) {
     return cached.client;
   }
-  const teamClient = new Anthropic({ apiKey });
+  const teamClient = createLlmClient(apiKey);
   teamClientCache.set(teamId, { client: teamClient, expiresAt: Date.now() + CLIENT_TTL_MS });
   return teamClient;
 }
@@ -81,7 +80,7 @@ async function resolveClient(teamId?: string): Promise<Anthropic> {
         .where(
           and(
             eq(teamAiKeys.teamId, teamId),
-            eq(teamAiKeys.provider, 'anthropic'),
+            eq(teamAiKeys.provider, LLM_PROVIDER),
             eq(teamAiKeys.isActive, true),
           ),
         )

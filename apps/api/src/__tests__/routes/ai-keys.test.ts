@@ -151,7 +151,11 @@ describe('AI Key Routes', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.payload)).toEqual({ configured: false });
+    expect(JSON.parse(res.payload)).toEqual({
+      configured: false,
+      defaultModel: null,
+      fastModel: null,
+    });
   });
 
   it('GET /api/teams/:id/ai-key returns key status when configured', async () => {

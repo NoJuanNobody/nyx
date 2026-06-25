@@ -18,6 +18,16 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test', 'staging']).default('development'),
   DEV_AUTH_BYPASS: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
+  // ── LLM provider selection (OpenRouter migration, issue #450) ──
+  // `anthropic` (default) keeps calling the Anthropic Messages API directly.
+  // `openrouter` routes every LLM call through OpenRouter's OpenAI-compatible
+  // endpoint, giving one key access to many models. Model names are
+  // configurable so they are never hardcoded across services.
+  OPENROUTER_API_KEY: z.string().optional(),
+  LLM_PROVIDER: z.enum(['anthropic', 'openrouter']).default('anthropic'),
+  LLM_BASE_URL: z.string().url().optional(),
+  LLM_DEFAULT_MODEL: z.string().optional(),
+  LLM_FAST_MODEL: z.string().optional(),
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
   GITHUB_WEBHOOK_SECRET: z.string().optional(),
@@ -65,6 +75,15 @@ const envSchema = z.object({
       code: z.ZodIssueCode.custom,
       message: 'GITHUB_WEBHOOK_SECRET is required in production',
       path: ['GITHUB_WEBHOOK_SECRET'],
+    });
+  }
+  // When OpenRouter is the selected provider, its key is mandatory — otherwise
+  // every LLM call would fail at runtime with an auth error.
+  if (data.LLM_PROVIDER === 'openrouter' && !data.OPENROUTER_API_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'OPENROUTER_API_KEY is required when LLM_PROVIDER=openrouter',
+      path: ['OPENROUTER_API_KEY'],
     });
   }
 });

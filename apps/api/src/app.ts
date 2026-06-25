@@ -66,6 +66,7 @@ import { pipelineRoutes } from './routes/pipelines.js';
 import { videoGenerationRoutes } from './routes/video-generation.js';
 import { adminRoutes } from './routes/admin.js';
 import { aiKeyRoutes } from './routes/ai-keys.js';
+import { modelsRoutes } from './routes/models.js';
 import { atlassianRoutes } from './routes/integrations/atlassian.js';
 import { jobRoutes } from './routes/jobs.js';
 import { wsRoutes } from './routes/ws.js';
@@ -119,7 +120,7 @@ export function buildApp() {
         scriptSrc: ["'self'", "'unsafe-inline'", "https://clerk.nyx-creative.com", "https://accounts.nyx-creative.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        connectSrc: ["'self'", "https://api.anthropic.com", "https://fonts.googleapis.com", "https://clerk.nyx-creative.com", "https://accounts.nyx-creative.com"],
+        connectSrc: ["'self'", "https://api.anthropic.com", "https://openrouter.ai", "https://fonts.googleapis.com", "https://clerk.nyx-creative.com", "https://accounts.nyx-creative.com"],
         imgSrc: ["'self'", "data:", "https:"],
         frameSrc: ["'self'", "blob:", "https://accounts.nyx-creative.com"],
       },
@@ -266,6 +267,7 @@ export function buildApp() {
   app.register(videoGenerationRoutes, { prefix: '/api/video' });
   app.register(adminRoutes, { prefix: '/api/admin' });
   app.register(aiKeyRoutes, { prefix: '/api/teams' });
+  app.register(modelsRoutes, { prefix: '/api/models' });
   app.register(atlassianRoutes, { prefix: '/api/integrations' });
   app.register(jobRoutes, { prefix: '/api' });
   app.register(wsRoutes, { prefix: '/api/ws' });
