@@ -26,7 +26,7 @@ const tutorialSteps: TutorialStep[] = [
     title: '3. Explore the product lifecycle',
     description:
       'Understand how Nyx guides ideas through five phases: Ideation, Specification, Implementation, Review, and Maintenance.',
-    link: { to: '/lifecycle', label: 'View Lifecycle' },
+    link: { to: '/app/board', label: 'View Lifecycle' },
   },
   {
     title: '4. Generate tickets from specs',
