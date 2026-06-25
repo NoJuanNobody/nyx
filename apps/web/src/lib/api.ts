@@ -1853,6 +1853,33 @@ export interface TeamAiKeyStatus {
   isActive?: boolean;
   createdAt?: string;
   rotatedAt?: string | null;
+  defaultModel: string | null;
+  fastModel: string | null;
+}
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+  contextLength: number;
+  promptPricePerM: number;
+  completionPricePerM: number;
+  paramsB: number | null;
+  modality: string;
+}
+
+export async function fetchModels(): Promise<ModelInfo[]> {
+  const res = await request<{ models: ModelInfo[] }>('/models');
+  return res.models;
+}
+
+export async function setTeamModel(
+  teamId: string,
+  body: { defaultModel?: string | null; fastModel?: string | null },
+): Promise<{ defaultModel: string | null; fastModel: string | null }> {
+  return request(`/teams/${teamId}/model`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
 }
 
 export interface AiUsageSummary {

@@ -10,6 +10,7 @@ import {
   type SubscriptionPlan, type Subscription,
   fetchTeamAiKeyStatus, addTeamAiKey, rotateTeamAiKey, removeTeamAiKey,
   fetchTeamAiUsage, type TeamAiKeyStatus, type AiUsageSummary,
+  fetchModels, setTeamModel, type ModelInfo,
   startIntegrationOAuth,
 } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
@@ -1184,6 +1185,15 @@ function AiConfigPanel() {
   const [modalLoading, setModalLoading] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
+  // Model picker state
+  const modelsQuery = useQuery({ queryKey: ['models'], queryFn: fetchModels });
+  const [defaultModel, setDefaultModel] = useState<string | null>(null);
+  const [fastModel, setFastModel] = useState<string | null>(null);
+  const [modelDirty, setModelDirty] = useState(false);
+  const [modelSaving, setModelSaving] = useState(false);
+  const [modelSaved, setModelSaved] = useState(false);
+  const [modelError, setModelError] = useState('');
+
   const handleAddOrRotate = useCallback(async () => {
     if (!teamId || !modalApiKey.trim()) return;
     setModalLoading(true);
@@ -1220,7 +1230,41 @@ function AiConfigPanel() {
   const keyStatus = keyStatusQuery.data;
   const usage = usageQuery.data;
 
+  // Sync local model selection from server state (only while pristine)
+  useEffect(() => {
+    if (keyStatus && !modelDirty) {
+      setDefaultModel(keyStatus.defaultModel ?? null);
+      setFastModel(keyStatus.fastModel ?? null);
+    }
+  }, [keyStatus, modelDirty]);
+
+  const handleSaveModel = useCallback(async () => {
+    if (!teamId) return;
+    setModelSaving(true);
+    setModelError('');
+    setModelSaved(false);
+    try {
+      await setTeamModel(teamId, { defaultModel, fastModel });
+      queryClient.invalidateQueries({ queryKey: ['ai-key-status', teamId] });
+      setModelDirty(false);
+      setModelSaved(true);
+      setTimeout(() => setModelSaved(false), 2500);
+    } catch (err: unknown) {
+      setModelError(err instanceof Error ? err.message : 'Failed to save model');
+    } finally {
+      setModelSaving(false);
+    }
+  }, [teamId, defaultModel, fastModel, queryClient]);
+
   const formatNumber = (n: number) => n.toLocaleString();
+
+  const formatContext = (n: number) => {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
+    if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+    return String(n);
+  };
+
+  const models = modelsQuery.data;
 
   return (
     <div data-testid="ai-config-panel" className="space-y-6">
@@ -1346,6 +1390,117 @@ function AiConfigPanel() {
           )}
         </div>
       )}
+
+      {/* Model Picker */}
+      <div className="rounded-lg border border-slate-200 bg-white p-5" data-testid="model-picker">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-sm font-medium text-slate-700">Model</h3>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Choose which model your team uses. The default model handles standard work; the fast
+              model is used for lightweight, latency-sensitive tasks.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {modelSaved && (
+              <span className="text-xs font-medium text-emerald-600" data-testid="model-saved">
+                Saved
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleSaveModel}
+              disabled={!isAdmin || !modelDirty || modelSaving}
+              className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              data-testid="save-model-btn"
+            >
+              {modelSaving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
+
+        {modelError && <p className="mb-3 text-sm text-red-600">{modelError}</p>}
+
+        {modelsQuery.isLoading ? (
+          <p className="text-sm text-slate-500">Loading models…</p>
+        ) : modelsQuery.isError ? (
+          <p className="text-sm text-red-600">Failed to load models.</p>
+        ) : !models || models.length === 0 ? (
+          <p className="text-sm text-slate-500">No models available.</p>
+        ) : (
+          <div className="divide-y divide-slate-100 rounded-md border border-slate-200">
+            {models.map((model: ModelInfo) => {
+              const isDefault = defaultModel === model.id;
+              const isFast = fastModel === model.id;
+              return (
+                <div
+                  key={model.id}
+                  data-testid="model-option"
+                  className={`flex items-center justify-between gap-4 px-4 py-3 ${
+                    isDefault ? 'bg-blue-50/60' : ''
+                  }`}
+                >
+                  <button
+                    type="button"
+                    disabled={!isAdmin}
+                    onClick={() => {
+                      setDefaultModel(model.id);
+                      setModelDirty(true);
+                      setModelSaved(false);
+                    }}
+                    className="min-w-0 flex-1 text-left disabled:cursor-not-allowed"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium text-slate-900">{model.name}</span>
+                      {isDefault && (
+                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                          Default
+                        </span>
+                      )}
+                      {isFast && (
+                        <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-700">
+                          Fast
+                        </span>
+                      )}
+                    </div>
+                    <p className="truncate font-mono text-xs text-slate-400">{model.id}</p>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
+                      <span>{formatContext(model.contextLength)} ctx</span>
+                      <span>
+                        ${model.promptPricePerM.toFixed(2)} / ${model.completionPricePerM.toFixed(2)} per 1M (in/out)
+                      </span>
+                      {model.paramsB != null && <span>{model.paramsB}B params</span>}
+                    </div>
+                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={!isAdmin}
+                      onClick={() => {
+                        setFastModel(isFast ? null : model.id);
+                        setModelDirty(true);
+                        setModelSaved(false);
+                      }}
+                      className={`rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset disabled:cursor-not-allowed disabled:opacity-50 ${
+                        isFast
+                          ? 'bg-violet-600 text-white ring-violet-600'
+                          : 'bg-white text-slate-600 ring-slate-300 hover:bg-slate-50'
+                      }`}
+                      data-testid="model-fast-toggle"
+                    >
+                      {isFast ? 'Fast ✓' : 'Set fast'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {!isAdmin && (
+          <p className="mt-3 text-xs italic text-slate-400">Only admins can change the model.</p>
+        )}
+      </div>
 
       {/* Add/Rotate Key Modal */}
       {showModal && (
