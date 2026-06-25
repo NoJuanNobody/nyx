@@ -12,8 +12,11 @@ jobs:
     steps:
       - name: Install PostgreSQL client
         run: |
+          # Install PG 18 client to match Railway's server version (18.x)
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
           sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          sudo apt-get install -y postgresql-client-18
 
       - name: Check database URL
         run: |
