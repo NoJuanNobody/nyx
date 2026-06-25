@@ -209,7 +209,7 @@ function ClerkAcceptInvite() {
       return acceptInvitation(token!);
     },
     onSuccess: () => {
-      navigate('/lifecycle?onboarding=1', { replace: true });
+      navigate('/app/getting-started', { replace: true });
     },
     onError: (err: Error) => {
       setAcceptError(err.message);
@@ -253,7 +253,7 @@ function DevAcceptInvite() {
   const acceptMutation = useMutation({
     mutationFn: () => acceptInvitation(token!),
     onSuccess: () => {
-      navigate('/lifecycle?onboarding=1', { replace: true });
+      navigate('/app/getting-started', { replace: true });
     },
     onError: (err: Error) => {
       setAcceptError(err.message);
