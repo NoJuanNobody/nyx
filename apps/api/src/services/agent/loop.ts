@@ -1,14 +1,12 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { config } from '../../lib/config.js';
+import type Anthropic from '@anthropic-ai/sdk';
 import { db } from '../../db/index.js';
 import { agentSessions, agentToolCalls } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { executeTool } from './executor.js';
 import { getToolDefinitions } from './tools.js';
 import { checkCredits, deductCredits, getAgentCost } from '../credits.service.js';
+import { createPlatformLlmClient, resolveTeamModels } from '../../lib/llm.js';
 import type { AgentContext, TokenUsage, ToolCallRecord } from './types.js';
-
-const MODEL = 'claude-sonnet-4-6';
 const MAX_ITERATIONS = 25;
 const SOFT_ITERATION_WARNING = 20;
 const MAX_TOOL_RESULT_CHARS = 6_000; // ~1.5K tokens — truncate large tool outputs
@@ -83,10 +81,9 @@ function compressOldToolResults(messages: Anthropic.MessageParam[], keep = 1): v
 }
 
 function requireClient(): Anthropic {
-  if (!config.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY is not configured');
-  }
-  return new Anthropic({ apiKey: config.ANTHROPIC_API_KEY });
+  const c = createPlatformLlmClient();
+  if (!c) throw new Error('No LLM provider key is configured. AI features require a valid API key.');
+  return c;
 }
 
 export interface AgentLoopOptions {
@@ -135,6 +132,9 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
   }
 
   const client = requireClient();
+  // Honor the team's model selection from the Settings picker (falls back to
+  // the globally configured default model).
+  const MODEL = (await resolveTeamModels(context.teamId)).default;
   const tools = getToolDefinitions(toolNames);
 
   const messages: Anthropic.MessageParam[] = [];

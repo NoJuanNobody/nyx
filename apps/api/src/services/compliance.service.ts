@@ -3,15 +3,13 @@
  * adheres to relevant specs stored in Nyx.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
-import { config } from '../lib/config.js';
+import type Anthropic from '@anthropic-ai/sdk';
+import { createPlatformLlmClient, DEFAULT_MODEL } from '../lib/llm.js';
 import { retrieveChunks } from './retrieval.service.js';
 
-const MODEL = 'claude-sonnet-4-6';
+const MODEL = DEFAULT_MODEL;
 
-const client = config.ANTHROPIC_API_KEY
-  ? new Anthropic({ apiKey: config.ANTHROPIC_API_KEY })
-  : null;
+const client = createPlatformLlmClient();
 
 function requireClient(): Anthropic {
   if (!client) {
