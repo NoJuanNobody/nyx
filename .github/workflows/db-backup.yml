@@ -17,6 +17,8 @@ jobs:
           curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
           sudo apt-get update
           sudo apt-get install -y postgresql-client-18
+          # Ensure pg_dump 18 is first on PATH
+          echo "/usr/lib/postgresql/18/bin" >> $GITHUB_PATH
 
       - name: Check database URL
         run: |
