@@ -56,7 +56,7 @@ export function Dashboard() {
 
       <div className="space-y-8">
         <Link
-          to="/lifecycle"
+          to="/app/getting-started"
           className="group flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-4 transition-all hover:border-blue-500/30 hover:bg-white/10 hover:shadow-md"
           data-testid="lifecycle-card"
         >
