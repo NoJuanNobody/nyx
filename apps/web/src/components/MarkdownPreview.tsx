@@ -96,6 +96,11 @@ function CodeBlock({ className, children }: { className?: string; children?: Rea
           <CopyButton text={code} />
         </div>
       )}
+      {!lang && (
+        <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
+          <CopyButton text={code} />
+        </div>
+      )}
       <pre className="overflow-x-auto px-4 py-3 text-[13px] leading-relaxed text-slate-800 dark:text-slate-100">
         <code className={className}>{code}</code>
       </pre>
