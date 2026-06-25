@@ -16,3 +16,7 @@ demos/
 demo.*
 .vercel
 .env*.local
+
+# Grant application — contains personal info (address, phone)
+docs/grants/submission-fields.md
+docs/grants/lois/
