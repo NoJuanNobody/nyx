@@ -28,11 +28,15 @@ jobs:
       - name: Run pg_dump
         run: |
           DUMP_FILE="nyx-backup-$(date +%Y%m%d-%H%M%S).dump"
-          pg_dump "$DATABASE_PUBLIC_URL" \
+          # Append sslmode=require if not already in the URL (Railway proxy requires SSL)
+          DUMP_URL="${DATABASE_PUBLIC_URL}"
+          if [[ "$DUMP_URL" != *"sslmode="* ]]; then
+            DUMP_URL="${DUMP_URL}?sslmode=require"
+          fi
+          pg_dump "$DUMP_URL" \
             --format=custom \
             --no-owner \
             --no-privileges \
-            --sslmode=require \
             --file="$DUMP_FILE"
           echo "DUMP_FILE=$DUMP_FILE" >> $GITHUB_ENV
         env:
