@@ -14,7 +14,7 @@
  * internally (including tool-use, so the agentic loop keeps working).
  */
 import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
+import type OpenAI from 'openai';
 import { config } from './config.js';
 
 export type LlmProvider = 'anthropic' | 'openrouter';
@@ -254,29 +254,43 @@ function safeJsonParse(raw: string): AnyObj {
  * (non-streaming) is implemented — the surface the codebase actually uses.
  */
 class OpenRouterAnthropicAdapter {
-  private openai: OpenAI;
+  private apiKey: string;
+  private clientPromise?: Promise<OpenAI>;
 
   constructor(apiKey: string) {
-    this.openai = new OpenAI({
-      apiKey,
-      baseURL: config.LLM_BASE_URL || OPENROUTER_BASE_URL,
-      defaultHeaders: {
-        // OpenRouter attribution headers (recommended, optional).
-        'HTTP-Referer': config.APP_URL || 'https://nyx-creative.com',
-        'X-Title': 'Nyx',
-      },
-    });
+    this.apiKey = apiKey;
+  }
+
+  // Lazily import the `openai` SDK so the (default) Anthropic path never pays
+  // its load cost — only constructed on first OpenRouter call.
+  private getClient(): Promise<OpenAI> {
+    if (!this.clientPromise) {
+      this.clientPromise = import('openai').then(
+        ({ default: OpenAI }) =>
+          new OpenAI({
+            apiKey: this.apiKey,
+            baseURL: config.LLM_BASE_URL || OPENROUTER_BASE_URL,
+            defaultHeaders: {
+              // OpenRouter attribution headers (recommended, optional).
+              'HTTP-Referer': config.APP_URL || 'https://nyx-creative.com',
+              'X-Title': 'Nyx',
+            },
+          }),
+      );
+    }
+    return this.clientPromise;
   }
 
   messages = {
     create: async (
       params: Anthropic.MessageCreateParamsNonStreaming,
     ): Promise<Anthropic.Message> => {
+      const openai = await this.getClient();
       const systemText = extractSystemText(params.system);
       const openaiMessages = mapAnthropicMessagesToOpenAI(systemText, params.messages);
       const tools = mapAnthropicToolsToOpenAI(params.tools);
 
-      const completion = await this.openai.chat.completions.create({
+      const completion = await openai.chat.completions.create({
         model: params.model,
         max_tokens: params.max_tokens,
         messages: openaiMessages,
@@ -331,7 +345,7 @@ class OpenRouterAnthropicAdapter {
     // `content_block_delta` text events so `for await (event of stream)`
     // consumers work unchanged.
     stream: (params: Anthropic.MessageCreateParamsStreaming) => {
-      const openai = this.openai;
+      const getClient = () => this.getClient();
       const systemText = extractSystemText(params.system);
       const openaiMessages = mapAnthropicMessagesToOpenAI(systemText, params.messages);
       async function* gen(): AsyncGenerator<{
@@ -339,6 +353,7 @@ class OpenRouterAnthropicAdapter {
         index: number;
         delta: { type: 'text_delta'; text: string };
       }> {
+        const openai = await getClient();
         const completion = await openai.chat.completions.create({
           model: params.model,
           max_tokens: params.max_tokens,
