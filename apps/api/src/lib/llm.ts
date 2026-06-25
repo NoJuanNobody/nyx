@@ -77,11 +77,42 @@ export function createPlatformLlmClient(): LlmClient | null {
   return key ? createLlmClient(key, LLM_PROVIDER) : null;
 }
 
+/**
+ * Resolve the model names for a team, honoring the per-team selection saved via
+ * the Settings model picker (teams.default_model / teams.fast_model), and
+ * falling back to the globally configured defaults. Used on call paths that
+ * carry a teamId (e.g. the agentic loop) so changing the model in the UI has a
+ * real runtime effect. Dynamic imports avoid a circular dependency at module
+ * load. Any failure falls back to the global defaults.
+ */
+export async function resolveTeamModels(
+  teamId?: string,
+): Promise<{ default: string; fast: string }> {
+  const fallback = { default: DEFAULT_MODEL, fast: FAST_MODEL };
+  if (!teamId) return fallback;
+  try {
+    const { db } = await import('../db/index.js');
+    const { teams } = await import('../db/schema.js');
+    const { eq } = await import('drizzle-orm');
+    const [row] = await db
+      .select({ defaultModel: teams.defaultModel, fastModel: teams.fastModel })
+      .from(teams)
+      .where(eq(teams.id, teamId))
+      .limit(1);
+    return {
+      default: row?.defaultModel || DEFAULT_MODEL,
+      fast: row?.fastModel || FAST_MODEL,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 // ── OpenRouter adapter (OpenAI format ⇄ Anthropic format) ─────────────
 
 type AnyObj = Record<string, unknown>;
 
-function extractSystemText(system: Anthropic.MessageCreateParams['system']): string {
+export function extractSystemText(system: Anthropic.MessageCreateParams['system']): string {
   if (!system) return '';
   if (typeof system === 'string') return system;
   if (Array.isArray(system)) {
@@ -103,7 +134,7 @@ function toolResultToText(content: unknown): string {
   return content == null ? '' : String(content);
 }
 
-function mapAnthropicMessagesToOpenAI(
+export function mapAnthropicMessagesToOpenAI(
   systemText: string,
   messages: Anthropic.MessageParam[],
 ): OpenAI.Chat.ChatCompletionMessageParam[] {
@@ -164,7 +195,7 @@ function mapAnthropicMessagesToOpenAI(
   return out;
 }
 
-function mapAnthropicToolsToOpenAI(
+export function mapAnthropicToolsToOpenAI(
   tools: Anthropic.MessageCreateParams['tools'],
 ): OpenAI.Chat.ChatCompletionTool[] | undefined {
   if (!tools || tools.length === 0) return undefined;
@@ -196,7 +227,7 @@ function mapToolChoice(
   return undefined;
 }
 
-function mapFinishReason(reason: string | null | undefined): Anthropic.Message['stop_reason'] {
+export function mapFinishReason(reason: string | null | undefined): Anthropic.Message['stop_reason'] {
   switch (reason) {
     case 'length':
       return 'max_tokens';
