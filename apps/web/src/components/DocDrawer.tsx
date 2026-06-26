@@ -6,12 +6,11 @@ import { ChangeProposals } from './ChangeProposals';
 import { AuditTrail } from './AuditTrail';
 import { UnifiedAIPanel } from './UnifiedAIPanel';
 import { ImpactMap } from './ImpactMap';
-import { VideoGenerationPanel } from './VideoGenerationPanel';
 import { ContextMatches } from './ContextMatches';
 import { fetchRelatedSpecs } from '../lib/api';
 import type { ContextMatch, ContextSignal } from '../lib/api';
 
-export type DrawerPanel = 'history' | 'timeline' | 'proposals' | 'audit' | 'ai' | 'impact' | 'video' | 'related';
+export type DrawerPanel = 'history' | 'timeline' | 'proposals' | 'audit' | 'ai' | 'impact' | 'related';
 
 interface AIChatProps {
   content: string;
@@ -86,15 +85,6 @@ const PANELS: { key: DrawerPanel; label: string; icon: JSX.Element }[] = [
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-      </svg>
-    ),
-  },
-  {
-    key: 'video',
-    label: 'Video',
-    icon: (
-      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
       </svg>
     ),
   },
@@ -231,7 +221,6 @@ export function DocDrawer({ documentId, teamId, activePanel, onClose, onSelectVe
                 />
               )}
               {activePanel === 'impact' && <ImpactMap documentId={documentId} />}
-              {activePanel === 'video' && <VideoGenerationPanel documentId={documentId} />}
               {activePanel === 'related' && (
                 <div className="p-4">
                   <ContextMatches
