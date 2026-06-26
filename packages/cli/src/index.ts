@@ -49,7 +49,6 @@ program
     podcast               Generate podcast scripts & audio
     deliverables          Export docs (PDF, LaTeX, DOCX, etc.)
     templates             Document templates
-    video                 Video generation
 
   Operations:
     status                Platform health check
@@ -97,7 +96,6 @@ const commands: Array<[string[], string, string[]]> = [
   [['registry'], './commands/registry.js', ['registerRegistryCommand']],
   [['billing'], './commands/billing.js', ['registerBillingCommand']],
   [['voice'], './commands/voice.js', ['registerVoiceCommand']],
-  [['video'], './commands/video.js', ['registerVideoCommand']],
   [['features'], './commands/features.js', ['registerFeaturesCommand']],
   [['admin'], './commands/admin.js', ['registerAdminCommand']],
   [['chat'], './commands/chat.js', ['registerChatCommand']],
