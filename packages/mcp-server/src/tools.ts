@@ -173,24 +173,6 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
-    name: 'nyx_generate_podcast',
-    description:
-      'Generate a podcast script from one or more Nyx documents. Returns a two-host conversational script with quality score.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        team_id: { type: 'string', description: 'Team UUID' },
-        document_ids: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Array of document UUIDs to generate the podcast from',
-        },
-        title: { type: 'string', description: 'Optional podcast title' },
-      },
-      required: ['team_id', 'document_ids'],
-    },
-  },
-  {
     name: 'nyx_web_search',
     description:
       'Search the web for information relevant to documentation. Returns search results with titles, URLs, and snippets. Useful for finding API references, library documentation, changelogs, and technical articles.',
@@ -400,16 +382,6 @@ export async function executeTool(
     }
     case 'nyx_list_versions': {
       return apiRequest(`/api/documents/${args.document_id}/versions`);
-    }
-    case 'nyx_generate_podcast': {
-      return apiRequest('/api/podcast/generate', {
-        method: 'POST',
-        body: JSON.stringify({
-          teamId: args.team_id,
-          documentIds: args.document_ids,
-          title: args.title,
-        }),
-      });
     }
     case 'nyx_web_search': {
       const query = args.query as string;

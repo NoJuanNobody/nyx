@@ -794,17 +794,3 @@ export const codeChunks = pgTable('code_chunks', {
   index('code_chunks_team_repo_idx').on(table.teamId, table.repoFullName),
 ]);
 
-// ── Podcast Scripts ──────────────────────────────────────
-
-export const podcastScripts = pgTable('podcast_scripts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  teamId: uuid('team_id').notNull().references(() => teams.id),
-  title: text('title').notNull(),
-  documentIds: jsonb('document_ids').$type<string[]>().notNull().default([]),
-  script: jsonb('script').$type<Array<{ speaker: string; text: string }>>().notNull().default([]),
-  qualityScore: integer('quality_score').notNull().default(0),
-  suggestions: jsonb('suggestions').$type<string[]>().notNull().default([]),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index('podcast_scripts_team_id_idx').on(table.teamId),
-]);
