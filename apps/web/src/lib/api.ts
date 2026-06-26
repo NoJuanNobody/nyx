@@ -779,16 +779,6 @@ export function syncAllTickets(teamId: string): Promise<{ synced: number }> {
   });
 }
 
-export function createTicket(
-  documentId: string,
-  data: { provider: 'github' | 'jira'; title: string; body: string; repo?: { owner: string; name: string } },
-): Promise<Ticket> {
-  return request<Ticket>(`/documents/${encodeURIComponent(documentId)}/tickets`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
 export function updateTicketStatus(ticketId: string, status: 'open' | 'in_progress' | 'closed'): Promise<Ticket> {
   return request<Ticket>(`/tickets/${encodeURIComponent(ticketId)}/status`, {
     method: 'PATCH',

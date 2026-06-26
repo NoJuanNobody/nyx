@@ -69,10 +69,6 @@ vi.mock('../../components/AIAdvisor', () => ({
   AIAdvisor: () => <div data-testid="ai-advisor" />,
 }));
 
-vi.mock('../../components/CreateTicketModal', () => ({
-  CreateTicketModal: () => null,
-}));
-
 vi.mock('../../components/BulkTicketReview', () => ({
   BulkTicketReview: () => null,
 }));
