@@ -5,6 +5,7 @@
  * Flow: fetch file tree → filter relevant files → chunk → embed → store
  */
 
+import { createHash } from 'crypto';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { codeChunks, documents, integrations } from '../db/schema.js';
@@ -12,6 +13,62 @@ import { githubService, type GitHubTreeEntry } from './github.service.js';
 import { chunkText } from './chunking.service.js';
 import { embeddingService } from './embedding.service.js';
 import { config } from '../lib/config.js';
+
+// ── Relevant-code retrieval cache ──────────────────────
+// In-memory LRU cache keyed by teamId:documentId:contentHash.
+// TTL = 5 min; per-team cap = 200; global cap = 1 000.
+// Invalidated on every successful indexRepo() run for that team.
+
+interface RelevantCodeCacheEntry {
+  result: { chunks: Array<{ path: string; content: string }>; sources: string[] };
+  expiresAt: number;
+  teamId: string;
+}
+
+const CACHE_TTL_MS = 5 * 60 * 1_000;
+const MAX_PER_TEAM = 200;
+const MAX_GLOBAL = 1_000;
+
+const _relevantCodeCache = new Map<string, RelevantCodeCacheEntry>();
+export const cacheMetrics = { hits: 0, misses: 0, evictions: 0 };
+
+function _hashContent(text: string): string {
+  return createHash('sha1').update(text).digest('hex').slice(0, 16);
+}
+
+function _pruneExpired(): void {
+  const now = Date.now();
+  for (const [key, entry] of _relevantCodeCache) {
+    if (entry.expiresAt < now) {
+      _relevantCodeCache.delete(key);
+      cacheMetrics.evictions++;
+    }
+  }
+}
+
+function _evictLRU(): void {
+  const firstKey = _relevantCodeCache.keys().next().value;
+  if (firstKey !== undefined) {
+    _relevantCodeCache.delete(firstKey);
+    cacheMetrics.evictions++;
+  }
+}
+
+function _countEntriesForTeam(teamId: string): number {
+  let count = 0;
+  for (const entry of _relevantCodeCache.values()) {
+    if (entry.teamId === teamId) count++;
+  }
+  return count;
+}
+
+export function invalidateRelevantCodeCache(teamId: string): void {
+  for (const [key, entry] of _relevantCodeCache) {
+    if (entry.teamId === teamId) {
+      _relevantCodeCache.delete(key);
+    }
+  }
+}
 
 // ── File filtering ─────────────────────────────────────
 
@@ -183,6 +240,7 @@ export const codeEmbeddingService = {
       }
     });
 
+    invalidateRelevantCodeCache(teamId);
     return { teamId, repoFullName, filesIndexed, chunksCreated: embeddedRows.length, skippedFiles };
   },
 
@@ -271,7 +329,20 @@ export const codeEmbeddingService = {
       const queryText = `${doc.title ?? ''}\n\n${(doc.content ?? '').slice(0, 2000)}`.trim();
       if (!queryText) return EMPTY;
 
-      // 3. Run embedding + vector search with a soft timeout
+      // 3. Check cache
+      const cacheKey = `${teamId}:${documentId}:${_hashContent(queryText)}`;
+      _pruneExpired();
+      const cached = _relevantCodeCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        // Move to end (MRU position) by re-inserting
+        _relevantCodeCache.delete(cacheKey);
+        _relevantCodeCache.set(cacheKey, cached);
+        cacheMetrics.hits++;
+        return cached.result;
+      }
+      cacheMetrics.misses++;
+
+      // 4. Run embedding + vector search with a soft timeout
       const timeoutPromise = new Promise<typeof EMPTY>((resolve) => {
         setTimeout(() => {
           console.warn(
@@ -308,7 +379,21 @@ export const codeEmbeddingService = {
         }
       })();
 
-      return await Promise.race([retrievalPromise, timeoutPromise]);
+      const result = await Promise.race([retrievalPromise, timeoutPromise]);
+
+      // 5. Cache the result (skip EMPTY to avoid caching timeouts/errors)
+      if (result !== EMPTY && result.chunks.length > 0) {
+        while (_countEntriesForTeam(teamId) >= MAX_PER_TEAM || _relevantCodeCache.size >= MAX_GLOBAL) {
+          _evictLRU();
+        }
+        _relevantCodeCache.set(cacheKey, {
+          result,
+          expiresAt: Date.now() + CACHE_TTL_MS,
+          teamId,
+        });
+      }
+
+      return result;
     } catch (err) {
       console.warn(
         `[code-embedding] fetchRelevantCodeForDocument: unexpected error: ${err instanceof Error ? err.message : String(err)}`,
