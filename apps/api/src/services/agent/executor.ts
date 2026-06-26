@@ -13,7 +13,6 @@ import { changeProposalService } from '../change-proposal.service.js';
 import { exportService } from '../export.service.js';
 import { retrieveChunks } from '../retrieval.service.js';
 import { checkCompliance } from '../compliance.service.js';
-import { ttsService } from '../tts.service.js';
 import { codebaseScannerService } from '../codebase-scanner.service.js';
 import { codeEmbeddingService } from '../code-embedding.service.js';
 import type { AgentContext } from './types.js';
@@ -302,44 +301,6 @@ export async function executeTool(
       const docId = input.document_id as string;
       if (!docId) throw new Error('generate_change_proposal requires document_id');
       return changeProposalService.generate(docId, ctx.teamId, ctx.userId);
-    }
-
-    // ── Podcast ────────────────────────────────────────────
-
-    case 'generate_podcast_script': {
-      const docId = input.document_id as string;
-      if (!docId) throw new Error('generate_podcast_script requires document_id');
-
-      const [doc] = await db
-        .select({ id: documents.id, title: documents.title, content: documents.content })
-        .from(documents)
-        .where(eq(documents.id, docId))
-        .limit(1);
-      if (!doc) throw new Error('Document not found');
-
-      const result = await aiService.generatePodcastScript(
-        `# ${doc.title}\n\n${doc.content}`,
-        doc.title ?? undefined,
-      );
-
-      return {
-        title: result.title,
-        script: result.script,
-        qualityScore: result.qualityScore,
-        suggestions: result.suggestions,
-      };
-    }
-
-    case 'generate_podcast_audio': {
-      const scriptId = input.script_id as string;
-      if (!scriptId) throw new Error('generate_podcast_audio requires script_id');
-
-      // The podcast scripts are stored in-memory in the podcast routes module.
-      // Since we can't access them directly, we inform the user to use the REST API.
-      throw new Error(
-        'Podcast audio generation requires the REST API endpoint POST /api/podcast/:id/audio. ' +
-        'Use the generate_podcast_script tool to create a script first, then call the REST endpoint to generate audio.',
-      );
     }
 
     // ── Export ─────────────────────────────────────────────

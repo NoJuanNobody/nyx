@@ -46,7 +46,6 @@ program
     governance            Policy validation
 
   Content:
-    podcast               Generate podcast scripts & audio
     deliverables          Export docs (PDF, LaTeX, DOCX, etc.)
     templates             Document templates
 
@@ -74,7 +73,6 @@ const commands: Array<[string[], string, string[]]> = [
   [['proposals'], './commands/proposals.js', ['registerProposalsCommand']],
   [['governance'], './commands/governance.js', ['registerGovernanceCommand']],
   [['permissions'], './commands/permissions.js', ['registerPermissionsCommand']],
-  [['podcast'], './commands/podcast.js', ['registerPodcastCommand']],
   [['watch', 'changes'], './commands/watch.js', ['registerWatchCommand', 'registerChangesCommand']],
   [['orchestrate'], './commands/orchestrate.js', ['registerOrchestrateCommand']],
   [['intake'], './commands/intake.js', ['registerIntakeCommand']],

@@ -35,7 +35,6 @@ import { lifecycleRoutes } from './routes/lifecycles.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { intakeRoutes } from './routes/intake.js';
 import { sprintRoutes } from './routes/sprint.js';
-import { podcastRoutes } from './routes/podcast.js';
 import { contextRoutes } from './routes/context.js';
 import { audioRoutes } from './routes/audio.js';
 import { slackRoutes } from './routes/slack.js';
@@ -234,7 +233,6 @@ export function buildApp() {
   app.register(feedbackRoutes, { prefix: '/api/feedback' });
   app.register(intakeRoutes, { prefix: '/api/intake' });
   app.register(sprintRoutes, { prefix: '/api' });
-  app.register(podcastRoutes, { prefix: '/api' });
   app.register(contextRoutes, { prefix: '/api/intake' });
   app.register(audioRoutes, { prefix: '/api/intake' });
   app.register(slackRoutes, { prefix: '/api/slack' });
