@@ -138,43 +138,6 @@ describe('executeTool', () => {
     expect(result).toEqual(mockVersions);
   });
 
-  // ── Podcast tool ──────────────────────────────────────
-
-  it('nyx_generate_podcast calls POST /api/podcast/generate with correct body', async () => {
-    const mockPodcast = { id: 'p1', script: [] };
-    apiRequest.mockResolvedValue(mockPodcast);
-
-    const result = await executeTool('nyx_generate_podcast', {
-      team_id: 't1',
-      document_ids: ['d1', 'd2'],
-      title: 'My Podcast',
-    });
-
-    expect(apiRequest).toHaveBeenCalledWith('/api/podcast/generate', {
-      method: 'POST',
-      body: JSON.stringify({
-        teamId: 't1',
-        documentIds: ['d1', 'd2'],
-        title: 'My Podcast',
-      }),
-    });
-    expect(result).toEqual(mockPodcast);
-  });
-
-  it('nyx_generate_podcast sends undefined title when not provided', async () => {
-    apiRequest.mockResolvedValue({ id: 'p2' });
-
-    await executeTool('nyx_generate_podcast', {
-      team_id: 't1',
-      document_ids: ['d1'],
-    });
-
-    const call = apiRequest.mock.calls[0];
-    const body = JSON.parse(call[1].body);
-    expect(body.teamId).toBe('t1');
-    expect(body.documentIds).toEqual(['d1']);
-  });
-
   // ── Ticket tool ───────────────────────────────────────
 
   it('nyx_create_ticket calls POST /api/documents/:id/tickets', async () => {
@@ -258,7 +221,7 @@ describe('TOOL_DEFINITIONS', () => {
     }
   });
 
-  it('includes the new team, version, podcast, and delete tools', async () => {
+  it('includes the new team, version, and delete tools', async () => {
     const { TOOL_DEFINITIONS } = await import('../tools.js');
     const names = TOOL_DEFINITIONS.map((t) => t.name);
     expect(names).toContain('nyx_list_teams');
@@ -266,6 +229,6 @@ describe('TOOL_DEFINITIONS', () => {
     expect(names).toContain('nyx_create_team');
     expect(names).toContain('nyx_delete_doc');
     expect(names).toContain('nyx_list_versions');
-    expect(names).toContain('nyx_generate_podcast');
+    expect(names).not.toContain('nyx_generate_podcast');
   });
 });
