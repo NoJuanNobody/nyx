@@ -1428,7 +1428,7 @@ function AiConfigPanel() {
         ) : !models || models.length === 0 ? (
           <p className="text-sm text-slate-500">No models available.</p>
         ) : (
-          <div className="divide-y divide-slate-100 rounded-md border border-slate-200">
+          <div className="max-h-96 overflow-y-auto divide-y divide-slate-100 rounded-md border border-slate-200">
             {models.map((model: ModelInfo) => {
               const isDefault = defaultModel === model.id;
               const isFast = fastModel === model.id;
