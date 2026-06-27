@@ -8,6 +8,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { TOOL_DEFINITIONS, executeTool } from './tools.js';
 import { RESOURCE_TEMPLATES, resolveResource } from './resources.js';
+import { formatToolResult } from './formatter.js';
 
 export function createMcpServer(): Server {
   const server = new Server(
@@ -36,7 +37,7 @@ export function createMcpServer(): Server {
         content: [
           {
             type: 'text' as const,
-            text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+            text: formatToolResult(name, result),
           },
         ],
       };
