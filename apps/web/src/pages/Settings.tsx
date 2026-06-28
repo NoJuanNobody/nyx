@@ -15,6 +15,7 @@ import {
 } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
 import { RepoPickerModal } from '../components/RepoPickerModal';
+import { Portal } from '../components/Portal';
 import { SlackIntegration } from '../components/SlackIntegration';
 import { AtlassianIntegration } from '../components/AtlassianIntegration';
 import { NotificationPreferences } from '../components/NotificationPreferences';
@@ -1428,7 +1429,7 @@ function AiConfigPanel() {
         ) : !models || models.length === 0 ? (
           <p className="text-sm text-slate-500">No models available.</p>
         ) : (
-          <div className="divide-y divide-slate-100 rounded-md border border-slate-200">
+          <div className="max-h-96 overflow-y-auto divide-y divide-slate-100 rounded-md border border-slate-200">
             {models.map((model: ModelInfo) => {
               const isDefault = defaultModel === model.id;
               const isFast = fastModel === model.id;
@@ -1504,6 +1505,7 @@ function AiConfigPanel() {
 
       {/* Add/Rotate Key Modal */}
       {showModal && (
+        <Portal>
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" data-testid="ai-key-modal">
             <div className="flex items-center justify-between mb-4">
@@ -1567,10 +1569,12 @@ function AiConfigPanel() {
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* Remove Confirmation Dialog */}
       {showRemoveConfirm && (
+        <Portal>
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" data-testid="remove-confirm-dialog">
             <h3 className="text-lg font-semibold text-slate-900 mb-2">Remove API Key</h3>
@@ -1596,6 +1600,7 @@ function AiConfigPanel() {
             </div>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );

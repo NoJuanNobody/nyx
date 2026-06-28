@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchGitHubRepos, saveSelectedRepos } from '../lib/api';
+import { Portal } from './Portal';
 
 interface RepoPickerModalProps {
   integrationId: string;
@@ -62,6 +63,7 @@ export function RepoPickerModal({ integrationId, initialSelected = [], onClose }
   };
 
   return (
+    <Portal>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
         className="w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-xl"
@@ -174,5 +176,6 @@ export function RepoPickerModal({ integrationId, initialSelected = [], onClose }
         </div>
       </div>
     </div>
+    </Portal>
   );
 }
