@@ -662,6 +662,7 @@ export const creditTransactions = pgTable('credit_transactions', {
   type: creditTransactionTypeEnum('type').notNull(),
   description: text('description').notNull(),
   taskType: text('task_type'),
+  stripeSessionId: text('stripe_session_id').unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

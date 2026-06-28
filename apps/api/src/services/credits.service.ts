@@ -54,7 +54,8 @@ export async function addCredits(
   userId: string,
   amount: number,
   description: string,
-): Promise<{ balance: number }> {
+  stripeSessionId?: string,
+): Promise<{ balance: number; added: number }> {
   if (amount <= 0) {
     throw { statusCode: 400, message: 'Amount must be positive' };
   }
@@ -77,10 +78,11 @@ export async function addCredits(
     amount,
     type: 'purchase',
     description,
+    stripeSessionId: stripeSessionId ?? null,
   });
 
   const newBalance = await getBalance(userId);
-  return { balance: newBalance };
+  return { balance: newBalance, added: amount };
 }
 
 export async function deductCredits(

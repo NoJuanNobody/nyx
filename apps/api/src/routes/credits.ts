@@ -1,11 +1,11 @@
 import type { FastifyPluginAsync } from 'fastify';
 import {
   getBalance,
-  addCredits,
   deductCredits,
   getTransactionHistory,
   CREDIT_COSTS,
 } from '../services/credits.service.js';
+import { createCreditPackCheckoutSession, CREDIT_PACK_PRICES } from '../services/stripe.service.js';
 
 export const CREDIT_PACKS = [
   { id: 'starter', name: 'Starter', credits: 50, priceUsd: 5, popular: false },
@@ -63,11 +63,7 @@ export const creditRoutes: FastifyPluginAsync = async (fastify) => {
     return result;
   });
 
-  // ── POST /purchase — purchase credits (by pack or amount) ──
-  // TODO: Credit purchases currently bypass Stripe — credits are added directly
-  // without any payment processing. This endpoint needs Stripe Checkout integration
-  // to create a payment session before crediting the user's balance. See the billing
-  // checkout flow in routes/billing.ts for reference.
+  // ── POST /purchase — initiate Stripe Checkout for a credit pack ──
   fastify.post('/purchase', async (request, reply) => {
     const userId = request.user?.id;
     if (!userId) {
@@ -75,27 +71,29 @@ export const creditRoutes: FastifyPluginAsync = async (fastify) => {
       return { error: 'Authentication required' };
     }
 
-    const { packId, amount } = request.body as { packId?: string; amount?: number };
-
-    // Pack-based purchase
-    if (packId) {
-      const pack = CREDIT_PACKS.find((p) => p.id === packId);
-      if (!pack) {
-        reply.code(400);
-        return { error: 'Invalid credit pack' };
-      }
-      const result = await addCredits(userId, pack.credits, `Purchased ${pack.name} pack (${pack.credits} credits)`);
-      return { ...result, pack };
+    const { packId } = request.body as { packId?: string };
+    if (!packId) {
+      reply.code(400);
+      return { error: 'packId is required' };
     }
 
-    // Amount-based purchase
-    if (amount && amount > 0 && Number.isInteger(amount)) {
-      const { balance } = await addCredits(userId, amount, `Purchased ${amount} credits`);
-      return { balance, added: amount };
+    const pack = CREDIT_PACKS.find((p) => p.id === packId);
+    if (!pack) {
+      reply.code(400);
+      return { error: 'Invalid credit pack' };
     }
 
-    reply.code(400);
-    return { error: 'Provide either packId or a positive integer amount' };
+    const priceId = CREDIT_PACK_PRICES[pack.id];
+    const origin = (request.headers['origin'] as string) || 'http://localhost:5173';
+    const checkoutUrl = await createCreditPackCheckoutSession(
+      userId,
+      pack.id,
+      pack.credits,
+      priceId,
+      `${origin}/billing?checkout=success`,
+      `${origin}/billing?checkout=cancel`,
+    );
+    return { checkoutUrl, pack };
   });
 
   // ── GET /costs — returns credit cost configuration ──
