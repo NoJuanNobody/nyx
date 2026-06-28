@@ -5,7 +5,7 @@ const DOC_URL = `/app/documents/${SEED.DOC_API_SPEC_ID}`;
 test.describe('Document Editor toolbar — text labels next to icons (#337)', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test('all seven row-2 toolbar buttons show visible text labels at >= 640px', async ({
+  test('all six row-2 toolbar buttons show visible text labels at >= 640px', async ({
     authenticatedPage: page,
   }) => {
     await page.goto(DOC_URL);
@@ -15,7 +15,7 @@ test.describe('Document Editor toolbar — text labels next to icons (#337)', ()
       .locator('[data-testid="bulk-generate-tickets"]')
       .waitFor({ state: 'visible', timeout: 10_000 });
 
-    // Each of the seven buttons is identified by its `title` attribute —
+    // Each of the six buttons is identified by its `title` attribute —
     // title is load-bearing per AC, and the visible label must equal the
     // title string. Seed uses a dynamic title; we match it by prefix.
     const assertLabeled = async (titleExact: string, expectedText: string) => {
@@ -24,8 +24,9 @@ test.describe('Document Editor toolbar — text labels next to icons (#337)', ()
       await expect(button).toContainText(expectedText);
     };
 
-    // Trace is a <Link> / <a>, not a <button> — covered in the next test
-    await assertLabeled('Create Ticket', 'Create Ticket');
+    // The single-ticket "Create Ticket" button was removed in #384 (ticket
+    // creation now lives in the Proposals drawer); Trace is a <Link> / <a>,
+    // not a <button> — covered in the next test.
     await assertLabeled('Bulk Tickets', 'Bulk Tickets');
     await assertLabeled('Export', 'Export');
     await assertLabeled('Save Version', 'Save Version');
