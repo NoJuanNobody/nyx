@@ -9,6 +9,7 @@ import { addCredits } from './credits.service.js';
 // In production these should be real Stripe price IDs set via env vars.
 
 const PLAN_PRICES: Record<string, string> = {
+  starter: process.env.STRIPE_PRICE_STARTER || 'price_starter_placeholder',
   pro: process.env.STRIPE_PRICE_PRO || 'price_pro_placeholder',
   team: process.env.STRIPE_PRICE_TEAM || 'price_team_placeholder',
   enterprise: process.env.STRIPE_PRICE_ENTERPRISE || 'price_enterprise_placeholder',
