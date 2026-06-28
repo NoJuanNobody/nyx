@@ -56,6 +56,7 @@ vi.doMock('../../db/schema.js', () => ({
   subscriptions: { teamId: 'teamId', stripeCustomerId: 'stripeCustomerId' },
   stripeCustomers: { stripeCustomerId: 'stripeCustomerId' },
   teams: { id: 'id', name: 'name' },
+  creditTransactions: { id: 'id', stripeSessionId: 'stripeSessionId' },
 }));
 
 describe('stripe.service', () => {
@@ -332,6 +333,96 @@ describe('stripe.service', () => {
 
       expect(mockDbUpdate).not.toHaveBeenCalled();
       expect(mockDbInsert).not.toHaveBeenCalled();
+    });
+
+    it('checkout.session.completed with metadata.kind=credit_pack calls addCredits', async () => {
+      const mockAddCredits = vi.fn().mockResolvedValue({ balance: 50, added: 50 });
+
+      vi.doMock('../../lib/config.js', () => ({
+        config: {
+          STRIPE_SECRET_KEY: undefined,
+          STRIPE_WEBHOOK_SECRET: 'whsec_test',
+        },
+      }));
+      vi.doMock('stripe', () => ({ default: vi.fn() }));
+      vi.doMock('../credits.service.js', () => ({
+        addCredits: mockAddCredits,
+      }));
+
+      // No existing transaction found — idempotency check returns empty
+      mockDbLimit.mockResolvedValueOnce([]);
+
+      const { handleWebhookEvent } = await import('../stripe.service.js');
+
+      const event = {
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_test_abc123',
+            customer: 'cus_test',
+            subscription: null,
+            client_reference_id: 'user-42',
+            metadata: {
+              kind: 'credit_pack',
+              userId: 'user-42',
+              packId: 'growth',
+              credits: '200',
+            },
+          },
+        },
+      };
+
+      await handleWebhookEvent(JSON.stringify(event), 'sig_test');
+
+      expect(mockAddCredits).toHaveBeenCalledWith(
+        'user-42',
+        200,
+        'Purchased credit pack: growth (200 credits)',
+        'cs_test_abc123',
+      );
+    });
+
+    it('duplicate webhook (same session.id already in credit_transactions) is a no-op', async () => {
+      const mockAddCredits = vi.fn().mockResolvedValue({ balance: 50, added: 50 });
+
+      vi.doMock('../../lib/config.js', () => ({
+        config: {
+          STRIPE_SECRET_KEY: undefined,
+          STRIPE_WEBHOOK_SECRET: 'whsec_test',
+        },
+      }));
+      vi.doMock('stripe', () => ({ default: vi.fn() }));
+      vi.doMock('../credits.service.js', () => ({
+        addCredits: mockAddCredits,
+      }));
+
+      // Existing transaction found — idempotency check returns a record
+      mockDbLimit.mockResolvedValueOnce([{ id: 'txn-existing' }]);
+
+      const { handleWebhookEvent } = await import('../stripe.service.js');
+
+      const event = {
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_test_duplicate',
+            customer: 'cus_test',
+            subscription: null,
+            client_reference_id: 'user-42',
+            metadata: {
+              kind: 'credit_pack',
+              userId: 'user-42',
+              packId: 'starter',
+              credits: '50',
+            },
+          },
+        },
+      };
+
+      await handleWebhookEvent(JSON.stringify(event), 'sig_test');
+
+      // addCredits should NOT be called since the session was already processed
+      expect(mockAddCredits).not.toHaveBeenCalled();
     });
   });
 });
