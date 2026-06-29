@@ -1,0 +1,27 @@
+{
+  "name": "@nyx/harness-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Model-agnostic Nyx tool definitions and API client — no MCP/OpenAI SDK dependencies",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@nyx/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^3"
+  }
+}
