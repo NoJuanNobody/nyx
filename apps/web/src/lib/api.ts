@@ -865,7 +865,7 @@ export interface SaveSelectedReposResponse {
 }
 
 export function saveSelectedRepos(integrationId: string, repos: Array<{ owner: string; name: string; fullName: string }>): Promise<SaveSelectedReposResponse> {
-  return request<SaveSelectedReposResponse>(`/integrations/${integrationId}/github/repos`, {
+  return request<SaveSelectedReposResponse>(`/integrations/${integrationId}/repos`, {
     method: 'PUT',
     body: JSON.stringify({ repos }),
   });
@@ -879,19 +879,21 @@ export interface SyncedRepo {
   webhookId: number | null;
   lastPushAt: string | null;
   linkedDocCount: number;
+  provider?: 'github' | 'gitlab' | 'bitbucket';
 }
 
 export interface SyncedReposResponse {
   repos: SyncedRepo[];
   webhookRegistrationEnabled: boolean;
+  provider?: 'github' | 'gitlab' | 'bitbucket';
 }
 
 export function fetchSyncedRepos(integrationId: string): Promise<SyncedReposResponse> {
-  return request<SyncedReposResponse>(`/integrations/${integrationId}/github/synced-repos`);
+  return request<SyncedReposResponse>(`/integrations/${integrationId}/synced-repos`);
 }
 
-export function reconnectRepo(integrationId: string, repoFullName: string): Promise<{ ok: boolean; fullName: string; webhookId: number; syncStatus: 'active' }> {
-  return request(`/integrations/${integrationId}/github/repos/${encodeURIComponent(repoFullName)}/reconnect`, {
+export function reconnectRepo(integrationId: string, repoFullName: string): Promise<{ ok: boolean; fullName: string; webhookId: number | null; syncStatus: 'active' }> {
+  return request(`/integrations/${integrationId}/repos/${encodeURIComponent(repoFullName)}/reconnect`, {
     method: 'POST',
   });
 }
@@ -907,9 +909,35 @@ export function createGitHubRepo(
 }
 
 export function disconnectRepo(integrationId: string, repoFullName: string): Promise<{ ok: boolean }> {
-  return request<{ ok: boolean }>(`/integrations/${integrationId}/github/repos/${encodeURIComponent(repoFullName)}`, {
+  return request<{ ok: boolean }>(`/integrations/${integrationId}/repos/${encodeURIComponent(repoFullName)}`, {
     method: 'DELETE',
   });
+}
+
+export interface GitLabRepoItem {
+  id: number | string;
+  name: string;
+  fullName: string;
+  isPrivate: boolean;
+  htmlUrl: string;
+  defaultBranch: string;
+}
+
+export function fetchGitLabRepos(integrationId: string): Promise<{ repos: GitLabRepoItem[] }> {
+  return request<{ repos: GitLabRepoItem[] }>(`/integrations/${integrationId}/gitlab/repos`);
+}
+
+export interface BitbucketRepoItem {
+  id: number | string;
+  name: string;
+  fullName: string;
+  isPrivate: boolean;
+  htmlUrl: string;
+  defaultBranch: string;
+}
+
+export function fetchBitbucketRepos(integrationId: string): Promise<{ repos: BitbucketRepoItem[] }> {
+  return request<{ repos: BitbucketRepoItem[] }>(`/integrations/${integrationId}/bitbucket/repos`);
 }
 
 // ── Onboarding / Repo Scan ──────────────────────────────────────────
