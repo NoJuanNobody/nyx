@@ -1,32 +1,15 @@
 import { test, expect, SEED } from './fixtures/test-base';
 import { SEL } from './fixtures/selectors';
 
-// Seeded GitHub integration id used across mocks
-const SEEDED_GITHUB_INTEGRATION_ID = 'integration-github-seed';
-
 test.describe('Repositories', () => {
   test.beforeEach(async ({ authenticatedPage: page }) => {
     // #381: The Repositories page now fetches integrations first, then fetches
     // synced-repos per integration id (not via a github-specific path).
-
-    // Mock the integrations list so the page discovers the GitHub integration
-    await page.route('**/api/integrations', (route) => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: SEEDED_GITHUB_INTEGRATION_ID,
-            type: 'github',
-            config: { githubUsername: 'nyx-bot' },
-            createdAt: '2025-01-01T00:00:00Z',
-          },
-        ]),
-      });
-    });
+    // We let the real backend serve /api/integrations (with the real UUID) and
+    // only mock the synced-repos endpoint using a wildcard to catch any UUID.
 
     // Mock synced-repos for the integration — path is now provider-agnostic
-    await page.route(`**/api/integrations/${SEEDED_GITHUB_INTEGRATION_ID}/synced-repos`, (route) => {
+    await page.route('**/api/integrations/*/synced-repos', (route) => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -102,7 +85,7 @@ test.describe('Repositories', () => {
 
   test('237.2 — Manage Repos button opens repo picker modal', async ({ authenticatedPage: page }) => {
     // Mock the repos endpoint that the RepoPickerModal fetches
-    await page.route(`**/api/integrations/${SEEDED_GITHUB_INTEGRATION_ID}/repos`, (route) => {
+    await page.route('**/api/integrations/*/repos', (route) => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
