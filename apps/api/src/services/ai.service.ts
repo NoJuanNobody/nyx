@@ -700,7 +700,7 @@ Preserve the technical detail from each module doc. Use clean Markdown formattin
     const outlineResponse = await ai.messages.create({
       model: MODEL_FAST,
       max_tokens: 4096,
-      system: `Ticket planning engine. List exactly the tickets needed to implement the document. Each ticket = one independently deliverable unit of code work. ${stageFocus}${stageContext}
+      system: `Ticket planning engine. List exactly the tickets needed to implement the document, generating at most 12 tickets. Focus on the most important changes required. Each ticket = one independently deliverable unit of code work. ${stageFocus}${stageContext}
 
 Rules:
 - Code work only: features, bugs, tests, APIs, migrations, security. No doc-only tickets.
@@ -717,6 +717,12 @@ JSON array only: [{title, description, labels}]`,
     const outlineTickets = parseJsonArray(
       outlineResponse.content[0].type === 'text' ? outlineResponse.content[0].text : '',
     );
+
+    // Safety cap: AI may return more despite the prompt instruction
+    const MAX_TICKETS = 12;
+    if (outlineTickets.length > MAX_TICKETS) {
+      outlineTickets.splice(MAX_TICKETS);
+    }
 
     if (outlineTickets.length === 0) {
       return [{ title: `[M] Review "${title}"`, description: 'AI generated suggestions but they could not be parsed. Please try again.', labels: ['spec-review'] }];

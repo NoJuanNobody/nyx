@@ -584,6 +584,64 @@ describe('AI Service', () => {
     });
   });
 
+  // ── generateBulkTicketSuggestions ───────────────────────────
+  describe('generateBulkTicketSuggestions', () => {
+    function makeTicket(i: number) {
+      return { title: `[M] Ticket ${i}`, description: `Desc ${i}`, labels: ['feature'] };
+    }
+
+    it('caps results at 12 when AI returns more than 12 ticket outlines', async () => {
+      // Phase 1: AI returns 20 tickets
+      const twentyTickets = Array.from({ length: 20 }, (_, i) => makeTicket(i + 1));
+      mockCreate.mockResolvedValueOnce(makeResponse(JSON.stringify(twentyTickets)));
+
+      // Phase 2: expanded descriptions for only 12 tickets (one call each)
+      for (let i = 0; i < 12; i++) {
+        mockCreate.mockResolvedValueOnce(makeResponse(`Expanded description ${i + 1}`));
+      }
+
+      const result = await aiService.generateBulkTicketSuggestions('# Spec', 'My Doc', null);
+
+      expect(result).toHaveLength(12);
+      // Phase 2 should have been called exactly 12 times (1 Phase 1 + 12 Phase 2 = 13 total)
+      expect(mockCreate).toHaveBeenCalledTimes(13);
+    });
+
+    it('passes through results unchanged when AI returns 12 or fewer tickets', async () => {
+      const fiveTickets = Array.from({ length: 5 }, (_, i) => makeTicket(i + 1));
+      mockCreate.mockResolvedValueOnce(makeResponse(JSON.stringify(fiveTickets)));
+
+      for (let i = 0; i < 5; i++) {
+        mockCreate.mockResolvedValueOnce(makeResponse(`Expanded description ${i + 1}`));
+      }
+
+      const result = await aiService.generateBulkTicketSuggestions('# Spec', 'My Doc', null);
+
+      expect(result).toHaveLength(5);
+      expect(mockCreate).toHaveBeenCalledTimes(6); // 1 Phase 1 + 5 Phase 2
+    });
+
+    it('Phase 1 system prompt includes "at most 12 tickets" constraint', async () => {
+      const oneTicket = [makeTicket(1)];
+      mockCreate.mockResolvedValueOnce(makeResponse(JSON.stringify(oneTicket)));
+      mockCreate.mockResolvedValueOnce(makeResponse('Expanded'));
+
+      await aiService.generateBulkTicketSuggestions('# Spec', 'My Doc', null);
+
+      const phase1Args = mockCreate.mock.calls[0][0];
+      expect(phase1Args.system).toContain('at most 12 tickets');
+    });
+
+    it('returns fallback suggestion when AI returns empty array', async () => {
+      mockCreate.mockResolvedValueOnce(makeResponse('[]'));
+
+      const result = await aiService.generateBulkTicketSuggestions('# Spec', 'My Doc', null);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].labels).toContain('spec-review');
+    });
+  });
+
   describe('onboarding scan model split', () => {
     it('bootstrapModuleDocs uses Haiku (MODEL_FAST) — not Sonnet', async () => {
       mockCreate.mockResolvedValueOnce(makeResponse('# Module docs'));
