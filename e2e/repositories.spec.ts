@@ -1,14 +1,37 @@
 import { test, expect, SEED } from './fixtures/test-base';
 import { SEL } from './fixtures/selectors';
 
+// Seeded GitHub integration id used across mocks
+const SEEDED_GITHUB_INTEGRATION_ID = 'integration-github-seed';
+
 test.describe('Repositories', () => {
   test.beforeEach(async ({ authenticatedPage: page }) => {
-    // Add mock for synced-repos endpoint
-    await page.route('**/api/integrations/*/github/synced-repos', (route) => {
+    // #381: The Repositories page now fetches integrations first, then fetches
+    // synced-repos per integration id (not via a github-specific path).
+
+    // Mock the integrations list so the page discovers the GitHub integration
+    await page.route('**/api/integrations', (route) => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: SEEDED_GITHUB_INTEGRATION_ID,
+            type: 'github',
+            config: { githubUsername: 'nyx-bot' },
+            createdAt: '2025-01-01T00:00:00Z',
+          },
+        ]),
+      });
+    });
+
+    // Mock synced-repos for the integration — path is now provider-agnostic
+    await page.route(`**/api/integrations/${SEEDED_GITHUB_INTEGRATION_ID}/synced-repos`, (route) => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
+          webhookRegistrationEnabled: true,
           repos: [
             {
               owner: 'nyx',
@@ -71,14 +94,15 @@ test.describe('Repositories', () => {
   });
 
   test('237.1 — Manage Repos button is visible', async ({ authenticatedPage: page }) => {
+    // #381: The button text is now provider-specific, e.g. "Manage GitHub Repos"
     const manageButton = page.locator(SEL.repositories.manageReposButton);
     await expect(manageButton).toBeVisible({ timeout: 5_000 });
-    await expect(manageButton).toHaveText('Manage Repos');
+    await expect(manageButton).toHaveText('Manage GitHub Repos');
   });
 
   test('237.2 — Manage Repos button opens repo picker modal', async ({ authenticatedPage: page }) => {
-    // Mock the GitHub repos endpoint that the RepoPickerModal fetches
-    await page.route('**/api/integrations/*/github/repos', (route) => {
+    // Mock the repos endpoint that the RepoPickerModal fetches
+    await page.route(`**/api/integrations/${SEEDED_GITHUB_INTEGRATION_ID}/repos`, (route) => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',

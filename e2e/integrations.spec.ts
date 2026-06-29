@@ -42,85 +42,25 @@ test.describe('Integrations', () => {
     // After disconnect, the card should update (the mock returns success)
   });
 
-  // ── 44.1: Manage Repos button visible for GitHub ────────────────
-  test('44.1 — Manage Repos button visible for GitHub', async ({ authenticatedPage: page }) => {
+  // ── 44.1: Select repositories link visible for GitHub ────────────
+  // #380 replaced the "Manage Repos" button in Settings with a
+  // "Select repositories →" link that navigates to /app/repositories.
+  test('44.1 — Select repositories link visible for GitHub', async ({ authenticatedPage: page }) => {
     await expect(
-      page.locator('button:has-text("Manage Repos")'),
+      page.locator('a:has-text("Select repositories")'),
     ).toBeVisible({ timeout: 5_000 });
   });
 
-  // ── 44.2: Repo picker modal opens ──────────────────────────────
-  test('44.2 — repo picker modal opens with repo list', async ({ authenticatedPage: page }) => {
-    await page.locator('button:has-text("Manage Repos")').click();
+  // ── 44.2: Select repositories link navigates to /app/repositories ─
+  // The RepoPickerModal was removed from Settings (#380). Repo management
+  // now lives on the dedicated Repositories page.
+  test('44.2 — Select repositories link navigates to Repositories page', async ({ authenticatedPage: page }) => {
+    const link = page.locator('a:has-text("Select repositories")').first();
+    await expect(link).toBeVisible({ timeout: 5_000 });
+    await link.click();
 
-    // Modal is a fixed overlay containing the repo picker content (no role="dialog")
-    const modal = page.locator('.fixed.inset-0 > div.rounded-xl, .fixed.inset-0 > div.max-w-lg').first();
-    await expect(modal).toBeVisible({ timeout: 5_000 });
-    await expect(modal.locator('text=nyx/app')).toBeVisible({ timeout: 5_000 });
-    await expect(modal.locator('text=nyx/docs')).toBeVisible();
-  });
-
-  // ── 44.3: Search repos in picker ───────────────────────────────
-  test('44.3 — search repos filters list', async ({ authenticatedPage: page }) => {
-    await page.locator('button:has-text("Manage Repos")').click();
-
-    const modal = page.locator('.fixed.inset-0 > div.rounded-xl, .fixed.inset-0 > div.max-w-lg').first();
-    await expect(modal).toBeVisible({ timeout: 5_000 });
-
-    // Wait for repos to load before filtering
-    await expect(modal.locator('text=nyx/app')).toBeVisible({ timeout: 5_000 });
-
-    // Type in the search input to filter repos
-    const searchInput = modal.locator('input[type="text"], input[type="search"], input[placeholder*="earch"]').first();
-    await searchInput.fill('sdk');
-
-    // Only the matching repo should be visible
-    await expect(modal.locator('text=nyx/sdk')).toBeVisible({ timeout: 5_000 });
-    // Non-matching repos should be filtered out
-    await expect(modal.locator('text=nyx/app')).toBeHidden({ timeout: 3_000 });
-  });
-
-  // ── 44.4: Select/deselect repo checkbox ─────────────────────────
-  test('44.4 — select and deselect repo checkbox', async ({ authenticatedPage: page }) => {
-    await page.locator('button:has-text("Manage Repos")').click();
-
-    const modal = page.locator('.fixed.inset-0 > div.rounded-xl, .fixed.inset-0 > div.max-w-lg').first();
-    await expect(modal).toBeVisible({ timeout: 5_000 });
-
-    // Find a checkbox for a repo
-    const checkbox = modal.locator('input[type="checkbox"]').first();
-    await expect(checkbox).toBeVisible({ timeout: 5_000 });
-
-    // Toggle check state
-    const wasChecked = await checkbox.isChecked();
-    if (wasChecked) {
-      await checkbox.uncheck();
-      await expect(checkbox).not.toBeChecked();
-      await checkbox.check();
-      await expect(checkbox).toBeChecked();
-    } else {
-      await checkbox.check();
-      await expect(checkbox).toBeChecked();
-      await checkbox.uncheck();
-      await expect(checkbox).not.toBeChecked();
-    }
-  });
-
-  // ── 44.5: Save selected repos closes modal ──────────────────────
-  test('44.5 — save selected repos closes modal', async ({ authenticatedPage: page }) => {
-    await page.locator('button:has-text("Manage Repos")').click();
-
-    const modal = page.locator('.fixed.inset-0 > div.rounded-xl, .fixed.inset-0 > div.max-w-lg').first();
-    await expect(modal).toBeVisible({ timeout: 5_000 });
-
-    // Select a repo
-    const checkbox = modal.locator('input[type="checkbox"]').first();
-    await checkbox.check();
-
-    // Click Save button (contains "Save" text, possibly with repo count)
-    await modal.locator('button:has-text("Save")').click();
-
-    // Modal overlay should close
-    await expect(page.locator('.fixed.inset-0')).toBeHidden({ timeout: 5_000 });
+    // Should navigate to the Repositories page
+    await expect(page).toHaveURL(/\/app\/repositories/, { timeout: 10_000 });
+    await expect(page.locator('h1:has-text("Repositories")')).toBeVisible({ timeout: 10_000 });
   });
 });
