@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, type ReactElement } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchTeams, fetchApiKeys, createApiKey, revokeApiKey, type ApiKey,
@@ -14,7 +15,6 @@ import {
   startIntegrationOAuth,
 } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
-import { RepoPickerModal } from '../components/RepoPickerModal';
 import { Portal } from '../components/Portal';
 import { SlackIntegration } from '../components/SlackIntegration';
 import { AtlassianIntegration } from '../components/AtlassianIntegration';
@@ -440,7 +440,6 @@ function IntegrationsPanel() {
   const currentTeamId = useAuthStore((s) => s.currentTeamId);
   const teams = useAuthStore((s) => s.teams);
   const [connecting, setConnecting] = useState<string | null>(null);
-  const [repoPickerFor, setRepoPickerFor] = useState<string | null>(null);
   const [connectError, setConnectError] = useState<string | null>(null);
   const [showDebug, setShowDebug] = useState(false);
 
@@ -640,14 +639,13 @@ function IntegrationsPanel() {
 
               {/* Action */}
               <div className="flex flex-shrink-0 items-center gap-2">
-                {integration.connected && integration.provider === 'github' && (
-                  <button
-                    type="button"
-                    onClick={() => setRepoPickerFor(integration.id)}
+                {integration.connected && (['github', 'gitlab', 'bitbucket'] as const).includes(integration.provider as 'github' | 'gitlab' | 'bitbucket') && (
+                  <Link
+                    to="/app/repositories"
                     className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                   >
-                    Manage Repos
-                  </button>
+                    Select repositories →
+                  </Link>
                 )}
                 {integration.connected ? (
                   <button
@@ -692,17 +690,6 @@ function IntegrationsPanel() {
       {/* Slack integration */}
       <SlackIntegration />
 
-      {/* Repo picker modal */}
-      {repoPickerFor && (
-        <RepoPickerModal
-          integrationId={repoPickerFor}
-          initialSelected={
-            (rawIntegrations?.find((ri) => ri.id === repoPickerFor)?.config as Record<string, unknown>)
-              ?.selectedRepos as Array<{ owner: string; name: string; fullName: string }> | undefined
-          }
-          onClose={() => setRepoPickerFor(null)}
-        />
-      )}
     </div>
   );
 }
