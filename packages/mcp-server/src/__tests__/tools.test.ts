@@ -101,21 +101,6 @@ describe('executeTool (mcp-server wrapper)', () => {
     expect(harnessExecuteTool).toHaveBeenCalledWith('nyx_list_versions', { document_id: 'd1' }, expect.anything());
   });
 
-  // ── Podcast tool ──────────────────────────────────────────
-
-  it('nyx_generate_podcast delegates to harness executeTool', async () => {
-    await executeTool('nyx_generate_podcast', {
-      team_id: 't1',
-      document_ids: ['d1', 'd2'],
-      title: 'My Podcast',
-    });
-    expect(harnessExecuteTool).toHaveBeenCalledWith(
-      'nyx_generate_podcast',
-      { team_id: 't1', document_ids: ['d1', 'd2'], title: 'My Podcast' },
-      expect.anything(),
-    );
-  });
-
   // ── Ticket tool ───────────────────────────────────────────
 
   it('nyx_create_ticket delegates to harness executeTool', async () => {
@@ -182,7 +167,7 @@ describe('TOOL_DEFINITIONS (re-exported from harness-core)', () => {
     }
   });
 
-  it('includes the expected team, version, podcast, and delete tools', async () => {
+  it('includes the expected team, version, and delete tools', async () => {
     const { TOOL_DEFINITIONS } = await import('../tools.js');
     const names = TOOL_DEFINITIONS.map((t) => t.name);
     expect(names).toContain('nyx_list_teams');
@@ -190,6 +175,6 @@ describe('TOOL_DEFINITIONS (re-exported from harness-core)', () => {
     expect(names).toContain('nyx_create_team');
     expect(names).toContain('nyx_delete_doc');
     expect(names).toContain('nyx_list_versions');
-    expect(names).toContain('nyx_generate_podcast');
+    expect(names).not.toContain('nyx_generate_podcast');
   });
 });

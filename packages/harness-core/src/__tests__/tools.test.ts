@@ -22,8 +22,8 @@ describe('TOOL_DEFINITIONS', () => {
     expect(TOOL_DEFINITIONS.length).toBeGreaterThan(0);
   });
 
-  it('has 21 tool definitions', () => {
-    expect(TOOL_DEFINITIONS).toHaveLength(21);
+  it('has 20 tool definitions', () => {
+    expect(TOOL_DEFINITIONS).toHaveLength(20);
   });
 
   it('each tool has name, description, and inputSchema fields', () => {
@@ -58,7 +58,6 @@ describe('TOOL_DEFINITIONS', () => {
       'nyx_create_team',
       'nyx_delete_doc',
       'nyx_list_versions',
-      'nyx_generate_podcast',
       'nyx_web_search',
       'nyx_join_meeting',
       'nyx_leave_meeting',
@@ -169,19 +168,6 @@ describe('executeTool', () => {
   it('nyx_get_timeline calls client.get("/api/documents/:id/timeline")', async () => {
     await executeTool('nyx_get_timeline', { document_id: 'd1' }, client);
     expect(client.get).toHaveBeenCalledWith('/api/documents/d1/timeline');
-  });
-
-  it('nyx_generate_podcast calls client.post with correct body', async () => {
-    await executeTool(
-      'nyx_generate_podcast',
-      { team_id: 't1', document_ids: ['d1', 'd2'], title: 'My Podcast' },
-      client,
-    );
-    expect(client.post).toHaveBeenCalledWith('/api/podcast/generate', {
-      teamId: 't1',
-      documentIds: ['d1', 'd2'],
-      title: 'My Podcast',
-    });
   });
 
   it('throws for unknown tool name', async () => {

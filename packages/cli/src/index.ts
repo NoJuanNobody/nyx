@@ -46,10 +46,8 @@ program
     governance            Policy validation
 
   Content:
-    podcast               Generate podcast scripts & audio
     deliverables          Export docs (PDF, LaTeX, DOCX, etc.)
     templates             Document templates
-    video                 Video generation
 
   Operations:
     status                Platform health check
@@ -75,7 +73,6 @@ const commands: Array<[string[], string, string[]]> = [
   [['proposals'], './commands/proposals.js', ['registerProposalsCommand']],
   [['governance'], './commands/governance.js', ['registerGovernanceCommand']],
   [['permissions'], './commands/permissions.js', ['registerPermissionsCommand']],
-  [['podcast'], './commands/podcast.js', ['registerPodcastCommand']],
   [['watch', 'changes'], './commands/watch.js', ['registerWatchCommand', 'registerChangesCommand']],
   [['orchestrate'], './commands/orchestrate.js', ['registerOrchestrateCommand']],
   [['intake'], './commands/intake.js', ['registerIntakeCommand']],
@@ -97,7 +94,6 @@ const commands: Array<[string[], string, string[]]> = [
   [['registry'], './commands/registry.js', ['registerRegistryCommand']],
   [['billing'], './commands/billing.js', ['registerBillingCommand']],
   [['voice'], './commands/voice.js', ['registerVoiceCommand']],
-  [['video'], './commands/video.js', ['registerVideoCommand']],
   [['features'], './commands/features.js', ['registerFeaturesCommand']],
   [['admin'], './commands/admin.js', ['registerAdminCommand']],
   [['chat'], './commands/chat.js', ['registerChatCommand']],

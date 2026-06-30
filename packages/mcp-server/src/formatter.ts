@@ -116,23 +116,6 @@ function fmt(toolName: string, result: unknown): string {
       return `${score}${hasDrift}${body}`.trim() || JSON.stringify(result, null, 2);
     }
 
-    // ── Podcast ────────────────────────────────────────────────────────
-
-    case 'nyx_generate_podcast': {
-      const title = r.title ? `# ${r.title}\n\n` : '';
-      if (r.script) {
-        const script = Array.isArray(r.script)
-          ? r.script.map((line: unknown) => {
-              const l = line as Obj;
-              return l.speaker ? `**${l.speaker}:** ${str(l.text ?? l.line ?? '')}` : str(line);
-            }).join('\n\n')
-          : str(r.script);
-        const qs = r.qualityScore !== undefined ? `\n\n_Quality score: ${r.qualityScore}/10_` : '';
-        return `${title}${script}${qs}`;
-      }
-      return `${title}Podcast generated (id: ${str(r.id)})`;
-    }
-
     // ── Web search ─────────────────────────────────────────────────────
 
     case 'nyx_web_search': {

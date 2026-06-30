@@ -234,32 +234,6 @@ export const AGENT_TOOLS: Record<string, ToolDefinition> = {
     },
   },
 
-  // ── Podcast ────────────────────────────────────────────
-
-  generate_podcast_script: {
-    name: 'generate_podcast_script',
-    description: 'Generate a podcast script from a document. Returns a two-host conversational script with quality score.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        document_id: { type: 'string', description: 'UUID of the document to generate a podcast script from' },
-      },
-      required: ['document_id'],
-    },
-  },
-
-  generate_podcast_audio: {
-    name: 'generate_podcast_audio',
-    description: 'Generate TTS audio from a podcast script. Returns a confirmation that audio was generated.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        script_id: { type: 'string', description: 'ID of the podcast script to generate audio for' },
-      },
-      required: ['script_id'],
-    },
-  },
-
   // ── Export ─────────────────────────────────────────────
 
   export_document: {

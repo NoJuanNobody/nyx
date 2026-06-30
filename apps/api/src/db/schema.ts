@@ -584,21 +584,6 @@ export const socialPosts = pgTable('social_posts', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-// ── Generated Videos ──────────────────────────────────
-
-export const videoStatusEnum = pgEnum('video_status', ['pending', 'generating', 'completed', 'failed']);
-
-export const generatedVideos = pgTable('generated_videos', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  documentId: uuid('document_id').references(() => documents.id, { onDelete: 'cascade' }),
-  prompt: text('prompt').notNull(),
-  status: videoStatusEnum('status').notNull().default('generating'),
-  videoUrl: text('video_url'),
-  thumbnailUrl: text('thumbnail_url'),
-  duration: integer('duration').notNull().default(5),
-  error: text('error'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
 
 // ── Team AI Keys (BYOK) ──────────────────────────────
 
@@ -795,17 +780,3 @@ export const codeChunks = pgTable('code_chunks', {
   index('code_chunks_team_repo_idx').on(table.teamId, table.repoFullName),
 ]);
 
-// ── Podcast Scripts ──────────────────────────────────────
-
-export const podcastScripts = pgTable('podcast_scripts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  teamId: uuid('team_id').notNull().references(() => teams.id),
-  title: text('title').notNull(),
-  documentIds: jsonb('document_ids').$type<string[]>().notNull().default([]),
-  script: jsonb('script').$type<Array<{ speaker: string; text: string }>>().notNull().default([]),
-  qualityScore: integer('quality_score').notNull().default(0),
-  suggestions: jsonb('suggestions').$type<string[]>().notNull().default([]),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index('podcast_scripts_team_id_idx').on(table.teamId),
-]);

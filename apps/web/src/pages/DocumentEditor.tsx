@@ -15,7 +15,6 @@ import { MarkdownEditor } from '../components/MarkdownEditor';
 import { DocDrawer, DocDrawerToggle, type DrawerPanel } from '../components/DocDrawer';
 import { MarkdownToolbar } from '../components/MarkdownToolbar';
 import { AIAdvisor } from '../components/AIAdvisor';
-import { CreateTicketModal } from '../components/CreateTicketModal';
 import { BulkTicketReview } from '../components/BulkTicketReview';
 import { SaveAsTemplateButton } from '../components/SaveAsTemplateButton';
 import { MeetingNoteQuality } from '../components/MeetingNoteQuality';
@@ -41,7 +40,6 @@ export function DocumentEditor() {
   const [splitPercent, setSplitPercent] = useState(50);
   const [drawerPanel, setDrawerPanel] = useState<DrawerPanel | null>(null);
   const [viewingVersion, setViewingVersion] = useState<DocumentVersion | null>(null);
-  const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
   const [jupyterExporting, setJupyterExporting] = useState(false);
   const [txtExporting, setTxtExporting] = useState(false);
@@ -489,19 +487,6 @@ export function DocumentEditor() {
             <span className="hidden min-[1400px]:inline">Trace</span>
           </Link>
 
-          {/* Create Ticket */}
-          <button
-            type="button"
-            onClick={() => setTicketModalOpen(true)}
-            title="Create Ticket"
-            className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-          >
-            <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
-            </svg>
-            <span className="hidden min-[1400px]:inline">Create Ticket</span>
-          </button>
-
           {/* Bulk Tickets */}
           <button
             type="button"
@@ -899,15 +884,6 @@ export function DocumentEditor() {
           </button>
         </div>
       </Modal>
-
-      <CreateTicketModal
-        open={ticketModalOpen}
-        onClose={() => setTicketModalOpen(false)}
-        documentId={id!}
-        teamId={doc.teamId}
-        documentTitle={title}
-        documentContent={content}
-      />
 
       <BulkTicketReview
         documentId={id!}

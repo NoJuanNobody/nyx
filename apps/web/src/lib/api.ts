@@ -779,16 +779,6 @@ export function syncAllTickets(teamId: string): Promise<{ synced: number }> {
   });
 }
 
-export function createTicket(
-  documentId: string,
-  data: { provider: 'github' | 'jira'; title: string; body: string; repo?: { owner: string; name: string } },
-): Promise<Ticket> {
-  return request<Ticket>(`/documents/${encodeURIComponent(documentId)}/tickets`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
 export function updateTicketStatus(ticketId: string, status: 'open' | 'in_progress' | 'closed'): Promise<Ticket> {
   return request<Ticket>(`/tickets/${encodeURIComponent(ticketId)}/status`, {
     method: 'PATCH',
@@ -1679,60 +1669,6 @@ export function createMeetingDocument(sessionId: string, teamId: string): Promis
     method: 'POST',
     body: JSON.stringify({ sessionId, teamId }),
   });
-}
-
-// ── Video Generation ─────────────────────────────────────────────────
-
-export interface GeneratedVideo {
-  id: string;
-  prompt: string;
-  status: string;
-  videoUrl: string | null;
-  thumbnailUrl: string | null;
-  duration: number;
-  createdAt: string;
-}
-
-export function generateVideo(params: {
-  prompt: string;
-  documentId?: string;
-  duration?: number;
-  aspectRatio?: '16:9' | '9:16' | '1:1';
-}): Promise<GeneratedVideo> {
-  return request<GeneratedVideo>('/video/generate', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  });
-}
-
-export async function listVideos(documentId: string): Promise<GeneratedVideo[]> {
-  const result = await request<{ videos: GeneratedVideo[] }>(`/video?documentId=${encodeURIComponent(documentId)}`);
-  return result.videos;
-}
-
-export async function downloadVideosBatch(videoIds: string[]): Promise<void> {
-  const token = await resolveToken();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const res = await fetch(`${BASE}/video/batch-download`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ videoIds }),
-  });
-  if (!res.ok) throw new Error('Failed to download videos');
-
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'nyx-videos.zip';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
 
 // ── Credits ─────────────────────────────────────────────────────────
