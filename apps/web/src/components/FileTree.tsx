@@ -663,6 +663,7 @@ export function FileTree() {
   });
 
   const teamId = teams?.[0]?.id;
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ['documents', teamId],
@@ -731,8 +732,12 @@ export function FileTree() {
     mutationFn: (data: { title: string; content: string; teamId: string; path: string; stage?: DocumentStage | null; templateId?: string }) =>
       createDocument(data),
     onSuccess: (doc) => {
+      setCreateError(null);
       queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
       navigate(`/app/documents/${doc.id}`);
+    },
+    onError: (err: unknown) => {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create document.');
     },
   });
 
@@ -809,7 +814,10 @@ export function FileTree() {
   }, []);
 
   const handleCreateDoc = (path: string) => {
-    if (!teamId) return;
+    if (!teamId) {
+      setCreateError('No team available yet — refresh or check your team membership.');
+      return;
+    }
     createMutation.mutate({ title: 'Untitled Document', content: '', teamId, path });
   };
 
@@ -1198,6 +1206,12 @@ export function FileTree() {
           </button>
         </div>
       </div>
+
+      {createError && (
+        <div className="mx-4 mb-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          {createError}
+        </div>
+      )}
 
       {/* Stage filter */}
       <div className="px-4 pb-2">

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,6 +17,7 @@ export function Dashboard() {
   });
 
   const teamId = teams?.[0]?.id;
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -25,8 +27,12 @@ export function Dashboard() {
         teamId: teamId!,
       }),
     onSuccess: (doc) => {
+      setCreateError(null);
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       navigate(`/app/documents/${doc.id}`);
+    },
+    onError: (err: unknown) => {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create document.');
     },
   });
 
@@ -39,20 +45,25 @@ export function Dashboard() {
             Manage your documentation and keep it in sync with your codebase.
           </p>
         </div>
-        {teamId && (
-          <button
-            type="button"
-            onClick={() => createMutation.mutate()}
-            disabled={createMutation.isPending}
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:from-blue-600 hover:to-violet-600 disabled:opacity-50 transition-all"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            {createMutation.isPending ? 'Creating...' : 'New Document'}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => createMutation.mutate()}
+          disabled={createMutation.isPending || !teamId}
+          title={!teamId ? 'No team available yet — refresh or check your team membership.' : undefined}
+          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:from-blue-600 hover:to-violet-600 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          {createMutation.isPending ? 'Creating...' : 'New Document'}
+        </button>
       </div>
+
+      {createError && (
+        <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {createError}
+        </div>
+      )}
 
       <div className="space-y-8">
         <Link
