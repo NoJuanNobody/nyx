@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Document, DocumentVersion } from '@nyx/shared';
 
-import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage, exportJupyterNotebook, exportPlainText, exportDocx, exportPdf } from '../lib/api';
+import { fetchDocument, updateDocument, createVersion, createDocument, seedNextStage, exportJupyterNotebook, exportPlainText, exportDocx, exportPdf, editDocumentAI } from '../lib/api';
 import { STAGE_MAP, STAGES, STAGE_ORDER, type DocumentStage } from '../lib/stages';
 import { getLifecycle, getNextStage as lifecycleGetNextStage, getStageInfo } from '../lib/lifecycles';
 import { useUIStore } from '../stores/ui.store';
@@ -18,6 +18,7 @@ import { AIAdvisor } from '../components/AIAdvisor';
 import { BulkTicketReview } from '../components/BulkTicketReview';
 import { SaveAsTemplateButton } from '../components/SaveAsTemplateButton';
 import { MeetingNoteQuality } from '../components/MeetingNoteQuality';
+import { SelectionToolbar } from '../components/SelectionToolbar';
 
 type SaveState = 'saved' | 'saving' | 'unsaved';
 
@@ -32,6 +33,8 @@ export function DocumentEditor() {
   const [versionModalOpen, setVersionModalOpen] = useState(false);
   const [versionMessage, setVersionMessage] = useState('');
   const [aiProposedContent, setAiProposedContent] = useState<string | null>(null);
+  const [selectionInfo, setSelectionInfo] = useState<{ text: string; rect: DOMRect } | null>(null);
+  const [selectionEditPending, setSelectionEditPending] = useState(false);
   const [editorLayout, setEditorLayout] = useState<'split' | 'editor' | 'preview'>('split');
   const { seeding, setSeeding } = useUIStore();
   const [splitPercent, setSplitPercent] = useState(50);
@@ -209,6 +212,23 @@ export function DocumentEditor() {
   const handleRejectAIEdit = () => {
     setAiProposedContent(null);
   };
+
+  const handleSelectionAction = useCallback(async (instruction: string) => {
+    if (!selectionInfo) return;
+    setSelectionEditPending(true);
+    try {
+      const result = await editDocumentAI(content, instruction, undefined, undefined, {
+        documentId: id,
+        teamId: doc?.teamId,
+      });
+      setAiProposedContent(result.content);
+      setSelectionInfo(null);
+    } catch {
+      // ignore — user can retry
+    } finally {
+      setSelectionEditPending(false);
+    }
+  }, [selectionInfo, content, id, doc?.teamId]);
 
   const handleAIGenerate = (result: { title: string; content: string }) => {
     setTitle(result.title);
@@ -742,6 +762,7 @@ export function DocumentEditor() {
                     value={content}
                     onChange={handleContentChange}
                     placeholder="Start writing your document..."
+                    onSelection={(text, rect) => setSelectionInfo({ text, rect })}
                   />
                 </div>
 
@@ -793,6 +814,17 @@ export function DocumentEditor() {
             />
           )}
         </div>
+
+        {/* Floating selection toolbar — appears when text is selected in the editor */}
+        {selectionInfo && aiProposedContent === null && (
+          <SelectionToolbar
+            anchorRect={selectionInfo.rect}
+            selectedText={selectionInfo.text}
+            onAction={handleSelectionAction}
+            onDismiss={() => setSelectionInfo(null)}
+            isPending={selectionEditPending}
+          />
+        )}
 
         {/* AI Advisor — unified AI notification panel */}
         <AIAdvisor

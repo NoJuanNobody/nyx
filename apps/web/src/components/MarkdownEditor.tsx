@@ -7,6 +7,7 @@ interface MarkdownEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   teamId?: string;
+  onSelection?: (selectedText: string, anchorRect: DOMRect) => void;
 }
 
 /**
@@ -15,7 +16,7 @@ interface MarkdownEditorProps {
  * Both scroll in sync so the colors align with the typed text.
  */
 export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProps>(
-  function MarkdownEditor({ value, onChange, placeholder, teamId }, ref) {
+  function MarkdownEditor({ value, onChange, placeholder, teamId, onSelection }, ref) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
 
@@ -144,6 +145,15 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
     textareaRef.current?.focus();
   }, []);
 
+  const handleMouseUp = useCallback(() => {
+    if (!textareaRef.current || !onSelection) return;
+    const { selectionStart, selectionEnd, value: text } = textareaRef.current;
+    if (selectionStart === selectionEnd) return;
+    const selectedText = text.slice(selectionStart, selectionEnd).trim();
+    if (!selectedText) return;
+    onSelection(selectedText, textareaRef.current.getBoundingClientRect());
+  }, [onSelection]);
+
   // Sync scroll positions
   const handleScroll = useCallback(() => {
     if (textareaRef.current && highlightRef.current) {
@@ -181,6 +191,7 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
         onScroll={handleScroll}
         onSelect={handleSelect}
         onKeyUp={handleSelect}
+        onMouseUp={handleMouseUp}
         placeholder={placeholder}
         spellCheck={false}
         className="absolute inset-0 w-full h-full resize-none bg-transparent p-4 font-mono text-sm leading-relaxed text-transparent outline-none placeholder:text-slate-400 selection:bg-blue-200/60 dark:selection:bg-blue-500/30"

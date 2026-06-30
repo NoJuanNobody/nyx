@@ -63,6 +63,7 @@ vi.doMock('../../db/schema.js', () => ({
     type: 'type',
     description: 'description',
     taskType: 'taskType',
+    stripeSessionId: 'stripeSessionId',
     createdAt: 'createdAt',
   },
 }));
@@ -198,8 +199,30 @@ describe('credits.service', () => {
       const result = await addCredits('user-1', 10, 'Purchased 10 credits');
 
       expect(result.balance).toBe(10);
+      expect(result.added).toBe(10);
       // insert called twice: once for upsert balance, once for transaction
       expect(mockInsert).toHaveBeenCalledTimes(2);
+    });
+
+    it('should accept optional stripeSessionId and include it in transaction', async () => {
+      selectResults = [[{ balance: 50 }]];
+
+      const { addCredits } = await import('../credits.service.js');
+      const result = await addCredits('user-1', 50, 'Purchased credit pack: growth (50 credits)', 'cs_test_session_123');
+
+      expect(result.balance).toBe(50);
+      expect(result.added).toBe(50);
+      expect(mockInsert).toHaveBeenCalledTimes(2);
+    });
+
+    it('should work without stripeSessionId (null stored)', async () => {
+      selectResults = [[{ balance: 200 }]];
+
+      const { addCredits } = await import('../credits.service.js');
+      const result = await addCredits('user-2', 200, 'Manual credit grant');
+
+      expect(result.balance).toBe(200);
+      expect(result.added).toBe(200);
     });
   });
 

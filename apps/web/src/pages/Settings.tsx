@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, type ReactElement } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   fetchTeams, fetchApiKeys, createApiKey, revokeApiKey, type ApiKey,
@@ -14,7 +15,7 @@ import {
   startIntegrationOAuth,
 } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
-import { RepoPickerModal } from '../components/RepoPickerModal';
+import { Portal } from '../components/Portal';
 import { SlackIntegration } from '../components/SlackIntegration';
 import { AtlassianIntegration } from '../components/AtlassianIntegration';
 import { NotificationPreferences } from '../components/NotificationPreferences';
@@ -439,7 +440,6 @@ function IntegrationsPanel() {
   const currentTeamId = useAuthStore((s) => s.currentTeamId);
   const teams = useAuthStore((s) => s.teams);
   const [connecting, setConnecting] = useState<string | null>(null);
-  const [repoPickerFor, setRepoPickerFor] = useState<string | null>(null);
   const [connectError, setConnectError] = useState<string | null>(null);
   const [showDebug, setShowDebug] = useState(false);
 
@@ -639,14 +639,13 @@ function IntegrationsPanel() {
 
               {/* Action */}
               <div className="flex flex-shrink-0 items-center gap-2">
-                {integration.connected && integration.provider === 'github' && (
-                  <button
-                    type="button"
-                    onClick={() => setRepoPickerFor(integration.id)}
+                {integration.connected && (['github', 'gitlab', 'bitbucket'] as const).includes(integration.provider as 'github' | 'gitlab' | 'bitbucket') && (
+                  <Link
+                    to="/app/repositories"
                     className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                   >
-                    Manage Repos
-                  </button>
+                    Select repositories →
+                  </Link>
                 )}
                 {integration.connected ? (
                   <button
@@ -691,17 +690,6 @@ function IntegrationsPanel() {
       {/* Slack integration */}
       <SlackIntegration />
 
-      {/* Repo picker modal */}
-      {repoPickerFor && (
-        <RepoPickerModal
-          integrationId={repoPickerFor}
-          initialSelected={
-            (rawIntegrations?.find((ri) => ri.id === repoPickerFor)?.config as Record<string, unknown>)
-              ?.selectedRepos as Array<{ owner: string; name: string; fullName: string }> | undefined
-          }
-          onClose={() => setRepoPickerFor(null)}
-        />
-      )}
     </div>
   );
 }
@@ -1428,7 +1416,7 @@ function AiConfigPanel() {
         ) : !models || models.length === 0 ? (
           <p className="text-sm text-slate-500">No models available.</p>
         ) : (
-          <div className="divide-y divide-slate-100 rounded-md border border-slate-200">
+          <div className="max-h-96 overflow-y-auto divide-y divide-slate-100 rounded-md border border-slate-200">
             {models.map((model: ModelInfo) => {
               const isDefault = defaultModel === model.id;
               const isFast = fastModel === model.id;
@@ -1504,6 +1492,7 @@ function AiConfigPanel() {
 
       {/* Add/Rotate Key Modal */}
       {showModal && (
+        <Portal>
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" data-testid="ai-key-modal">
             <div className="flex items-center justify-between mb-4">
@@ -1567,10 +1556,12 @@ function AiConfigPanel() {
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* Remove Confirmation Dialog */}
       {showRemoveConfirm && (
+        <Portal>
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" data-testid="remove-confirm-dialog">
             <h3 className="text-lg font-semibold text-slate-900 mb-2">Remove API Key</h3>
@@ -1596,6 +1587,7 @@ function AiConfigPanel() {
             </div>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );

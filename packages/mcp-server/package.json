@@ -12,7 +12,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@nyx/harness-core": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

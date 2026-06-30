@@ -3,12 +3,18 @@ import { SEL } from './fixtures/selectors';
 
 test.describe('Repositories', () => {
   test.beforeEach(async ({ authenticatedPage: page }) => {
-    // Add mock for synced-repos endpoint
-    await page.route('**/api/integrations/*/github/synced-repos', (route) => {
+    // #381: The Repositories page now fetches integrations first, then fetches
+    // synced-repos per integration id (not via a github-specific path).
+    // We let the real backend serve /api/integrations (with the real UUID) and
+    // only mock the synced-repos endpoint using a wildcard to catch any UUID.
+
+    // Mock synced-repos for the integration — path is now provider-agnostic
+    await page.route('**/api/integrations/*/synced-repos', (route) => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
+          webhookRegistrationEnabled: true,
           repos: [
             {
               owner: 'nyx',
@@ -71,14 +77,15 @@ test.describe('Repositories', () => {
   });
 
   test('237.1 — Manage Repos button is visible', async ({ authenticatedPage: page }) => {
+    // #381: The button text is now provider-specific, e.g. "Manage GitHub Repos"
     const manageButton = page.locator(SEL.repositories.manageReposButton);
     await expect(manageButton).toBeVisible({ timeout: 5_000 });
-    await expect(manageButton).toHaveText('Manage Repos');
+    await expect(manageButton).toHaveText('Manage GitHub Repos');
   });
 
   test('237.2 — Manage Repos button opens repo picker modal', async ({ authenticatedPage: page }) => {
-    // Mock the GitHub repos endpoint that the RepoPickerModal fetches
-    await page.route('**/api/integrations/*/github/repos', (route) => {
+    // Mock the repos endpoint that the RepoPickerModal fetches
+    await page.route('**/api/integrations/*/repos', (route) => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',

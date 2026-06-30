@@ -478,6 +478,343 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
     reply.redirect(`${config.FRONTEND_URL ?? ''}/app/settings?tab=integrations&bitbucket=connected`);
   });
 
+  // ── Provider-agnostic repo endpoints ─────────────────────────────────
+  // These dispatch to the right provider based on integration.type, so the
+  // Repositories UI doesn't need to know which provider is connected.
+
+  // GET /api/integrations/:id/synced-repos — enriched synced repo list (any provider)
+  app.get('/:id/synced-repos', { preHandler: [requireRole({ minimumRole: 'viewer', source: 'integration' })] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(eq(integrations.id, id));
+
+    if (!integration || !['github', 'gitlab', 'bitbucket'].includes(integration.type)) {
+      reply.code(404);
+      return { error: 'Git integration not found' };
+    }
+
+    const cfg = integration.config as Record<string, unknown>;
+    const selectedRepos = (cfg.selectedRepos as Array<{ owner: string; name: string; fullName: string }>) ?? [];
+
+    if (selectedRepos.length === 0) {
+      return {
+        repos: [],
+        webhookRegistrationEnabled: integration.type === 'github' ? !!config.WEBHOOK_BASE_URL : false,
+        provider: integration.type,
+      };
+    }
+
+    // Get all team documents for linked doc counting
+    const teamDocs = await db
+      .select({ id: documents.id, content: documents.content })
+      .from(documents)
+      .where(eq(documents.teamId, integration.teamId));
+
+    // Get all code_push timeline events for this team's documents
+    const teamDocIds = teamDocs.map(d => d.id);
+    let pushEvents: Array<{ documentId: string; payload: unknown; createdAt: Date }> = [];
+    if (teamDocIds.length > 0) {
+      pushEvents = await db
+        .select({
+          documentId: timelineEvents.documentId,
+          payload: timelineEvents.payload,
+          createdAt: timelineEvents.createdAt,
+        })
+        .from(timelineEvents)
+        .where(
+          and(
+            eq(timelineEvents.type, 'code_push'),
+            inArray(timelineEvents.documentId, teamDocIds),
+          )
+        );
+    }
+
+    if (integration.type === 'github') {
+      const webhookIds = (cfg.webhookIds as Record<string, number>) ?? {};
+      const enrichedRepos = selectedRepos.map(repo => {
+        const hasWebhook = !!webhookIds[repo.fullName];
+        const repoPushEvents = pushEvents.filter(e => {
+          const payload = e.payload as Record<string, unknown>;
+          return payload?.repo === repo.fullName || payload?.repository === repo.fullName;
+        });
+        const lastPush = repoPushEvents.length > 0
+          ? repoPushEvents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+          : null;
+        const linkedDocCount = teamDocs.filter(d =>
+          d.content.includes(repo.fullName) || d.content.includes(repo.name)
+        ).length;
+        return {
+          owner: repo.owner,
+          name: repo.name,
+          fullName: repo.fullName,
+          syncStatus: hasWebhook ? 'active' : 'disconnected',
+          webhookId: webhookIds[repo.fullName] ?? null,
+          lastPushAt: lastPush?.createdAt ?? null,
+          linkedDocCount,
+          provider: 'github' as const,
+        };
+      });
+      return {
+        repos: enrichedRepos,
+        webhookRegistrationEnabled: !!config.WEBHOOK_BASE_URL,
+        provider: 'github' as const,
+      };
+    }
+
+    // GitLab / Bitbucket — selectedRepos tracked in config, no webhook tracking yet
+    const enrichedRepos = selectedRepos.map(repo => {
+      const repoPushEvents = pushEvents.filter(e => {
+        const payload = e.payload as Record<string, unknown>;
+        return payload?.repo === repo.fullName || payload?.repository === repo.fullName;
+      });
+      const lastPush = repoPushEvents.length > 0
+        ? repoPushEvents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+        : null;
+      const linkedDocCount = teamDocs.filter(d =>
+        d.content.includes(repo.fullName) || d.content.includes(repo.name)
+      ).length;
+      return {
+        owner: repo.owner,
+        name: repo.name,
+        fullName: repo.fullName,
+        syncStatus: 'active' as const,
+        webhookId: null,
+        lastPushAt: lastPush?.createdAt ?? null,
+        linkedDocCount,
+        provider: integration.type as 'gitlab' | 'bitbucket',
+      };
+    });
+
+    return {
+      repos: enrichedRepos,
+      webhookRegistrationEnabled: false,
+      provider: integration.type as 'gitlab' | 'bitbucket',
+    };
+  });
+
+  // PUT /api/integrations/:id/repos — save selected repos for any provider
+  app.put('/:id/repos', { preHandler: [requireRole({ minimumRole: 'admin', source: 'integration' })] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { repos } = request.body as { repos: Array<{ owner: string; name: string; fullName: string }> };
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(eq(integrations.id, id));
+
+    if (!integration || !['github', 'gitlab', 'bitbucket'].includes(integration.type)) {
+      reply.code(404);
+      return { error: 'Git integration not found' };
+    }
+
+    const cfg = integration.config as Record<string, unknown>;
+
+    if (integration.type === 'github') {
+      const accessToken = cfg.accessToken as string;
+      const currentRepos = (cfg.selectedRepos as Array<{ owner: string; name: string; fullName: string }>) ?? [];
+      const webhookIds = (cfg.webhookIds as Record<string, number>) ?? {};
+      const webhookSecret = (cfg.webhookSecret as string) ?? randomBytes(32).toString('hex');
+      const webhookRegistrationEnabled = !!config.WEBHOOK_BASE_URL;
+
+      const currentNames = new Set(currentRepos.map((r) => r.fullName));
+      const newNames = new Set(repos.map((r) => r.fullName));
+      const added = repos.filter((r) => !currentNames.has(r.fullName));
+      const removed = currentRepos.filter((r) => !newNames.has(r.fullName));
+
+      const updatedWebhookIds = { ...webhookIds };
+      const failed: Array<{ repo: string; error: string }> = [];
+      const skipped: string[] = [];
+
+      for (const repo of added) {
+        const result = await registerRepoWebhook({ accessToken, owner: repo.owner, name: repo.name, webhookSecret });
+        if (result.status === 'ok') {
+          updatedWebhookIds[repo.fullName] = result.webhookId;
+        } else if (result.status === 'error') {
+          request.log.warn({ repo: repo.fullName, err: result.error }, 'Failed to create webhook');
+          failed.push({ repo: repo.fullName, error: result.error });
+        } else {
+          skipped.push(repo.fullName);
+        }
+      }
+
+      if (webhookRegistrationEnabled) {
+        for (const repo of removed) {
+          const hookId = webhookIds[repo.fullName];
+          if (hookId) {
+            try {
+              await githubService.deleteWebhook(accessToken, repo.owner, repo.name, hookId);
+            } catch (err) {
+              request.log.warn({ repo: repo.fullName, err }, 'Failed to delete webhook');
+            }
+            delete updatedWebhookIds[repo.fullName];
+          }
+        }
+      }
+
+      await db
+        .update(integrations)
+        .set({
+          config: { ...cfg, selectedRepos: repos, webhookSecret, webhookIds: updatedWebhookIds },
+          updatedAt: new Date(),
+        })
+        .where(eq(integrations.id, id));
+
+      return { ok: true, webhookRegistrationEnabled, failed, skipped };
+    }
+
+    // GitLab / Bitbucket — just save selectedRepos to config
+    await db
+      .update(integrations)
+      .set({
+        config: { ...cfg, selectedRepos: repos },
+        updatedAt: new Date(),
+      })
+      .where(eq(integrations.id, id));
+
+    return { ok: true, webhookRegistrationEnabled: false, failed: [], skipped: [] };
+  });
+
+  // POST /api/integrations/:id/repos/:repoName/reconnect — reconnect webhook (any provider)
+  app.post('/:id/repos/:repoName/reconnect', { preHandler: [requireRole({ minimumRole: 'admin', source: 'integration' })] }, async (request, reply) => {
+    const { id, repoName } = request.params as { id: string; repoName: string };
+    const fullName = decodeURIComponent(repoName);
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(eq(integrations.id, id));
+
+    if (!integration || !['github', 'gitlab', 'bitbucket'].includes(integration.type)) {
+      reply.code(404);
+      return { error: 'Git integration not found' };
+    }
+
+    if (integration.type !== 'github') {
+      // GitLab/Bitbucket: just confirm repo is still in selectedRepos
+      const cfg = integration.config as Record<string, unknown>;
+      const selectedRepos = (cfg.selectedRepos as Array<{ owner: string; name: string; fullName: string }>) ?? [];
+      const repo = selectedRepos.find((r) => r.fullName === fullName);
+      if (!repo) {
+        reply.code(404);
+        return { error: 'Repository not found in synced repos' };
+      }
+      return { ok: true, fullName, webhookId: null, syncStatus: 'active' as const };
+    }
+
+    // GitHub — retry webhook registration
+    const cfg = integration.config as Record<string, unknown>;
+    const accessToken = cfg.accessToken as string | undefined;
+    const selectedRepos = (cfg.selectedRepos as Array<{ owner: string; name: string; fullName: string }>) ?? [];
+    const webhookIds = (cfg.webhookIds as Record<string, number>) ?? {};
+    const webhookSecret = (cfg.webhookSecret as string) ?? randomBytes(32).toString('hex');
+
+    if (!accessToken) {
+      reply.code(400);
+      return { error: 'GitHub access token is missing. Please reconnect the integration.' };
+    }
+
+    if (!config.WEBHOOK_BASE_URL) {
+      reply.code(503);
+      return {
+        error: 'webhook_registration_disabled',
+        message: 'WEBHOOK_BASE_URL is not configured on the server.',
+      };
+    }
+
+    const repo = selectedRepos.find((r) => r.fullName === fullName);
+    if (!repo) {
+      reply.code(404);
+      return { error: 'Repository not found in synced repos' };
+    }
+
+    const result = await registerRepoWebhook({ accessToken, owner: repo.owner, name: repo.name, webhookSecret });
+
+    if (result.status === 'error') {
+      reply.code(502);
+      return { error: 'webhook_creation_failed', message: result.error };
+    }
+
+    if (result.status === 'skipped') {
+      reply.code(503);
+      return { error: 'webhook_registration_disabled', message: 'Webhook registration is disabled on the server.' };
+    }
+
+    const updatedWebhookIds = { ...webhookIds, [fullName]: result.webhookId };
+    await db
+      .update(integrations)
+      .set({
+        config: { ...cfg, webhookSecret, webhookIds: updatedWebhookIds },
+        updatedAt: new Date(),
+      })
+      .where(eq(integrations.id, id));
+
+    return { ok: true, fullName, webhookId: result.webhookId, syncStatus: 'active' as const };
+  });
+
+  // DELETE /api/integrations/:id/repos/:repoName — disconnect a single repo (any provider)
+  app.delete('/:id/repos/:repoName', { preHandler: [requireRole({ minimumRole: 'admin', source: 'integration' })] }, async (request, reply) => {
+    const { id, repoName } = request.params as { id: string; repoName: string };
+    const fullName = decodeURIComponent(repoName);
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(eq(integrations.id, id));
+
+    if (!integration || !['github', 'gitlab', 'bitbucket'].includes(integration.type)) {
+      reply.code(404);
+      return { error: 'Git integration not found' };
+    }
+
+    const cfg = integration.config as Record<string, unknown>;
+    const selectedRepos = (cfg.selectedRepos as Array<{ owner: string; name: string; fullName: string }>) ?? [];
+
+    const repo = selectedRepos.find(r => r.fullName === fullName);
+    if (!repo) {
+      reply.code(404);
+      return { error: 'Repository not found in synced repos' };
+    }
+
+    if (integration.type === 'github') {
+      const accessToken = cfg.accessToken as string;
+      const webhookIds = (cfg.webhookIds as Record<string, number>) ?? {};
+      const hookId = webhookIds[fullName];
+      if (hookId && accessToken) {
+        try {
+          await githubService.deleteWebhook(accessToken, repo.owner, repo.name, hookId);
+        } catch (err) {
+          request.log.warn({ repo: fullName, err }, 'Failed to delete webhook during disconnect');
+        }
+      }
+      const updatedWebhookIds = { ...webhookIds };
+      delete updatedWebhookIds[fullName];
+      const updatedRepos = selectedRepos.filter(r => r.fullName !== fullName);
+      await db
+        .update(integrations)
+        .set({
+          config: { ...cfg, selectedRepos: updatedRepos, webhookIds: updatedWebhookIds },
+          updatedAt: new Date(),
+        })
+        .where(eq(integrations.id, id));
+      return { ok: true };
+    }
+
+    // GitLab / Bitbucket
+    const updatedRepos = selectedRepos.filter(r => r.fullName !== fullName);
+    await db
+      .update(integrations)
+      .set({
+        config: { ...cfg, selectedRepos: updatedRepos },
+        updatedAt: new Date(),
+      })
+      .where(eq(integrations.id, id));
+
+    return { ok: true };
+  });
+
   // GET /api/integrations/:id/bitbucket/repos — list repos for a connected Bitbucket integration
   app.get('/:id/bitbucket/repos', { preHandler: [requireRole({ minimumRole: 'viewer', source: 'integration' })] }, async (request, reply) => {
     const { id } = request.params as { id: string };

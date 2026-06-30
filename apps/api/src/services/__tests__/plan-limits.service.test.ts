@@ -70,9 +70,15 @@ describe('plan-limits.service', () => {
       const limits = getPlanLimits('free');
       expect(limits).toEqual({
         maxDocuments: 5,
-        aiEnabled: false,
+        maxUsers: 1,
+        maxProjects: 1,
+        maxRepos: 1,
+        aiEnabled: true,
         voiceEnabled: false,
         maxPipelines: 1,
+        webhookAutomation: false,
+        byokRequired: false,
+        monthlyAiCredits: 10,
       });
     });
 
@@ -190,10 +196,10 @@ describe('plan-limits.service', () => {
     });
 
     describe('use_ai', () => {
-      it('blocks AI usage on free plan', async () => {
+      it('allows AI usage on free plan (10 credit monthly limit)', async () => {
         selectResult = [{ plan: 'free' }];
         const result = await checkLimit('user-123', 'use_ai');
-        expect(result.allowed).toBe(false);
+        expect(result.allowed).toBe(true);
         expect(result.plan).toBe('free');
       });
 
@@ -255,9 +261,11 @@ describe('plan-limits.service', () => {
       expect(summary).toEqual({
         plan: 'free',
         documents: { current: 2, limit: 5 },
-        ai: { enabled: false },
+        ai: { enabled: true },
         voice: { enabled: false },
         pipelines: { limit: 1 },
+        webhookAutomation: false,
+        byokRequired: false,
       });
     });
 
@@ -278,6 +286,8 @@ describe('plan-limits.service', () => {
         ai: { enabled: true },
         voice: { enabled: false },
         pipelines: { limit: -1 },
+        webhookAutomation: true,
+        byokRequired: false,
       });
     });
 
@@ -298,6 +308,8 @@ describe('plan-limits.service', () => {
         ai: { enabled: true },
         voice: { enabled: true },
         pipelines: { limit: -1 },
+        webhookAutomation: true,
+        byokRequired: true,
       });
     });
   });

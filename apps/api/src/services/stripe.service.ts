@@ -1,16 +1,27 @@
 import Stripe from 'stripe';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { subscriptions, stripeCustomers } from '../db/schema.js';
+import { subscriptions, stripeCustomers, creditTransactions } from '../db/schema.js';
 import { config } from '../lib/config.js';
+import { addCredits } from './credits.service.js';
 
 // ── Plan → Stripe Price ID mapping ──────────────────────
 // In production these should be real Stripe price IDs set via env vars.
 
 const PLAN_PRICES: Record<string, string> = {
+  starter: process.env.STRIPE_PRICE_STARTER || 'price_starter_placeholder',
   pro: process.env.STRIPE_PRICE_PRO || 'price_pro_placeholder',
   team: process.env.STRIPE_PRICE_TEAM || 'price_team_placeholder',
   enterprise: process.env.STRIPE_PRICE_ENTERPRISE || 'price_enterprise_placeholder',
+};
+
+// ── Credit Pack → Stripe Price ID mapping ───────────────
+
+export const CREDIT_PACK_PRICES: Record<string, string> = {
+  starter: process.env.STRIPE_PRICE_CREDIT_STARTER || 'price_credit_starter_placeholder',
+  growth: process.env.STRIPE_PRICE_CREDIT_GROWTH || 'price_credit_growth_placeholder',
+  pro: process.env.STRIPE_PRICE_CREDIT_PRO || 'price_credit_pro_placeholder',
+  enterprise: process.env.STRIPE_PRICE_CREDIT_ENTERPRISE || 'price_credit_enterprise_placeholder',
 };
 
 // ── Stripe client (lazy, nullable) ──────────────────────
@@ -100,6 +111,32 @@ export async function createCheckoutSession(
 }
 
 /**
+ * Create a Stripe Checkout session for a one-time credit pack purchase.
+ */
+export async function createCreditPackCheckoutSession(
+  userId: string,
+  packId: string,
+  credits: number,
+  priceId: string,
+  successUrl: string,
+  cancelUrl: string,
+): Promise<string> {
+  const stripe = getStripe();
+  if (!stripe) {
+    return `https://checkout.stripe.com/mock?pack=${packId}&user=${userId}`;
+  }
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    client_reference_id: userId,
+    metadata: { kind: 'credit_pack', userId, packId, credits: String(credits) },
+  });
+  return session.url!;
+}
+
+/**
  * Create a Stripe Billing Portal session so users can manage their subscription.
  */
 export async function createPortalSession(
@@ -150,6 +187,25 @@ export async function handleWebhookEvent(
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
+
+      // ── Credit pack purchase ─────────────────────────────
+      if (session.metadata?.kind === 'credit_pack') {
+        const { userId, packId, credits } = session.metadata;
+        if (userId && credits) {
+          // Idempotency: skip if this session was already processed
+          const existing = await db
+            .select({ id: creditTransactions.id })
+            .from(creditTransactions)
+            .where(eq(creditTransactions.stripeSessionId, session.id))
+            .limit(1);
+          if (existing.length === 0) {
+            await addCredits(userId, parseInt(credits, 10), `Purchased credit pack: ${packId ?? 'unknown'} (${credits} credits)`, session.id);
+          }
+        }
+        break;
+      }
+
+      // ── Subscription checkout ────────────────────────────
       const teamId = session.metadata?.teamId;
       if (!teamId || !session.subscription) break;
 

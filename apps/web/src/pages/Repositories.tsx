@@ -1,11 +1,43 @@
 import { useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { fetchIntegrations, fetchSyncedRepos, disconnectRepo, reconnectRepo, createGitHubRepo, GitHubTokenExpiredError, type SyncedRepo, type ScanResult } from '../lib/api';
 import { GitHubReconnectBanner } from '../components/GitHubReconnectBanner';
 import { ScanRepositoryModal, ScanResultView } from '../components/ScanRepositoryModal';
 import { RepoPickerModal } from '../components/RepoPickerModal';
 import { useAuthStore } from '../stores/auth.store';
+
+type GitProvider = 'github' | 'gitlab' | 'bitbucket';
+
+const GIT_PROVIDER_TYPES: GitProvider[] = ['github', 'gitlab', 'bitbucket'];
+
+function providerLabel(type: string): string {
+  if (type === 'github') return 'GitHub';
+  if (type === 'gitlab') return 'GitLab';
+  if (type === 'bitbucket') return 'Bitbucket';
+  return type;
+}
+
+function providerRepoUrl(provider: string | undefined, fullName: string): string {
+  if (provider === 'gitlab') return `https://gitlab.com/${fullName}`;
+  if (provider === 'bitbucket') return `https://bitbucket.org/${fullName}`;
+  return `https://github.com/${fullName}`;
+}
+
+function ProviderBadge({ provider }: { provider: string | undefined }) {
+  const label = providerLabel(provider ?? 'github');
+  const colors: Record<string, string> = {
+    github: 'bg-slate-100 text-slate-600',
+    gitlab: 'bg-orange-100 text-orange-700',
+    bitbucket: 'bg-blue-100 text-blue-700',
+  };
+  const cls = colors[provider ?? 'github'] ?? 'bg-slate-100 text-slate-600';
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${cls}`}>
+      {label}
+    </span>
+  );
+}
 
 function StatusBadge({ status, webhookRegistrationEnabled }: { status: SyncedRepo['syncStatus']; webhookRegistrationEnabled: boolean }) {
   if (status === 'active') {
@@ -207,12 +239,18 @@ function CreateRepoModal({
   );
 }
 
+// A repo enriched with the integration context needed for actions
+interface EnrichedRepo extends SyncedRepo {
+  integrationId: string;
+  integrationProvider: GitProvider;
+}
+
 export function Repositories() {
   const queryClient = useQueryClient();
   const currentTeamId = useAuthStore((s) => s.currentTeamId);
   const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showManageModal, setShowManageModal] = useState(false);
+  const [showManageModal, setShowManageModal] = useState<{ integrationId: string; provider: GitProvider } | null>(null);
   const [scanTarget, setScanTarget] = useState<{ owner: string; repo: string } | null>(null);
   const [scanResult, setScanResult] = useState<{ owner: string; repo: string; result: ScanResult } | null>(null);
 
@@ -222,22 +260,55 @@ export function Repositories() {
     enabled: !!currentTeamId,
   });
 
-  const githubIntegration = rawIntegrations?.find((ri) => ri.type === 'github');
+  // All connected git integrations (GitHub + GitLab + Bitbucket)
+  const gitIntegrations = rawIntegrations?.filter((ri) => GIT_PROVIDER_TYPES.includes(ri.type as GitProvider)) ?? [];
+  const githubIntegration = gitIntegrations.find((ri) => ri.type === 'github');
 
-  const { data: syncedData, isLoading: reposLoading, error: reposError } = useQuery({
-    queryKey: ['synced-repos', githubIntegration?.id],
-    queryFn: () => fetchSyncedRepos(githubIntegration!.id),
-    enabled: !!githubIntegration?.id,
-    retry: (count, error) => {
-      if (error instanceof GitHubTokenExpiredError) return false;
-      return count < 3;
-    },
+  // Fetch synced repos for each connected git integration using useQueries
+  // (useQueries is the React Query API for dynamic arrays of queries — avoids
+  // calling useQuery in a loop which violates the Rules of Hooks)
+  const syncedRepoQueries = useQueries({
+    queries: gitIntegrations.map((integration) => ({
+      queryKey: ['synced-repos', integration.id] as const,
+      queryFn: () => fetchSyncedRepos(integration.id),
+      enabled: !!integration.id,
+      retry: (count: number, error: unknown) => {
+        if (error instanceof GitHubTokenExpiredError) return false;
+        return count < 3;
+      },
+    })),
   });
 
   const [actionError, setActionError] = useState<{ repo: string; message: string } | null>(null);
 
+  // Combine repos from all integrations into a flat list with context
+  const allEnrichedRepos: EnrichedRepo[] = [];
+  let anyWebhookRegistrationEnabled = false;
+  let githubTokenExpired = false;
+
+  for (let i = 0; i < gitIntegrations.length; i++) {
+    const integration = gitIntegrations[i];
+    const query = syncedRepoQueries[i];
+    if (query.error instanceof GitHubTokenExpiredError && integration.type === 'github') {
+      githubTokenExpired = true;
+    }
+    if (query.data) {
+      if (query.data.webhookRegistrationEnabled) anyWebhookRegistrationEnabled = true;
+      const enriched = query.data.repos.map((repo) => ({
+        ...repo,
+        integrationId: integration.id,
+        integrationProvider: integration.type as GitProvider,
+      }));
+      allEnrichedRepos.push(...enriched);
+    }
+  }
+
+  const reposLoading = syncedRepoQueries.some((q) => q.isLoading);
+  const isLoading = integrationsLoading || reposLoading;
+
   const disconnectMutation = useMutation({
-    mutationFn: (repoFullName: string) => disconnectRepo(githubIntegration!.id, repoFullName),
+    mutationFn: ({ integrationId, repoFullName }: { integrationId: string; repoFullName: string }) =>
+      disconnectRepo(integrationId, repoFullName),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['synced-repos'] });
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
@@ -246,46 +317,43 @@ export function Repositories() {
   });
 
   const reconnectMutation = useMutation({
-    mutationFn: (repoFullName: string) => reconnectRepo(githubIntegration!.id, repoFullName),
+    mutationFn: ({ integrationId, repoFullName }: { integrationId: string; repoFullName: string }) =>
+      reconnectRepo(integrationId, repoFullName),
     onSuccess: () => {
       setActionError(null);
       queryClient.invalidateQueries({ queryKey: ['synced-repos'] });
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
     },
-    onError: (err: Error, repoFullName) => {
+    onError: (err: Error, { repoFullName }) => {
       setActionError({ repo: repoFullName, message: err.message });
     },
   });
 
-  const repos = syncedData?.repos ?? [];
-  const webhookRegistrationEnabled = syncedData?.webhookRegistrationEnabled ?? true;
-  const isLoading = integrationsLoading || reposLoading;
-
-  const handleDisconnect = useCallback((fullName: string) => {
+  const handleDisconnect = useCallback((fullName: string, integrationId: string) => {
     if (confirmDisconnect === fullName) {
-      disconnectMutation.mutate(fullName);
+      disconnectMutation.mutate({ integrationId, repoFullName: fullName });
     } else {
       setConfirmDisconnect(fullName);
     }
   }, [confirmDisconnect, disconnectMutation]);
 
-  // Empty state — no GitHub integration connected
-  if (!isLoading && !githubIntegration) {
+  // Empty state — no git provider connected
+  if (!isLoading && gitIntegrations.length === 0) {
     return (
       <>
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900">Repositories</h1>
           <p className="mt-1 text-sm text-slate-500">
-            View and manage your synced GitHub repositories.
+            View and manage your synced repositories.
           </p>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
+        <div className="rounded-lg border border-slate-200 bg-white p-12 text-center" data-testid="no-providers-empty-state">
           <svg className="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
           </svg>
-          <h3 className="mt-3 text-sm font-semibold text-slate-800">No GitHub integration</h3>
+          <h3 className="mt-3 text-sm font-semibold text-slate-800">No providers connected</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Connect your GitHub account to start syncing repositories.
+            Connect GitHub, GitLab, or Bitbucket in Settings → Integrations to start syncing repositories.
           </p>
           <Link
             to="/app/settings"
@@ -299,13 +367,13 @@ export function Repositories() {
   }
 
   // GitHub token expired
-  if (reposError instanceof GitHubTokenExpiredError) {
+  if (githubTokenExpired) {
     return (
       <>
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900">Repositories</h1>
           <p className="mt-1 text-sm text-slate-500">
-            View and manage your synced GitHub repositories.
+            View and manage your synced repositories.
           </p>
         </div>
         <GitHubReconnectBanner />
@@ -313,27 +381,30 @@ export function Repositories() {
     );
   }
 
-  // Empty state — GitHub connected but no repos selected
-  if (!isLoading && repos.length === 0) {
+  // Empty state — providers connected but no repos selected
+  if (!isLoading && allEnrichedRepos.length === 0) {
     return (
       <>
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Repositories</h1>
             <p className="mt-1 text-sm text-slate-500">
-              View and manage your synced GitHub repositories.
+              View and manage your synced repositories.
             </p>
           </div>
-          {githubIntegration && (
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            {gitIntegrations.map((integration) => (
               <button
+                key={integration.id}
                 type="button"
-                onClick={() => setShowManageModal(true)}
+                onClick={() => setShowManageModal({ integrationId: integration.id, provider: integration.type as GitProvider })}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
                 data-testid="manage-repos-button"
               >
-                Manage Repos
+                Manage {providerLabel(integration.type)} Repos
               </button>
+            ))}
+            {githubIntegration && (
               <button
                 type="button"
                 onClick={() => setShowCreateModal(true)}
@@ -342,10 +413,12 @@ export function Repositories() {
               >
                 + New Repository
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-        {!webhookRegistrationEnabled && <WebhookRegistrationDisabledBanner />}
+        {anyWebhookRegistrationEnabled === false && gitIntegrations.some((i) => i.type === 'github') && (
+          <WebhookRegistrationDisabledBanner />
+        )}
         <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
           <svg className="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
@@ -373,12 +446,14 @@ export function Repositories() {
             }}
           />
         )}
-        {showManageModal && githubIntegration && (
+        {showManageModal && (
           <RepoPickerModal
-            integrationId={githubIntegration.id}
-            initialSelected={repos.map((r) => ({ owner: r.owner, name: r.name, fullName: r.fullName }))}
+            integrationId={showManageModal.integrationId}
+            initialSelected={allEnrichedRepos
+              .filter((r) => r.integrationId === showManageModal.integrationId)
+              .map((r) => ({ owner: r.owner, name: r.name, fullName: r.fullName }))}
             onClose={() => {
-              setShowManageModal(false);
+              setShowManageModal(null);
               queryClient.invalidateQueries({ queryKey: ['synced-repos'] });
               queryClient.invalidateQueries({ queryKey: ['integrations'] });
             }}
@@ -394,19 +469,22 @@ export function Repositories() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Repositories</h1>
           <p className="mt-1 text-sm text-slate-500">
-            View and manage your synced GitHub repositories.
+            View and manage your synced repositories.
           </p>
         </div>
-        {githubIntegration && (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {gitIntegrations.map((integration) => (
             <button
+              key={integration.id}
               type="button"
-              onClick={() => setShowManageModal(true)}
+              onClick={() => setShowManageModal({ integrationId: integration.id, provider: integration.type as GitProvider })}
               className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
               data-testid="manage-repos-button"
             >
-              Manage Repos
+              Manage {providerLabel(integration.type)} Repos
             </button>
+          ))}
+          {githubIntegration && (
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
@@ -415,11 +493,13 @@ export function Repositories() {
             >
               + New Repository
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {!webhookRegistrationEnabled && <WebhookRegistrationDisabledBanner />}
+      {anyWebhookRegistrationEnabled === false && gitIntegrations.some((i) => i.type === 'github') && (
+        <WebhookRegistrationDisabledBanner />
+      )}
 
       {actionError && (
         <div
@@ -451,8 +531,9 @@ export function Repositories() {
       ) : (
         <div className="rounded-lg border border-slate-200 overflow-hidden">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_100px_120px_80px_140px] gap-4 border-b border-slate-100 bg-slate-50/70 px-4 py-2.5">
+          <div className="grid grid-cols-[1fr_80px_100px_120px_80px_140px] gap-4 border-b border-slate-100 bg-slate-50/70 px-4 py-2.5">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Repository</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Provider</span>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Status</span>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Last Push</span>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Docs</span>
@@ -461,15 +542,15 @@ export function Repositories() {
 
           {/* Repo rows */}
           <ul className="divide-y divide-slate-100">
-            {repos.map((repo) => (
+            {allEnrichedRepos.map((repo) => (
               <li
-                key={repo.fullName}
-                className="grid grid-cols-[1fr_100px_120px_80px_140px] gap-4 items-center px-4 py-3 hover:bg-slate-50/50 transition-colors"
+                key={`${repo.integrationId}:${repo.fullName}`}
+                className="grid grid-cols-[1fr_80px_100px_120px_80px_140px] gap-4 items-center px-4 py-3 hover:bg-slate-50/50 transition-colors"
               >
                 {/* Repo name */}
                 <div className="min-w-0">
                   <a
-                    href={`https://github.com/${repo.fullName}`}
+                    href={providerRepoUrl(repo.integrationProvider, repo.fullName)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline truncate block"
@@ -478,9 +559,19 @@ export function Repositories() {
                   </a>
                 </div>
 
+                {/* Provider badge */}
+                <div>
+                  <ProviderBadge provider={repo.integrationProvider} />
+                </div>
+
                 {/* Status */}
                 <div>
-                  <StatusBadge status={repo.syncStatus} webhookRegistrationEnabled={webhookRegistrationEnabled} />
+                  <StatusBadge
+                    status={repo.syncStatus}
+                    webhookRegistrationEnabled={
+                      repo.integrationProvider === 'github' ? anyWebhookRegistrationEnabled : false
+                    }
+                  />
                 </div>
 
                 {/* Last push */}
@@ -505,7 +596,7 @@ export function Repositories() {
                     <>
                       <button
                         type="button"
-                        onClick={() => handleDisconnect(repo.fullName)}
+                        onClick={() => handleDisconnect(repo.fullName, repo.integrationId)}
                         disabled={disconnectMutation.isPending}
                         className="rounded px-2 py-1 text-[10px] font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
                       >
@@ -521,15 +612,15 @@ export function Repositories() {
                     </>
                   ) : (
                     <>
-                      {webhookRegistrationEnabled && repo.syncStatus === 'disconnected' && (
+                      {repo.integrationProvider === 'github' && anyWebhookRegistrationEnabled && repo.syncStatus === 'disconnected' && (
                         <button
                           type="button"
-                          onClick={() => reconnectMutation.mutate(repo.fullName)}
-                          disabled={reconnectMutation.isPending && reconnectMutation.variables === repo.fullName}
+                          onClick={() => reconnectMutation.mutate({ integrationId: repo.integrationId, repoFullName: repo.fullName })}
+                          disabled={reconnectMutation.isPending && reconnectMutation.variables?.repoFullName === repo.fullName}
                           className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-medium text-amber-700 hover:border-amber-300 hover:bg-amber-100 disabled:opacity-50 transition-colors"
                           data-testid={`reconnect-repo-${repo.fullName}`}
                         >
-                          {reconnectMutation.isPending && reconnectMutation.variables === repo.fullName ? '...' : 'Reconnect'}
+                          {reconnectMutation.isPending && reconnectMutation.variables?.repoFullName === repo.fullName ? '...' : 'Reconnect'}
                         </button>
                       )}
                       <button
@@ -542,7 +633,7 @@ export function Repositories() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDisconnect(repo.fullName)}
+                        onClick={() => handleDisconnect(repo.fullName, repo.integrationId)}
                         className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-medium text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
                       >
                         Remove
@@ -587,12 +678,14 @@ export function Repositories() {
         />
       )}
 
-      {showManageModal && githubIntegration && (
+      {showManageModal && (
         <RepoPickerModal
-          integrationId={githubIntegration.id}
-          initialSelected={repos.map((r) => ({ owner: r.owner, name: r.name, fullName: r.fullName }))}
+          integrationId={showManageModal.integrationId}
+          initialSelected={allEnrichedRepos
+            .filter((r) => r.integrationId === showManageModal.integrationId)
+            .map((r) => ({ owner: r.owner, name: r.name, fullName: r.fullName }))}
           onClose={() => {
-            setShowManageModal(false);
+            setShowManageModal(null);
             queryClient.invalidateQueries({ queryKey: ['synced-repos'] });
             queryClient.invalidateQueries({ queryKey: ['integrations'] });
           }}
