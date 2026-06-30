@@ -6,7 +6,7 @@ import { subscriptions } from '../db/schema.js';
 /**
  * Plan hierarchy — higher index = more features.
  */
-const PLAN_HIERARCHY = ['free', 'pro', 'team', 'enterprise'] as const;
+const PLAN_HIERARCHY = ['free', 'starter', 'pro', 'team', 'enterprise'] as const;
 type Plan = (typeof PLAN_HIERARCHY)[number];
 
 function planIndex(plan: Plan): number {

@@ -476,7 +476,7 @@ export const feedbackSubmissions = pgTable('feedback_submissions', {
 
 // ── Subscriptions ─────────────────────────────────────
 
-export const subscriptionPlanEnum = pgEnum('subscription_plan', ['free', 'pro', 'team', 'enterprise']);
+export const subscriptionPlanEnum = pgEnum('subscription_plan', ['free', 'starter', 'pro', 'team', 'enterprise']);
 export const subscriptionStatusEnum = pgEnum('subscription_status', ['active', 'past_due', 'canceled', 'trialing', 'incomplete']);
 
 export const subscriptions = pgTable('subscriptions', {
@@ -662,6 +662,7 @@ export const creditTransactions = pgTable('credit_transactions', {
   type: creditTransactionTypeEnum('type').notNull(),
   description: text('description').notNull(),
   taskType: text('task_type'),
+  stripeSessionId: text('stripe_session_id').unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
