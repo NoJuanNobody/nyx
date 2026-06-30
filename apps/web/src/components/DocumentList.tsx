@@ -34,6 +34,8 @@ export function DocumentList() {
     enabled: !!teamId,
   });
 
+  const [createError, setCreateError] = useState<string | null>(null);
+
   const createMutation = useMutation({
     mutationFn: () =>
       createDocument({
@@ -42,8 +44,12 @@ export function DocumentList() {
         teamId: teamId!,
       }),
     onSuccess: (doc) => {
+      setCreateError(null);
       queryClient.invalidateQueries({ queryKey: ['documents', teamId] });
       navigate(`/app/documents/${doc.id}`);
+    },
+    onError: (err: unknown) => {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create document.');
     },
   });
 
@@ -108,6 +114,9 @@ export function DocumentList() {
           </svg>
           {createMutation.isPending ? 'Creating...' : 'New Document'}
         </button>
+        {createError && (
+          <p className="mt-4 text-sm text-red-600">{createError}</p>
+        )}
       </div>
     );
   }
@@ -171,6 +180,12 @@ export function DocumentList() {
           {createMutation.isPending ? 'Creating...' : 'New Document'}
         </button>
       </div>
+
+      {createError && (
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {createError}
+        </div>
+      )}
 
       {generateAllMutation.isError && (
         <div

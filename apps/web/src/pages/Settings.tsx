@@ -1797,14 +1797,14 @@ export function Settings() {
 
   return (
     <>
-      <div className="mb-6">
+      <div className="mb-6 flex-shrink-0">
         <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
         <p className="mt-1 text-sm text-slate-500">
           Manage your team, integrations, and account preferences.
         </p>
       </div>
 
-      <div className="flex gap-8">
+      <div className="flex min-h-0 flex-1 gap-8">
         {/* Side nav */}
         <nav className="flex w-44 flex-shrink-0 flex-col gap-0.5">
           {TABS.map((tab) => (
@@ -1825,7 +1825,7 @@ export function Settings() {
         </nav>
 
         {/* Panel */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 overflow-y-auto pr-1">
           {activeTab === 'team' && <TeamPanel />}
           {activeTab === 'integrations' && <IntegrationsPanel />}
           {activeTab === 'api-keys' && <ApiKeysPanel />}
