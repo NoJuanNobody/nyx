@@ -20,3 +20,6 @@ demo.*
 # Grant application — contains personal info (address, phone)
 docs/grants/submission-fields.md
 docs/grants/lois/
+
+# Nightly build worktrees (ephemeral, not tracked)
+.nightly-wt/
