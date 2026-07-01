@@ -1,7 +1,7 @@
 import { pgTable, uuid, text, timestamp, integer, jsonb, pgEnum, boolean, uniqueIndex, index, vector } from 'drizzle-orm/pg-core';
 
 export const userRoleEnum = pgEnum('user_role', ['owner', 'admin', 'developer', 'editor', 'viewer']);
-export const ticketProviderEnum = pgEnum('ticket_provider', ['github', 'jira']);
+export const ticketProviderEnum = pgEnum('ticket_provider', ['github', 'jira', 'gitlab', 'bitbucket']);
 export const ticketStatusEnum = pgEnum('ticket_status', ['open', 'in_progress', 'closed']);
 export const integrationTypeEnum = pgEnum('integration_type', ['github', 'gitlab', 'bitbucket', 'jira', 'confluence']);
 export const proposalStatusEnum = pgEnum('proposal_status', ['pending', 'approved', 'rejected', 'pushed']);

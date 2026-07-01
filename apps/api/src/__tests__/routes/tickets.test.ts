@@ -173,11 +173,10 @@ describe('Ticket Routes', () => {
     expect(res.statusCode).toBe(201);
     expect(mockTicketService.createFromDocument).toHaveBeenCalledWith(
       'doc-1',
-      'github',
+      { provider: 'github', identifier: 'myorg/myrepo' },
       'With repo',
       'Description',
       'user-1',
-      { owner: 'myorg', name: 'myrepo' },
     );
   });
 });

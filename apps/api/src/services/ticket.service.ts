@@ -4,8 +4,16 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { tickets, integrations, documents } from '../db/schema.js';
 import { githubService, GitHubTokenExpiredError } from './github.service.js';
+import { gitlabService } from './gitlab.service.js';
+import { bitbucketService } from './bitbucket.service.js';
 import { jiraService } from './jira.service.js';
 import { auditService } from './audit.service.js';
+
+export interface TicketDestination {
+  provider: 'github' | 'gitlab' | 'bitbucket' | 'jira';
+  /** For git providers: "owner/repo". For Jira: projectKey. */
+  identifier: string;
+}
 
 /** Extract "owner/repo" from a ticket's external URL */
 function extractRepoName(externalUrl: string, provider: string): string {
@@ -39,12 +47,13 @@ function extractRepoUrl(externalUrl: string, provider: string): string {
 export const ticketService = {
   async createFromDocument(
     documentId: string,
-    provider: 'github' | 'jira',
+    destination: TicketDestination,
     title: string,
     body: string,
     createdById: string,
-    repo?: { owner: string; name: string },
   ) {
+    const { provider, identifier } = destination;
+
     // Derive teamId from document
     const [doc] = await db
       .select({ teamId: documents.teamId })
@@ -53,7 +62,7 @@ export const ticketService = {
 
     if (!doc) throw new Error('Document not found');
 
-    // Find integration scoped to team
+    // Find integration scoped to team + provider
     const [integration] = await db
       .select()
       .from(integrations)
@@ -66,27 +75,15 @@ export const ticketService = {
     let externalId: string;
     let externalUrl: string;
 
-    if (provider === 'github') {
-      const cfg = integration.config as {
-        accessToken: string;
-        owner?: string;
-        repo?: string;
-        selectedRepos?: Array<{ owner: string; name: string; fullName: string }>;
-      };
-      // Prefer explicit repo selection from the request, then fall back to selectedRepos[0], then legacy fields
-      const owner = repo?.owner ?? cfg.selectedRepos?.[0]?.owner ?? cfg.owner ?? '';
-      const repoName = repo?.name ?? cfg.selectedRepos?.[0]?.name ?? cfg.repo ?? '';
-      if (!owner || !repoName) throw new Error('No GitHub repository configured for this team');
-      const issue = await githubService.createIssue(cfg.accessToken, owner, repoName, title, body);
-      externalId = String(issue.number);
-      externalUrl = issue.html_url;
-    } else {
-      const { baseUrl, email, apiToken, projectKey } = integration.config as {
+    if (provider === 'jira') {
+      const { baseUrl, email, apiToken, projectKey: configProjectKey } = integration.config as {
         baseUrl: string;
         email: string;
         apiToken: string;
-        projectKey: string;
+        projectKey?: string;
       };
+      const projectKey = identifier || configProjectKey || '';
+      if (!projectKey) throw new Error('No Jira project key configured');
       const issue = await jiraService.createIssue(baseUrl, email, apiToken, {
         projectKey,
         summary: title,
@@ -94,6 +91,36 @@ export const ticketService = {
       });
       externalId = issue.key;
       externalUrl = `${baseUrl}/browse/${issue.key}`;
+    } else {
+      // Git provider: identifier is "owner/repo".
+      // When empty, fall back to the first repo in the integration config (backward compat).
+      let ownerRepo = identifier;
+      if (!ownerRepo) {
+        const repoCfg = integration.config as {
+          selectedRepos?: Array<{ owner: string; name: string; fullName: string }>;
+          owner?: string;
+          repo?: string;
+        };
+        ownerRepo = repoCfg.selectedRepos?.[0]?.fullName
+          ?? (repoCfg.owner && repoCfg.repo ? `${repoCfg.owner}/${repoCfg.repo}` : '');
+      }
+      const [owner, repoName] = ownerRepo.split('/');
+      if (!owner || !repoName) throw new Error(`No repository configured for this team`);
+      const cfg = integration.config as { accessToken: string };
+      if (provider === 'github') {
+        const issue = await githubService.createIssue(cfg.accessToken, owner, repoName, title, body);
+        externalId = String(issue.number);
+        externalUrl = issue.html_url;
+      } else if (provider === 'gitlab') {
+        const issue = await gitlabService.createIssue(cfg.accessToken, owner, repoName, title, body);
+        externalId = String(issue.iid ?? issue.id);
+        externalUrl = issue.htmlUrl;
+      } else {
+        // bitbucket
+        const issue = await bitbucketService.createIssue(cfg.accessToken, owner, repoName, title, body);
+        externalId = String(issue.id);
+        externalUrl = issue.htmlUrl;
+      }
     }
 
     const [ticket] = await db

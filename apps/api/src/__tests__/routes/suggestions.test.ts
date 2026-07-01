@@ -132,7 +132,7 @@ describe('Suggestion Routes', () => {
     expect(body.status).toBe('dismissed');
   });
 
-  it('POST /api/ticket-suggestions/bulk-approve passes repo to service', async () => {
+  it('POST /api/ticket-suggestions/bulk-approve passes destination to service', async () => {
     const results = [{ suggestionId: 'sug-1', success: true }];
     mockSuggestionService.bulkApprove.mockResolvedValue(results);
 
@@ -142,8 +142,7 @@ describe('Suggestion Routes', () => {
       url: '/api/ticket-suggestions/bulk-approve',
       payload: {
         suggestionIds: ['sug-1'],
-        provider: 'github',
-        repo: { owner: 'myorg', name: 'myrepo' },
+        destination: { provider: 'github', identifier: 'myorg/myrepo' },
       },
     });
 
@@ -154,7 +153,30 @@ describe('Suggestion Routes', () => {
       null,
       'user-1',
       'bulk-approve-tickets',
-      { suggestionIds: ['sug-1'], provider: 'github', repo: { owner: 'myorg', name: 'myrepo' } },
+      { suggestionIds: ['sug-1'], destination: { provider: 'github', identifier: 'myorg/myrepo' } },
+    );
+  });
+
+  it('POST /api/ticket-suggestions/bulk-approve accepts a GitLab destination', async () => {
+    const results = [{ suggestionId: 'sug-2', success: true }];
+    mockSuggestionService.bulkApprove.mockResolvedValue(results);
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ticket-suggestions/bulk-approve',
+      payload: {
+        suggestionIds: ['sug-2'],
+        destination: { provider: 'gitlab', identifier: 'mygroup/myproject' },
+      },
+    });
+
+    expect(res.statusCode).toBe(202);
+    expect(mockJobService.create).toHaveBeenCalledWith(
+      null,
+      'user-1',
+      'bulk-approve-tickets',
+      { suggestionIds: ['sug-2'], destination: { provider: 'gitlab', identifier: 'mygroup/myproject' } },
     );
   });
 
@@ -163,7 +185,18 @@ describe('Suggestion Routes', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/ticket-suggestions/bulk-approve',
-      payload: { suggestionIds: [], provider: 'github' },
+      payload: { suggestionIds: [], destination: { provider: 'github', identifier: 'myorg/myrepo' } },
+    });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /api/ticket-suggestions/bulk-approve returns 400 for invalid provider', async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ticket-suggestions/bulk-approve',
+      payload: { suggestionIds: ['sug-1'], destination: { provider: 'twitter', identifier: 'x/y' } },
     });
 
     expect(res.statusCode).toBe(400);

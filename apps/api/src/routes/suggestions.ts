@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { suggestionService } from '../services/suggestion.service.js';
 import { jobService } from '../services/job.service.js';
 import { requireRole } from '../middleware/permissions.js';
+import type { TicketDestination } from '../services/ticket.service.js';
 
 export const suggestionRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/documents/:documentId/suggest-tickets — generate ticket suggestions
@@ -87,27 +88,29 @@ export const suggestionRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /api/ticket-suggestions/bulk-approve — approve multiple suggestions at once (async)
   app.post('/ticket-suggestions/bulk-approve', async (request, reply) => {
-    const { suggestionIds, provider, repo, teamId } = request.body as {
+    const { suggestionIds, destination, teamId } = request.body as {
       suggestionIds: string[];
-      provider: 'github' | 'jira';
-      repo?: { owner: string; name: string };
+      destination: TicketDestination;
       teamId?: string;
     };
     const userId = request.user.id;
     if (!suggestionIds?.length) { reply.code(400); return { error: 'No suggestions selected' }; }
-    if (!['github', 'jira'].includes(provider)) { reply.code(400); return { error: 'Invalid provider' }; }
+    const validProviders = ['github', 'gitlab', 'bitbucket', 'jira'];
+    if (!destination?.provider || !validProviders.includes(destination.provider)) {
+      reply.code(400); return { error: 'Invalid destination provider' };
+    }
 
     const job = await jobService.create(
       teamId || null,
       userId,
       'bulk-approve-tickets',
-      { suggestionIds, provider, repo },
+      { suggestionIds, destination },
     );
 
     setImmediate(async () => {
       try {
         await jobService.markRunning(job.id);
-        const results = await suggestionService.bulkApprove(suggestionIds, userId, provider, repo);
+        const results = await suggestionService.bulkApprove(suggestionIds, userId, destination);
         await jobService.markCompleted(job.id, results);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';

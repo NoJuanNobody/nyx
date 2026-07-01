@@ -165,11 +165,10 @@ describe('Suggestion Service', () => {
       expect(result.ticket).toEqual(ticket);
       expect(mockTicketService.createFromDocument).toHaveBeenCalledWith(
         'doc-1',
-        'github',
+        { provider: 'github', identifier: '' },
         'Fix bug',
         'There is a bug',
         'user-1',
-        undefined,
       );
     });
 
@@ -206,11 +205,10 @@ describe('Suggestion Service', () => {
 
       expect(mockTicketService.createFromDocument).toHaveBeenCalledWith(
         'doc-1',
-        'github',
+        { provider: 'github', identifier: 'myorg/myrepo' },
         'Fix bug',
         'There is a bug',
         'user-1',
-        { owner: 'myorg', name: 'myrepo' },
       );
     });
 
