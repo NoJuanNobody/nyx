@@ -93,7 +93,6 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
     if (destinations.length > 0 && selectedDestination === null) {
       setSelectedDestination(destinations[0].destination);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destinations.length, selectedDestination]);
 
   const generateMutation = useMutation({
