@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { documents } from '../db/schema.js';
-import { ticketService } from '../services/ticket.service.js';
+import { ticketService, type TicketDestination } from '../services/ticket.service.js';
 import { timelineService } from '../services/timeline.service.js';
 import { GitHubTokenExpiredError } from '../services/github.service.js';
 import { claudeInsightsService } from '../services/claude-insights.service.js';
@@ -53,14 +53,18 @@ export const ticketRoutes: FastifyPluginAsync = async (app) => {
 
     const userId = request.user.id;
 
+    // Convert legacy (provider, repo?) shape to TicketDestination
+    const destination: TicketDestination = provider === 'jira'
+      ? { provider: 'jira', identifier: '' }
+      : { provider, identifier: repo ? `${repo.owner}/${repo.name}` : '' };
+
     try {
       const ticket = await ticketService.createFromDocument(
         documentId,
-        provider,
+        destination,
         title,
         body,
         userId,
-        repo,
       );
 
       // Fire-and-forget: record timeline event

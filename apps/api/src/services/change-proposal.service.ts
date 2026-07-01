@@ -3,6 +3,7 @@ import { db } from '../db/index.js';
 import { changeProposals, documentVersions, documents } from '../db/schema.js';
 import { aiService } from './ai.service.js';
 import { ticketService } from './ticket.service.js';
+import type { TicketDestination } from './ticket.service.js';
 
 export const changeProposalService = {
   async generate(documentId: string, teamId: string, userId: string) {
@@ -109,9 +110,10 @@ export const changeProposalService = {
     const createdTickets = [];
     for (const ticket of tickets) {
       try {
+        const githubDestination: TicketDestination = { provider: 'github', identifier: '' };
         const created = await ticketService.createFromDocument(
           proposal.documentId,
-          'github', // default to github; could be configurable
+          githubDestination,
           ticket.title,
           ticket.description,
           userId,

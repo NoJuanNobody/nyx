@@ -13,10 +13,22 @@ import {
   fetchIntegrations,
   fetchJobStatus,
 } from '../lib/api';
-import type { TicketSuggestion, BulkApproveResult } from '../lib/api';
-
-interface RepoOption { owner: string; name: string; fullName: string; }
+import type { TicketSuggestion, BulkApproveResult, TicketDestination } from '../lib/api';
 import { TicketSuggestionDetail } from './TicketSuggestionDetail';
+
+const PROVIDER_LABELS: Record<string, string> = {
+  github: 'GitHub',
+  gitlab: 'GitLab',
+  bitbucket: 'Bitbucket',
+  jira: 'Jira',
+};
+
+interface DestinationOption {
+  value: string;
+  label: string;
+  destination: TicketDestination;
+  providerGroup: string;
+}
 
 interface BulkTicketReviewProps {
   documentId: string;
@@ -31,10 +43,9 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
   const queryClient = useQueryClient();
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [provider, setProvider] = useState<'github' | 'jira'>('github');
+  const [selectedDestination, setSelectedDestination] = useState<TicketDestination | null>(null);
   const [results, setResults] = useState<BulkApproveResult[] | null>(null);
   const [detailSuggestionId, setDetailSuggestionId] = useState<string | null>(null);
-  const [selectedRepo, setSelectedRepo] = useState<RepoOption | null>(null);
 
   const [folderSuggestions, setFolderSuggestions] = useState<TicketSuggestion[]>([]);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -53,16 +64,36 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
     enabled: open,
   });
 
-  const githubIntegration = (integrations ?? []).find((i: { type: string }) => i.type === 'github');
-  const availableRepos: RepoOption[] = githubIntegration
-    ? ((githubIntegration.config as { selectedRepos?: RepoOption[] }).selectedRepos ?? [])
-    : [];
+  // Build unified destination list from all connected integrations
+  const destinations: DestinationOption[] = (integrations ?? []).flatMap((integration: { type: string; config: Record<string, unknown> }) => {
+    const type = integration.type as 'github' | 'gitlab' | 'bitbucket' | 'jira';
+    if (type === 'jira') {
+      const projectKey = (integration.config.projectKey as string) ?? '';
+      if (!projectKey) return [];
+      return [{
+        value: `jira:${projectKey}`,
+        label: projectKey,
+        destination: { provider: 'jira' as const, identifier: projectKey },
+        providerGroup: 'Jira',
+      }];
+    }
+    if (type === 'github' || type === 'gitlab' || type === 'bitbucket') {
+      const repos = (integration.config.selectedRepos as Array<{ owner: string; name: string; fullName: string }>) ?? [];
+      return repos.map((repo) => ({
+        value: `${type}:${repo.fullName}`,
+        label: repo.fullName,
+        destination: { provider: type, identifier: repo.fullName },
+        providerGroup: PROVIDER_LABELS[type] ?? type,
+      }));
+    }
+    return [];
+  });
 
   useEffect(() => {
-    if (availableRepos.length > 0 && selectedRepo === null) {
-      setSelectedRepo(availableRepos[0]);
+    if (destinations.length > 0 && selectedDestination === null) {
+      setSelectedDestination(destinations[0].destination);
     }
-  }, [availableRepos, selectedRepo]);
+  }, [destinations.length, selectedDestination]);
 
   const generateMutation = useMutation({
     mutationFn: () =>
@@ -105,7 +136,10 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
   const [approveJobId, setApproveJobId] = useState<string | null>(null);
 
   const bulkApproveMutation = useMutation({
-    mutationFn: () => bulkApproveSuggestions([...selectedIds], provider, selectedRepo ? { owner: selectedRepo.owner, name: selectedRepo.name } : undefined),
+    mutationFn: () => {
+      if (!selectedDestination) return Promise.reject(new Error('No destination selected'));
+      return bulkApproveSuggestions([...selectedIds], selectedDestination);
+    },
     onSuccess: (data) => {
       setApproveJobId(data.jobId);
       // Poll until completed
@@ -235,50 +269,35 @@ export function BulkTicketReview({ documentId, teamId, open, onClose, folderPath
             <h2 className="text-lg font-semibold text-slate-900">Bulk Ticket Generation</h2>
 
             <div className="ml-auto flex items-center gap-3">
-              {/* Repo selector — shown only for GitHub when multiple repos are configured */}
-              {provider === 'github' && availableRepos.length > 0 && (
+              {/* Destination selector — unified list of all connected targets */}
+              {destinations.length === 0 ? (
+                <span className="text-xs text-slate-400">No destinations connected</span>
+              ) : (
                 <select
-                  value={selectedRepo?.fullName ?? ''}
+                  value={selectedDestination ? `${selectedDestination.provider}:${selectedDestination.identifier}` : ''}
                   onChange={(e) => {
-                    const repo = availableRepos.find((r) => r.fullName === e.target.value) ?? null;
-                    setSelectedRepo(repo);
+                    const opt = destinations.find((d) => d.value === e.target.value);
+                    setSelectedDestination(opt?.destination ?? null);
                   }}
                   className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  data-testid="bulk-repo-selector"
+                  data-testid="bulk-destination-selector"
                 >
-                  {availableRepos.map((r) => (
-                    <option key={r.fullName} value={r.fullName}>
-                      {r.fullName}
-                    </option>
+                  {Object.entries(
+                    destinations.reduce<Record<string, DestinationOption[]>>((acc, d) => {
+                      (acc[d.providerGroup] ??= []).push(d);
+                      return acc;
+                    }, {}),
+                  ).map(([group, opts]) => (
+                    <optgroup key={group} label={group}>
+                      {opts.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               )}
-
-              {/* Provider selector */}
-              <div className="flex rounded-lg border border-slate-200 p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setProvider('github')}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                    provider === 'github'
-                      ? 'bg-slate-900 text-white'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  GitHub
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setProvider('jira')}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                    provider === 'jira'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  Jira
-                </button>
-              </div>
 
               {/* Generate button */}
               <button

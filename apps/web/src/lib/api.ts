@@ -1523,14 +1523,19 @@ export function generateFolderTicketSuggestions(
   });
 }
 
+export interface TicketDestination {
+  provider: 'github' | 'gitlab' | 'bitbucket' | 'jira';
+  /** For git providers: "owner/repo". For Jira: projectKey. */
+  identifier: string;
+}
+
 export function bulkApproveSuggestions(
   suggestionIds: string[],
-  provider: 'github' | 'jira',
-  repo?: { owner: string; name: string },
+  destination: TicketDestination,
 ): Promise<{ jobId: string }> {
   return request<{ jobId: string }>('/ticket-suggestions/bulk-approve', {
     method: 'POST',
-    body: JSON.stringify({ suggestionIds, provider, repo }),
+    body: JSON.stringify({ suggestionIds, destination }),
   });
 }
 

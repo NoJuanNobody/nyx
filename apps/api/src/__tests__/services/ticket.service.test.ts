@@ -8,6 +8,19 @@ vi.mock('../../services/github.service.js', () => ({
   githubService: {
     createIssue: vi.fn().mockResolvedValue({ number: 42, html_url: 'https://github.com/org/repo/issues/42' }),
   },
+  GitHubTokenExpiredError: class GitHubTokenExpiredError extends Error {},
+}));
+
+vi.mock('../../services/gitlab.service.js', () => ({
+  gitlabService: {
+    createIssue: vi.fn().mockResolvedValue({ id: 1, iid: 5, title: 'GL Issue', htmlUrl: 'https://gitlab.com/org/repo/-/issues/5', state: 'opened' }),
+  },
+}));
+
+vi.mock('../../services/bitbucket.service.js', () => ({
+  bitbucketService: {
+    createIssue: vi.fn().mockResolvedValue({ id: 7, title: 'BB Issue', htmlUrl: 'https://bitbucket.org/org/repo/issues/7', state: 'new' }),
+  },
 }));
 
 vi.mock('../../services/jira.service.js', () => ({
@@ -61,19 +74,28 @@ describe('Ticket Service', () => {
     } as any);
 
     const { githubService } = await import('../../services/github.service.js');
-    const result = await ticketService.createFromDocument(doc.id, 'github', 'Title', 'Body', 'user-1');
+    const result = await ticketService.createFromDocument(
+      doc.id,
+      { provider: 'github', identifier: 'myorg/myrepo' },
+      'Title',
+      'Body',
+      'user-1',
+    );
 
     expect(githubService.createIssue).toHaveBeenCalledWith('ghp_token', 'myorg', 'myrepo', 'Title', 'Body');
     expect(result.id).toBe(ticket.id);
   });
 
-  it('createFromDocument: explicit repo param overrides selectedRepos[0]', async () => {
+  it('createFromDocument: uses destination identifier to pick a specific repo', async () => {
     const doc = makeDocument();
     const integration = makeIntegration({
       teamId: doc.teamId,
       config: {
         accessToken: 'ghp_token',
-        selectedRepos: [{ owner: 'myorg', name: 'defaultrepo', fullName: 'myorg/defaultrepo' }],
+        selectedRepos: [
+          { owner: 'myorg', name: 'defaultrepo', fullName: 'myorg/defaultrepo' },
+          { owner: 'otherorg', name: 'otherrepo', fullName: 'otherorg/otherrepo' },
+        ],
       },
     });
     const ticket = makeTicket({ documentId: doc.id });
@@ -97,21 +119,25 @@ describe('Ticket Service', () => {
     } as any);
 
     const { githubService } = await import('../../services/github.service.js');
-    await ticketService.createFromDocument(doc.id, 'github', 'Title', 'Body', 'user-1', {
-      owner: 'otherorg',
-      name: 'otherrepo',
-    });
+    await ticketService.createFromDocument(
+      doc.id,
+      { provider: 'github', identifier: 'otherorg/otherrepo' },
+      'Title',
+      'Body',
+      'user-1',
+    );
 
     expect(githubService.createIssue).toHaveBeenCalledWith('ghp_token', 'otherorg', 'otherrepo', 'Title', 'Body');
   });
 
-  it('createFromDocument: falls back to legacy owner/repo config fields', async () => {
+  it('createFromDocument: GitLab path creates issue via gitlabService', async () => {
     const doc = makeDocument();
     const integration = makeIntegration({
       teamId: doc.teamId,
-      config: { accessToken: 'ghp_token', owner: 'legacyowner', repo: 'legacyrepo' },
+      type: 'gitlab',
+      config: { accessToken: 'glpat_token' },
     });
-    const ticket = makeTicket();
+    const ticket = makeTicket({ documentId: doc.id });
 
     mockDb.select.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
@@ -131,10 +157,16 @@ describe('Ticket Service', () => {
       }),
     } as any);
 
-    const { githubService } = await import('../../services/github.service.js');
-    await ticketService.createFromDocument(doc.id, 'github', 'Title', 'Body', 'user-1');
+    const { gitlabService } = await import('../../services/gitlab.service.js');
+    await ticketService.createFromDocument(
+      doc.id,
+      { provider: 'gitlab', identifier: 'mygroup/myproject' },
+      'GL Title',
+      'GL Body',
+      'user-1',
+    );
 
-    expect(githubService.createIssue).toHaveBeenCalledWith('ghp_token', 'legacyowner', 'legacyrepo', 'Title', 'Body');
+    expect(gitlabService.createIssue).toHaveBeenCalledWith('glpat_token', 'mygroup', 'myproject', 'GL Title', 'GL Body');
   });
 
   it('createFromDocument: throws when no integration found for team', async () => {
@@ -153,7 +185,7 @@ describe('Ticket Service', () => {
     } as any);
 
     await expect(
-      ticketService.createFromDocument(doc.id, 'github', 'Title', 'Body', 'user-1'),
+      ticketService.createFromDocument(doc.id, { provider: 'github', identifier: 'myorg/myrepo' }, 'Title', 'Body', 'user-1'),
     ).rejects.toThrow('No github integration configured');
   });
 
@@ -185,7 +217,13 @@ describe('Ticket Service', () => {
     } as any);
 
     const { jiraService } = await import('../../services/jira.service.js');
-    await ticketService.createFromDocument(doc.id, 'jira', 'Jira Title', 'Jira Body', 'user-1');
+    await ticketService.createFromDocument(
+      doc.id,
+      { provider: 'jira', identifier: 'PROJ' },
+      'Jira Title',
+      'Jira Body',
+      'user-1',
+    );
 
     expect(jiraService.createIssue).toHaveBeenCalledWith(
       'https://jira.example.com', 'j@test.com', 'jira-token',

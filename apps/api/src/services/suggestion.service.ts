@@ -2,7 +2,7 @@ import { eq, and, desc, inArray, like, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { ticketSuggestions, documents, documentVersions, integrations } from '../db/schema.js';
 import { aiService } from './ai.service.js';
-import { ticketService } from './ticket.service.js';
+import { ticketService, type TicketDestination } from './ticket.service.js';
 import { githubService } from './github.service.js';
 
 export const suggestionService = {
@@ -70,14 +70,17 @@ export const suggestionService = {
     if (!suggestion) throw new Error('Suggestion not found');
     if (suggestion.status !== 'pending') throw new Error('Suggestion already reviewed');
 
-    // Create a real ticket via ticketService
+    // Convert legacy (provider, repo?) shape to TicketDestination
+    const destination: TicketDestination = provider === 'jira'
+      ? { provider: 'jira', identifier: '' }
+      : { provider, identifier: repo ? `${repo.owner}/${repo.name}` : '' };
+
     const ticket = await ticketService.createFromDocument(
       suggestion.documentId,
-      provider,
+      destination,
       suggestion.title,
       suggestion.description,
       userId,
-      repo,
     );
 
     // Mark suggestion as approved
@@ -210,8 +213,7 @@ export const suggestionService = {
   async bulkApprove(
     suggestionIds: string[],
     userId: string,
-    provider: 'github' | 'jira',
-    repo?: { owner: string; name: string },
+    destination: TicketDestination,
   ) {
     // Fetch all suggestions by IDs
     const suggestions = await db
@@ -231,11 +233,10 @@ export const suggestionService = {
       try {
         const ticket = await ticketService.createFromDocument(
           suggestion.documentId,
-          provider,
+          destination,
           suggestion.title,
           suggestion.description,
           userId,
-          repo,
         );
 
         // Mark as approved

@@ -2,7 +2,7 @@ import { eq, and, desc, isNull } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { documents, documentVersions, integrations, notifications, tickets, ticketSuggestions } from '../../db/schema.js';
 import { aiService } from '../ai.service.js';
-import { ticketService } from '../ticket.service.js';
+import { ticketService, type TicketDestination } from '../ticket.service.js';
 import { auditService } from '../audit.service.js';
 import { githubService } from '../github.service.js';
 import { isIndexableFile } from '../code-embedding.service.js';
@@ -180,13 +180,18 @@ export async function executeTool(
       const title = input.title as string;
       const body = input.body as string;
       if (!docId) throw new Error('create_ticket requires document_id');
-      if (!provider || !['github', 'jira'].includes(provider)) {
-        throw new Error("create_ticket requires provider to be 'github' or 'jira'");
+      const validProviders = ['github', 'gitlab', 'bitbucket', 'jira'];
+      if (!provider || !validProviders.includes(provider)) {
+        throw new Error("create_ticket requires provider to be 'github', 'gitlab', 'bitbucket', or 'jira'");
       }
       if (!title) throw new Error('create_ticket requires a title');
+      const ticketDestination: TicketDestination = {
+        provider: provider as TicketDestination['provider'],
+        identifier: (input.repo as string) ?? '',
+      };
       const ticket = await ticketService.createFromDocument(
         docId,
-        provider as 'github' | 'jira',
+        ticketDestination,
         title,
         body || '',
         ctx.userId,
