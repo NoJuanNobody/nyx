@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { fetchIntegrations, fetchSyncedRepos, disconnectRepo, reconnectRepo, createGitHubRepo, GitHubTokenExpiredError, type SyncedRepo, type ScanResult } from '../lib/api';
+import { fetchIntegrations, fetchSyncedRepos, disconnectRepo, reconnectRepo, createGitHubRepo, createGitLabRepo, createBitbucketRepo, GitHubTokenExpiredError, type SyncedRepo, type ScanResult } from '../lib/api';
 import { GitHubReconnectBanner } from '../components/GitHubReconnectBanner';
 import { ScanRepositoryModal, ScanResultView } from '../components/ScanRepositoryModal';
 import { RepoPickerModal } from '../components/RepoPickerModal';
@@ -110,27 +110,36 @@ function timeAgo(dateStr: string): string {
 }
 
 function CreateRepoModal({
-  integrationId,
+  gitIntegrations,
   onClose,
   onCreated,
 }: {
-  integrationId: string;
+  gitIntegrations: Array<{ id: string; type: string }>;
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const [selectedProvider, setSelectedProvider] = useState<string>(gitIntegrations[0]?.type ?? 'github');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const selectedIntegration = gitIntegrations.find((i) => i.type === selectedProvider);
+
+  function providerLabelFor(type: string) {
+    if (type === 'gitlab') return 'GitLab';
+    if (type === 'bitbucket') return 'Bitbucket';
+    return 'GitHub';
+  }
+
   const createMutation = useMutation({
-    mutationFn: () =>
-      createGitHubRepo(integrationId, {
-        name: name.trim(),
-        description: description.trim() || undefined,
-        isPrivate,
-        autoInit: true,
-      }),
+    mutationFn: () => {
+      if (!selectedIntegration) throw new Error('No integration selected');
+      const data = { name: name.trim(), description: description.trim() || undefined, isPrivate };
+      if (selectedProvider === 'gitlab') return createGitLabRepo(selectedIntegration.id, data);
+      if (selectedProvider === 'bitbucket') return createBitbucketRepo(selectedIntegration.id, data);
+      return createGitHubRepo(selectedIntegration.id, { ...data, autoInit: true });
+    },
     onSuccess: () => {
       onCreated();
       onClose();
@@ -145,18 +154,35 @@ function CreateRepoModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       data-testid="create-repo-modal-backdrop"
     >
       <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl" data-testid="create-repo-modal">
-        <h2 className="text-lg font-semibold text-slate-900">Create GitHub Repository</h2>
+        <h2 className="text-lg font-semibold text-slate-900">Create New Repository</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Create a new repository on GitHub directly from Nyx.
+          Create a new repository directly from Nyx.
         </p>
 
         <div className="mt-4 space-y-4">
+          {gitIntegrations.length > 1 && (
+            <div>
+              <label htmlFor="repo-provider" className="block text-sm font-medium text-slate-700">
+                Provider
+              </label>
+              <select
+                id="repo-provider"
+                value={selectedProvider}
+                onChange={(e) => { setSelectedProvider(e.target.value); setError(null); }}
+                className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                data-testid="create-repo-provider-select"
+              >
+                {gitIntegrations.map((i) => (
+                  <option key={i.id} value={i.type}>{providerLabelFor(i.type)}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label htmlFor="repo-name" className="block text-sm font-medium text-slate-700">
               Repository name <span className="text-red-500">*</span>
@@ -165,10 +191,7 @@ function CreateRepoModal({
               id="repo-name"
               type="text"
               value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setError(null);
-              }}
+              onChange={(e) => { setName(e.target.value); setError(null); }}
               placeholder="my-project"
               className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               data-testid="create-repo-name-input"
@@ -208,6 +231,17 @@ function CreateRepoModal({
               Private repository
             </label>
           </div>
+
+          {selectedProvider === 'gitlab' && (
+            <p className="text-xs text-slate-500">
+              Repository will be created under your GitLab account namespace.
+            </p>
+          )}
+          {selectedProvider === 'bitbucket' && (
+            <p className="text-xs text-slate-500">
+              Repository will be created in your Bitbucket workspace.
+            </p>
+          )}
 
           {error && (
             <div className="rounded-md bg-red-50 p-3 text-sm text-red-700" data-testid="create-repo-error">
@@ -262,7 +296,6 @@ export function Repositories() {
 
   // All connected git integrations (GitHub + GitLab + Bitbucket)
   const gitIntegrations = rawIntegrations?.filter((ri) => GIT_PROVIDER_TYPES.includes(ri.type as GitProvider)) ?? [];
-  const githubIntegration = gitIntegrations.find((ri) => ri.type === 'github');
 
   // Fetch synced repos for each connected git integration using useQueries
   // (useQueries is the React Query API for dynamic arrays of queries — avoids
@@ -404,7 +437,7 @@ export function Repositories() {
                 Manage {providerLabel(integration.type)} Repos
               </button>
             ))}
-            {githubIntegration && (
+            {gitIntegrations.length > 0 && (
               <button
                 type="button"
                 onClick={() => setShowCreateModal(true)}
@@ -436,9 +469,9 @@ export function Repositories() {
             </Link>
           </div>
         </div>
-        {showCreateModal && githubIntegration && (
+        {showCreateModal && gitIntegrations.length > 0 && (
           <CreateRepoModal
-            integrationId={githubIntegration.id}
+            gitIntegrations={gitIntegrations}
             onClose={() => setShowCreateModal(false)}
             onCreated={() => {
               queryClient.invalidateQueries({ queryKey: ['synced-repos'] });
@@ -449,6 +482,7 @@ export function Repositories() {
         {showManageModal && (
           <RepoPickerModal
             integrationId={showManageModal.integrationId}
+            provider={showManageModal.provider}
             initialSelected={allEnrichedRepos
               .filter((r) => r.integrationId === showManageModal.integrationId)
               .map((r) => ({ owner: r.owner, name: r.name, fullName: r.fullName }))}
@@ -484,7 +518,7 @@ export function Repositories() {
               Manage {providerLabel(integration.type)} Repos
             </button>
           ))}
-          {githubIntegration && (
+          {gitIntegrations.length > 0 && (
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
@@ -647,9 +681,9 @@ export function Repositories() {
         </div>
       )}
 
-      {showCreateModal && githubIntegration && (
+      {showCreateModal && gitIntegrations.length > 0 && (
         <CreateRepoModal
-          integrationId={githubIntegration.id}
+          gitIntegrations={gitIntegrations}
           onClose={() => setShowCreateModal(false)}
           onCreated={() => {
             queryClient.invalidateQueries({ queryKey: ['synced-repos'] });
@@ -681,6 +715,7 @@ export function Repositories() {
       {showManageModal && (
         <RepoPickerModal
           integrationId={showManageModal.integrationId}
+          provider={showManageModal.provider}
           initialSelected={allEnrichedRepos
             .filter((r) => r.integrationId === showManageModal.integrationId)
             .map((r) => ({ owner: r.owner, name: r.name, fullName: r.fullName }))}

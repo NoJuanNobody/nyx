@@ -1,41 +1,84 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchGitHubRepos, saveSelectedRepos } from '../lib/api';
+import { fetchGitHubRepos, fetchGitLabRepos, fetchBitbucketRepos, saveSelectedRepos } from '../lib/api';
 import { Portal } from './Portal';
+
+interface UnifiedRepo {
+  id: number | string;
+  fullName: string;
+  isPrivate: boolean;
+  defaultBranch: string;
+}
 
 interface RepoPickerModalProps {
   integrationId: string;
+  provider?: 'github' | 'gitlab' | 'bitbucket';
   initialSelected?: Array<{ owner: string; name: string; fullName: string }>;
   onClose: () => void;
 }
 
-export function RepoPickerModal({ integrationId, initialSelected = [], onClose }: RepoPickerModalProps) {
+function providerDisplayLabel(provider: 'github' | 'gitlab' | 'bitbucket'): string {
+  if (provider === 'gitlab') return 'GitLab';
+  if (provider === 'bitbucket') return 'Bitbucket';
+  return 'GitHub';
+}
+
+export function RepoPickerModal({ integrationId, provider, initialSelected = [], onClose }: RepoPickerModalProps) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(
     new Set(initialSelected.map((r) => r.fullName)),
   );
 
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['github-repos', integrationId],
-    queryFn: () => fetchGitHubRepos(integrationId),
+  const effectiveProvider = provider ?? 'github';
+  const providerLabel = providerDisplayLabel(effectiveProvider);
+
+  const fetchFn =
+    effectiveProvider === 'gitlab'
+      ? () => fetchGitLabRepos(integrationId)
+      : effectiveProvider === 'bitbucket'
+      ? () => fetchBitbucketRepos(integrationId)
+      : () => fetchGitHubRepos(integrationId);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['repos', effectiveProvider, integrationId],
+    queryFn: fetchFn,
   });
 
-  const repos = data?.repos ?? [];
+  // Map each provider's raw response to UnifiedRepo[]
+  const repos: UnifiedRepo[] = useMemo(() => {
+    if (!data?.repos) return [];
+    if (effectiveProvider === 'gitlab' || effectiveProvider === 'bitbucket') {
+      // GitLab and Bitbucket already use normalized camelCase field names
+      return (data.repos as Array<{ id: number | string; fullName: string; isPrivate: boolean; defaultBranch: string }>).map((r) => ({
+        id: r.id,
+        fullName: r.fullName,
+        isPrivate: r.isPrivate,
+        defaultBranch: r.defaultBranch,
+      }));
+    }
+    // GitHub uses snake_case field names
+    return (data.repos as Array<{ id: number; full_name: string; private: boolean; default_branch: string }>).map((r) => ({
+      id: r.id,
+      fullName: r.full_name,
+      isPrivate: r.private,
+      defaultBranch: r.default_branch,
+    }));
+  }, [data, effectiveProvider]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return repos;
     const q = search.toLowerCase();
-    return repos.filter((r) => r.full_name.toLowerCase().includes(q));
+    return repos.filter((r) => r.fullName.toLowerCase().includes(q));
   }, [repos, search]);
 
   const saveMutation = useMutation({
     mutationFn: () => {
       const selectedRepos = repos
-        .filter((r) => selected.has(r.full_name))
+        .filter((r) => selected.has(r.fullName))
         .map((r) => {
-          const [owner, name] = r.full_name.split('/');
-          return { owner, name, fullName: r.full_name };
+          const [owner, name] = r.fullName.split('/');
+          return { owner, name, fullName: r.fullName };
         });
       return saveSelectedRepos(integrationId, selectedRepos);
     },
@@ -58,7 +101,7 @@ export function RepoPickerModal({ integrationId, initialSelected = [], onClose }
     if (selected.size === filtered.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(filtered.map((r) => r.full_name)));
+      setSelected(new Set(filtered.map((r) => r.fullName)));
     }
   };
 
@@ -119,7 +162,7 @@ export function RepoPickerModal({ integrationId, initialSelected = [], onClose }
             </div>
           ) : isError ? (
             <div className="py-8 text-center text-xs text-red-500">
-              Failed to load repositories. Check your GitHub connection.
+              Failed to load repositories. Check your {providerLabel} connection.
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-400">
@@ -132,21 +175,21 @@ export function RepoPickerModal({ integrationId, initialSelected = [], onClose }
                   <label className="flex cursor-pointer items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors">
                     <input
                       type="checkbox"
-                      checked={selected.has(repo.full_name)}
-                      onChange={() => toggle(repo.full_name)}
+                      checked={selected.has(repo.fullName)}
+                      onChange={() => toggle(repo.fullName)}
                       className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                     />
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium text-slate-700">{repo.full_name}</span>
+                      <span className="text-sm font-medium text-slate-700">{repo.fullName}</span>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
-                          repo.private
+                          repo.isPrivate
                             ? 'bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-200'
                             : 'bg-green-50 text-green-600 ring-1 ring-inset ring-green-200'
                         }`}>
-                          {repo.private ? 'Private' : 'Public'}
+                          {repo.isPrivate ? 'Private' : 'Public'}
                         </span>
-                        <span className="text-[10px] text-slate-400">{repo.default_branch}</span>
+                        <span className="text-[10px] text-slate-400">{repo.defaultBranch}</span>
                       </div>
                     </div>
                   </label>

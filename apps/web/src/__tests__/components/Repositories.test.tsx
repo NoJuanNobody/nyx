@@ -60,6 +60,16 @@ vi.mock('../../lib/api', () => ({
       { id: 2, full_name: 'nyx/docs', private: true, default_branch: 'main' },
     ],
   }),
+  fetchGitLabRepos: vi.fn().mockResolvedValue({
+    repos: [
+      { id: 10, fullName: 'nyx-gl/backend', isPrivate: false, defaultBranch: 'main' },
+    ],
+  }),
+  fetchBitbucketRepos: vi.fn().mockResolvedValue({
+    repos: [
+      { id: 20, fullName: 'nyx-bb/service', isPrivate: true, defaultBranch: 'main' },
+    ],
+  }),
   disconnectRepo: vi.fn().mockResolvedValue({}),
   createGitHubRepo: vi.fn().mockResolvedValue({}),
   saveSelectedRepos: vi.fn().mockResolvedValue({}),
