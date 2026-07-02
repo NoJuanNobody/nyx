@@ -1077,6 +1077,108 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
     }
   });
 
+  // POST /api/integrations/:id/gitlab/repos/create — create a new GitLab project
+  app.post('/:id/gitlab/repos/create', { preHandler: [requireRole({ minimumRole: 'admin', source: 'integration' })] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { teamId } = request.user;
+    const { name, description, isPrivate } = request.body as { name: string; description?: string; isPrivate?: boolean };
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(and(eq(integrations.id, id), eq(integrations.teamId, teamId)));
+
+    if (!integration || integration.type !== 'gitlab') {
+      reply.code(404);
+      return { error: 'GitLab integration not found' };
+    }
+
+    const cfg = integration.config as { accessToken?: string; baseUrl?: string };
+    if (!cfg.accessToken) {
+      reply.code(400);
+      return { error: 'GitLab access token is missing. Please reconnect the integration.' };
+    }
+
+    if (cfg.baseUrl) gitlabService.setBaseUrl(cfg.baseUrl);
+
+    try {
+      const repo = await gitlabService.createRepo(cfg.accessToken, { name, description, isPrivate });
+      const [owner, repoName] = repo.fullName.split('/');
+      await db
+        .update(integrations)
+        .set({
+          config: {
+            ...cfg,
+            selectedRepos: [
+              ...((integration.config as { selectedRepos?: Array<{ owner: string; name: string; fullName: string }> }).selectedRepos ?? []),
+              { owner, name: repoName, fullName: repo.fullName },
+            ],
+          },
+        })
+        .where(eq(integrations.id, id));
+      return { repo };
+    } catch (err) {
+      if (err instanceof GitLabTokenExpiredError) {
+        reply.code(401);
+        return { error: 'gitlab_token_expired', message: (err as Error).message };
+      }
+      reply.code(500);
+      return { error: (err as Error).message };
+    }
+  });
+
+  // POST /api/integrations/:id/bitbucket/repos/create — create a new Bitbucket repo
+  app.post('/:id/bitbucket/repos/create', { preHandler: [requireRole({ minimumRole: 'admin', source: 'integration' })] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { teamId } = request.user;
+    const { name, description, isPrivate } = request.body as { name: string; description?: string; isPrivate?: boolean };
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(and(eq(integrations.id, id), eq(integrations.teamId, teamId)));
+
+    if (!integration || integration.type !== 'bitbucket') {
+      reply.code(404);
+      return { error: 'Bitbucket integration not found' };
+    }
+
+    const cfg = integration.config as { accessToken?: string; bitbucketUsername?: string };
+    if (!cfg.accessToken) {
+      reply.code(400);
+      return { error: 'Bitbucket access token is missing. Please reconnect the integration.' };
+    }
+    if (!cfg.bitbucketUsername) {
+      reply.code(400);
+      return { error: 'Bitbucket workspace (username) is missing. Please reconnect the integration.' };
+    }
+
+    try {
+      const repo = await bitbucketService.createRepo(cfg.accessToken, cfg.bitbucketUsername, { name, description, isPrivate });
+      const [owner, repoName] = repo.fullName.split('/');
+      await db
+        .update(integrations)
+        .set({
+          config: {
+            ...cfg,
+            selectedRepos: [
+              ...((integration.config as { selectedRepos?: Array<{ owner: string; name: string; fullName: string }> }).selectedRepos ?? []),
+              { owner, name: repoName, fullName: repo.fullName },
+            ],
+          },
+        })
+        .where(eq(integrations.id, id));
+      return { repo };
+    } catch (err) {
+      if (err instanceof BitbucketTokenExpiredError) {
+        reply.code(401);
+        return { error: 'bitbucket_token_expired', message: (err as Error).message };
+      }
+      reply.code(500);
+      return { error: (err as Error).message };
+    }
+  });
+
   // GET /api/integrations/:id/github/synced-repos — enriched synced repo data
   app.get('/:id/github/synced-repos', { preHandler: [requireRole({ minimumRole: 'viewer', source: 'integration' })] }, async (request, reply) => {
     const { id } = request.params as { id: string };

@@ -904,6 +904,26 @@ export function disconnectRepo(integrationId: string, repoFullName: string): Pro
   });
 }
 
+export function createGitLabRepo(
+  integrationId: string,
+  data: { name: string; description?: string; isPrivate?: boolean },
+): Promise<{ repo: { id: number | string; name: string; fullName: string; htmlUrl: string; defaultBranch: string } }> {
+  return request(`/integrations/${integrationId}/gitlab/repos/create`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function createBitbucketRepo(
+  integrationId: string,
+  data: { name: string; description?: string; isPrivate?: boolean },
+): Promise<{ repo: { id: string; name: string; fullName: string; htmlUrl: string; defaultBranch: string } }> {
+  return request(`/integrations/${integrationId}/bitbucket/repos/create`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export interface GitLabRepoItem {
   id: number | string;
   name: string;
