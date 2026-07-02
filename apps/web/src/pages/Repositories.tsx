@@ -449,6 +449,7 @@ export function Repositories() {
         {showManageModal && (
           <RepoPickerModal
             integrationId={showManageModal.integrationId}
+            provider={showManageModal.provider}
             initialSelected={allEnrichedRepos
               .filter((r) => r.integrationId === showManageModal.integrationId)
               .map((r) => ({ owner: r.owner, name: r.name, fullName: r.fullName }))}
@@ -681,6 +682,7 @@ export function Repositories() {
       {showManageModal && (
         <RepoPickerModal
           integrationId={showManageModal.integrationId}
+          provider={showManageModal.provider}
           initialSelected={allEnrichedRepos
             .filter((r) => r.integrationId === showManageModal.integrationId)
             .map((r) => ({ owner: r.owner, name: r.name, fullName: r.fullName }))}
