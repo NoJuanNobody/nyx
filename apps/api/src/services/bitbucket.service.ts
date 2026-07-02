@@ -35,6 +35,11 @@ export const bitbucketService: GitProvider & {
     code: string,
     redirectUri?: string,
   ): Promise<OAuthTokenResult>;
+  createRepo(
+    accessToken: string,
+    workspace: string,
+    data: { name: string; description?: string; isPrivate?: boolean },
+  ): Promise<{ id: string; name: string; fullName: string; htmlUrl: string; defaultBranch: string }>;
 } = {
   providerType: 'bitbucket' as const,
 

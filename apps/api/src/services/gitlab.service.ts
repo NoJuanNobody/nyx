@@ -51,6 +51,10 @@ export const gitlabService: GitProvider & {
     code: string,
     redirectUri?: string,
   ): Promise<OAuthTokenResult>;
+  createRepo(
+    accessToken: string,
+    data: { name: string; description?: string; isPrivate?: boolean },
+  ): Promise<{ id: number | string; name: string; fullName: string; htmlUrl: string; defaultBranch: string }>;
 } = {
   providerType: 'gitlab' as const,
   baseUrl: undefined,

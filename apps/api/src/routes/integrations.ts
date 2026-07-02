@@ -1080,13 +1080,12 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/integrations/:id/gitlab/repos/create — create a new GitLab project
   app.post('/:id/gitlab/repos/create', { preHandler: [requireRole({ minimumRole: 'admin', source: 'integration' })] }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { teamId } = request.user;
     const { name, description, isPrivate } = request.body as { name: string; description?: string; isPrivate?: boolean };
 
     const [integration] = await db
       .select()
       .from(integrations)
-      .where(and(eq(integrations.id, id), eq(integrations.teamId, teamId)));
+      .where(eq(integrations.id, id));
 
     if (!integration || integration.type !== 'gitlab') {
       reply.code(404);
@@ -1130,13 +1129,12 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
   // POST /api/integrations/:id/bitbucket/repos/create — create a new Bitbucket repo
   app.post('/:id/bitbucket/repos/create', { preHandler: [requireRole({ minimumRole: 'admin', source: 'integration' })] }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { teamId } = request.user;
     const { name, description, isPrivate } = request.body as { name: string; description?: string; isPrivate?: boolean };
 
     const [integration] = await db
       .select()
       .from(integrations)
-      .where(and(eq(integrations.id, id), eq(integrations.teamId, teamId)));
+      .where(eq(integrations.id, id));
 
     if (!integration || integration.type !== 'bitbucket') {
       reply.code(404);
