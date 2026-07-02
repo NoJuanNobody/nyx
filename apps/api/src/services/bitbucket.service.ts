@@ -70,6 +70,43 @@ export const bitbucketService: GitProvider & {
     }));
   },
 
+  async createRepo(
+    accessToken: string,
+    workspace: string,
+    data: { name: string; description?: string; isPrivate?: boolean },
+  ): Promise<{ id: string; name: string; fullName: string; htmlUrl: string; defaultBranch: string }> {
+    const slug = data.name.toLowerCase().replace(/[^a-z0-9_.-]/g, '-');
+    const res = await fetch(`${BITBUCKET_API}/repositories/${workspace}/${slug}`, {
+      method: 'POST',
+      headers: headers(accessToken),
+      body: JSON.stringify({
+        scm: 'git',
+        name: data.name,
+        description: data.description ?? '',
+        is_private: data.isPrivate ?? true,
+      }),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new BitbucketTokenExpiredError('createRepo');
+      const body = await res.text();
+      throw new Error(`Bitbucket createRepo failed: ${res.status} ${body}`);
+    }
+    const repo = (await res.json()) as {
+      uuid: string;
+      name: string;
+      full_name: string;
+      links: { html: { href: string } };
+      mainbranch?: { name: string };
+    };
+    return {
+      id: repo.uuid,
+      name: repo.name,
+      fullName: repo.full_name,
+      htmlUrl: repo.links.html.href,
+      defaultBranch: repo.mainbranch?.name ?? 'main',
+    };
+  },
+
   async getFileTree(
     accessToken: string,
     owner: string,

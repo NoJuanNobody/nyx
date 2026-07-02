@@ -89,6 +89,41 @@ export const gitlabService: GitProvider & {
     }));
   },
 
+  async createRepo(
+    accessToken: string,
+    data: { name: string; description?: string; isPrivate?: boolean },
+  ): Promise<{ id: number | string; name: string; fullName: string; htmlUrl: string; defaultBranch: string }> {
+    const res = await fetch(`${apiBase(this.baseUrl)}/projects`, {
+      method: 'POST',
+      headers: headers(accessToken),
+      body: JSON.stringify({
+        name: data.name,
+        description: data.description ?? '',
+        visibility: data.isPrivate ? 'private' : 'public',
+        initialize_with_readme: true,
+      }),
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new GitLabTokenExpiredError('createRepo');
+      const body = await res.text();
+      throw new Error(`GitLab createRepo failed: ${res.status} ${body}`);
+    }
+    const project = (await res.json()) as {
+      id: number;
+      name: string;
+      path_with_namespace: string;
+      web_url: string;
+      default_branch: string;
+    };
+    return {
+      id: project.id,
+      name: project.name,
+      fullName: project.path_with_namespace,
+      htmlUrl: project.web_url,
+      defaultBranch: project.default_branch ?? 'main',
+    };
+  },
+
   async getFileTree(
     accessToken: string,
     owner: string,
