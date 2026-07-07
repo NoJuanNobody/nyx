@@ -3,7 +3,7 @@ import { createClerkClient, verifyToken } from '@clerk/backend';
 import { createHash } from 'node:crypto';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { users, teamMembers, apiKeys, teamInvitations } from '../db/schema.js';
+import { users, teams, teamMembers, apiKeys, teamInvitations } from '../db/schema.js';
 import { config } from '../lib/config.js';
 
 // ── Production safety check ──────────────────────────────
@@ -102,6 +102,28 @@ async function upsertUser(clerkUserId: string, email: string, name: string, avat
 
   // Check for pending team invitations and auto-accept them
   await acceptPendingInvitations(newUser.id, email);
+
+  // Guarantee every new user has a team up front. Without this, a fresh signup
+  // with no invitation lands with no team, and anything needing a teamId
+  // (checkout, creating docs, integrations) silently dead-ends. GET /api/teams
+  // also lazily creates one, but doing it eagerly here closes the window where
+  // a team-requiring request can fire before that call runs. Mirrors the lazy
+  // path (same name/slug); the membership guard keeps the two idempotent.
+  const memberships = await db
+    .select({ id: teamMembers.id })
+    .from(teamMembers)
+    .where(eq(teamMembers.userId, newUser.id));
+
+  if (memberships.length === 0) {
+    const slug = `personal-${newUser.id.slice(0, 8)}`;
+    const [team] = await db
+      .insert(teams)
+      .values({ name: 'My Workspace', slug })
+      .returning();
+    await db
+      .insert(teamMembers)
+      .values({ teamId: team.id, userId: newUser.id, role: 'owner' });
+  }
 
   const role = await resolveRole(newUser.id);
   return { id: newUser.id, clerkId: clerkUserId, email, name, avatarUrl, role };

@@ -10,6 +10,16 @@ import Fastify from 'fastify';
 import { config } from '../../lib/config.js';
 import { verifyToken, createClerkClient } from '@clerk/backend';
 
+// Minimal chainable Drizzle stub that resolves to `value` (mirrors helpers/setup).
+function chain(value: unknown) {
+  const c: Record<string, unknown> = {};
+  for (const m of ['select', 'from', 'where', 'insert', 'values', 'returning', 'update', 'set', 'innerJoin', 'limit', 'orderBy']) {
+    c[m] = () => c;
+  }
+  c.then = (resolve: (v: unknown) => void) => Promise.resolve(value).then(resolve);
+  return c;
+}
+
 describe('Auth Middleware', () => {
   // Helper: build a minimal Fastify app with auth middleware
   async function buildAuthApp(configOverrides?: Partial<typeof config>) {
@@ -213,6 +223,42 @@ describe('Auth Middleware', () => {
 
     expect(res.statusCode).toBe(200);
     expect(verifyToken).toHaveBeenCalled();
+  });
+
+  it('new user with no invitation gets an owner team auto-created (#466)', async () => {
+    const newUser = {
+      id: '11111111-2222-3333-4444-555555555555',
+      clerkId: 'clerk_user_123',
+      email: 'test@example.com',
+      name: 'Test User',
+      avatarUrl: 'https://example.com/avatar.png',
+    };
+
+    // upsertUser new-user path: no user by clerkId, none by email, no pending
+    // invitations, no memberships (→ create team), then resolveRole → owner.
+    mockDb.select
+      .mockReturnValueOnce(chain([]) as any) // lookup by clerkId → none
+      .mockReturnValueOnce(chain([]) as any) // lookup by email → none
+      .mockReturnValueOnce(chain([]) as any) // pending invitations → none
+      .mockReturnValueOnce(chain([]) as any) // membership check → none → create team
+      .mockReturnValueOnce(chain([{ role: 'owner' }]) as any); // resolveRole → owner
+
+    mockDb.insert
+      .mockReturnValueOnce(chain([newUser]) as any) // insert users
+      .mockReturnValueOnce(chain([{ id: 'team-1' }]) as any) // insert teams
+      .mockReturnValueOnce(chain([]) as any); // insert team_members
+
+    const app = await buildAuthApp();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/test',
+      headers: { authorization: 'Bearer valid-clerk-jwt' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).user.role).toBe('owner');
+    // user + team + membership all inserted — without the fix, insert runs once.
+    expect(mockDb.insert).toHaveBeenCalledTimes(3);
   });
 
   it('AUTH_EXEMPT_PATHS skip auth', async () => {
