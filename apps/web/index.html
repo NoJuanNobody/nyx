@@ -2,11 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/jpeg" href="/logo.jpeg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nyx</title>
+    <title>Nyx — Keep product specs in sync with your code</title>
+    <meta name="description" content="Nyx detects when your docs drift from your code, turns doc changes into GitHub & Jira tickets, and feeds accurate specs into Cursor, Copilot & Claude Code. Version history built in." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://nyx-creative.com/" />
+    <meta name="theme-color" content="#0b0b12" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Nyx" />
+    <meta property="og:url" content="https://nyx-creative.com/" />
+    <meta property="og:title" content="Nyx — Keep product specs in sync with your code" />
+    <meta property="og:description" content="Detects doc-code drift, turns doc changes into GitHub & Jira tickets, and feeds accurate specs into Cursor, Copilot & Claude Code." />
+    <meta property="og:image" content="https://nyx-creative.com/logo.jpeg" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Nyx — Keep product specs in sync with your code" />
+    <meta name="twitter:description" content="Detects doc-code drift, turns doc changes into GitHub & Jira tickets, and feeds specs into Cursor, Copilot & Claude Code." />
+    <meta name="twitter:image" content="https://nyx-creative.com/logo.jpeg" />
     <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://clerk.nyx-creative.com https://accounts.nyx-creative.com https://*.clerk.accounts.dev; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.up.railway.app https://fonts.googleapis.com https://clerk.nyx-creative.com https://accounts.nyx-creative.com https://*.clerk.accounts.dev wss://clerk.nyx-creative.com wss://accounts.nyx-creative.com wss://*.clerk.accounts.dev; img-src 'self' data: https:; frame-src 'self' blob: https://accounts.nyx-creative.com https://*.clerk.accounts.dev;">
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://clerk.nyx-creative.com https://accounts.nyx-creative.com https://*.clerk.accounts.dev https://www.googletagmanager.com https://www.googleadservices.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.up.railway.app https://fonts.googleapis.com https://clerk.nyx-creative.com https://accounts.nyx-creative.com https://*.clerk.accounts.dev wss://clerk.nyx-creative.com wss://accounts.nyx-creative.com wss://*.clerk.accounts.dev https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://googleads.g.doubleclick.net; img-src 'self' data: https:; frame-src 'self' blob: https://accounts.nyx-creative.com https://*.clerk.accounts.dev https://td.doubleclick.net;">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -17,6 +35,54 @@
         var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
         if (dark) document.documentElement.classList.add('dark');
       })();
+    </script>
+
+    <!-- Structured data for search + AI answer engines -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Nyx",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web",
+      "url": "https://nyx-creative.com/",
+      "description": "Nyx keeps product specs in sync with code — it detects doc-code drift, turns doc changes into GitHub and Jira tickets, and feeds accurate specs into Cursor, Copilot and Claude Code.",
+      "offers": [
+        { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD" },
+        { "@type": "Offer", "name": "Starter", "price": "24", "priceCurrency": "USD" },
+        { "@type": "Offer", "name": "Pro", "price": "59", "priceCurrency": "USD" },
+        { "@type": "Offer", "name": "Team", "price": "129", "priceCurrency": "USD" }
+      ],
+      "publisher": { "@type": "Organization", "name": "Nyx", "url": "https://nyx-creative.com/", "logo": "https://nyx-creative.com/logo.jpeg" }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Nyx?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Nyx is a product-versioning platform that keeps technical documentation and specs in sync with your code as it evolves. It detects when docs drift from the codebase, lets non-technical teammates propose changes, and pushes those changes to developer tools as tickets." }
+        },
+        {
+          "@type": "Question",
+          "name": "How does Nyx keep documentation in sync with code?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Nyx connects to GitHub and detects drift between your specs and your code. When code changes make a spec outdated, Nyx flags it and can generate a GitHub or Jira ticket to reconcile the two." }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Nyx work with AI coding agents?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Nyx feeds accurate, versioned specs directly into AI coding workflows including Cursor, GitHub Copilot, and Claude Code, so agents build from up-to-date requirements." }
+        },
+        {
+          "@type": "Question",
+          "name": "Which integrations does Nyx support?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Nyx integrates with GitHub (issues and webhooks), Jira, and Confluence, and exports documentation to Markdown and PDF so there is no vendor lock-in." }
+        }
+      ]
+    }
     </script>
   </head>
   <body>
