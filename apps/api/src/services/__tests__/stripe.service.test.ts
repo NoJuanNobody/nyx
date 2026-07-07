@@ -174,6 +174,37 @@ describe('stripe.service', () => {
     });
   });
 
+  describe('getOrCreateCustomer (live mode)', () => {
+    it('ignores a stale cus_mock_* id and creates + persists a real customer', async () => {
+      // Team has a leftover mock customer id from stub-mode testing.
+      mockDbLimit.mockResolvedValueOnce([{ stripeCustomerId: 'cus_mock_team1234' }]);
+
+      const mockCustomersCreate = vi.fn().mockResolvedValue({ id: 'cus_real_live' });
+      vi.doMock('../../lib/config.js', () => ({
+        config: { STRIPE_SECRET_KEY: 'sk_test_live', STRIPE_WEBHOOK_SECRET: undefined },
+      }));
+      vi.doMock('stripe', () => ({
+        default: vi.fn().mockImplementation(() => ({
+          customers: { create: mockCustomersCreate },
+        })),
+      }));
+
+      const { getOrCreateCustomer } = await import('../stripe.service.js');
+
+      const result = await getOrCreateCustomer(
+        'team-uuid-1234',
+        'Test Team',
+        'test@example.com',
+      );
+
+      // Must NOT return the stale mock id — that fails against live Stripe.
+      expect(result).toBe('cus_real_live');
+      expect(mockCustomersCreate).toHaveBeenCalledTimes(1);
+      // Real id is persisted (replacing the mock) so later checkouts reuse it.
+      expect(mockDbUpdate).toHaveBeenCalled();
+    });
+  });
+
   describe('handleWebhookEvent', () => {
     it('should throw when STRIPE_WEBHOOK_SECRET is not configured', async () => {
       vi.doMock('../../lib/config.js', () => ({
