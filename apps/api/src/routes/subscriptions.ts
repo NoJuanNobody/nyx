@@ -6,7 +6,6 @@ import {
   getOrCreateCustomer,
   createCheckoutSession,
   createPortalSession,
-  handleWebhookEvent,
   getPriceId,
 } from '../services/stripe.service.js';
 
@@ -187,27 +186,6 @@ export const subscriptionRoutes: FastifyPluginAsync = async (fastify) => {
     return { url };
   });
 
-  // ── Stripe webhook handler ────────────────────────────
-  fastify.post('/webhook', {
-    config: {
-      // Need raw body for Stripe signature verification
-      rawBody: true,
-    },
-  }, async (request, reply) => {
-    const signature = request.headers['stripe-signature'];
-    if (!signature) {
-      return reply.code(400).send({ error: 'Missing stripe-signature header' });
-    }
-
-    try {
-      const rawBody = (request as unknown as { rawBody: string | Buffer }).rawBody
-        ?? JSON.stringify(request.body);
-
-      await handleWebhookEvent(rawBody, signature as string);
-      return { received: true };
-    } catch (err) {
-      request.log.error(err, 'Stripe webhook processing failed');
-      return reply.code(400).send({ error: 'Webhook processing failed' });
-    }
-  });
+  // Stripe webhooks are handled by the single canonical endpoint in
+  // billing.ts at POST /api/billing/webhooks/stripe (see #464, #470).
 };

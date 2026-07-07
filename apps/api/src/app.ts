@@ -182,6 +182,7 @@ export function buildApp() {
   const PUBLIC_PREFIXES = [
     '/health',
     '/api/webhooks/',
+    '/api/billing/webhooks/stripe',
     '/api/waitlist',
     '/api/slack/callback',
     '/api/slack/command',
