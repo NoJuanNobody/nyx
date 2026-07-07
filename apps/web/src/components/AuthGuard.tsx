@@ -3,6 +3,7 @@ import { useNavigate, Navigate, Outlet } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useAuthStore } from '../stores/auth.store';
 import { API_BASE, setAuthTokenGetter, fetchTeams } from '../lib/api';
+import { trackSignUp } from '../lib/analytics';
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -43,6 +44,8 @@ function ClerkAuthGuard() {
           role: 'owner',
           imageUrl: clerkUser.imageUrl,
         });
+        // Fire the signup conversion once per user (proxy for a new account).
+        trackSignUp(clerkUser.id);
       }
 
       try {

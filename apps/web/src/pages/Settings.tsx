@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, type ReactElement } from 'react';
+import { useState, useCallback, useEffect, useRef, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -15,6 +15,7 @@ import {
   startIntegrationOAuth,
 } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
+import { trackPurchase } from '../lib/analytics';
 import { Portal } from '../components/Portal';
 import { SlackIntegration } from '../components/SlackIntegration';
 import { AtlassianIntegration } from '../components/AtlassianIntegration';
@@ -1630,12 +1631,30 @@ function BillingPanel() {
   const currentPlan = subQuery.data?.plan ?? 'free';
   const plans = plansQuery.data ?? [];
 
+  // Fire the purchase conversion once when Stripe redirects back with success.
+  // Wait for plans to load so we can attach the plan price as the value.
+  const purchaseTracked = useRef(false);
+  useEffect(() => {
+    if (purchaseTracked.current || plansQuery.isLoading) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') !== 'true') return;
+    purchaseTracked.current = true;
+    const planId = params.get('plan') ?? undefined;
+    const price = plans.find((p) => p.id === planId)?.price ?? undefined;
+    trackPurchase({ plan: planId, value: price ?? undefined });
+    // Strip the params so a refresh doesn't re-fire the conversion.
+    params.delete('success');
+    params.delete('plan');
+    const qs = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+  }, [plansQuery.isLoading, plans]);
+
   const handleUpgrade = (planId: string) => {
     if (!teamId) return;
     checkoutMutation.mutate({
       plan: planId,
       teamId,
-      successUrl: `${window.location.origin}/app/settings?tab=billing&success=true`,
+      successUrl: `${window.location.origin}/app/settings?tab=billing&success=true&plan=${planId}`,
       cancelUrl: `${window.location.origin}/app/settings?tab=billing`,
     });
   };

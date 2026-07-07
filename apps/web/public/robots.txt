@@ -1,0 +1,9 @@
+# Nyx — allow all crawlers, including AI answer engines (GPTBot, ClaudeBot,
+# PerplexityBot, etc.). The authenticated app under /app is not useful to index.
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /sign-in
+Disallow: /sign-up
+
+Sitemap: https://nyx-creative.com/sitemap.xml
