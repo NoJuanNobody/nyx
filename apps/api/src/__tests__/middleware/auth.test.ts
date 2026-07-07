@@ -29,6 +29,9 @@ describe('Auth Middleware', () => {
     app.get('/api/waitlist', async () => {
       return { ok: true };
     });
+    app.post('/api/billing/webhooks/stripe', async () => {
+      return { received: true };
+    });
     await app.ready();
     return app;
   }
@@ -218,6 +221,21 @@ describe('Auth Middleware', () => {
     const res = await app.inject({ method: 'GET', url: '/api/waitlist' });
     // Should return 200 without auth (no Authorization header needed)
     expect(res.statusCode).toBe(200);
+  });
+
+  it('Stripe webhook path bypasses auth (regression: #470)', async () => {
+    // Stripe posts webhooks with no Bearer token; the canonical endpoint at
+    // /api/billing/webhooks/stripe must not be rejected by auth (was 401).
+    const app = await buildAuthApp();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/billing/webhooks/stripe',
+      payload: {},
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).received).toBe(true);
   });
 
   it('missing Authorization header → 401', async () => {

@@ -185,7 +185,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     '/api/slack/callback',
     '/api/waitlist',
     '/api/invitations',
-    '/api/subscriptions/webhook',
+    '/api/billing/webhooks/stripe',
   ];
 
   fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
