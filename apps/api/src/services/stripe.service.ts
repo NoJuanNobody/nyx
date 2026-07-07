@@ -57,7 +57,10 @@ export async function getOrCreateCustomer(
     .where(eq(subscriptions.teamId, teamId))
     .limit(1);
 
-  if (sub?.stripeCustomerId) {
+  // Reuse a previously stored REAL customer id. Ignore `cus_mock_*` ids left
+  // over from stub mode (Stripe not configured): passing them to the live
+  // Stripe API fails with "No such customer" and silently blocks checkout.
+  if (sub?.stripeCustomerId && !sub.stripeCustomerId.startsWith('cus_mock_')) {
     return sub.stripeCustomerId;
   }
 
@@ -72,12 +75,25 @@ export async function getOrCreateCustomer(
     return mockId;
   }
 
-  // Create new Stripe customer
+  // Create a new Stripe customer and persist it, replacing any stale mock id
+  // so subsequent checkouts reuse the same real customer.
   const customer = await stripe.customers.create({
     name: teamName,
     email,
     metadata: { teamId },
   });
+
+  if (sub) {
+    await db
+      .update(subscriptions)
+      .set({ stripeCustomerId: customer.id, updatedAt: new Date() })
+      .where(eq(subscriptions.teamId, teamId));
+  } else {
+    await db
+      .insert(subscriptions)
+      .values({ teamId, stripeCustomerId: customer.id })
+      .onConflictDoNothing();
+  }
 
   return customer.id;
 }
