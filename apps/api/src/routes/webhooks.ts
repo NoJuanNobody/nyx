@@ -22,14 +22,20 @@ function verifyGitHubSignature(payload: string, signature: string, secret: strin
   }
 }
 
+type RequestWithRawBody = import('fastify').FastifyRequest & { rawBody?: string };
+
 export const webhookRoutes: FastifyPluginAsync = async (app) => {
-  // We need the raw body for signature verification
+  // Preserve the original bytes for HMAC verification — re-serializing via
+  // JSON.stringify(request.body) changes key order/whitespace and breaks the
+  // signature check. parseAs:'buffer' gives us the raw bytes before parsing.
   app.addContentTypeParser(
     'application/json',
-    { parseAs: 'string' },
-    (_req, body, done) => {
+    { parseAs: 'buffer' },
+    (req, body, done) => {
+      const raw = (body as Buffer).toString('utf8');
+      (req as RequestWithRawBody).rawBody = raw;
       try {
-        done(null, JSON.parse(body as string));
+        done(null, JSON.parse(raw));
       } catch (err) {
         done(err as Error, undefined);
       }
@@ -40,7 +46,7 @@ export const webhookRoutes: FastifyPluginAsync = async (app) => {
   app.post('/github', async (request, reply) => {
     const event = request.headers['x-github-event'] as string | undefined;
     const signature = request.headers['x-hub-signature-256'] as string | undefined;
-    const rawBody = JSON.stringify(request.body);
+    const rawBody = (request as RequestWithRawBody).rawBody ?? '';
 
     // Parse repo full_name from payload for per-integration secret lookup
     const payload = request.body as { repository?: { full_name?: string } };
