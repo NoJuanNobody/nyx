@@ -101,8 +101,8 @@ describe('team credits — credits.service', () => {
     });
 
     it('upserts balance and writes a transaction', async () => {
-      // idempotency check returns nothing (not seen), then getTeamBalance returns 500
-      selectResults = [[], [{ balance: 500 }]];
+      // No stripeInvoiceId → no idempotency SELECT. Only call is getTeamBalance at the end.
+      selectResults = [[{ balance: 500 }]];
       const { addTeamCredits } = await import('../credits.service.js');
       const result = await addTeamCredits('team-1', 500, 'Monthly allotment — pro plan');
       expect(result.added).toBe(500);
