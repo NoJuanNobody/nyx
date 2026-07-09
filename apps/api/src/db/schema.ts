@@ -643,12 +643,20 @@ export const creditBalances = pgTable('credit_balances', {
 export const creditTransactions = pgTable('credit_transactions', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'set null' }),
   amount: integer('amount').notNull(),
   type: creditTransactionTypeEnum('type').notNull(),
   description: text('description').notNull(),
   taskType: text('task_type'),
   stripeSessionId: text('stripe_session_id').unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const teamCreditBalances = pgTable('team_credit_balances', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').notNull().unique().references(() => teams.id, { onDelete: 'cascade' }),
+  balance: integer('balance').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ── User Pipeline Access ──────────────────────────────────────

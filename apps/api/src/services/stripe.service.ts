@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { subscriptions, stripeCustomers, creditTransactions } from '../db/schema.js';
 import { config } from '../lib/config.js';
-import { addCredits } from './credits.service.js';
+import { addCredits, addTeamCredits, MONTHLY_CREDITS } from './credits.service.js';
 
 // ── Plan → Stripe Price ID mapping ──────────────────────
 // In production these should be real Stripe price IDs set via env vars.
@@ -297,6 +297,16 @@ export async function handleWebhookEvent(
           plan,
         });
       }
+
+      // Grant initial monthly credit allotment so the first period isn't empty
+      const initialCredits = MONTHLY_CREDITS[plan] ?? 0;
+      if (initialCredits > 0) {
+        await addTeamCredits(
+          teamId,
+          initialCredits,
+          `Initial credit allotment — ${plan} plan`,
+        );
+      }
       break;
     }
 
@@ -461,6 +471,17 @@ export async function handleWebhookEvent(
             updatedAt: new Date(),
           })
           .where(eq(subscriptions.stripeSubscriptionId, subscriptionId));
+
+        // Grant monthly credits for plans that include a platform credit allotment
+        const monthlyCredits = MONTHLY_CREDITS[subRecord.plan] ?? 0;
+        if (monthlyCredits > 0 && subRecord.teamId) {
+          await addTeamCredits(
+            subRecord.teamId,
+            monthlyCredits,
+            `Monthly credit allotment — ${subRecord.plan} plan (invoice ${invoice.id})`,
+            invoice.id,
+          );
+        }
       }
       break;
     }
