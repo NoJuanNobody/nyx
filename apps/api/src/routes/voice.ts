@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { MeetingPlatformSchema } from '@nyx/shared';
+import { requirePlan } from '../middleware/feature-gate.js';
 import {
   callIntegrationService,
   stubAdapter,
@@ -32,7 +33,7 @@ export const voiceRoutes: FastifyPluginAsync = async (fastify) => {
       meetingUrl: string;
       authToken?: string;
     };
-  }>('/join', async (request, reply) => {
+  }>('/join', { preHandler: [requirePlan({ minimumPlan: 'team' })] }, async (request, reply) => {
     const { platform, meetingUrl, authToken } = request.body;
 
     const parsed = MeetingPlatformSchema.safeParse(platform);
