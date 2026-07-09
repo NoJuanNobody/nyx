@@ -1,6 +1,16 @@
 import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { creditBalances, creditTransactions } from '../db/schema.js';
+import { creditBalances, creditTransactions, teamCreditBalances } from '../db/schema.js';
+
+// ── Monthly credit allotment per plan ─────────────────
+// Team and Enterprise are BYOK — 0 platform credits.
+export const MONTHLY_CREDITS: Record<string, number> = {
+  free: 10,
+  starter: 100,
+  pro: 500,
+  team: 0,
+  enterprise: 0,
+};
 
 // ── Credit cost configuration ─────────────────────────
 export const CREDIT_COSTS: Record<string, number> = {
@@ -154,4 +164,99 @@ export async function getTransactionHistory(
     .limit(limit);
 
   return rows;
+}
+
+// ── Team credit pool ──────────────────────────────────
+
+export async function getTeamBalance(teamId: string): Promise<number> {
+  const [row] = await db
+    .select({ balance: teamCreditBalances.balance })
+    .from(teamCreditBalances)
+    .where(eq(teamCreditBalances.teamId, teamId))
+    .limit(1);
+  return row?.balance ?? 0;
+}
+
+/**
+ * Add credits to the team pool. Idempotent per stripeInvoiceId — safe to call
+ * on webhook retries.
+ */
+export async function addTeamCredits(
+  teamId: string,
+  amount: number,
+  description: string,
+  stripeInvoiceId?: string,
+): Promise<{ balance: number; added: number }> {
+  if (amount <= 0) {
+    return { balance: await getTeamBalance(teamId), added: 0 };
+  }
+
+  // Idempotency: skip if this invoice was already processed
+  if (stripeInvoiceId) {
+    const [existing] = await db
+      .select({ id: creditTransactions.id })
+      .from(creditTransactions)
+      .where(eq(creditTransactions.stripeSessionId, stripeInvoiceId))
+      .limit(1);
+    if (existing) {
+      return { balance: await getTeamBalance(teamId), added: 0 };
+    }
+  }
+
+  await db
+    .insert(teamCreditBalances)
+    .values({ teamId, balance: amount })
+    .onConflictDoUpdate({
+      target: teamCreditBalances.teamId,
+      set: {
+        balance: sql`${teamCreditBalances.balance} + ${amount}`,
+        updatedAt: new Date(),
+      },
+    });
+
+  await db.insert(creditTransactions).values({
+    userId: teamId,
+    teamId,
+    amount,
+    type: 'purchase',
+    description,
+    stripeSessionId: stripeInvoiceId ?? null,
+  });
+
+  return { balance: await getTeamBalance(teamId), added: amount };
+}
+
+export async function deductTeamCredits(
+  teamId: string,
+  amount: number,
+  taskType: string,
+  description: string,
+): Promise<{ balance: number }> {
+  if (amount <= 0) {
+    throw { statusCode: 400, message: 'Amount must be positive' };
+  }
+
+  const current = await getTeamBalance(teamId);
+  if (current < amount) {
+    throw {
+      statusCode: 402,
+      message: `Insufficient team credits. Balance: ${current}, required: ${amount}`,
+    };
+  }
+
+  await db
+    .update(teamCreditBalances)
+    .set({ balance: sql`${teamCreditBalances.balance} - ${amount}`, updatedAt: new Date() })
+    .where(eq(teamCreditBalances.teamId, teamId));
+
+  await db.insert(creditTransactions).values({
+    userId: teamId,
+    teamId,
+    amount: -amount,
+    type: 'consumption',
+    description,
+    taskType,
+  });
+
+  return { balance: await getTeamBalance(teamId) };
 }
