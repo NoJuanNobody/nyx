@@ -7,6 +7,7 @@ import { timelineService } from '../services/timeline.service.js';
 import { auditService } from '../services/audit.service.js';
 import { embeddingPipelineService } from '../services/embedding-pipeline.service.js';
 import { contextMatchingService } from '../services/context-matching.service.js';
+import { checkLimit } from '../services/plan-limits.service.js';
 
 export const documentRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/documents?teamId=X&stage=Y — list documents for a team
@@ -135,6 +136,18 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
       request.log.error({ userId }, 'POST /documents — missing teamId in request body');
       reply.code(400);
       return { error: 'teamId is required to create a document' };
+    }
+
+    const limitCheck = await checkLimit(userId, 'create_document');
+    if (!limitCheck.allowed) {
+      reply.code(403);
+      return {
+        error: `You have reached the document limit for your plan (${limitCheck.current}/${limitCheck.limit}).`,
+        upgradeRequired: true,
+        limit: limitCheck.limit,
+        current: limitCheck.current,
+        plan: limitCheck.plan,
+      };
     }
 
     let docTitle = title;
