@@ -35,7 +35,7 @@ function resolveDefaultModel(provider: LlmProvider): string {
 
 function resolveFastModel(provider: LlmProvider): string {
   if (config.LLM_FAST_MODEL) return config.LLM_FAST_MODEL;
-  return provider === 'openrouter' ? 'anthropic/claude-3.5-haiku' : 'claude-haiku-4-5-20251001';
+  return provider === 'openrouter' ? 'anthropic/claude-haiku-4-5' : 'claude-haiku-4-5-20251001';
 }
 
 export const LLM_PROVIDER: LlmProvider = config.LLM_PROVIDER;
