@@ -13,7 +13,10 @@
  * event). Both carry first-touch UTM attribution so channels are comparable.
  */
 
-const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined;
+// Defaults to the production GA4 property; override per-environment with the
+// env var. Measurement IDs are public (visible in any tagged page), so this is
+// safe to commit and means tracking works without extra env config.
+const GA_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined) ?? 'G-KV3XWB2WSQ';
 const ADS_ID = import.meta.env.VITE_GOOGLE_ADS_ID as string | undefined;
 const ADS_SIGNUP_LABEL = import.meta.env.VITE_GOOGLE_ADS_SIGNUP_LABEL as string | undefined;
 const ADS_PURCHASE_LABEL = import.meta.env.VITE_GOOGLE_ADS_PURCHASE_LABEL as string | undefined;
