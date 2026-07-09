@@ -161,6 +161,40 @@ describe('Webhook Routes', () => {
     expect(JSON.parse(res.body).error).toContain('Missing webhook signature');
   });
 
+  it('signature verified against original raw bytes (not re-serialized JSON)', async () => {
+    // Regression guard: previously the handler did JSON.stringify(request.body)
+    // which reformats the payload and breaks the HMAC. This test sends a payload
+    // with non-default formatting to prove the raw bytes are used.
+    const body = JSON.stringify(
+      { ref: 'refs/heads/main', commits: [], repository: { full_name: 'org/repo' } },
+      null,
+      2, // pretty-print with spaces
+    );
+    const signature = signPayload(body, 'test-webhook-secret');
+
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([]),
+      }),
+    } as any);
+
+    const app = await buildWebhookApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/webhooks/github',
+      payload: body,
+      headers: {
+        'content-type': 'application/json',
+        'x-github-event': 'push',
+        'x-hub-signature-256': signature,
+      },
+    });
+
+    // If rawBody is preserved correctly, HMAC matches and we get 200.
+    // If the handler re-serializes via JSON.stringify, HMAC fails → 401.
+    expect(res.statusCode).toBe(200);
+  });
+
   it('push event triggers processing (returns result)', async () => {
     const body = JSON.stringify({ ref: 'refs/heads/main', commits: [], repository: { full_name: 'org/repo' } });
     const signature = signPayload(body, 'test-webhook-secret');
