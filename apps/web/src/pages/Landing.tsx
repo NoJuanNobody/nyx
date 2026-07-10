@@ -19,7 +19,9 @@ const FEATURES = [
 ];
 
 function useInView(ref: React.RefObject<HTMLDivElement | null>) {
-  const [inView, setInView] = useState(false);
+  // During SSR (renderToString in Node) window is undefined — default to visible
+  // so crawlers see real content. On the client the IntersectionObserver kicks in.
+  const [inView, setInView] = useState(() => typeof window === 'undefined');
   useEffect(() => {
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) setInView(true); },
