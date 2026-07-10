@@ -8,6 +8,7 @@ import websocket from '@fastify/websocket';
 import rawBody from 'fastify-raw-body';
 import { ZodError } from 'zod';
 import { healthRoutes } from './routes/health.js';
+import { redirectRoutes } from './routes/redirects.js';
 import { authRoutes } from './routes/auth.js';
 import { documentRoutes } from './routes/documents.js';
 import { versionRoutes, documentVersionRoutes } from './routes/versions.js';
@@ -179,6 +180,7 @@ export function buildApp() {
   // request.user, reject any non-public route that still has no user.
   const PUBLIC_PREFIXES = [
     '/health',
+    '/go/',
     '/api/webhooks/',
     '/api/billing/webhooks/stripe',
     '/api/waitlist',
@@ -206,6 +208,7 @@ export function buildApp() {
   });
 
   app.register(healthRoutes);
+  app.register(redirectRoutes, { prefix: '/go' });
   app.register(authRoutes, { prefix: '/api/auth' });
   app.register(documentRoutes, { prefix: '/api/documents' });
   app.register(documentVersionRoutes, { prefix: '/api/documents' });
