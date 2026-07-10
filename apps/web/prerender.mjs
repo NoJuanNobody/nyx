@@ -16,11 +16,7 @@ import { build } from 'vite';
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
-
-const ROUTES = [
-  { url: '/', out: 'dist/index.html' },
-  { url: '/pricing', out: 'dist/pricing/index.html' },
-];
+import { ROUTES, injectRouteMeta } from './prerender-meta.mjs';
 
 // 1) Bundle the SSR entry. noExternal pulls react-router into the bundle so
 //    Rollup's commonjs interop resolves its named exports (the dev SSR runner
@@ -45,9 +41,10 @@ if (!template.includes('<div id="root"></div>')) {
   throw new Error('prerender: could not find the root mount point in dist/index.html');
 }
 
-for (const { url, out } of ROUTES) {
+for (const { url, out, meta } of ROUTES) {
   const appHtml = render(url);
-  const html = template.replace('<div id="root"></div>', `<div id="root">${appHtml}</div>`);
+  let html = template.replace('<div id="root"></div>', `<div id="root">${appHtml}</div>`);
+  html = injectRouteMeta(html, meta);
   const outPath = resolve(out);
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, html);
