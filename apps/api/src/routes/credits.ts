@@ -3,6 +3,7 @@ import {
   getBalance,
   deductCredits,
   getTransactionHistory,
+  getTeamBalance,
   CREDIT_COSTS,
 } from '../services/credits.service.js';
 import { createCreditPackCheckoutSession, CREDIT_PACK_PRICES } from '../services/stripe.service.js';
@@ -104,5 +105,20 @@ export const creditRoutes: FastifyPluginAsync = async (fastify) => {
   // ── GET /packs — returns available credit packs ──
   fastify.get('/packs', async () => {
     return { packs: CREDIT_PACKS };
+  });
+
+  // ── GET /team-balance — returns team credit pool balance ──
+  fastify.get<{
+    Querystring: { teamId: string };
+  }>('/team-balance', async (request) => {
+    if (!request.user) {
+      throw { statusCode: 401, message: 'Authentication required' };
+    }
+    const { teamId } = request.query;
+    if (!teamId) {
+      throw { statusCode: 400, message: 'teamId is required' };
+    }
+    const balance = await getTeamBalance(teamId);
+    return { teamId, balance };
   });
 };

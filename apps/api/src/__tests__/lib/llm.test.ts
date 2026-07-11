@@ -5,6 +5,8 @@ import {
   mapAnthropicMessagesToOpenAI,
   mapAnthropicToolsToOpenAI,
   mapFinishReason,
+  FAST_MODEL,
+  DEFAULT_MODEL,
 } from '../../lib/llm.js';
 
 describe('llm OpenRouter adapter — Anthropic → OpenAI translation', () => {
@@ -91,5 +93,15 @@ describe('llm OpenRouter adapter — Anthropic → OpenAI translation', () => {
     expect(mapFinishReason('tool_calls')).toBe('tool_use');
     expect(mapFinishReason('stop')).toBe('end_turn');
     expect(mapFinishReason(null)).toBe('end_turn');
+  });
+
+  it('model slugs are non-empty strings (regression: ensure no placeholder or deprecated slug)', () => {
+    expect(typeof FAST_MODEL).toBe('string');
+    expect(FAST_MODEL.length).toBeGreaterThan(0);
+    expect(typeof DEFAULT_MODEL).toBe('string');
+    expect(DEFAULT_MODEL.length).toBeGreaterThan(0);
+    // Guard against the deprecated OpenRouter slug that returns 404
+    expect(FAST_MODEL).not.toBe('anthropic/claude-3.5-haiku');
+    expect(FAST_MODEL).not.toBe('anthropic/claude-3-5-haiku');
   });
 });

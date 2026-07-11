@@ -8,6 +8,7 @@ import {
   fetchIntegrations, deleteIntegration, testIntegration,
   updateProfile, deleteAccount,
   fetchPlans, fetchCurrentSubscription, createCheckoutSession, createPortalSession,
+  fetchTeamCreditBalance,
   type SubscriptionPlan, type Subscription,
   fetchTeamAiKeyStatus, addTeamAiKey, rotateTeamAiKey, removeTeamAiKey,
   fetchTeamAiUsage, type TeamAiKeyStatus, type AiUsageSummary,
@@ -1606,6 +1607,12 @@ function BillingPanel() {
     enabled: !!teamId,
   });
 
+  const teamCreditQuery = useQuery({
+    queryKey: ['team-credit-balance', teamId],
+    queryFn: () => fetchTeamCreditBalance(teamId!),
+    enabled: !!teamId,
+  });
+
   const checkoutMutation = useMutation({
     mutationFn: createCheckoutSession,
     onSuccess: (data) => {
@@ -1695,6 +1702,14 @@ function BillingPanel() {
                 {subQuery.data.cancelAtPeriodEnd
                   ? `Cancels on ${new Date(subQuery.data.currentPeriodEnd).toLocaleDateString()}`
                   : `Renews on ${new Date(subQuery.data.currentPeriodEnd).toLocaleDateString()}`}
+              </p>
+            )}
+            {teamCreditQuery.data !== undefined && (
+              <p className="mt-1.5 text-xs text-slate-500">
+                Team credits:{' '}
+                <span className="font-semibold text-slate-700">
+                  {teamCreditQuery.data.balance.toLocaleString()}
+                </span>
               </p>
             )}
           </div>

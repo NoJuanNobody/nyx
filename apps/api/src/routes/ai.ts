@@ -3,6 +3,8 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { documents, integrations } from '../db/schema.js';
 import { aiService } from '../services/ai.service.js';
+import { checkLimit } from '../services/plan-limits.service.js';
+import { deductCredits, CREDIT_COSTS } from '../services/credits.service.js';
 import { codeEmbeddingService } from '../services/code-embedding.service.js';
 import {
   analyzeSpecBody,
@@ -23,6 +25,55 @@ import {
 } from '@nyx/shared';
 
 export const aiRoutes: FastifyPluginAsync = async (app) => {
+  // Gate every /api/ai/* endpoint: verify the user's plan allows AI features.
+  app.addHook('preHandler', async (request, reply) => {
+    const userId = request.user?.id;
+    if (!userId) return; // global auth hook already handles unauthenticated
+    const check = await checkLimit(userId, 'use_ai');
+    if (!check.allowed) {
+      return reply.code(403).send({
+        error: 'AI features are not available on your current plan.',
+        upgradeRequired: true,
+        plan: check.plan,
+      });
+    }
+  });
+
+  // Deduct credits after each successful AI response (2xx status).
+  // Route URL suffix maps to a task type in CREDIT_COSTS (e.g. /detect-drift → drift_detection).
+  const ROUTE_TO_TASK: Record<string, string> = {
+    '/analyze': 'spec_analysis',
+    '/detect-drift': 'drift_detection',
+    '/generate-document': 'document_generation',
+    '/edit-document': 'document_generation',
+    '/generate-ticket': 'ticket_generation',
+    '/meeting-quality': 'agent_meeting_review',
+    '/meeting-apply-suggestions': 'agent_meeting_review',
+    '/generate-news-article': 'document_generation',
+    '/seed-from-stage': 'document_generation',
+    '/missing-sections': 'spec_analysis',
+    '/notification-reply': 'agent_custom',
+    '/decision-weight': 'spec_analysis',
+    '/seed-next-stage': 'document_generation',
+    '/suggestions': 'spec_analysis',
+    '/generate-all': 'document_generation',
+  };
+  app.addHook('onSend', async (request, reply) => {
+    if (reply.statusCode < 200 || reply.statusCode >= 300) return;
+    const userId = request.user?.id;
+    if (!userId) return;
+    const routeSuffix = request.url.replace(/\?.*$/, '').replace(/^\/api\/ai/, '');
+    const taskType = ROUTE_TO_TASK[routeSuffix];
+    if (!taskType) return;
+    const cost = CREDIT_COSTS[taskType] ?? 1;
+    try {
+      await deductCredits(userId, cost, taskType, `AI: ${routeSuffix.replace('/', '')}`);
+    } catch {
+      // Insufficient credits: log but don't fail the already-sent response
+      request.log.warn({ userId, taskType, cost }, 'AI credit deduction failed — insufficient balance');
+    }
+  });
+
   // POST /api/ai/analyze — analyze spec quality (stage-aware)
   app.post('/analyze', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, _reply) => {
     const { content, stage } = analyzeSpecBody.parse(request.body);

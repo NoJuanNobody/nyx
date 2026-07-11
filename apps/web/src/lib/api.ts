@@ -1403,6 +1403,10 @@ export function purchaseCreditPack(packId: string): Promise<{ balance: number; p
   return request<{ balance: number; pack: CreditPack }>('/credits/purchase', { method: 'POST', body: JSON.stringify({ packId }) });
 }
 
+export function fetchTeamCreditBalance(teamId: string): Promise<{ teamId: string; balance: number }> {
+  return request<{ teamId: string; balance: number }>(`/credits/team-balance?teamId=${encodeURIComponent(teamId)}`);
+}
+
 // ── Pipeline Access ─────────────────────────────────────────────────
 
 export interface OwnedPipeline {

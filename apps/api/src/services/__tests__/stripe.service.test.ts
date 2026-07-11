@@ -9,6 +9,7 @@ const mockDbLimit = vi.fn().mockResolvedValue([]);
 const mockDbInsert = vi.fn().mockReturnThis();
 const mockDbValues = vi.fn().mockReturnThis();
 const mockDbOnConflictDoNothing = vi.fn().mockResolvedValue([]);
+const mockDbOnConflictDoUpdate = vi.fn().mockResolvedValue([]);
 const mockDbUpdate = vi.fn().mockReturnThis();
 const mockDbSet = vi.fn().mockReturnThis();
 
@@ -33,6 +34,7 @@ vi.doMock('../../db/index.js', () => ({
           mockDbValues(...vArgs);
           return {
             onConflictDoNothing: mockDbOnConflictDoNothing,
+            onConflictDoUpdate: mockDbOnConflictDoUpdate,
             returning: vi.fn().mockResolvedValue([{ id: 'test-id' }]),
           };
         },
@@ -53,10 +55,11 @@ vi.doMock('../../db/index.js', () => ({
 }));
 
 vi.doMock('../../db/schema.js', () => ({
-  subscriptions: { teamId: 'teamId', stripeCustomerId: 'stripeCustomerId' },
+  subscriptions: { teamId: 'teamId', stripeCustomerId: 'stripeCustomerId', stripeSubscriptionId: 'stripeSubscriptionId' },
   stripeCustomers: { stripeCustomerId: 'stripeCustomerId' },
   teams: { id: 'id', name: 'name' },
   creditTransactions: { id: 'id', stripeSessionId: 'stripeSessionId' },
+  teamCreditBalances: { teamId: 'teamId', balance: 'balance', updatedAt: 'updatedAt' },
 }));
 
 describe('stripe.service', () => {
@@ -220,11 +223,13 @@ describe('stripe.service', () => {
     });
 
     it('should process checkout.session.completed event in stub mode', async () => {
-      // First call: select existing subscription (none found)
-      // Second call: select existing stripe customer (none found)
+      // 1. subscription lookup (none found)
+      // 2. stripe customer lookup (none found)
+      // 3. getTeamBalance inside addTeamCredits (returns 0)
       mockDbLimit
         .mockResolvedValueOnce([])  // subscription lookup
-        .mockResolvedValueOnce([]); // stripe customer lookup
+        .mockResolvedValueOnce([])  // stripe customer lookup
+        .mockResolvedValueOnce([]); // getTeamBalance after credit grant
 
       vi.doMock('../../lib/config.js', () => ({
         config: {
