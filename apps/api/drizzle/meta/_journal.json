@@ -69,7 +69,7 @@
       "idx": 9,
       "version": "7",
       "when": 1776973485533,
-      "tag": "0009_flat_major_mapleleaf",
+      "tag": "0009_custom_templates",
       "breakpoints": true
     },
     {
@@ -126,6 +126,48 @@
       "version": "7",
       "when": 1777664685533,
       "tag": "0017_team_model_preferences",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1782465426000,
+      "tag": "0018_drop_generated_videos",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1782465490000,
+      "tag": "0019_drop_podcast_scripts",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1782897947000,
+      "tag": "0020_extend_ticket_provider",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1783719038000,
+      "tag": "0021_team_credit_balances",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1782638622000,
+      "tag": "0022_stripe_session_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1782638945000,
+      "tag": "0023_add_starter_plan",
       "breakpoints": true
     }
   ]
