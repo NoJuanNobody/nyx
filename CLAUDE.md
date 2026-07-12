@@ -100,7 +100,7 @@ pnpm dev
 - Timing: use `waitFor({ state: 'visible', timeout: ... })` for elements that load asynchronously
 - Auth: tests use a seeded test user via the `authenticatedPage` fixture
 - Platform: keyboard shortcuts must use `Control` on Linux CI, `Meta` on macOS (`process.platform` check)
-- Database: CI uses `drizzle-kit push --force` to set up schema (not migrations, due to duplicate migration conflicts)
+- Database: CI uses `drizzle-kit push --force` to set up the test schema (fast, ephemeral test DB). Production uses `drizzle-kit migrate` (versioned, journal-based). See `apps/api/MIGRATIONS.md` for the full migration guide.
 
 ## Fix Guidelines
 

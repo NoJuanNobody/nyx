@@ -35,4 +35,4 @@ COPY apps/api/tsconfig.json ./apps/api/tsconfig.json
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "cd apps/api && npx drizzle-kit push --force 2>&1; cd /app && node apps/api/dist/index.js"]
+CMD ["sh", "-c", "cd apps/api && npx drizzle-kit migrate 2>&1; cd /app && node apps/api/dist/index.js"]
