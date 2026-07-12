@@ -196,7 +196,8 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     ? createClerkClient({ secretKey: config.CLERK_SECRET_KEY, publishableKey: config.CLERK_PUBLISHABLE_KEY ?? undefined })
     : null;
 
-  // Paths that are browser redirects (OAuth flows) and cannot carry Bearer tokens
+  // Paths that are browser redirects (OAuth flows) and cannot carry Bearer tokens,
+  // plus paths that handle their own auth (MCP endpoint, OAuth metadata).
   const AUTH_EXEMPT_PATHS = [
     '/health',
     '/go/',
@@ -209,6 +210,9 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     '/api/waitlist',
     '/api/invitations',
     '/api/billing/webhooks/stripe',
+    // MCP endpoint and OAuth discovery — the MCP route validates sd_ keys itself
+    '/api/mcp',
+    '/.well-known/',
   ];
 
   fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {

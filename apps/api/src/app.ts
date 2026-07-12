@@ -8,6 +8,7 @@ import websocket from '@fastify/websocket';
 import rawBody from 'fastify-raw-body';
 import { ZodError } from 'zod';
 import { healthRoutes } from './routes/health.js';
+import { mcpRoutes } from './routes/mcp.js';
 import { redirectRoutes } from './routes/redirects.js';
 import { authRoutes } from './routes/auth.js';
 import { documentRoutes } from './routes/documents.js';
@@ -192,6 +193,9 @@ export function buildApp() {
     '/api/integrations/bitbucket/callback',
     '/api/integrations/atlassian/callback',
     '/api/ws',
+    // MCP endpoint owns its own auth (sd_ key validation inside the handler)
+    '/api/mcp',
+    '/.well-known/',
   ];
 
   app.addHook('preHandler', async (request, reply) => {
@@ -208,6 +212,7 @@ export function buildApp() {
   });
 
   app.register(healthRoutes);
+  app.register(mcpRoutes);
   app.register(redirectRoutes, { prefix: '/go' });
   app.register(authRoutes, { prefix: '/api/auth' });
   app.register(documentRoutes, { prefix: '/api/documents' });
