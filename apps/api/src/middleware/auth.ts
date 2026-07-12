@@ -186,6 +186,48 @@ async function resolveRole(userId: string): Promise<AuthUser['role']> {
   return best;
 }
 
+/**
+ * Result of validating an `sd_` API key. Discriminated so callers can map each
+ * failure reason to their own error surface (the middleware preserves granular
+ * messages; the MCP route collapses them into one 401).
+ *
+ * The key's owning user row is returned; role resolution is left to the caller
+ * (the API middleware needs it for RBAC; the MCP route does not).
+ */
+export type ApiKeyValidation =
+  | { ok: true; keyUser: typeof users.$inferSelect; keyId: string }
+  | { ok: false; reason: 'not_api_key' | 'invalid' | 'expired' | 'user_not_found' };
+
+/**
+ * Validate an `sd_` API key: hash → lookup (non-revoked) → expiry check →
+ * resolve the owning user. Touches `lastUsedAt` fire-and-forget. Shared by the
+ * auth middleware and the hosted MCP route so the two never drift.
+ */
+export async function validateApiKey(token: string): Promise<ApiKeyValidation> {
+  if (!token.startsWith('sd_')) return { ok: false, reason: 'not_api_key' };
+
+  const keyHash = createHash('sha256').update(token).digest('hex');
+  const [key] = await db
+    .select()
+    .from(apiKeys)
+    .where(and(eq(apiKeys.keyHash, keyHash), eq(apiKeys.revoked, false)))
+    .limit(1);
+
+  if (!key) return { ok: false, reason: 'invalid' };
+  if (key.expiresAt && key.expiresAt < new Date()) return { ok: false, reason: 'expired' };
+
+  // Update last used timestamp (fire-and-forget)
+  setImmediate(() => {
+    db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, key.id)).catch(() => {});
+  });
+
+  // Resolve the user who created the key
+  const [keyUser] = await db.select().from(users).where(eq(users.id, key.userId)).limit(1);
+  if (!keyUser) return { ok: false, reason: 'user_not_found' };
+
+  return { ok: true, keyUser, keyId: key.id };
+}
+
 // ── Plugin ───────────────────────────────────────────────
 
 const authPlugin: FastifyPluginAsync = async (fastify) => {
@@ -196,7 +238,8 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     ? createClerkClient({ secretKey: config.CLERK_SECRET_KEY, publishableKey: config.CLERK_PUBLISHABLE_KEY ?? undefined })
     : null;
 
-  // Paths that are browser redirects (OAuth flows) and cannot carry Bearer tokens
+  // Paths that are browser redirects (OAuth flows) and cannot carry Bearer tokens,
+  // plus paths that handle their own auth (MCP endpoint, OAuth metadata).
   const AUTH_EXEMPT_PATHS = [
     '/health',
     '/go/',
@@ -209,6 +252,9 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     '/api/waitlist',
     '/api/invitations',
     '/api/billing/webhooks/stripe',
+    // MCP endpoint and OAuth discovery — the MCP route validates sd_ keys itself
+    '/api/mcp',
+    '/.well-known/',
   ];
 
   fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -242,42 +288,25 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     // ── API key auth path (sd_ prefix) ──────────────────
     if (token.startsWith('sd_')) {
       try {
-        const keyHash = createHash('sha256').update(token).digest('hex');
-        const [key] = await db
-          .select()
-          .from(apiKeys)
-          .where(and(eq(apiKeys.keyHash, keyHash), eq(apiKeys.revoked, false)))
-          .limit(1);
-
-        if (!key) {
-          reply.code(401).send({ error: 'Invalid or revoked API key' });
+        const result = await validateApiKey(token);
+        if (!result.ok) {
+          const error =
+            result.reason === 'expired'
+              ? 'API key has expired'
+              : result.reason === 'user_not_found'
+                ? 'API key user not found'
+                : 'Invalid or revoked API key';
+          reply.code(401).send({ error });
           return;
         }
 
-        if (key.expiresAt && key.expiresAt < new Date()) {
-          reply.code(401).send({ error: 'API key has expired' });
-          return;
-        }
-
-        // Update last used timestamp (fire-and-forget)
-        setImmediate(() => {
-          db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, key.id)).catch(() => {});
-        });
-
-        // Resolve the user who created the key
-        const [keyUser] = await db.select().from(users).where(eq(users.id, key.userId)).limit(1);
-        if (!keyUser) {
-          reply.code(401).send({ error: 'API key user not found' });
-          return;
-        }
-
-        const role = await resolveRole(keyUser.id);
+        const role = await resolveRole(result.keyUser.id);
         request.user = {
-          id: keyUser.id,
-          clerkId: keyUser.clerkId,
-          email: keyUser.email,
-          name: keyUser.name,
-          avatarUrl: keyUser.avatarUrl,
+          id: result.keyUser.id,
+          clerkId: result.keyUser.clerkId,
+          email: result.keyUser.email,
+          name: result.keyUser.name,
+          avatarUrl: result.keyUser.avatarUrl,
           role,
         };
         return;

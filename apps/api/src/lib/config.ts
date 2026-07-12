@@ -69,6 +69,7 @@ const envSchema = z.object({
   BITBUCKET_CLIENT_SECRET: z.string().optional(),
   CORS_ORIGINS: z.string().optional(),
   SENTRY_DSN: z.string().url().optional(),
+  MCP_SELF_URL: z.string().url().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production' && !data.GITHUB_WEBHOOK_SECRET) {
     ctx.addIssue({
