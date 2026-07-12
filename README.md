@@ -224,25 +224,51 @@ pnpm build
 
 ## MCP Server (Claude Code Integration)
 
-Nyx ships an MCP server that exposes your documents and AI features directly into Claude Code.
+Nyx exposes your documents and AI features directly into Claude Code, Cursor, and Claude Desktop via the **Model Context Protocol (MCP)**.
+
+### Connect via URL (recommended)
+
+The hosted MCP endpoint requires only an API key — no local build, no path configuration.
+
+1. Go to **Settings → API Keys** and create a new key.
+2. Copy your MCP endpoint URL (shown after key creation): `https://<your-api-host>/api/mcp`
+3. Connect in one command:
 
 ```bash
-# Build the MCP server
+claude mcp add --transport http nyx https://<your-api-host>/api/mcp
+```
+
+Then run `/mcp` in Claude Code to verify. The same URL works in Cursor (Settings → MCP → Add server URL) and Claude Desktop.
+
+> **Bearer token auth:** The endpoint accepts `Authorization: Bearer sd_...` headers. Your API key is the token — no OAuth setup needed for the hosted flow.
+
+### Local development (stdio)
+
+For offline use or local dev, run the MCP server as a local process.
+
+```bash
+# Build the local MCP server
 pnpm --filter @nyx/mcp-server build
 ```
 
-Add it to your Claude Code MCP config:
+Then add it to your client config:
 
 ```json
 {
   "mcpServers": {
     "nyx": {
       "command": "node",
-      "args": ["/path/to/nyx/packages/mcp-server/dist/index.js"]
+      "args": ["/absolute/path/to/nyx/packages/mcp-server/dist/index.js"],
+      "env": {
+        "NYX_API_KEY": "sd_...",
+        "NYX_API_URL": "http://localhost:3001"
+      }
     }
   }
 }
 ```
+
+Config files: Claude Code → `.mcp.json`; Claude Desktop → `claude_desktop_config.json`; Cursor → Settings → MCP.
 
 ---
 

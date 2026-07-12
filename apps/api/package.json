@@ -25,6 +25,8 @@
     "@fastify/multipart": "^9.4.0",
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/websocket": "^11.2.0",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@nyx/harness-core": "workspace:*",
     "@nyx/shared": "workspace:*",
     "@sentry/node": "^10.47.0",
     "@types/tar-stream": "^3.1.4",
