@@ -1,15 +1,12 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { createHash } from 'node:crypto';
-import { eq, and } from 'drizzle-orm';
-import { db } from '../db/index.js';
-import { apiKeys, users } from '../db/schema.js';
 import { TOOL_DEFINITIONS, executeTool, NyxClient } from '@nyx/harness-core';
+import { validateApiKey } from '../middleware/auth.js';
 import { config } from '../lib/config.js';
 
 // These tools depend on the local filesystem or a local search provider; they
@@ -22,28 +19,23 @@ const REMOTE_TOOL_DEFINITIONS = TOOL_DEFINITIONS.filter(
 
 // ── Internal helpers ──────────────────────────────────────
 
-async function validateSdKey(token: string) {
-  if (!token.startsWith('sd_')) return null;
-  const keyHash = createHash('sha256').update(token).digest('hex');
-  const [key] = await db
-    .select()
-    .from(apiKeys)
-    .where(and(eq(apiKeys.keyHash, keyHash), eq(apiKeys.revoked, false)))
-    .limit(1);
-  if (!key) return null;
-  if (key.expiresAt && key.expiresAt < new Date()) return null;
+/**
+ * The public base URL of this API, used to build RFC 9728 metadata. Prefers an
+ * explicit WEBHOOK_BASE_URL, then the client-facing host from the incoming
+ * request (correct behind a proxy), and only falls back to localhost when
+ * neither is available — never advertising localhost in a real deployment.
+ */
+function getApiBase(request: FastifyRequest): string {
+  if (config.WEBHOOK_BASE_URL) return config.WEBHOOK_BASE_URL;
 
-  const [user] = await db.select().from(users).where(eq(users.id, key.userId)).limit(1);
-  if (!user) return null;
+  const proto = String(request.headers['x-forwarded-proto'] ?? request.protocol)
+    .split(',')[0]
+    .trim();
+  const host = String(request.headers['x-forwarded-host'] ?? request.headers.host ?? '')
+    .split(',')[0]
+    .trim();
 
-  setImmediate(() => {
-    db.update(apiKeys)
-      .set({ lastUsedAt: new Date() })
-      .where(eq(apiKeys.id, key.id))
-      .catch(() => {});
-  });
-
-  return { user, key };
+  return host ? `${proto}://${host}` : `http://localhost:${config.PORT}`;
 }
 
 function buildMcpServer(bearerToken: string): Server {
@@ -114,11 +106,10 @@ function wwwAuthenticate(metadataUrl: string, extra?: string): string {
 // ── Route plugin ──────────────────────────────────────────
 
 export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
-  const apiBase = config.WEBHOOK_BASE_URL ?? `http://localhost:${config.PORT}`;
-
   // Protected Resource Metadata (RFC 9728) — allows MCP clients to discover
   // the authorization server (Clerk) from the MCP URL alone.
-  fastify.get('/.well-known/oauth-protected-resource', async (_request, reply) => {
+  fastify.get('/.well-known/oauth-protected-resource', async (request, reply) => {
+    const apiBase = getApiBase(request);
     reply.header('Cache-Control', 'public, max-age=3600');
     return {
       resource: `${apiBase}/api/mcp`,
@@ -136,7 +127,7 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
     method: ['GET', 'POST', 'DELETE'],
     url: '/api/mcp',
     handler: async (request, reply) => {
-      const metaUrl = resourceMetadataUrl(apiBase);
+      const metaUrl = resourceMetadataUrl(getApiBase(request));
 
       // ── Auth ────────────────────────────────────────────
       const authHeader = request.headers.authorization;
@@ -150,8 +141,8 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const token = authHeader.slice(7);
-      const validated = await validateSdKey(token);
-      if (!validated) {
+      const validated = await validateApiKey(token);
+      if (!validated.ok) {
         reply.header(
           'WWW-Authenticate',
           wwwAuthenticate(metaUrl, 'error="invalid_token"'),

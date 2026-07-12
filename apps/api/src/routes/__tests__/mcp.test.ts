@@ -39,7 +39,9 @@ vi.doMock('../../lib/config.js', () => ({
     PORT: 3001,
     NODE_ENV: 'test',
     MCP_SELF_URL: 'http://localhost:3001',
-    WEBHOOK_BASE_URL: 'http://localhost:3001',
+    // Left unset so the RFC 9728 metadata base URL is derived from the request
+    // host (the deployment-safe path) rather than falling back to localhost.
+    WEBHOOK_BASE_URL: undefined,
     APP_URL: 'http://localhost:5173',
     CLERK_PUBLISHABLE_KEY: undefined,
   },
@@ -161,6 +163,18 @@ describe('mcpRoutes', () => {
       expect(body).toHaveProperty('bearer_methods_supported');
       expect(body.bearer_methods_supported).toContain('header');
     });
+
+    it('derives the resource URL from the request host (never localhost) when WEBHOOK_BASE_URL is unset', async () => {
+      const app = await buildTestApp();
+      const res = await app.inject({
+        method: 'GET',
+        url: '/.well-known/oauth-protected-resource',
+        headers: { 'x-forwarded-proto': 'https', 'x-forwarded-host': 'api.nyx-creative.com' },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.resource).toBe('https://api.nyx-creative.com/api/mcp');
+    });
   });
 
   describe('POST /api/mcp', () => {
@@ -179,7 +193,7 @@ describe('mcpRoutes', () => {
     });
 
     it('returns 401 with WWW-Authenticate when API key is invalid', async () => {
-      // validateSdKey: key lookup returns empty
+      // validateApiKey: key lookup returns empty
       selectResults = [[]];
       const app = await buildTestApp();
       const res = await app.inject({
