@@ -5,6 +5,7 @@ import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users, teams, teamMembers, apiKeys, teamInvitations } from '../db/schema.js';
 import { config } from '../lib/config.js';
+import { getClerkClient, verifyClerkOAuthToken } from '../lib/clerk.js';
 
 // ── Production safety check ──────────────────────────────
 if (config.NODE_ENV === 'production' && config.DEV_AUTH_BYPASS === 'true') {
@@ -228,6 +229,43 @@ export async function validateApiKey(token: string): Promise<ApiKeyValidation> {
   return { ok: true, keyUser, keyId: key.id };
 }
 
+/**
+ * Resolve a verified Clerk user id to a local AuthUser. Local-first (by
+ * clerkId) so repeat calls never hit Clerk; falls back to fetching the Clerk
+ * user and upserting on first sight. Shared by the auth middleware (session +
+ * OAuth) and the hosted MCP route.
+ */
+export async function resolveClerkUser(clerkUserId: string): Promise<AuthUser | null> {
+  const [existing] = await db
+    .select()
+    .from(users)
+    .where(eq(users.clerkId, clerkUserId))
+    .limit(1);
+
+  if (existing) {
+    const role = await resolveRole(existing.id);
+    return {
+      id: existing.id,
+      clerkId: existing.clerkId,
+      email: existing.email,
+      name: existing.name,
+      avatarUrl: existing.avatarUrl,
+      role,
+    };
+  }
+
+  const client = getClerkClient();
+  if (!client) return null;
+
+  const clerkUser = await client.users.getUser(clerkUserId);
+  const email =
+    clerkUser.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)?.emailAddress ??
+    clerkUser.emailAddresses[0]?.emailAddress ??
+    '';
+  const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || email;
+  return upsertUser(clerkUserId, email, name, clerkUser.imageUrl ?? null);
+}
+
 // ── Plugin ───────────────────────────────────────────────
 
 const authPlugin: FastifyPluginAsync = async (fastify) => {
@@ -338,6 +376,20 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
 
       request.user = await upsertUser(clerkUserId, email, name, avatarUrl);
     } catch (err) {
+      // Not a valid session JWT — it may be a Clerk OAuth (machine) token, e.g.
+      // an MCP client's self-call into the REST API. Try that before rejecting.
+      try {
+        const oauth = await verifyClerkOAuthToken(authHeader);
+        if (oauth) {
+          const authUser = await resolveClerkUser(oauth.clerkUserId);
+          if (authUser) {
+            request.user = authUser;
+            return;
+          }
+        }
+      } catch (oauthErr) {
+        request.log.error(oauthErr, 'Clerk OAuth token verification failed');
+      }
       request.log.error(err, 'Clerk token verification failed');
       reply.code(401).send({ error: 'Unauthorized: invalid or expired token' });
     }

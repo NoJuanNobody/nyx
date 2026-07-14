@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39",
-    "@clerk/backend": "^1",
+    "@clerk/backend": "^3",
+    "@clerk/mcp-tools": "^0.5.0",
     "@fastify/cookie": "^11",
     "@fastify/cors": "^11",
     "@fastify/helmet": "^13.0.2",

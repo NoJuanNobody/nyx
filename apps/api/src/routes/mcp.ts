@@ -5,8 +5,11 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { generateClerkProtectedResourceMetadata } from '@clerk/mcp-tools/server';
 import { TOOL_DEFINITIONS, executeTool, NyxClient } from '@nyx/harness-core';
-import { validateApiKey } from '../middleware/auth.js';
+import { verifyClerkOAuthToken } from '../lib/clerk.js';
+import { resolveClerkUser } from '../middleware/auth.js';
+import { checkCredits, deductCredits, CREDIT_COSTS } from '../services/credits.service.js';
 import { config } from '../lib/config.js';
 
 // These tools depend on the local filesystem or a local search provider; they
@@ -16,6 +19,17 @@ const LOCAL_ONLY_TOOLS = new Set(['nyx_read_file', 'nyx_list_files', 'nyx_web_se
 const REMOTE_TOOL_DEFINITIONS = TOOL_DEFINITIONS.filter(
   (t) => !LOCAL_ONLY_TOOLS.has(t.name),
 );
+
+// Tools that consume account credits, mapped to their credit-cost task type.
+// Anything not listed (reads, metadata, meeting control) is free.
+const TOOL_TASK_TYPE: Record<string, string> = {
+  nyx_check_quality: 'spec_analysis',
+  nyx_detect_drift: 'drift_detection',
+  nyx_create_doc: 'document_generation',
+  nyx_update_doc: 'document_generation',
+  nyx_generate_meeting_doc: 'document_generation',
+  nyx_create_ticket: 'ticket_generation',
+};
 
 // ── Internal helpers ──────────────────────────────────────
 
@@ -38,7 +52,13 @@ function getApiBase(request: FastifyRequest): string {
   return host ? `${proto}://${host}` : `http://localhost:${config.PORT}`;
 }
 
-function buildMcpServer(bearerToken: string): Server {
+/**
+ * Build a stateless MCP server bound to one authenticated user. Tools execute
+ * by self-calling the Nyx REST API with the caller's OAuth token (the global
+ * auth middleware accepts it), and AI/generation tools are gated on the user's
+ * credit balance.
+ */
+function buildMcpServer(bearerToken: string, userId: string): Server {
   // Self-call: the MCP tools call the Nyx REST API, which is this same process.
   // We use 127.0.0.1:PORT to avoid going through the public load balancer.
   const selfUrl = config.MCP_SELF_URL ?? `http://127.0.0.1:${config.PORT}`;
@@ -72,12 +92,37 @@ function buildMcpServer(bearerToken: string): Server {
       };
     }
 
+    // ── Credit gate (before doing any work) ──────────────
+    const taskType = TOOL_TASK_TYPE[name];
+    const cost = taskType ? CREDIT_COSTS[taskType] ?? 0 : 0;
+    if (cost > 0) {
+      const { allowed, balance } = await checkCredits(userId, cost);
+      if (!allowed) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Insufficient credits: '${name}' costs ${cost} credit(s) but your balance is ${balance}. Add credits at ${config.APP_URL ?? 'https://nyx-creative.com'}/settings/billing.`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+
     try {
       const result = await executeTool(
         name,
         (args ?? {}) as Record<string, unknown>,
         client,
       );
+
+      // Deduct only after the tool succeeded. A failed deduction (e.g. a race
+      // that drained the balance) must not undo delivered work, so we swallow it.
+      if (cost > 0) {
+        await deductCredits(userId, cost, taskType, `MCP tool ${name}`).catch(() => {});
+      }
+
       return {
         content: [
           { type: 'text' as const, text: JSON.stringify(result, null, 2) },
@@ -106,18 +151,29 @@ function wwwAuthenticate(metadataUrl: string, extra?: string): string {
 // ── Route plugin ──────────────────────────────────────────
 
 export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
-  // Protected Resource Metadata (RFC 9728) — allows MCP clients to discover
-  // the authorization server (Clerk) from the MCP URL alone.
+  // Protected Resource Metadata (RFC 9728) — lets an MCP client discover Clerk
+  // as the authorization server from the MCP URL alone and begin the OAuth
+  // login flow. Built by @clerk/mcp-tools so the advertised endpoints match
+  // Clerk's actual authorization server (no hand-guessed domains).
   fastify.get('/.well-known/oauth-protected-resource', async (request, reply) => {
     const apiBase = getApiBase(request);
     reply.header('Cache-Control', 'public, max-age=3600');
+
+    if (config.CLERK_PUBLISHABLE_KEY) {
+      return generateClerkProtectedResourceMetadata({
+        publishableKey: config.CLERK_PUBLISHABLE_KEY,
+        resourceUrl: `${apiBase}/api/mcp`,
+        properties: {
+          resource_documentation: `${config.APP_URL ?? 'https://nyx-creative.com'}/docs/mcp`,
+        },
+      });
+    }
+
+    // Clerk not configured (local dev): minimal, valid metadata.
     return {
       resource: `${apiBase}/api/mcp`,
-      authorization_servers: config.CLERK_PUBLISHABLE_KEY
-        ? [`https://clerk.${new URL(config.APP_URL ?? 'https://nyx-creative.com').hostname}`]
-        : [],
+      authorization_servers: [],
       bearer_methods_supported: ['header'],
-      resource_documentation: `${config.APP_URL ?? 'https://nyx-creative.com'}/docs/mcp`,
     };
   });
 
@@ -129,32 +185,33 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
     handler: async (request, reply) => {
       const metaUrl = resourceMetadataUrl(getApiBase(request));
 
-      // ── Auth ────────────────────────────────────────────
+      // ── Auth: Clerk OAuth token (browser login), no API key ──
       const authHeader = request.headers.authorization;
       if (!authHeader?.startsWith('Bearer ')) {
         reply.header('WWW-Authenticate', wwwAuthenticate(metaUrl));
         return reply.code(401).send({
           error: 'Authentication required',
-          hint: 'Set Authorization: Bearer <sd_key>',
+          hint: 'Connect with `claude mcp add --transport http nyx <url>` and log in.',
           resource_metadata: metaUrl,
         });
       }
 
-      const token = authHeader.slice(7);
-      const validated = await validateApiKey(token);
-      if (!validated.ok) {
+      const oauth = await verifyClerkOAuthToken(authHeader).catch(() => null);
+      const authUser = oauth ? await resolveClerkUser(oauth.clerkUserId) : null;
+      if (!authUser) {
         reply.header(
           'WWW-Authenticate',
           wwwAuthenticate(metaUrl, 'error="invalid_token"'),
         );
         return reply.code(401).send({
-          error: 'Invalid, expired, or revoked API key',
+          error: 'Invalid or expired token — log in again to reconnect.',
           resource_metadata: metaUrl,
         });
       }
 
       // ── MCP transport ───────────────────────────────────
-      const server = buildMcpServer(token);
+      const token = authHeader.slice(7);
+      const server = buildMcpServer(token, authUser.id);
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined, // stateless: one transport per request
       });

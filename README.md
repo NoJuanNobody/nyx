@@ -228,19 +228,20 @@ Nyx exposes your documents and AI features directly into Claude Code, Cursor, an
 
 ### Connect via URL (recommended)
 
-The hosted MCP endpoint requires only an API key — no local build, no path configuration.
+The hosted MCP endpoint uses a browser login — no API key to copy, no local build, no path configuration. Tool usage draws on your account credits.
 
-1. Go to **Settings → API Keys** and create a new key.
-2. Copy your MCP endpoint URL (shown after key creation): `https://<your-api-host>/api/mcp`
-3. Connect in one command:
+1. Copy your MCP endpoint URL (**Settings → API Keys**): `https://<your-api-host>/api/mcp`
+2. Connect in one command:
 
 ```bash
 claude mcp add --transport http nyx https://<your-api-host>/api/mcp
 ```
 
-Then run `/mcp` in Claude Code to verify. The same URL works in Cursor (Settings → MCP → Add server URL) and Claude Desktop.
+3. Run `/mcp` in Claude Code and complete the browser login when prompted.
 
-> **Bearer token auth:** The endpoint accepts `Authorization: Bearer sd_...` headers. Your API key is the token — no OAuth setup needed for the hosted flow.
+The same URL works in Cursor (Settings → MCP → Add server URL) and Claude Desktop.
+
+> **OAuth login:** The endpoint authenticates via Clerk (OAuth 2.1). Your MCP client discovers the flow from `GET /.well-known/oauth-protected-resource` and signs you in through the browser — no token to paste. AI/generation tools consume account credits per call.
 
 ### Local development (stdio)
 
