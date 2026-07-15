@@ -14,13 +14,12 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/db/seed.ts",
     "db:seed-templates": "tsx src/db/seed-templates.ts",
-    "db:studio": "drizzle-kit studio",
-    "db:migrate:seed-history": "tsx scripts/seed-migration-history.ts",
-    "db:validate-migrations": "tsx scripts/validate-migrations.ts"
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39",
-    "@clerk/backend": "^1",
+    "@clerk/backend": "^3",
+    "@clerk/mcp-tools": "^0.5.0",
     "@fastify/cookie": "^11",
     "@fastify/cors": "^11",
     "@fastify/helmet": "^13.0.2",

@@ -988,24 +988,72 @@ function ApiKeysPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Info */}
-      <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4">
-        <h3 className="text-sm font-semibold text-blue-800">API Keys for MCP Server</h3>
-        <p className="mt-1 text-xs text-blue-600 leading-relaxed">
-          API keys let external tools like Claude Code, Cursor, and Copilot access your Nyx
-          workspace via the MCP server. Keys use the <code className="rounded bg-blue-100 px-1 py-0.5 font-mono text-[11px]">sd_</code> prefix.
+      {/* ── Primary: hosted MCP server via URL + login (no key needed) ── */}
+      <div className="rounded-lg border border-green-200 bg-green-50/50 p-4">
+        <h3 className="text-sm font-semibold text-green-800">Connect the hosted MCP server</h3>
+        <p className="mt-1 text-xs text-green-700 leading-relaxed">
+          Paste this URL into Claude Code, Cursor, or any MCP client and log in with your Nyx
+          account — no API key to copy. Tool usage draws on your account credits.
         </p>
+
+        {/* MCP endpoint URL */}
+        <div className="mt-3">
+          <p className="text-[11px] text-green-700 mb-1">MCP endpoint URL — paste into any MCP client:</p>
+          <div className="flex items-center gap-2">
+            <code
+              data-testid="mcp-remote-url"
+              className="flex-1 rounded bg-white px-3 py-1.5 font-mono text-xs text-slate-800 border border-green-200 select-all overflow-x-auto"
+            >
+              {mcpUrl}
+            </code>
+            <button
+              type="button"
+              data-testid="copy-mcp-url"
+              onClick={() => { navigator.clipboard.writeText(mcpUrl); }}
+              className="shrink-0 rounded-md border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 transition-colors"
+            >
+              Copy URL
+            </button>
+          </div>
+        </div>
+
+        {/* Claude Code one-liner */}
+        <div className="mt-3">
+          <p className="text-[11px] text-green-700 mb-1">Claude Code CLI one-liner:</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 rounded bg-white px-3 py-1.5 font-mono text-xs text-slate-800 border border-green-200 select-all overflow-x-auto">
+              {mcpCliOneliner}
+            </code>
+            <button
+              type="button"
+              data-testid="copy-mcp-cli"
+              onClick={() => { navigator.clipboard.writeText(mcpCliOneliner); }}
+              className="shrink-0 rounded-md border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 transition-colors"
+            >
+              Copy
+            </button>
+          </div>
+          <p className="mt-1 text-[11px] text-green-600">
+            Run this once, then use <code className="rounded bg-green-100 px-1 py-0.5 font-mono">/mcp</code> in Claude Code
+            and complete the browser login. Also works for Cursor (Settings → MCP → Add server URL) and Claude Desktop.
+          </p>
+        </div>
       </div>
 
-      {/* Create form */}
+      {/* ── Advanced: local stdio process & CLI (API key) ── */}
       <div className="rounded-lg border border-slate-200 p-4">
-        <h3 className="text-sm font-semibold text-slate-800">Create a new key</h3>
+        <h3 className="text-sm font-semibold text-slate-800">Advanced — local process &amp; CLI</h3>
+        <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+          The local stdio MCP server and the <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px]">nyx</code> CLI
+          authenticate with an <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px]">sd_</code> API key
+          instead of the login flow. Create one below if you need those.
+        </p>
         <div className="mt-3 flex gap-2">
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Key name (e.g. Claude Code)"
+            placeholder="Key name (e.g. Local CLI)"
             className="flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
           />
@@ -1039,59 +1087,8 @@ function ApiKeysPanel() {
               </button>
             </div>
 
-            {/* ── Remote URL — primary / recommended connection method ── */}
+            {/* Local stdio config */}
             <div className="mt-3 border-t border-green-200 pt-3">
-              <p className="text-xs font-semibold text-green-800 mb-2">Connect via URL (recommended)</p>
-
-              {/* MCP endpoint URL */}
-              <div className="mb-2">
-                <p className="text-[11px] text-green-700 mb-1">MCP endpoint URL — paste into any MCP client:</p>
-                <div className="flex items-center gap-2">
-                  <code
-                    data-testid="mcp-remote-url"
-                    className="flex-1 rounded bg-white px-3 py-1.5 font-mono text-xs text-slate-800 border border-green-200 select-all overflow-x-auto"
-                  >
-                    {mcpUrl}
-                  </code>
-                  <button
-                    type="button"
-                    data-testid="copy-mcp-url"
-                    onClick={() => { navigator.clipboard.writeText(mcpUrl); }}
-                    className="shrink-0 rounded-md border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 transition-colors"
-                  >
-                    Copy URL
-                  </button>
-                </div>
-              </div>
-
-              {/* Claude Code one-liner */}
-              <div>
-                <p className="text-[11px] text-green-700 mb-1">Claude Code CLI one-liner:</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 rounded bg-white px-3 py-1.5 font-mono text-xs text-slate-800 border border-green-200 select-all overflow-x-auto">
-                    {mcpCliOneliner}
-                  </code>
-                  <button
-                    type="button"
-                    data-testid="copy-mcp-cli"
-                    onClick={() => { navigator.clipboard.writeText(mcpCliOneliner); }}
-                    className="shrink-0 rounded-md border border-green-300 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 transition-colors"
-                  >
-                    Copy
-                  </button>
-                </div>
-                <p className="mt-1 text-[11px] text-green-600">
-                  Run this once, then use <code className="rounded bg-green-100 px-1 py-0.5 font-mono">/mcp</code> in Claude Code.
-                  Also works for Cursor (Settings → MCP → Add server URL) and Claude Desktop.
-                </p>
-              </div>
-            </div>
-
-            {/* ── Local stdio config — advanced / local dev fallback ── */}
-            <div className="mt-3 border-t border-green-200 pt-3">
-              <p className="text-xs font-medium text-green-700 mb-1.5">
-                Advanced — local process (for local dev or offline use)
-              </p>
               <div className="mb-1.5 flex items-center justify-between">
                 <p className="text-[11px] text-green-600">
                   Paste into <code className="rounded bg-green-100 px-1 py-0.5 font-mono">.mcp.json</code> or Claude Desktop config:
