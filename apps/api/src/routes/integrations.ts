@@ -64,6 +64,11 @@ function verifyState(signed: string): string | null {
   return payload;
 }
 
+function countLinkedDocs(teamDocs: { content: string }[], fullName: string): number {
+  const lower = fullName.toLowerCase();
+  return teamDocs.filter(d => d.content.toLowerCase().includes(lower)).length;
+}
+
 export const integrationRoutes: FastifyPluginAsync = async (app) => {
   // ── GitHub OAuth flow ──────────────────────────────────────────────
 
@@ -543,9 +548,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
         const lastPush = repoPushEvents.length > 0
           ? repoPushEvents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
           : null;
-        const linkedDocCount = teamDocs.filter(d =>
-          d.content.includes(repo.fullName) || d.content.includes(repo.name)
-        ).length;
+        const linkedDocCount = countLinkedDocs(teamDocs, repo.fullName);
         return {
           owner: repo.owner,
           name: repo.name,
@@ -573,9 +576,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       const lastPush = repoPushEvents.length > 0
         ? repoPushEvents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
         : null;
-      const linkedDocCount = teamDocs.filter(d =>
-        d.content.includes(repo.fullName) || d.content.includes(repo.name)
-      ).length;
+      const linkedDocCount = countLinkedDocs(teamDocs, repo.fullName);
       return {
         owner: repo.owner,
         name: repo.name,
@@ -1237,9 +1238,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
         : null;
 
       // Count documents that mention this repo
-      const linkedDocCount = teamDocs.filter(d =>
-        d.content.includes(repo.fullName) || d.content.includes(repo.name)
-      ).length;
+      const linkedDocCount = countLinkedDocs(teamDocs, repo.fullName);
 
       return {
         owner: repo.owner,
