@@ -788,3 +788,14 @@ export const codeChunks = pgTable('code_chunks', {
   index('code_chunks_team_repo_idx').on(table.teamId, table.repoFullName),
 ]);
 
+// ── Onboarding Progress ─────────────────────────────────────
+
+export const onboardingProgress = pgTable('onboarding_progress', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull(),
+  stepKey: text('step_key').notNull(),
+  completedAt: timestamp('completed_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('onboarding_progress_user_step_idx').on(table.userId, table.stepKey),
+]);
+

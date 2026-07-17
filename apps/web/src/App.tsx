@@ -18,7 +18,6 @@ import { IntakePage } from './pages/IntakePage';
 import { SprintPage } from './pages/SprintPage';
 import { TracePage } from './pages/TracePage';
 import { OperationsPage } from './pages/OperationsPage';
-import { GettingStarted } from './pages/GettingStarted';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 import { AcceptInvite } from './pages/AcceptInvite';
@@ -87,7 +86,7 @@ export function App() {
             <Route path="intake" element={<IntakePage />} />
             <Route path="sprint" element={<SprintPage />} />
             <Route path="operations" element={<OperationsPage />} />
-            <Route path="getting-started" element={<GettingStarted />} />
+            <Route path="getting-started" element={<Navigate to="/app/dashboard" replace />} />
             {/* In-app redirects (previously top-level) repointed under /app */}
             <Route
               path="agent-map"

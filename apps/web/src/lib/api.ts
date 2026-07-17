@@ -2009,3 +2009,13 @@ export function updateAtlassianPreferences(preferences: Record<string, unknown>)
     body: JSON.stringify(preferences),
   });
 }
+
+// ── Onboarding ─────────────────────────────────────────────────────
+
+export async function getOnboardingProgress(): Promise<{ completedSteps: string[] }> {
+  return request<{ completedSteps: string[] }>('/onboarding/progress');
+}
+
+export async function markOnboardingStep(step: string): Promise<void> {
+  await request<void>(`/onboarding/progress/${step}`, { method: 'POST' });
+}

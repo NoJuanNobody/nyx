@@ -224,7 +224,11 @@ const primaryNavItems = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onOpenGettingStarted?: () => void;
+}
+
+export function Sidebar({ onOpenGettingStarted }: SidebarProps = {}) {
   const { sidebarOpen, setSidebarOpen, sidebarCollapsed, toggleSidebarCollapsed } =
     useUIStore();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -328,18 +332,12 @@ export function Sidebar() {
 
         {/* Utility nav — Getting Started + Settings + Feedback */}
         <div className="border-t border-slate-200 pt-1 pb-1">
-          <NavLink
-            to="/app/getting-started"
-            onClick={() => setSidebarOpen(false)}
+          <button
+            type="button"
+            onClick={() => { setSidebarOpen(false); onOpenGettingStarted?.(); }}
             title={sidebarCollapsed ? 'Getting Started' : undefined}
             data-testid="getting-started-link"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors ${sidebarCollapsed ? 'justify-center px-2' : ''} ${
-                isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-              }`
-            }
+            className={`flex w-full items-center gap-3 px-4 py-2 text-sm font-medium transition-colors ${sidebarCollapsed ? 'justify-center px-2' : ''} text-slate-500 hover:bg-slate-50 hover:text-slate-700`}
           >
             <svg
               className="h-4 w-4 shrink-0"
@@ -355,7 +353,7 @@ export function Sidebar() {
               />
             </svg>
             {!sidebarCollapsed && 'Getting Started'}
-          </NavLink>
+          </button>
           <div className={`flex items-center ${sidebarCollapsed ? 'flex-col gap-1 py-1' : ''}`}>
             <NavLink
               to="/app/settings"

@@ -2,6 +2,9 @@ import { Readable } from 'node:stream';
 import { createGunzip } from 'node:zlib';
 import { pipeline } from 'node:stream/promises';
 import tarStream from 'tar-stream';
+import { eq } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { onboardingProgress } from '../db/schema.js';
 import { aiService } from './ai.service.js';
 
 export interface RepoFile {
@@ -379,6 +382,21 @@ async function scanSmallRepo(
 // ── Main service ─────────────────────────────────────────────────────
 
 export const onboardingService = {
+  async getProgress(userId: string): Promise<string[]> {
+    const rows = await db
+      .select({ stepKey: onboardingProgress.stepKey })
+      .from(onboardingProgress)
+      .where(eq(onboardingProgress.userId, userId));
+    return rows.map(r => r.stepKey);
+  },
+
+  async markStepComplete(userId: string, stepKey: string): Promise<void> {
+    await db
+      .insert(onboardingProgress)
+      .values({ userId, stepKey })
+      .onConflictDoNothing();
+  },
+
   async scanRepository(
     accessToken: string,
     owner: string,
