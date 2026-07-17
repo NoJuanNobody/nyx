@@ -68,11 +68,11 @@ test.describe('App prefix routing (#346)', () => {
     await expect(page).toHaveURL(/\/app\/operations(\?.*)?$/, { timeout: 10_000 });
   });
 
-  test('/getting-started redirects to /app/getting-started', async ({
+  test('/getting-started redirects to /app/dashboard', async ({
     authenticatedPage: page,
   }) => {
     await page.goto('/getting-started');
-    await expect(page).toHaveURL(/\/app\/getting-started(\?.*)?$/, {
+    await expect(page).toHaveURL(/\/app\/dashboard(\?.*)?$/, {
       timeout: 10_000,
     });
   });
