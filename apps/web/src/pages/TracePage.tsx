@@ -14,13 +14,14 @@ export function TracePage() {
 
   if (!id) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-slate-500">
+      <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center text-sm text-slate-500">
         No document ID provided.
       </div>
     );
   }
 
   return (
+    <div className="flex-1 min-h-0 overflow-y-auto">
     <div className="mx-auto max-w-2xl px-6 py-8">
       {/* Header */}
       <div className="mb-6">
@@ -53,6 +54,7 @@ export function TracePage() {
 
       {/* Trace */}
       <TraceView documentId={id} />
+    </div>
     </div>
   );
 }

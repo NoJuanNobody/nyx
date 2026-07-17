@@ -37,7 +37,7 @@ export function Dashboard() {
   });
 
   return (
-    <>
+    <div className="flex-1 min-h-0 overflow-y-auto">
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
@@ -86,6 +86,6 @@ export function Dashboard() {
         {teamId && <PhaseSuggestions teamId={teamId} />}
         <RecentDocuments />
       </div>
-    </>
+    </div>
   );
 }

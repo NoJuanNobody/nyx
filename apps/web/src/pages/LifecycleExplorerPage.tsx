@@ -7,9 +7,11 @@ export function LifecycleExplorerPage() {
   const isOnboarding = searchParams.get('onboarding') === '1';
 
   return (
-    <LifecycleExplorer
-      mode={isOnboarding ? 'onboarding' : 'dashboard'}
-      onComplete={isOnboarding ? () => navigate('/app/dashboard') : undefined}
-    />
+    <div className="flex-1 min-h-0 overflow-y-auto">
+      <LifecycleExplorer
+        mode={isOnboarding ? 'onboarding' : 'dashboard'}
+        onComplete={isOnboarding ? () => navigate('/app/dashboard') : undefined}
+      />
+    </div>
   );
 }
