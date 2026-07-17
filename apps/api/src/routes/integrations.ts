@@ -10,6 +10,7 @@ import { jiraService } from '../services/jira.service.js';
 import { otterService } from '../services/integrations/otter.service.js';
 import { requireRole } from '../middleware/permissions.js';
 import { config } from '../lib/config.js';
+import { onboardingService } from '../services/onboarding.service.js';
 
 // Simple state signing for OAuth CSRF protection
 const STATE_SECRET = config.CLERK_SECRET_KEY ?? randomBytes(32).toString('hex');
@@ -675,6 +676,11 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       })
       .where(eq(integrations.id, id));
 
+    // Mark onboarding step
+    if (request.user?.id) {
+      await onboardingService.markStepComplete(request.user.id, 'repo-connected').catch(() => {});
+    }
+
     return { ok: true, webhookRegistrationEnabled: false, failed: [], skipped: [] };
   });
 
@@ -961,6 +967,11 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
         updatedAt: new Date(),
       })
       .where(eq(integrations.id, id));
+
+    // Mark onboarding step
+    if (request.user?.id) {
+      await onboardingService.markStepComplete(request.user.id, 'repo-connected').catch(() => {});
+    }
 
     return {
       ok: true,

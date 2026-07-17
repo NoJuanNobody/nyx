@@ -8,6 +8,7 @@ import { GitHubTokenExpiredError } from '../services/github.service.js';
 import { claudeInsightsService } from '../services/claude-insights.service.js';
 import { notificationService } from '../services/notification.service.js';
 import { NotificationEvents } from '../services/notification-events.js';
+import { onboardingService } from '../services/onboarding.service.js';
 
 export const ticketRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/tickets?teamId=X&status=&provider= — list tickets for a team (Board view)
@@ -78,6 +79,11 @@ export const ticketRoutes: FastifyPluginAsync = async (app) => {
           });
         } catch {}
       });
+
+      // Mark onboarding step
+      if (request.user?.id) {
+        await onboardingService.markStepComplete(request.user.id, 'first-ticket-generated').catch(() => {});
+      }
 
       // Fire-and-forget: notify document owner
       const [doc] = await db

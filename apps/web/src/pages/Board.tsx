@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/auth.store';
-import { fetchTickets, syncAllTickets, updateTicketStatus, type Ticket } from '../lib/api';
+import { fetchTickets, syncAllTickets, updateTicketStatus, markOnboardingStep, type Ticket } from '../lib/api';
 import { ClaudeInsightCard } from '../components/ClaudeInsightCard';
 
 type ColumnStatus = 'open' | 'in_progress' | 'closed';
@@ -120,6 +120,10 @@ export function Board() {
   const [providerFilter, setProviderFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [repoFilter, setRepoFilter] = useState<string>('');
+
+  useEffect(() => {
+    markOnboardingStep('board-visited').catch(() => {});
+  }, []);
 
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ['tickets', currentTeamId, providerFilter, statusFilter],

@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { NotificationBell } from './NotificationBell';
+import { GettingStartedModal } from './GettingStartedModal';
 import { useUIStore } from '../stores/ui.store';
 
 export function Layout() {
   const { toggleSidebar } = useUIStore();
+  const [gettingStartedOpen, setGettingStartedOpen] = useState(false);
 
   return (
     <div className="flex h-screen bg-slate-50">
-      <Sidebar />
+      <Sidebar onOpenGettingStarted={() => setGettingStartedOpen(true)} />
+      <GettingStartedModal isOpen={gettingStartedOpen} onClose={() => setGettingStartedOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col min-h-0">
         {/* Top bar */}
