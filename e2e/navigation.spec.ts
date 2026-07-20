@@ -14,11 +14,11 @@ test.describe('Navigation', () => {
     expect(page.url()).toContain('/app/dashboard');
   });
 
-  test('N.2 — clicking Board link navigates to /board', async ({ authenticatedPage: page }) => {
-    await page.locator(SEL.sidebar.boardLink).click();
+  test('N.2 — clicking Tickets link navigates to /tickets', async ({ authenticatedPage: page }) => {
+    await page.locator(SEL.sidebar.ticketsLink).click();
 
-    await page.waitForURL(/\/board/, { timeout: 10_000 });
-    expect(page.url()).toContain('/app/board');
+    await page.waitForURL(/\/tickets/, { timeout: 10_000 });
+    expect(page.url()).toContain('/app/tickets');
   });
 
   test('N.3 — clicking Settings link navigates to /settings', async ({ authenticatedPage: page }) => {
