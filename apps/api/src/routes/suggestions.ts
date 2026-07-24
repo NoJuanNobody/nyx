@@ -153,6 +153,13 @@ export const suggestionRoutes: FastifyPluginAsync = async (app) => {
     return { jobId: job.id };
   });
 
+  // GET /api/ticket-suggestions?teamId=X — list all suggestions for a team
+  app.get('/ticket-suggestions', async (request, reply) => {
+    const { teamId } = request.query as { teamId?: string };
+    if (!teamId) { reply.code(400); return { error: 'teamId query parameter is required' }; }
+    return suggestionService.listByTeam(teamId);
+  });
+
   // PATCH /api/ticket-suggestions/:id — edit a pending suggestion
   app.patch('/ticket-suggestions/:id', async (request, reply) => {
     const { id } = request.params as { id: string };

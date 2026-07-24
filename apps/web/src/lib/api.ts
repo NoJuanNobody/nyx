@@ -1530,6 +1530,14 @@ export function fetchTicketSuggestions(documentId: string): Promise<TicketSugges
   return request<TicketSuggestion[]>(`/documents/${encodeURIComponent(documentId)}/ticket-suggestions`);
 }
 
+export interface TeamTicketSuggestion extends TicketSuggestion {
+  documentTitle: string | null;
+}
+
+export function fetchTeamTicketSuggestions(teamId: string): Promise<TeamTicketSuggestion[]> {
+  return request<TeamTicketSuggestion[]>(`/ticket-suggestions?teamId=${encodeURIComponent(teamId)}`);
+}
+
 export function generateBulkSuggestions(documentId: string): Promise<{ jobId: string }> {
   return request<{ jobId: string }>(`/documents/${encodeURIComponent(documentId)}/bulk-suggest-tickets`, {
     method: 'POST',

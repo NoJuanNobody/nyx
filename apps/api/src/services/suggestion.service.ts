@@ -56,6 +56,26 @@ export const suggestionService = {
       .orderBy(desc(ticketSuggestions.createdAt));
   },
 
+  async listByTeam(teamId: string) {
+    return db
+      .select({
+        id: ticketSuggestions.id,
+        documentId: ticketSuggestions.documentId,
+        title: ticketSuggestions.title,
+        description: ticketSuggestions.description,
+        labels: ticketSuggestions.labels,
+        status: ticketSuggestions.status,
+        reviewedById: ticketSuggestions.reviewedById,
+        createdAt: ticketSuggestions.createdAt,
+        updatedAt: ticketSuggestions.updatedAt,
+        documentTitle: documents.title,
+      })
+      .from(ticketSuggestions)
+      .innerJoin(documents, eq(ticketSuggestions.documentId, documents.id))
+      .where(eq(documents.teamId, teamId))
+      .orderBy(desc(ticketSuggestions.createdAt));
+  },
+
   async approve(
     suggestionId: string,
     userId: string,
