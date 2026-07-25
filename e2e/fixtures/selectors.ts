@@ -7,7 +7,7 @@ export const SEL = {
   // ── Sidebar ──────────────────────────────────────────
   sidebar: {
     logo: 'a:has-text("Nyx")',
-    boardLink: 'a:has-text("Board")',
+    ticketsLink: 'a:has-text("Tickets")',
     settingsLink: 'a:has-text("Settings")',
     teamSwitcher: '[data-testid="team-switcher"]',
     signOutButton: 'aside button[title="Sign out"]',
@@ -113,15 +113,18 @@ export const SEL = {
     revokeButton: 'main button:has-text("Revoke")',
   },
 
-  // ── Board ────────────────────────────────────────────
-  board: {
-    title: 'h1:has-text("Board")',
-    providerFilter: '[data-testid="provider-filter"]',
-    syncAllButton: 'button:has-text("Sync All")',
-    columnOpen: '[data-testid="board-column-open"]',
-    columnInProgress: '[data-testid="board-column-in_progress"]',
-    columnClosed: '[data-testid="board-column-closed"]',
-    ticketCard: 'div.rounded-lg.border',
+  // ── Tickets ────────────────────────────────────────────
+  tickets: {
+    title: '[data-testid="tickets-title"]',
+    tabGenerated: '[data-testid="tickets-tab-generated"]',
+    tabPosted: '[data-testid="tickets-tab-posted"]',
+    generatedTab: '[data-testid="tickets-generated-tab"]',
+    postedTab: '[data-testid="tickets-posted-tab"]',
+    destinationSelector: '[data-testid="tickets-destination-selector"]',
+    postButton: '[data-testid="tickets-post-button"]',
+    providerFilter: '[data-testid="tickets-provider-filter"]',
+    statusFilter: '[data-testid="tickets-status-filter"]',
+    syncAllButton: '[data-testid="tickets-sync-button"]',
   },
 
   // ── Claude Insights ───────────────────────────────────

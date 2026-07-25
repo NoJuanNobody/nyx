@@ -27,9 +27,9 @@ test.describe('Smoke Tests', () => {
   });
 
   // 5. Navigation between main routes works
-  test('navigation to board page works', async ({ authenticatedPage: page }) => {
-    await page.click(SEL.sidebar.boardLink);
-    await expect(page).toHaveURL(/\/board/);
+  test('navigation to tickets page works', async ({ authenticatedPage: page }) => {
+    await page.click(SEL.sidebar.ticketsLink);
+    await expect(page).toHaveURL(/\/tickets/);
   });
 
   // 6. Navigation to settings works

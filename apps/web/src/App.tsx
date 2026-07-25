@@ -12,7 +12,7 @@ import { Dashboard } from './pages/Dashboard';
 import { DocumentEditor } from './pages/DocumentEditor';
 import { Settings } from './pages/Settings';
 import { Landing } from './pages/Landing';
-import { Board } from './pages/Board';
+import { Tickets } from './pages/Tickets';
 import { Repositories } from './pages/Repositories';
 import { IntakePage } from './pages/IntakePage';
 import { SprintPage } from './pages/SprintPage';
@@ -81,7 +81,8 @@ export function App() {
             <Route path="documents/:id" element={<DocumentEditor />} />
             <Route path="documents/:id/trace" element={<TracePage />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="board" element={<Board />} />
+            <Route path="tickets" element={<Tickets />} />
+            <Route path="board" element={<Navigate to="/app/tickets" replace />} />
             <Route path="repositories" element={<Repositories />} />
             <Route path="intake" element={<IntakePage />} />
             <Route path="sprint" element={<SprintPage />} />
@@ -117,7 +118,7 @@ export function App() {
           element={<LegacyDocumentRedirect suffix="/trace" />}
         />
         <Route path="/settings" element={<LegacyRedirect to="/app/settings" />} />
-        <Route path="/board" element={<LegacyRedirect to="/app/board" />} />
+        <Route path="/board" element={<LegacyRedirect to="/app/tickets" />} />
         <Route
           path="/repositories"
           element={<LegacyRedirect to="/app/repositories" />}
