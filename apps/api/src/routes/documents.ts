@@ -8,6 +8,7 @@ import { auditService } from '../services/audit.service.js';
 import { embeddingPipelineService } from '../services/embedding-pipeline.service.js';
 import { contextMatchingService } from '../services/context-matching.service.js';
 import { checkLimit } from '../services/plan-limits.service.js';
+import { onboardingService } from '../services/onboarding.service.js';
 
 export const documentRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/documents?teamId=X&stage=Y — list documents for a team
@@ -191,6 +192,11 @@ export const documentRoutes: FastifyPluginAsync = async (app) => {
           request.log.warn({ err: e, docId: doc.id }, 'embedding indexing failed');
         }
       });
+
+      // Mark onboarding step
+      if (request.user?.id) {
+        await onboardingService.markStepComplete(request.user.id, 'first-doc-created').catch(() => {});
+      }
 
       reply.code(201);
       return doc;

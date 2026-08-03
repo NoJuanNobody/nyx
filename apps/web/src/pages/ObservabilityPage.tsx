@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MetricsDashboard } from '../components/MetricsDashboard';
-import { fetchObservabilityDashboard } from '../lib/api';
+import { fetchObservabilityDashboard, markOnboardingStep } from '../lib/api';
 
 interface PipelineHealthSummary {
   stage: string;
@@ -33,6 +33,10 @@ export function ObservabilityPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    markOnboardingStep('observability-visited').catch(() => {});
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function load() {
@@ -63,6 +67,7 @@ export function ObservabilityPage() {
   }, []);
 
   return (
+    <div className="flex-1 min-h-0 overflow-y-auto">
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-slate-900">Observability</h1>
@@ -86,6 +91,7 @@ export function ObservabilityPage() {
       {data && (
         <MetricsDashboard pipelineHealth={data.pipelineHealth} alerts={data.alerts} />
       )}
+    </div>
     </div>
   );
 }

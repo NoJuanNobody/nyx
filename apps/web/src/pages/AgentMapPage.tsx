@@ -13,6 +13,7 @@ export function AgentMapPage() {
   });
 
   return (
+    <div className="flex-1 min-h-0 overflow-y-auto">
     <div className="mx-auto max-w-6xl px-6 py-8">
       {/* Header */}
       <div className="mb-6">
@@ -42,6 +43,7 @@ export function AgentMapPage() {
 
       {/* Agent grid */}
       {agents && <AgentMap agents={agents} />}
+    </div>
     </div>
   );
 }

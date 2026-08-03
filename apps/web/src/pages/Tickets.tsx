@@ -11,6 +11,7 @@ import {
   dismissTicketSuggestion,
   fetchIntegrations,
   fetchJobStatus,
+  markOnboardingStep,
   type Ticket,
   type TeamTicketSuggestion,
   type TicketDestination,
@@ -512,6 +513,10 @@ type Tab = 'generated' | 'posted';
 export function Tickets() {
   const currentTeamId = useAuthStore((s) => s.currentTeamId);
   const [activeTab, setActiveTab] = useState<Tab>('generated');
+
+  useEffect(() => {
+    markOnboardingStep('board-visited').catch(() => {});
+  }, []);
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto min-h-0">

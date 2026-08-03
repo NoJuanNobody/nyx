@@ -98,4 +98,31 @@ export const onboardingRoutes: FastifyPluginAsync = async (app) => {
       fileCount: result.fileCount,
     };
   });
+
+  app.get('/progress', async (request, reply) => {
+    const userId = request.user?.id;
+    if (!userId) {
+      reply.code(401);
+      return { error: 'Authentication required' };
+    }
+    const completedSteps = await onboardingService.getProgress(userId);
+    return { completedSteps };
+  });
+
+  app.post('/progress/:step', async (request, reply) => {
+    const userId = request.user?.id;
+    if (!userId) {
+      reply.code(401);
+      return { error: 'Authentication required' };
+    }
+    const { step } = request.params as { step: string };
+    const validSteps = ['repo-connected', 'first-doc-created', 'board-visited', 'first-ticket-generated', 'observability-visited'];
+    if (!validSteps.includes(step)) {
+      reply.code(400);
+      return { error: 'Invalid step key' };
+    }
+    await onboardingService.markStepComplete(userId, step);
+    reply.code(204);
+    return;
+  });
 };

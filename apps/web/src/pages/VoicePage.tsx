@@ -119,6 +119,7 @@ export function VoicePage() {
   const stateInfo = session ? STATE_LABELS[session.state] ?? STATE_LABELS.idle : null;
 
   return (
+    <div className="flex-1 min-h-0 overflow-y-auto">
     <div className="mx-auto max-w-2xl px-6 py-8">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-slate-900">Voice</h1>
@@ -291,6 +292,7 @@ export function VoicePage() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

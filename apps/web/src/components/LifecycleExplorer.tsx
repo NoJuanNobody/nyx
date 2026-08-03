@@ -23,7 +23,7 @@ export function LifecycleExplorer({
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href =
-      'https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap';
+      'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap';
     document.head.appendChild(link);
     setTimeout(() => setAnimated(true), 100);
   }, []);
@@ -37,7 +37,7 @@ export function LifecycleExplorer({
         background: '#080C10',
         minHeight: '100vh',
         color: '#E2E8F0',
-        fontFamily: "'Syne', sans-serif",
+        fontFamily: "var(--font-heading)",
         padding: '36px 28px',
         position: 'relative',
         overflow: 'hidden',

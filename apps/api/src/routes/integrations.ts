@@ -10,6 +10,7 @@ import { jiraService } from '../services/jira.service.js';
 import { otterService } from '../services/integrations/otter.service.js';
 import { requireRole } from '../middleware/permissions.js';
 import { config } from '../lib/config.js';
+import { onboardingService } from '../services/onboarding.service.js';
 
 // Simple state signing for OAuth CSRF protection
 const STATE_SECRET = config.CLERK_SECRET_KEY ?? randomBytes(32).toString('hex');
@@ -62,6 +63,11 @@ function verifyState(signed: string): string | null {
   const expected = createHmac('sha256', STATE_SECRET).update(payload).digest('hex');
   if (!timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return null;
   return payload;
+}
+
+function countLinkedDocs(teamDocs: { content: string }[], fullName: string): number {
+  const lower = fullName.toLowerCase();
+  return teamDocs.filter(d => d.content.toLowerCase().includes(lower)).length;
 }
 
 export const integrationRoutes: FastifyPluginAsync = async (app) => {
@@ -543,9 +549,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
         const lastPush = repoPushEvents.length > 0
           ? repoPushEvents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
           : null;
-        const linkedDocCount = teamDocs.filter(d =>
-          d.content.includes(repo.fullName) || d.content.includes(repo.name)
-        ).length;
+        const linkedDocCount = countLinkedDocs(teamDocs, repo.fullName);
         return {
           owner: repo.owner,
           name: repo.name,
@@ -573,9 +577,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       const lastPush = repoPushEvents.length > 0
         ? repoPushEvents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
         : null;
-      const linkedDocCount = teamDocs.filter(d =>
-        d.content.includes(repo.fullName) || d.content.includes(repo.name)
-      ).length;
+      const linkedDocCount = countLinkedDocs(teamDocs, repo.fullName);
       return {
         owner: repo.owner,
         name: repo.name,
@@ -673,6 +675,11 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
         updatedAt: new Date(),
       })
       .where(eq(integrations.id, id));
+
+    // Mark onboarding step
+    if (request.user?.id) {
+      await onboardingService.markStepComplete(request.user.id, 'repo-connected').catch(() => {});
+    }
 
     return { ok: true, webhookRegistrationEnabled: false, failed: [], skipped: [] };
   });
@@ -961,6 +968,11 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
       })
       .where(eq(integrations.id, id));
 
+    // Mark onboarding step
+    if (request.user?.id) {
+      await onboardingService.markStepComplete(request.user.id, 'repo-connected').catch(() => {});
+    }
+
     return {
       ok: true,
       webhookRegistrationEnabled,
@@ -1237,9 +1249,7 @@ export const integrationRoutes: FastifyPluginAsync = async (app) => {
         : null;
 
       // Count documents that mention this repo
-      const linkedDocCount = teamDocs.filter(d =>
-        d.content.includes(repo.fullName) || d.content.includes(repo.name)
-      ).length;
+      const linkedDocCount = countLinkedDocs(teamDocs, repo.fullName);
 
       return {
         owner: repo.owner,
