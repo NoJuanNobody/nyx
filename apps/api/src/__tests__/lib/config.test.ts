@@ -88,7 +88,7 @@ const validProdBase = {
   DATABASE_URL: DB,
   NODE_ENV: 'production' as const,
   GITHUB_WEBHOOK_SECRET: 'wh-secret',
-  CLERK_SECRET_KEY: 'sk_live_abc123',
+  CLERK_SECRET_KEY: 'clerk-live-key-not-real',
   ENCRYPTION_SECRET: 'enc-secret-32-chars-xxxxxxxxxxxxxxxx',
   BYOK_ENCRYPTION_SECRET: 'byok-secret-32-chars-xxxxxxxxxxxxxx',
 };
@@ -148,7 +148,7 @@ describe('Config Validation', () => {
   it('production with Clerk test key fails', () => {
     const result = envSchema.safeParse({
       ...validProdBase,
-      CLERK_SECRET_KEY: 'sk_test_compromised_key',
+      CLERK_SECRET_KEY: 'sk_test_compromised_key', // gitleaks:allow
     });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -187,7 +187,7 @@ describe('Config Validation', () => {
   it('production with Stripe test key fails', () => {
     const result = envSchema.safeParse({
       ...validProdBase,
-      STRIPE_SECRET_KEY: 'sk_test_stripe_key',
+      STRIPE_SECRET_KEY: 'sk_test_stripe_key', // gitleaks:allow
     });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -214,7 +214,7 @@ describe('Config Validation', () => {
     const result = envSchema.safeParse({
       ...validProdBase,
       PORT: '8080',
-      STRIPE_SECRET_KEY: 'sk_live_stripe_real',
+      STRIPE_SECRET_KEY: 'stripe-live-key-not-real',
     });
     expect(result.success).toBe(true);
     if (result.success) {
@@ -226,8 +226,8 @@ describe('Config Validation', () => {
     const result = envSchema.safeParse({
       DATABASE_URL: DB,
       NODE_ENV: 'development',
-      CLERK_SECRET_KEY: 'sk_test_dev_key',
-      STRIPE_SECRET_KEY: 'sk_test_stripe_test',
+      CLERK_SECRET_KEY: 'sk_test_dev_key', // gitleaks:allow
+      STRIPE_SECRET_KEY: 'sk_test_stripe_test', // gitleaks:allow
     });
     expect(result.success).toBe(true);
   });
