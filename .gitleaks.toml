@@ -1,0 +1,8 @@
+[allowlist]
+  description = "Allowlisted items"
+  # Commit 49b0fea introduced 'sk_live_abc123' as a placeholder in a test
+  # fixture (config.test.ts line 91). The value was replaced with a plain
+  # string in the follow-up commit 0d91e6f. The finding is a false positive —
+  # the string is not a real credential. Allowlisting the commit keeps CI clean
+  # without suppressing future real-secret findings.
+  commits = ["49b0feaca97b060933067c09613d28eec5c2f5e0"]
