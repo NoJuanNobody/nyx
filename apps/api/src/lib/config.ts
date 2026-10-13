@@ -87,6 +87,62 @@ const envSchema = z.object({
       path: ['OPENROUTER_API_KEY'],
     });
   }
+
+  if (data.NODE_ENV === 'production') {
+    // Clerk auth key is required — without it, auth middleware silently bypasses all requests.
+    if (!data.CLERK_SECRET_KEY) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'CLERK_SECRET_KEY is required in production',
+        path: ['CLERK_SECRET_KEY'],
+      });
+    }
+    // Reject test-mode Clerk keys — Clerk live keys start with sk_live_.
+    // Test keys (sk_test_) cannot authenticate real users and may have been
+    // compromised in the 2026-04-19 security breach.
+    if (data.CLERK_SECRET_KEY?.startsWith('sk_test_')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'CLERK_SECRET_KEY must be a live key (sk_live_*) in production — test keys are not accepted',
+        path: ['CLERK_SECRET_KEY'],
+      });
+    }
+    // ENCRYPTION_SECRET is required to encrypt and decrypt stored OAuth tokens
+    // (GitHub, Atlassian, Slack). Missing it causes silent failures in integrations.
+    if (!data.ENCRYPTION_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'ENCRYPTION_SECRET is required in production',
+        path: ['ENCRYPTION_SECRET'],
+      });
+    }
+    // BYOK_ENCRYPTION_SECRET encrypts user-provided API keys stored in the database.
+    if (!data.BYOK_ENCRYPTION_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'BYOK_ENCRYPTION_SECRET is required in production',
+        path: ['BYOK_ENCRYPTION_SECRET'],
+      });
+    }
+    // Reject test-mode Stripe keys — test keys cannot process real payments.
+    if (data.STRIPE_SECRET_KEY?.startsWith('sk_test_')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'STRIPE_SECRET_KEY must be a live key (sk_live_*) in production — test keys are not accepted',
+        path: ['STRIPE_SECRET_KEY'],
+      });
+    }
+  }
+
+  // Belt-and-suspenders guard: the auth middleware already rejects DEV_AUTH_BYPASS in
+  // production at request time; this check prevents the server from starting at all.
+  if (data.NODE_ENV === 'production' && data.DEV_AUTH_BYPASS === 'true') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'DEV_AUTH_BYPASS must not be "true" in production',
+      path: ['DEV_AUTH_BYPASS'],
+    });
+  }
 });
 
 // Inject localhost fallback only in development
