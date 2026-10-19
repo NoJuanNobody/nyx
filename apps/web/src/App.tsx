@@ -6,6 +6,7 @@ import {
   useLocation,
   useParams,
 } from 'react-router-dom';
+import { HashbrownProvider } from '@hashbrownai/react';
 import { Layout } from './components/Layout';
 import { AuthGuard } from './components/AuthGuard';
 import { Dashboard } from './pages/Dashboard';
@@ -60,8 +61,11 @@ function RootRoute() {
   return <Landing />;
 }
 
+const GENERATIVE_ENDPOINT = `${import.meta.env.VITE_API_URL ?? ''}/api/generative/run`;
+
 export function App() {
   return (
+    <HashbrownProvider url={GENERATIVE_ENDPOINT}>
     <BrowserRouter>
       <Routes>
         {/* Public routes */}
@@ -152,5 +156,6 @@ export function App() {
         />
       </Routes>
     </BrowserRouter>
+    </HashbrownProvider>
   );
 }
