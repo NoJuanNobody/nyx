@@ -73,7 +73,6 @@ ${codeContent}
 Render a DriftResolutionCard for each discrepancy you find.`,
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (chat.isLoading && chat.messages.length <= 1) {

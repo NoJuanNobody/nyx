@@ -62,7 +62,6 @@ Render each ticket as a TicketStagingWidget with a clear title, description, pri
         content: `Please propose tickets for the following documentation changes:\n\n${changeSummary}`,
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (chat.isLoading && chat.messages.length <= 1) {
