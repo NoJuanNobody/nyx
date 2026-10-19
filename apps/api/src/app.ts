@@ -75,6 +75,7 @@ import { queryRoutes } from './routes/query.js';
 import { retrievalRoutes } from './routes/retrieval.js';
 import { complianceRoutes } from './routes/compliance.js';
 import { scannerRoutes } from './routes/scanner.js';
+import { generativeRoutes } from './routes/generative.js';
 import { authMiddleware } from './middleware/auth.js';
 import { config } from './lib/config.js';
 import { isOriginAllowed } from './lib/cors.js';
@@ -281,6 +282,7 @@ export function buildApp() {
   app.register(retrievalRoutes, { prefix: '/api/retrieve' });
   app.register(complianceRoutes, { prefix: '/api/compliance' });
   app.register(scannerRoutes, { prefix: '/api/scanner' });
+  app.register(generativeRoutes, { prefix: '/api/generative' });
 
   return app;
 }
