@@ -8,6 +8,7 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/harness-core/package.json ./packages/harness-core/
 RUN pnpm install --frozen-lockfile
 
 # ── Builder ───────────────────────────────────────────────────────────
@@ -15,8 +16,10 @@ FROM base AS builder
 COPY --from=deps /app/ ./
 COPY tsconfig.base.json ./
 COPY packages/shared ./packages/shared
+COPY packages/harness-core ./packages/harness-core
 COPY apps/api ./apps/api
 RUN pnpm --filter "@nyx/shared" build
+RUN pnpm --filter "@nyx/harness-core" build
 RUN pnpm --filter "@nyx/api" build
 
 # ── Production runner ─────────────────────────────────────────────────
@@ -29,6 +32,7 @@ COPY --from=deps /app/ ./
 
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/harness-core/dist ./packages/harness-core/dist
 COPY apps/api/drizzle ./apps/api/drizzle
 COPY apps/api/drizzle.config.ts ./apps/api/drizzle.config.ts
 COPY apps/api/tsconfig.json ./apps/api/tsconfig.json
