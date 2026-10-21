@@ -1,5 +1,22 @@
 # Nyx
 
+**Nyx is a web app for product teams that turns a rough idea into staged spec documents, pushes approved spec changes out as GitHub or Jira tickets, and flags when pushed code drifts from those docs.**
+
+[![Nyx explainer video: one idea from spec to drift check](docs/explainer/poster.png)](https://nojuannobody.github.io/nyx/explainer/explainer.mp4)
+
+[▶ Watch the 60-second explainer](https://nojuannobody.github.io/nyx/explainer/explainer.mp4) · [Read the one-page explainer](https://nojuannobody.github.io/nyx/explainer/)
+
+### How it works for you
+
+1. **Describe the idea.** Type it in plain words on the Intake page; AI returns a spec with a user story, acceptance criteria, edge cases and open questions.
+2. **Save it as a staged document.** Give it one of five optional stages (Conception, Definition, Architecture, Implementation, Execution) and edit it in the AI-assisted editor.
+3. **Seed the next stage.** One click drafts, for example, the Architecture doc from the Definition doc.
+4. **Turn changes into tickets.** New versions of a doc become a change proposal of suggested tickets; untick what you don't want, approve, and push them as GitHub issues (or create single tickets in Jira).
+5. **Catch drift.** Connect a GitHub repo; each push triggers an AI drift check that logs a 0–10 drift score on the affected docs' timelines.
+6. **Use it from your tools.** The same docs and actions are available in Claude Code or Cursor through the MCP server, and in the terminal through the `nyx` CLI.
+
+---
+
 **The product versioning platform — unified documentation, code, and team workflow, always in sync.**
 
 Nyx keeps technical specs in sync with code as it evolves and lets non-technical stakeholders initiate changes that flow automatically through to the codebase.
@@ -52,7 +69,9 @@ nyx/
 │   └── api/          # Fastify backend
 ├── packages/
 │   ├── shared/       # Shared types and utilities
-│   └── mcp-server/   # MCP server for Claude Code integration
+│   ├── mcp-server/   # MCP server for Claude Code integration
+│   ├── cli/          # `nyx` command-line client for the API
+│   └── harness-core/ # Model-agnostic Nyx tool definitions and API client
 └── package.json      # Root workspace config
 ```
 
