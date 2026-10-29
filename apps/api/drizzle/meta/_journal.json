@@ -169,6 +169,20 @@
       "when": 1782638945000,
       "tag": "0023_add_starter_plan",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1782639000000,
+      "tag": "0024_onboarding_progress",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1761696000000,
+      "tag": "0025_document_cards_categories",
+      "breakpoints": true
     }
   ]
 }
