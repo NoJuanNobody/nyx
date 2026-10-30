@@ -3,6 +3,7 @@
 pub mod error;
 pub mod ledger;
 pub mod model;
+pub mod profile;
 pub mod store;
 
 pub use error::{Error, Result};
