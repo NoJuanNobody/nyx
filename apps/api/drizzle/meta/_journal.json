@@ -176,6 +176,13 @@
       "when": 1783000000000,
       "tag": "0025_remove_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1783000100000,
+      "tag": "0026_drop_agent_sessions",
+      "breakpoints": true
     }
   ]
 }

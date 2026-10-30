@@ -463,44 +463,6 @@ export function editDocumentAI(
   });
 }
 
-// ── Agent ──────────────────────────────────────────────────────────
-
-export interface AgentWorkflow {
-  id: string;
-  name: string;
-  description: string;
-  defaultPrompt?: string;
-  postSessionSuggestions?: string[];
-}
-
-export function fetchWorkflows(): Promise<AgentWorkflow[]> {
-  return request<AgentWorkflow[]>('/agent/workflows');
-}
-
-export interface AgentSession {
-  id: string;
-  teamId: string;
-  userId: string;
-  documentId: string | null;
-  status: string;
-  prompt: string;
-  result: string | null;
-  toolCallCount: number;
-  tokenUsage: Record<string, number>;
-  createdAt: string;
-}
-
-export function getAgentSession(sessionId: string): Promise<{ session: AgentSession; toolCalls: unknown[] }> {
-  return request<{ session: AgentSession; toolCalls: unknown[] }>(`/agent/${sessionId}`);
-}
-
-export function cancelAgentSession(sessionId: string): Promise<{ cancelled: boolean }> {
-  return request<{ cancelled: boolean }>(`/agent/${sessionId}/cancel`, {
-    method: 'POST',
-    body: JSON.stringify({}),
-  });
-}
-
 // ── API Keys ─────────────────────────────────────────────────────────
 
 export interface ApiKey {
