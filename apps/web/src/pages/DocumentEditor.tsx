@@ -230,12 +230,6 @@ export function DocumentEditor() {
     }
   }, [selectionInfo, content, id, doc?.teamId]);
 
-  const handleAIGenerate = (result: { title: string; content: string }) => {
-    setTitle(result.title);
-    setContent(result.content);
-    scheduleSave({ title: result.title, content: result.content });
-  };
-
   const docStage = (doc as Document & { stage?: DocumentStage | null })?.stage ?? null;
   const isMeetingSourced = content.trimStart().startsWith('# Meeting Notes:');
   const activeLifecycleSlug = useUIStore((s) => s.activeLifecycleSlug);
@@ -802,14 +796,6 @@ export function DocumentEditor() {
               onSelectVersion={handleSelectVersion}
               activeVersionId={viewingVersion?.id ?? null}
               onSwitchToHistory={handleSwitchToHistory}
-              aiChat={{
-                content,
-                onProposedEdit: setAiProposedContent,
-                isNewDocument: !content.trim(),
-                onGenerate: handleAIGenerate,
-                isReviewMode: aiProposedContent !== null,
-                stage: docStage,
-              }}
               stage={docStage}
             />
           )}
