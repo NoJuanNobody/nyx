@@ -18,8 +18,10 @@
 )]
 
 pub mod error;
+pub mod governance;
 pub mod ledger;
 pub mod model;
+pub mod notify;
 pub mod profile;
 pub mod store;
 

@@ -2296,6 +2296,7 @@ dependencies = [
  "getrandom 0.2.17",
  "hex",
  "keyring",
+ "regex",
  "rusqlite",
  "secrecy",
  "serde",

@@ -16,6 +16,7 @@ directories = "5"
 getrandom = "0.2"
 hex.workspace = true
 keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "linux-native"] }
+regex = "1"
 rusqlite.workspace = true
 secrecy = "0.10"
 serde.workspace = true
