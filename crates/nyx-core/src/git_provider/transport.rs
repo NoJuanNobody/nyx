@@ -18,6 +18,8 @@ pub enum HttpMethod {
     Get,
     /// POST
     Post,
+    /// PUT (added by AI-71 for Jira/Confluence updates)
+    Put,
     /// DELETE
     Delete,
 }

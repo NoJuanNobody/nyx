@@ -8,6 +8,7 @@
 //! - [`security`]: input validation, path jail, SSRF guard, sanitizers, rate limiting, crypto, redaction.
 //! - [`git_provider`]: GitHub/GitLab/Bitbucket integration behind a `GitProvider` trait.
 //! - [`export`]: document export (Markdown, TXT, PDF, DOCX, LaTeX, Jupyter) and deliverables.
+//! - [`integrations`]: Jira, Confluence and Slack clients, OAuth helpers and webhook handlers.
 //! - [`ai`]: BYOK model providers and the AI quality / Advisor surface.
 //! - [`error`]: shared error type.
 #![allow(
@@ -29,6 +30,7 @@ pub mod export;
 pub mod git_provider;
 pub mod governance;
 pub mod intake;
+pub mod integrations;
 pub mod ledger;
 pub mod lifecycle;
 pub mod model;
