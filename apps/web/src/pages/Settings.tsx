@@ -7,7 +7,10 @@ import {
   fetchTeamInvitations, cancelInvitation, type TeamInvitation,
   fetchIntegrations, deleteIntegration, testIntegration,
   updateProfile, deleteAccount,
-  fetchTeamCreditBalance,
+  fetchCreditBalance,
+  fetchCreditHistory,
+  allocateAgentCredits,
+  deallocateAgentCredits,
   fetchTeamAiKeyStatus, addTeamAiKey, rotateTeamAiKey, removeTeamAiKey,
   fetchTeamAiUsage, type TeamAiKeyStatus, type AiUsageSummary,
   fetchModels, setTeamModel, type ModelInfo,
@@ -990,7 +993,7 @@ function ApiKeysPanel() {
         <h3 className="text-sm font-semibold text-green-800">Connect the hosted MCP server</h3>
         <p className="mt-1 text-xs text-green-700 leading-relaxed">
           Paste this URL into Claude Code, Cursor, or any MCP client and log in with your Nyx
-          account — no API key to copy. Tool usage draws on your account credits.
+          account — no API key to copy. Tool usage is metered against the credits you allocate to each agent.
         </p>
 
         {/* MCP endpoint URL */}
@@ -1631,33 +1634,172 @@ function AiConfigPanel() {
 }
 
 function CreditsPanel() {
+  const queryClient = useQueryClient();
   const teamsQuery = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
   const teamId = teamsQuery.data?.[0]?.id;
+  const [scope, setScope] = useState<'personal' | 'team'>('personal');
+  const activeTeamId = scope === 'team' ? teamId : undefined;
+  const [agentName, setAgentName] = useState('');
+  const [amount, setAmount] = useState('');
 
-  const teamCreditQuery = useQuery({
-    queryKey: ['team-credit-balance', teamId],
-    queryFn: () => fetchTeamCreditBalance(teamId!),
-    enabled: !!teamId,
+  const balanceQuery = useQuery({
+    queryKey: ['credits-balance-detail', activeTeamId ?? 'personal'],
+    queryFn: () => fetchCreditBalance(activeTeamId),
+  });
+  const historyQuery = useQuery({
+    queryKey: ['credits-history', activeTeamId ?? 'personal'],
+    queryFn: () => fetchCreditHistory({ teamId: activeTeamId, limit: 20 }),
   });
 
-  // TODO(AI-58): credits are agent-native utility tokens metered by external
-  // agents via MCP/CLI. They are never sold; this panel is read-only.
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ['credits-balance-detail'] });
+    void queryClient.invalidateQueries({ queryKey: ['credits-history'] });
+    void queryClient.invalidateQueries({ queryKey: ['credits-balance'] });
+  };
+
+  const move = useMutation({
+    mutationFn: (v: { agentId: string; amount: number; direction: 'allocate' | 'deallocate' }) =>
+      (v.direction === 'allocate' ? allocateAgentCredits : deallocateAgentCredits)({
+        agentId: v.agentId,
+        amount: v.amount,
+        teamId: activeTeamId,
+      }),
+    onSuccess: refresh,
+  });
+
+  const data = balanceQuery.data;
+  const parsed = Number.parseInt(amount, 10);
+  const canMove = agentName.trim().length > 0 && Number.isInteger(parsed) && parsed > 0 && !move.isPending;
+
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-slate-200 bg-white p-5">
         <h3 className="text-sm font-semibold text-slate-800">Agent credits</h3>
         <p className="mt-1 text-xs text-slate-500">
-          Credits are spent by agents that act on your behalf through MCP and the CLI.
+          Credits are a local usage budget for agents that act on your behalf through MCP and the CLI.
+          They are never sold and have no cash value. You decide how many each agent may spend.
         </p>
-        {teamCreditQuery.data !== undefined && (
-          <p className="mt-3 text-xs text-slate-500">
-            Team credits:{' '}
-            <span className="font-semibold text-slate-700">
-              {teamCreditQuery.data.balance.toLocaleString()}
-            </span>
-          </p>
+        {teamId && (
+          <div className="mt-3 flex gap-2 text-xs">
+            {(['personal', 'team'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setScope(s)}
+                className={`rounded-md px-2.5 py-1 ${scope === s ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600'}`}
+              >
+                {s === 'personal' ? 'Personal' : 'Team'}
+              </button>
+            ))}
+          </div>
+        )}
+        {data && (
+          <dl className="mt-4 grid grid-cols-3 gap-4 text-xs">
+            <div>
+              <dt className="text-slate-500">Unallocated</dt>
+              <dd className="text-lg font-semibold text-slate-800">{data.pool.toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Held by running tasks</dt>
+              <dd className="text-lg font-semibold text-slate-800">{data.held.toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Spent by agents</dt>
+              <dd className="text-lg font-semibold text-slate-800">{data.spent.toLocaleString()}</dd>
+            </div>
+          </dl>
         )}
       </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-5">
+        <h3 className="text-sm font-semibold text-slate-800">Usage per agent</h3>
+        {data && data.agents.length === 0 && (
+          <p className="mt-2 text-xs text-slate-500">
+            No agent has connected yet. Agents appear here the first time they call Nyx.
+          </p>
+        )}
+        {data && data.agents.length > 0 && (
+          <table className="mt-3 w-full text-left text-xs">
+            <thead className="text-slate-500">
+              <tr>
+                <th className="py-1 font-medium">Agent</th>
+                <th className="py-1 text-right font-medium">Budget left</th>
+                <th className="py-1 text-right font-medium">Held</th>
+                <th className="py-1 text-right font-medium">Spent</th>
+                <th className="py-1 text-right font-medium">Calls</th>
+              </tr>
+            </thead>
+            <tbody className="text-slate-700">
+              {data.agents.map((a) => (
+                <tr key={a.agentId} className="border-t border-slate-100">
+                  <td className="py-1.5 font-mono">{a.agentId}</td>
+                  <td className="py-1.5 text-right">{a.available.toLocaleString()}</td>
+                  <td className="py-1.5 text-right">{a.held.toLocaleString()}</td>
+                  <td className="py-1.5 text-right">{a.spent.toLocaleString()}</td>
+                  <td className="py-1.5 text-right">{a.commits.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        <div className="mt-4 flex flex-wrap items-end gap-2 border-t border-slate-100 pt-4 text-xs">
+          <label className="flex flex-col gap-1 text-slate-500">
+            Agent
+            <input
+              value={agentName}
+              onChange={(e) => setAgentName(e.target.value)}
+              placeholder="claude-code"
+              className="w-40 rounded-md border border-slate-300 px-2 py-1 text-slate-800"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-slate-500">
+            Credits
+            <input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              inputMode="numeric"
+              placeholder="100"
+              className="w-24 rounded-md border border-slate-300 px-2 py-1 text-slate-800"
+            />
+          </label>
+          <button
+            type="button"
+            disabled={!canMove}
+            onClick={() => move.mutate({ agentId: agentName.trim(), amount: parsed, direction: 'allocate' })}
+            className="rounded-md bg-slate-800 px-3 py-1.5 text-white disabled:opacity-40"
+          >
+            Allocate
+          </button>
+          <button
+            type="button"
+            disabled={!canMove}
+            onClick={() => move.mutate({ agentId: agentName.trim(), amount: parsed, direction: 'deallocate' })}
+            className="rounded-md bg-slate-100 px-3 py-1.5 text-slate-700 disabled:opacity-40"
+          >
+            Take back
+          </button>
+          {move.isError && <span className="text-red-600">{(move.error as Error).message}</span>}
+        </div>
+      </div>
+
+      {historyQuery.data && historyQuery.data.entries.length > 0 && (
+        <div className="rounded-lg border border-slate-200 bg-white p-5">
+          <h3 className="text-sm font-semibold text-slate-800">Recent activity</h3>
+          <ul className="mt-3 space-y-1 text-xs text-slate-600">
+            {historyQuery.data.entries.map((e) => (
+              <li key={e.id} className="flex justify-between gap-4">
+                <span>
+                  <span className="font-medium text-slate-700">{e.kind}</span>
+                  {e.agentId ? ` · ${e.agentId}` : ''}
+                  {e.memo ? ` · ${e.memo}` : ''}
+                </span>
+                <span className="text-slate-400">{new Date(e.ts).toLocaleString()}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

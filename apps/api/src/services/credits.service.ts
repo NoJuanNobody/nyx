@@ -1,261 +1,400 @@
-import { eq, desc, sql } from 'drizzle-orm';
-import { db } from '../db/index.js';
-import { creditBalances, creditTransactions, teamCreditBalances } from '../db/schema.js';
+/**
+ * Credits service (AI-58): thin adapter over the append-only ledger in
+ * credit-ledger.service.ts. Credits are agent-native utility tokens: never
+ * sold, no plans, no monthly grants. The only way credits appear is an
+ * explicit owner `grant` (initial local allotment, a legacy-balance import, or
+ * a grant action). There is no money -> credits path in this module.
+ *
+ * Persistence is behind `LedgerStore` so the logic is testable without a
+ * database; the Postgres store lives in credit-ledger.pg-store.ts.
+ */
+import {
+  Ledger,
+  LedgerError,
+  type Actor,
+  type CommandResult,
+  type LedgerEntry,
+} from './credit-ledger.service.js';
 
-// ── Monthly credit allotment per plan ─────────────────
-// Team and Enterprise are BYOK — 0 platform credits.
-export const MONTHLY_CREDITS: Record<string, number> = {
-  free: 10,
-  starter: 100,
-  pro: 500,
-  team: 0,
-  enterprise: 0,
-};
-
-// ── Credit cost configuration ─────────────────────────
+// ── Cost table (suggested defaults from the spec; config later) ──────
 export const CREDIT_COSTS: Record<string, number> = {
   spec_analysis: 1,
   document_generation: 3,
   drift_detection: 2,
   ticket_generation: 2,
   voice_agent_minute: 5,
-  agent_full_spec_review: 5,
-  agent_change_impact_analysis: 4,
-  agent_codebase_sync_check: 4,
-  agent_doc_generation: 5,
   agent_meeting_review: 3,
   agent_custom: 3,
 };
 
-/**
- * Returns the credit cost for a given agent workflow.
- * Falls back to the generic `agent_custom` cost for unknown workflows.
- */
-export function getAgentCost(workflowId?: string): number {
-  const key = workflowId ? `agent_${workflowId}` : 'agent_custom';
-  return CREDIT_COSTS[key] ?? CREDIT_COSTS.agent_custom;
+/** Default reservation TTL when the caller gives none. Credits themselves never expire. */
+export const DEFAULT_RESERVATION_TTL_MS = 10 * 60 * 1000;
+export const MAX_RESERVATION_TTL_MS = 24 * 60 * 60 * 1000;
+
+// ── Store abstraction ───────────────────────────────────────────────
+export interface LedgerTx {
+  /** Entries (with postings) whose seq is greater than `seq`, ascending. */
+  loadAfter(seq: number): Promise<LedgerEntry[]>;
+  append(entries: LedgerEntry[]): Promise<void>;
 }
 
-/**
- * Check whether a user has enough credits for the given amount.
- * Returns `{ allowed: true, balance }` or `{ allowed: false, balance, required }`.
- */
-export async function checkCredits(
-  userId: string,
-  required: number,
-): Promise<{ allowed: boolean; balance: number; required: number }> {
-  const balance = await getBalance(userId);
-  return { allowed: balance >= required, balance, required };
+export interface LedgerStore {
+  /** Run `fn` with writers serialised (advisory lock / BEGIN IMMEDIATE) in one transaction. */
+  transaction<T>(fn: (tx: LedgerTx) => Promise<T>): Promise<T>;
 }
 
-// ── Service functions ─────────────────────────────────
-
-export async function getBalance(userId: string): Promise<number> {
-  const [row] = await db
-    .select({ balance: creditBalances.balance })
-    .from(creditBalances)
-    .where(eq(creditBalances.userId, userId))
-    .limit(1);
-
-  return row?.balance ?? 0;
+/** Pre-ledger balances, read once to create a "legacy import" grant. */
+export interface LegacySource {
+  balance(ref: WorkspaceRef): Promise<number>;
 }
 
-export async function addCredits(
-  userId: string,
-  amount: number,
-  description: string,
-  externalRef?: string,
-): Promise<{ balance: number; added: number }> {
-  if (amount <= 0) {
-    throw { statusCode: 400, message: 'Amount must be positive' };
+export interface WorkspaceRef {
+  id: string;
+  kind: 'user' | 'team';
+  ownerId: string;
+}
+
+export const DEFAULT_AGENT_ID = 'default';
+
+const safe = (s: string) => s.replace(/[^A-Za-z0-9_-]/g, '_');
+export const userWorkspace = (userId: string): WorkspaceRef => ({
+  id: `user_${safe(userId)}`,
+  kind: 'user',
+  ownerId: userId,
+});
+export const teamWorkspace = (teamId: string): WorkspaceRef => ({
+  id: `team_${safe(teamId)}`,
+  kind: 'team',
+  ownerId: teamId,
+});
+
+/** Normalise a client name (MCP clientInfo.name, CLI --agent) into a ledger agent id. */
+export function normalizeAgentId(raw: string | undefined | null): string {
+  const v = (raw ?? '').trim().toLowerCase().replace(/[^a-z0-9._/-]/g, '-').replace(/^-+|-+$/g, '');
+  return v ? v.slice(0, 64) : DEFAULT_AGENT_ID;
+}
+
+export function costFor(taskType: string): number | undefined {
+  return CREDIT_COSTS[taskType];
+}
+
+export interface CreditsOptions {
+  clock?: () => number;
+  /** One-time convenience grant per workspace (spec 7). 0 disables. */
+  initialGrant?: number;
+  /** Amount moved from pool to an agent on first sight (capped by the pool). 0 disables. */
+  autoAllocate?: number;
+  legacy?: LegacySource;
+}
+
+export const CONFIG_ACTOR: Actor = { kind: 'user', id: 'config' };
+const LEGACY_ACTOR: Actor = { kind: 'system', id: 'legacy-import' };
+
+export interface AgentUsage {
+  agentId: string;
+  available: number;
+  held: number;
+  spent: number;
+  commits: number;
+  lastActivityAt: number | null;
+}
+
+export interface WorkspaceBalance {
+  workspaceId: string;
+  pool: number;
+  /** pool + every agent's available budget (unspent, unheld credits) */
+  total: number;
+  held: number;
+  spent: number;
+  agents: AgentUsage[];
+}
+
+export class CreditsService {
+  private ledger: Ledger | null = null;
+  private tail: Promise<unknown> = Promise.resolve();
+  private readonly ensuredWs = new Set<string>();
+  private readonly ensuredAgents = new Set<string>();
+  private readonly clock: () => number;
+  private readonly initialGrant: number;
+  private readonly autoAllocate: number;
+
+  constructor(
+    private readonly store: LedgerStore,
+    private readonly opts: CreditsOptions = {},
+  ) {
+    this.clock = opts.clock ?? Date.now;
+    this.initialGrant = opts.initialGrant ?? 1000;
+    this.autoAllocate = opts.autoAllocate ?? 100;
   }
 
-  // Upsert balance
-  await db
-    .insert(creditBalances)
-    .values({ userId, balance: amount })
-    .onConflictDoUpdate({
-      target: creditBalances.userId,
-      set: {
-        balance: sql`${creditBalances.balance} + ${amount}`,
-        updatedAt: new Date(),
-      },
+  /**
+   * Run `fn` against an up-to-date ledger inside a locked store transaction,
+   * expire due reservations first, then persist every entry `fn` created.
+   */
+  private run<T>(fn: (l: Ledger) => T): Promise<T> {
+    const job = this.tail.then(async () => {
+      try {
+        return await this.store.transaction(async (tx) => {
+          const l = this.ledger ?? Ledger.fromEntries([], this.clock);
+          this.ledger = null; // only restored once everything below succeeded
+          for (const e of await tx.loadAfter(l.entries.length)) l.ingest(e);
+          const persisted = l.entries.length; // everything after this index is new
+          l.expireDue();
+          const out = fn(l);
+          if (l.entries.length > persisted) await tx.append(l.entries.slice(persisted));
+          this.ledger = l;
+          return out;
+        });
+      } catch (err) {
+        // Memory may be ahead of the store (failed append/commit): rebuild next time.
+        this.ledger = null;
+        throw err;
+      }
     });
-
-  // Record transaction
-  await db.insert(creditTransactions).values({
-    userId,
-    amount,
-    type: 'purchase',
-    description,
-    externalRef: externalRef ?? null,
-  });
-
-  const newBalance = await getBalance(userId);
-  return { balance: newBalance, added: amount };
-}
-
-export async function deductCredits(
-  userId: string,
-  amount: number,
-  taskType: string,
-  description: string,
-): Promise<{ balance: number }> {
-  if (amount <= 0) {
-    throw { statusCode: 400, message: 'Amount must be positive' };
+    this.tail = job.catch(() => undefined);
+    return job;
   }
 
-  const currentBalance = await getBalance(userId);
+  // ── Bootstrap: legacy import, initial grant, agent auto-allocation ──
 
-  if (currentBalance < amount) {
-    throw {
-      statusCode: 402,
-      message: `Insufficient credits. Current balance: ${currentBalance}, required: ${amount}`,
-    };
-  }
-
-  // Deduct from balance
-  await db
-    .update(creditBalances)
-    .set({
-      balance: sql`${creditBalances.balance} - ${amount}`,
-      updatedAt: new Date(),
-    })
-    .where(eq(creditBalances.userId, userId));
-
-  // Record transaction (negative amount for consumption)
-  await db.insert(creditTransactions).values({
-    userId,
-    amount: -amount,
-    type: 'consumption',
-    description,
-    taskType,
-  });
-
-  const newBalance = await getBalance(userId);
-  return { balance: newBalance };
-}
-
-export async function getTransactionHistory(
-  userId: string,
-  limit = 50,
-): Promise<
-  {
-    id: string;
-    amount: number;
-    type: string;
-    description: string;
-    taskType: string | null;
-    createdAt: Date;
-  }[]
-> {
-  const rows = await db
-    .select({
-      id: creditTransactions.id,
-      amount: creditTransactions.amount,
-      type: creditTransactions.type,
-      description: creditTransactions.description,
-      taskType: creditTransactions.taskType,
-      createdAt: creditTransactions.createdAt,
-    })
-    .from(creditTransactions)
-    .where(eq(creditTransactions.userId, userId))
-    .orderBy(desc(creditTransactions.createdAt))
-    .limit(limit);
-
-  return rows;
-}
-
-// ── Team credit pool ──────────────────────────────────
-
-export async function getTeamBalance(teamId: string): Promise<number> {
-  const [row] = await db
-    .select({ balance: teamCreditBalances.balance })
-    .from(teamCreditBalances)
-    .where(eq(teamCreditBalances.teamId, teamId))
-    .limit(1);
-  return row?.balance ?? 0;
-}
-
-/**
- * Add credits to the team pool. Idempotent per externalRef (opaque caller-supplied reference) — safe to retry.
- */
-export async function addTeamCredits(
-  teamId: string,
-  amount: number,
-  description: string,
-  externalRef?: string,
-): Promise<{ balance: number; added: number }> {
-  if (amount <= 0) {
-    return { balance: await getTeamBalance(teamId), added: 0 };
-  }
-
-  // Idempotency: skip if this invoice was already processed
-  if (externalRef) {
-    const [existing] = await db
-      .select({ id: creditTransactions.id })
-      .from(creditTransactions)
-      .where(eq(creditTransactions.externalRef, externalRef))
-      .limit(1);
-    if (existing) {
-      return { balance: await getTeamBalance(teamId), added: 0 };
+  async ensure(ws: WorkspaceRef, agentId: string): Promise<void> {
+    if (!this.ensuredWs.has(ws.id)) {
+      const legacy = (await this.opts.legacy?.balance(ws)) ?? 0;
+      await this.run((l) => {
+        if (legacy > 0) {
+          l.grant({
+            idempotencyKey: `legacy-import:${ws.id}`,
+            workspaceId: ws.id,
+            amount: legacy,
+            actor: LEGACY_ACTOR,
+            memo: 'legacy import',
+          });
+        }
+        if (this.initialGrant > 0) {
+          l.grant({
+            idempotencyKey: `cfg:init:${ws.id}`,
+            workspaceId: ws.id,
+            amount: this.initialGrant,
+            actor: CONFIG_ACTOR,
+            memo: 'initial local allotment',
+          });
+        }
+      });
+      this.ensuredWs.add(ws.id);
+    }
+    const k = `${ws.id}/${agentId}`;
+    if (!this.ensuredAgents.has(k)) {
+      if (this.autoAllocate > 0) {
+        await this.run((l) => {
+          const amount = Math.min(this.autoAllocate, l.poolBalance(ws.id));
+          if (amount > 0) {
+            l.allocate({
+              idempotencyKey: `cfg:auto:${ws.id}:${agentId}`,
+              workspaceId: ws.id,
+              agentId,
+              amount,
+              actor: CONFIG_ACTOR,
+              memo: 'auto allocation on first use',
+            });
+          }
+        });
+      }
+      this.ensuredAgents.add(k);
     }
   }
 
-  await db
-    .insert(teamCreditBalances)
-    .values({ teamId, balance: amount })
-    .onConflictDoUpdate({
-      target: teamCreditBalances.teamId,
-      set: {
-        balance: sql`${teamCreditBalances.balance} + ${amount}`,
-        updatedAt: new Date(),
-      },
+  // ── Reads ───────────────────────────────────────────
+
+  async getBalance(ws: WorkspaceRef, agentId?: string): Promise<WorkspaceBalance> {
+    await this.ensure(ws, agentId ?? DEFAULT_AGENT_ID);
+    return this.run((l) => {
+      const stats = new Map<string, AgentUsage>();
+      const get = (a: string) => {
+        let u = stats.get(a);
+        if (!u) {
+          u = { agentId: a, available: 0, held: 0, spent: 0, commits: 0, lastActivityAt: null };
+          stats.set(a, u);
+        }
+        return u;
+      };
+      const commitAgent = new Map<string, string>();
+      for (const e of l.entries) {
+        if (e.workspaceId !== ws.id || !e.agentId) continue;
+        const u = get(e.agentId);
+        u.lastActivityAt = e.ts;
+        if (e.kind === 'commit') {
+          const c = l.getCommit(e.id);
+          u.spent += c?.committed ?? 0;
+          u.commits += 1;
+          commitAgent.set(e.id, e.agentId);
+        } else if (e.kind === 'refund' && e.refEntryId) {
+          const a = commitAgent.get(e.refEntryId);
+          if (a) get(a).spent -= e.postings.find((p) => p.amount > 0)?.amount ?? 0;
+        }
+      }
+      let held = 0;
+      let agentsTotal = 0;
+      for (const u of stats.values()) {
+        u.available = l.agentBalance(ws.id, u.agentId);
+        u.held = l.agentHeld(ws.id, u.agentId);
+        held += u.held;
+        agentsTotal += u.available;
+      }
+      const pool = l.poolBalance(ws.id);
+      return {
+        workspaceId: ws.id,
+        pool,
+        total: pool + agentsTotal,
+        held,
+        spent: l.totalSpent(ws.id),
+        agents: [...stats.values()].sort((a, b) => a.agentId.localeCompare(b.agentId)),
+      };
     });
+  }
 
-  await db.insert(creditTransactions).values({
-    userId: teamId,
-    teamId,
-    amount,
-    type: 'purchase',
-    description,
-    externalRef: externalRef ?? null,
-  });
+  async history(ws: WorkspaceRef, opts: { agentId?: string; limit?: number } = {}): Promise<LedgerEntry[]> {
+    const limit = Math.min(Math.max(opts.limit ?? 50, 1), 500);
+    return this.run((l) =>
+      l.entries
+        .filter((e) => e.workspaceId === ws.id && (!opts.agentId || e.agentId === opts.agentId))
+        .slice(-limit)
+        .reverse(),
+    );
+  }
 
-  return { balance: await getTeamBalance(teamId), added: amount };
+  /** Reservation owner lookup, for authorisation in the HTTP layer. */
+  async reservationWorkspace(reservationId: string): Promise<string | undefined> {
+    return this.run((l) => l.getReservation(reservationId)?.workspaceId);
+  }
+
+  async commitWorkspace(entryId: string): Promise<string | undefined> {
+    return this.run((l) => l.getCommit(entryId)?.workspaceId);
+  }
+
+  // ── Agent commands ──────────────────────────────────
+
+  async reserve(
+    ws: WorkspaceRef,
+    c: { agentId: string; amount: number; idempotencyKey: string; taskType?: string; ttlMs?: number; memo?: string },
+  ): Promise<CommandResult> {
+    await this.ensure(ws, c.agentId);
+    const ttlMs = Math.min(c.ttlMs ?? DEFAULT_RESERVATION_TTL_MS, MAX_RESERVATION_TTL_MS);
+    return this.run((l) =>
+      l.reserve({
+        idempotencyKey: c.idempotencyKey,
+        workspaceId: ws.id,
+        agentId: c.agentId,
+        amount: c.amount,
+        taskType: c.taskType,
+        ttlMs,
+        actor: { kind: 'agent', id: c.agentId },
+        memo: c.memo,
+      }),
+    );
+  }
+
+  async commit(
+    agentId: string,
+    c: { reservationId: string; actualAmount: number; idempotencyKey: string; memo?: string },
+  ): Promise<CommandResult> {
+    return this.run((l) =>
+      l.commit({ ...c, actor: { kind: 'agent', id: agentId } }),
+    );
+  }
+
+  async release(
+    agentId: string,
+    c: { reservationId: string; idempotencyKey: string; memo?: string },
+  ): Promise<CommandResult> {
+    return this.run((l) => l.release({ ...c, actor: { kind: 'agent', id: agentId } }));
+  }
+
+  /**
+   * One-shot metered spend: reserve + commit in a single transaction. Keys are
+   * derived (`<key>:reserve`, `<key>:commit`), so a retry replays both.
+   */
+  async spend(
+    ws: WorkspaceRef,
+    c: { agentId: string; amount: number; idempotencyKey: string; taskType?: string; memo?: string },
+  ): Promise<{ reserve: CommandResult; commit: CommandResult }> {
+    await this.ensure(ws, c.agentId);
+    return this.run((l) => {
+      const actor: Actor = { kind: 'agent', id: c.agentId };
+      const reserve = l.reserve({
+        idempotencyKey: `${c.idempotencyKey}:reserve`,
+        workspaceId: ws.id,
+        agentId: c.agentId,
+        amount: c.amount,
+        taskType: c.taskType,
+        ttlMs: DEFAULT_RESERVATION_TTL_MS,
+        actor,
+        memo: c.memo,
+      });
+      const commit = l.commit({
+        idempotencyKey: `${c.idempotencyKey}:commit`,
+        reservationId: reserve.entry.id,
+        actualAmount: c.amount,
+        actor,
+        memo: c.memo,
+      });
+      return { reserve, commit };
+    });
+  }
+
+  // ── Owner commands ──────────────────────────────────
+
+  async grant(ws: WorkspaceRef, c: { amount: number; idempotencyKey: string; actorId: string; memo?: string }) {
+    await this.ensure(ws, DEFAULT_AGENT_ID);
+    return this.run((l) =>
+      l.grant({
+        idempotencyKey: c.idempotencyKey,
+        workspaceId: ws.id,
+        amount: c.amount,
+        actor: { kind: 'user', id: c.actorId },
+        memo: c.memo,
+      }),
+    );
+  }
+
+  async allocate(
+    ws: WorkspaceRef,
+    c: { agentId: string; amount: number; idempotencyKey: string; actorId: string; memo?: string },
+    direction: 'allocate' | 'deallocate' = 'allocate',
+  ) {
+    await this.ensure(ws, c.agentId);
+    return this.run((l) => {
+      const cmd = {
+        idempotencyKey: c.idempotencyKey,
+        workspaceId: ws.id,
+        agentId: c.agentId,
+        amount: c.amount,
+        actor: { kind: 'user', id: c.actorId } as Actor,
+        memo: c.memo,
+      };
+      return direction === 'allocate' ? l.allocate(cmd) : l.deallocate(cmd);
+    });
+  }
 }
 
-export async function deductTeamCredits(
-  teamId: string,
-  amount: number,
-  taskType: string,
-  description: string,
-): Promise<{ balance: number }> {
-  if (amount <= 0) {
-    throw { statusCode: 400, message: 'Amount must be positive' };
-  }
+export { LedgerError };
 
-  const current = await getTeamBalance(teamId);
-  if (current < amount) {
-    throw {
-      statusCode: 402,
-      message: `Insufficient team credits. Balance: ${current}, required: ${amount}`,
-    };
-  }
+// ── Singleton wired to Postgres ─────────────────────────────────────
 
-  await db
-    .update(teamCreditBalances)
-    .set({ balance: sql`${teamCreditBalances.balance} - ${amount}`, updatedAt: new Date() })
-    .where(eq(teamCreditBalances.teamId, teamId));
+let instance: Promise<CreditsService> | null = null;
 
-  await db.insert(creditTransactions).values({
-    userId: teamId,
-    teamId,
-    amount: -amount,
-    type: 'consumption',
-    description,
-    taskType,
-  });
+export function getCreditsService(): Promise<CreditsService> {
+  instance ??= import('./credit-ledger.pg-store.js').then(
+    (m) =>
+      new CreditsService(new m.PgLedgerStore(), {
+        legacy: new m.PgLegacySource(),
+        initialGrant: envInt('NYX_CREDITS_INITIAL_GRANT', 1000),
+        autoAllocate: envInt('NYX_CREDITS_AUTO_ALLOCATE', 100),
+      }),
+  );
+  return instance;
+}
 
-  return { balance: await getTeamBalance(teamId) };
+function envInt(name: string, fallback: number): number {
+  const v = Number(process.env[name]);
+  return Number.isSafeInteger(v) && v >= 0 && process.env[name] !== undefined ? v : fallback;
 }

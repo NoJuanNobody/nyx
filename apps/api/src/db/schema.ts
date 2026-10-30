@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, integer, jsonb, pgEnum, boolean, uniqueIndex, index, vector } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, bigint, jsonb, pgEnum, boolean, uniqueIndex, index, vector } from 'drizzle-orm/pg-core';
 
 export const userRoleEnum = pgEnum('user_role', ['owner', 'admin', 'developer', 'editor', 'viewer']);
 export const ticketProviderEnum = pgEnum('ticket_provider', ['github', 'jira', 'gitlab', 'bitbucket']);
@@ -556,39 +556,57 @@ export const aiUsageLog = pgTable('ai_usage_log', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-// ── Credit Ledger ─────────────────────────────────────
+// ── Credit Ledger (AI-58) ─────────────────────────────
+// Append-only double-entry ledger (see docs/credits/utility-tokens-spec.md and
+// services/credit-ledger.service.ts). Balances are derived from postings and are
+// never stored. UPDATE/DELETE are blocked by triggers (migration 0027).
+// The pre-ledger tables were renamed to legacy_credit_balances /
+// legacy_team_credit_balances and are only read by the one-time legacy import.
 
-export const creditTransactionTypeEnum = pgEnum('credit_transaction_type', [
-  'purchase',
-  'consumption',
-  'refund',
-]);
+export const creditEntries = pgTable(
+  'credit_entries',
+  {
+    seq: integer('seq').primaryKey(), // gapless, assigned inside the locked write transaction
+    id: text('id').notNull().unique(), // le_<seq padded>
+    ts: bigint('ts', { mode: 'number' }).notNull(), // unix ms
+    kind: text('kind').notNull(), // grant|allocate|deallocate|reserve|commit|release|refund
+    workspaceId: text('workspace_id').notNull(),
+    agentId: text('agent_id'),
+    idempotencyKey: text('idempotency_key').notNull(),
+    fingerprint: text('fingerprint').notNull(),
+    reservationId: text('reservation_id'),
+    refEntryId: text('ref_entry_id'),
+    expiresAt: bigint('expires_at', { mode: 'number' }),
+    taskType: text('task_type'),
+    memo: text('memo').notNull().default(''),
+    actorKind: text('actor_kind').notNull(), // user|agent|system
+    actorId: text('actor_id').notNull(),
+    prevHash: text('prev_hash').notNull(),
+    hash: text('hash').notNull().unique(),
+  },
+  (t) => [
+    uniqueIndex('credit_entries_idem_idx').on(t.idempotencyKey),
+    index('credit_entries_ws_agent_idx').on(t.workspaceId, t.agentId, t.seq),
+    index('credit_entries_reservation_idx').on(t.reservationId),
+    index('credit_entries_ref_idx').on(t.refEntryId),
+  ],
+);
 
-export const creditBalances = pgTable('credit_balances', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').notNull().unique(),
-  balance: integer('balance').notNull().default(0),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const creditTransactions = pgTable('credit_transactions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').notNull(),
-  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'set null' }),
-  amount: integer('amount').notNull(),
-  type: creditTransactionTypeEnum('type').notNull(),
-  description: text('description').notNull(),
-  taskType: text('task_type'),
-  externalRef: text('external_ref').unique(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const teamCreditBalances = pgTable('team_credit_balances', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  teamId: uuid('team_id').notNull().unique().references(() => teams.id, { onDelete: 'cascade' }),
-  balance: integer('balance').notNull().default(0),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const creditPostings = pgTable(
+  'credit_postings',
+  {
+    entrySeq: integer('entry_seq')
+      .notNull()
+      .references(() => creditEntries.seq),
+    idx: integer('idx').notNull(), // position inside the entry (part of the hash)
+    account: text('account').notNull(), // issuer | ws:W:pool | ws:W:agent:A | ws:W:hold:R | ws:W:spent
+    amount: bigint('amount', { mode: 'number' }).notNull(), // signed, never 0
+  },
+  (t) => [
+    uniqueIndex('credit_postings_pk').on(t.entrySeq, t.idx),
+    index('credit_postings_account_idx').on(t.account),
+  ],
+);
 
 // ── User Pipeline Access ──────────────────────────────────────
 
