@@ -9,6 +9,8 @@ fn core_hello() -> String {
 
 fn main() {
     let result = tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![core_hello])
         .run(tauri::generate_context!());
     if let Err(err) = result {
