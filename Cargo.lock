@@ -573,6 +573,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap_complete"
+version = "4.6.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "037e2a1a92236d0aff7e845093f64661d6df4c02c9fcc61a60e9e1d736fa392f"
+dependencies = [
+ "clap",
+]
+
+[[package]]
 name = "clap_derive"
 version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2514,11 +2523,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "nyx-app"
+version = "0.0.1"
+dependencies = [
+ "base64 0.22.1",
+ "nyx-core",
+ "nyx-net",
+ "rusqlite",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "uuid",
+]
+
+[[package]]
 name = "nyx-cli"
 version = "0.0.1"
 dependencies = [
  "clap",
+ "clap_complete",
+ "nyx-app",
  "nyx-core",
+ "nyx-mcp",
+ "secrecy",
+ "serde_json",
+ "tempfile",
+ "uuid",
 ]
 
 [[package]]
@@ -2567,7 +2598,9 @@ dependencies = [
 name = "nyx-mcp"
 version = "0.0.1"
 dependencies = [
- "nyx-core",
+ "nyx-app",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]
