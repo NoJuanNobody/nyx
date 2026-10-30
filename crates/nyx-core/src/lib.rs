@@ -9,6 +9,7 @@
 //! - [`git_provider`]: GitHub/GitLab/Bitbucket integration behind a `GitProvider` trait.
 //! - [`export`]: document export (Markdown, TXT, PDF, DOCX, LaTeX, Jupyter) and deliverables.
 //! - [`ai`]: BYOK model providers and the AI quality / Advisor surface.
+//! - [`scan`]: repo scan, onboarding, code indexing, embedding pipeline and background jobs.
 //! - [`error`]: shared error type.
 #![allow(
     clippy::missing_errors_doc,
@@ -34,6 +35,7 @@ pub mod lifecycle;
 pub mod model;
 pub mod notify;
 pub mod profile;
+pub mod scan;
 pub mod security;
 pub mod store;
 pub mod vcs;
