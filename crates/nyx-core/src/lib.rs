@@ -9,6 +9,7 @@
 //! - [`git_provider`]: GitHub/GitLab/Bitbucket integration behind a `GitProvider` trait.
 //! - [`export`]: document export (Markdown, TXT, PDF, DOCX, LaTeX, Jupyter) and deliverables.
 //! - [`ai`]: BYOK model providers and the AI quality / Advisor surface.
+//! - [`sync`]: live sync: impact graph, drift detection on push, semantic retrieval, context matching.
 //! - [`error`]: shared error type.
 #![allow(
     clippy::missing_errors_doc,
@@ -36,6 +37,7 @@ pub mod notify;
 pub mod profile;
 pub mod security;
 pub mod store;
+pub mod sync;
 pub mod vcs;
 
 pub use error::{Error, Result};
