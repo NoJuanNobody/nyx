@@ -1,4 +1,21 @@
 //! Nyx core: pure Rust, no UI. Shared by the desktop shell, CLI and MCP server.
+//!
+//! - [`model`]: typed domain model ported from the Drizzle schema.
+//! - [`store`]: SQLite persistence, migrations, repositories, Postgres import.
+//! - [`ledger`]: append-only credit ledger (agent-native utility tokens).
+//! - [`error`]: shared error type.
+#![allow(
+    clippy::missing_errors_doc,
+    clippy::must_use_candidate,
+    clippy::needless_pass_by_value,
+    clippy::too_many_lines,
+    clippy::struct_field_names,
+    clippy::similar_names,
+    clippy::many_single_char_names,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss
+)]
 
 pub mod error;
 pub mod ledger;
