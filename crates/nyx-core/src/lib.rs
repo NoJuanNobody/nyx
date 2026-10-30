@@ -5,6 +5,7 @@
 //! - [`ledger`]: append-only credit ledger (agent-native utility tokens).
 //! - [`lifecycle`]: lifecycle stages, domain pipelines, transitions, templates.
 //! - [`vcs`]: product version control (diff, three-way merge, branches, timeline, snapshots, approvals, change proposals).
+//! - [`security`]: input validation, path jail, SSRF guard, sanitizers, rate limiting, crypto, redaction.
 //! - [`error`]: shared error type.
 #![allow(
     clippy::missing_errors_doc,
@@ -24,6 +25,7 @@ pub mod ledger;
 pub mod lifecycle;
 pub mod model;
 pub mod profile;
+pub mod security;
 pub mod store;
 pub mod vcs;
 

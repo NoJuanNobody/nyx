@@ -1,11 +1,12 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capability for the main Nyx window.",
+  "description": "Least-privilege capability for the main Nyx window: the one app command the UI needs, updater check/install, and restart after update. No fs, shell, http, dialog, opener or window-management plugins; no remote origins.",
   "windows": ["main"],
   "permissions": [
-    "core:default",
-    "updater:default",
+    "allow-core-hello",
+    "updater:allow-check",
+    "updater:allow-download-and-install",
     "process:allow-restart"
   ]
 }
