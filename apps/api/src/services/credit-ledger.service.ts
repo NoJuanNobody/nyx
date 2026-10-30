@@ -192,6 +192,14 @@ export class Ledger {
     return l;
   }
 
+  /**
+   * Fold one already-persisted entry (e.g. written by another process) into
+   * this ledger, re-validating every invariant. Used by stores to catch up.
+   */
+  ingest(entry: LedgerEntry): void {
+    this.apply(entry);
+  }
+
   get entries(): readonly LedgerEntry[] {
     return this._entries;
   }

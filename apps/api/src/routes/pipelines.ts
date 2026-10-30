@@ -17,12 +17,11 @@ export const pipelineRoutes: FastifyPluginAsync = async (fastify) => {
     return { pipelines };
   });
 
-  // ── POST /activate — activate a pipeline (first-time charges credits) ──
+  // ── POST /activate — activate a pipeline (free; records access) ──
   fastify.post<{
     Body: {
       pipelineId: string;
       pipelineLabel: string;
-      creditCost: number;
       teamId?: string;
     };
   }>('/activate', async (request) => {
@@ -31,13 +30,13 @@ export const pipelineRoutes: FastifyPluginAsync = async (fastify) => {
       throw { statusCode: 401, message: 'Authentication required' };
     }
 
-    const { pipelineId, pipelineLabel, creditCost, teamId } = request.body;
+    const { pipelineId, pipelineLabel, teamId } = request.body;
 
-    if (!pipelineId || !pipelineLabel || creditCost == null) {
-      throw { statusCode: 400, message: 'pipelineId, pipelineLabel, and creditCost are required' };
+    if (!pipelineId || !pipelineLabel) {
+      throw { statusCode: 400, message: 'pipelineId and pipelineLabel are required' };
     }
 
-    const result = await activatePipeline(userId, pipelineId, pipelineLabel, creditCost, teamId);
+    const result = await activatePipeline(userId, pipelineId, pipelineLabel, teamId);
     return result;
   });
 

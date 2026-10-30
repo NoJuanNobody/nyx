@@ -183,6 +183,13 @@
       "when": 1783000100000,
       "tag": "0026_drop_agent_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1783000200000,
+      "tag": "0027_credit_ledger",
+      "breakpoints": true
     }
   ]
 }

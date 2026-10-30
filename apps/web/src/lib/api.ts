@@ -1302,20 +1302,73 @@ export interface ProjectShowcase {
   createdAt: string;
 }
 
+export interface AgentCreditUsage {
+  agentId: string;
+  available: number;
+  held: number;
+  spent: number;
+  commits: number;
+  lastActivityAt: number | null;
+}
+
+export interface CreditBalance {
+  workspaceId: string;
+  /** Unallocated credits owned by the workspace */
+  pool: number;
+  /** pool + every agent's available budget */
+  total: number;
+  /** Total unspent credits (same as total; kept for existing callers) */
+  balance: number;
+  held: number;
+  spent: number;
+  agents: AgentCreditUsage[];
+}
+
+export interface CreditHistoryEntry {
+  id: string;
+  ts: number;
+  kind: 'grant' | 'allocate' | 'deallocate' | 'reserve' | 'commit' | 'release' | 'refund';
+  agentId: string | null;
+  taskType: string | null;
+  memo: string;
+  actor: { kind: string; id: string };
+}
+
 export function fetchCreditCosts(): Promise<{ costs: Record<string, number> }> {
   return request<{ costs: Record<string, number> }>('/credits/costs');
 }
 
-export function fetchCreditBalance(): Promise<{ balance: number }> {
-  return request<{ balance: number }>('/credits/balance');
+export function fetchCreditBalance(teamId?: string): Promise<CreditBalance> {
+  const q = teamId ? `?teamId=${encodeURIComponent(teamId)}` : '';
+  return request<CreditBalance>(`/credits/balance${q}`);
 }
 
-export function deductCredits(data: { amount: number; taskType: string; description: string }): Promise<{ balance: number }> {
-  return request<{ balance: number }>('/credits/deduct', { method: 'POST', body: JSON.stringify(data) });
+export function fetchCreditHistory(opts: { teamId?: string; limit?: number } = {}): Promise<{ entries: CreditHistoryEntry[] }> {
+  const p = new URLSearchParams();
+  if (opts.teamId) p.set('teamId', opts.teamId);
+  if (opts.limit) p.set('limit', String(opts.limit));
+  const q = p.toString();
+  return request<{ entries: CreditHistoryEntry[] }>(`/credits/history${q ? `?${q}` : ''}`);
 }
 
-export function fetchTeamCreditBalance(teamId: string): Promise<{ teamId: string; balance: number }> {
-  return request<{ teamId: string; balance: number }>(`/credits/team-balance?teamId=${encodeURIComponent(teamId)}`);
+function newIdempotencyKey(): string {
+  return `ui:${crypto.randomUUID()}`;
+}
+
+/** Owner action: move credits from the workspace pool to an agent budget. */
+export function allocateAgentCredits(data: { agentId: string; amount: number; teamId?: string }): Promise<{ pool: number; available: number }> {
+  return request<{ pool: number; available: number }>('/credits/allocate', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, idempotencyKey: newIdempotencyKey() }),
+  });
+}
+
+/** Owner action: return an agent's unspent budget to the pool. */
+export function deallocateAgentCredits(data: { agentId: string; amount: number; teamId?: string }): Promise<{ pool: number; available: number }> {
+  return request<{ pool: number; available: number }>('/credits/deallocate', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, idempotencyKey: newIdempotencyKey() }),
+  });
 }
 
 // ── Pipeline Access ─────────────────────────────────────────────────
@@ -1335,10 +1388,9 @@ export function fetchOwnedPipelines(): Promise<{ pipelines: OwnedPipeline[] }> {
 export function activatePipeline(data: {
   pipelineId: string;
   pipelineLabel: string;
-  creditCost: number;
   teamId?: string;
-}): Promise<{ alreadyOwned: boolean; creditsPaid: number; balance: number }> {
-  return request<{ alreadyOwned: boolean; creditsPaid: number; balance: number }>('/pipelines/activate', {
+}): Promise<{ alreadyOwned: boolean; creditsPaid: number }> {
+  return request<{ alreadyOwned: boolean; creditsPaid: number }>('/pipelines/activate', {
     method: 'POST',
     body: JSON.stringify(data),
   });
