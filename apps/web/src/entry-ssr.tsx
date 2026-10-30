@@ -1,6 +1,6 @@
 /**
  * Server-render entry used only at build time by prerender.mjs to generate
- * static HTML for the public marketing pages (Landing, Pricing) so that
+ * static HTML for the public marketing pages (Landing) so that
  * non-JS crawlers and AI answer engines see real content instead of an empty
  * SPA shell. The client app is unchanged and still fully client-rendered — the
  * prerendered markup is simply replaced on mount for real users.
@@ -10,7 +10,6 @@
 import * as ReactDOMServer from 'react-dom/server';
 import * as RouterDom from 'react-router-dom';
 import { Landing } from './pages/Landing';
-import { Pricing } from './pages/Pricing';
 
 const { MemoryRouter, Routes, Route } = RouterDom;
 
@@ -20,7 +19,6 @@ export function render(url: string): string {
     <MemoryRouter initialEntries={[url]}>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/pricing" element={<Pricing />} />
       </Routes>
     </MemoryRouter>,
   );

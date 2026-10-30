@@ -1,0 +1,21 @@
+[package]
+name = "nyx-net"
+description = "Live network edge for Nyx: blocking SSRF-guarded HTTP transport and the OAuth loopback listener"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+nyx-core.workspace = true
+secrecy = "0.10"
+ureq.workspace = true
+url = "2"
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

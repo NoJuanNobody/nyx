@@ -1,0 +1,268 @@
+{
+  "slug": "journalism",
+  "label": "Journalism",
+  "description": "News and investigative journalism from pitch to publication",
+  "icon": "📰",
+  "is_default": false,
+  "sort_order": 5,
+  "connectors": [
+    "Pitch guides research & reporting",
+    "Reporting produces the draft",
+    "Draft goes through editorial review",
+    "Review drives revisions",
+    "Revisions lead to publication"
+  ],
+  "stages": [
+    {
+      "slug": "story_pitch",
+      "sort_order": 0,
+      "label": "Story Pitch",
+      "abbreviation": "SP",
+      "subtitle": "Story Idea",
+      "color": "bg-amber-100",
+      "text_color": "text-amber-700",
+      "dot_color": "bg-amber-400",
+      "border_color": "border-amber-300",
+      "hex": "#F59E0B",
+      "who": "Reporter, Editor",
+      "description": "Develop and pitch the story idea",
+      "icon": "💡",
+      "ai": "Evaluates newsworthiness, suggests angles",
+      "output": "Approved story pitch",
+      "docs": [
+        "Story Pitch",
+        "Source List",
+        "Angle Analysis",
+        "Timeline Estimate"
+      ],
+      "suggestions": [
+        "Evaluate newsworthiness",
+        "Suggest angles",
+        "Identify sources"
+      ]
+    },
+    {
+      "slug": "research_reporting",
+      "sort_order": 1,
+      "label": "Research & Reporting",
+      "abbreviation": "RR",
+      "subtitle": "Investigation",
+      "color": "bg-yellow-100",
+      "text_color": "text-yellow-700",
+      "dot_color": "bg-yellow-400",
+      "border_color": "border-yellow-300",
+      "hex": "#EAB308",
+      "who": "Reporter",
+      "description": "Conduct interviews, gather data, verify facts",
+      "icon": "🔍",
+      "ai": "Identifies public records, fact-checks claims",
+      "output": "Complete research file",
+      "docs": [
+        "Interview Notes",
+        "Data Files",
+        "Fact-Check Log",
+        "Source Verification"
+      ],
+      "suggestions": [
+        "Find public records",
+        "Suggest interview questions",
+        "Fact-check claims"
+      ]
+    },
+    {
+      "slug": "draft_article",
+      "sort_order": 2,
+      "label": "Draft Article",
+      "abbreviation": "DA",
+      "subtitle": "Writing",
+      "color": "bg-orange-100",
+      "text_color": "text-orange-700",
+      "dot_color": "bg-orange-400",
+      "border_color": "border-orange-300",
+      "hex": "#F97316",
+      "who": "Reporter",
+      "description": "Write the article with proper attribution",
+      "icon": "✍️",
+      "ai": "Checks structure, ensures proper attribution",
+      "output": "Complete article draft",
+      "docs": [
+        "Article Draft",
+        "Source Attribution",
+        "Supporting Data"
+      ],
+      "suggestions": [
+        "Check structure",
+        "Suggest lead",
+        "Verify attribution"
+      ]
+    },
+    {
+      "slug": "editorial_review",
+      "sort_order": 3,
+      "label": "Editorial Review",
+      "abbreviation": "ER",
+      "subtitle": "Editor Feedback",
+      "color": "bg-red-100",
+      "text_color": "text-red-700",
+      "dot_color": "bg-red-400",
+      "border_color": "border-red-300",
+      "hex": "#EF4444",
+      "who": "Editor, Copy Editor",
+      "description": "Editorial review for accuracy and standards",
+      "icon": "📝",
+      "ai": "Checks AP style, identifies legal issues",
+      "output": "Edited article",
+      "docs": [
+        "Editor Markup",
+        "Legal Review",
+        "Headline Options"
+      ],
+      "suggestions": [
+        "Check AP style",
+        "Flag legal issues",
+        "Suggest headlines"
+      ]
+    },
+    {
+      "slug": "revisions",
+      "sort_order": 4,
+      "label": "Revisions",
+      "abbreviation": "RV",
+      "subtitle": "Final Edits",
+      "color": "bg-rose-100",
+      "text_color": "text-rose-700",
+      "dot_color": "bg-rose-400",
+      "border_color": "border-rose-300",
+      "hex": "#F43F5E",
+      "who": "Reporter, Editor",
+      "description": "Address editorial feedback and finalize",
+      "icon": "🔄",
+      "ai": "Tracks changes, verifies all feedback addressed",
+      "output": "Revised article",
+      "docs": [
+        "Revision Log",
+        "Final Fact-Check",
+        "Updated Draft"
+      ],
+      "suggestions": [
+        "Track changes",
+        "Final fact-check",
+        "Verify completeness"
+      ]
+    },
+    {
+      "slug": "published",
+      "sort_order": 5,
+      "label": "Published",
+      "abbreviation": "PB",
+      "subtitle": "Live Story",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Editor, Digital Team",
+      "description": "Publish and monitor engagement",
+      "icon": "📢",
+      "ai": "Generates social media snippets, suggests follow-ups",
+      "output": "Published article",
+      "docs": [
+        "Published Article",
+        "Social Media Plan",
+        "Engagement Metrics",
+        "Follow-up Ideas"
+      ],
+      "suggestions": [
+        "Generate social snippets",
+        "Suggest follow-ups",
+        "Monitor engagement"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "story_pitch",
+      "name": "Story Pitch",
+      "description": "Pitch a story idea with angle, sources, and timeliness",
+      "sort_order": 0,
+      "content": "# Story Pitch\n\n## Headline (working)\n<!-- Proposed headline -->\n\n## Angle\n<!-- What is the specific angle or hook? -->\n\n## Why Now?\n<!-- What makes this timely? -->\n\n## Key Questions\n1. \n2. \n3. \n\n## Potential Sources\n| Name | Role | Contact | Status |\n|------|------|---------|--------|\n|      |      |         |        |\n\n## Competing Coverage\n<!-- Has this been covered? What is new? -->\n\n## Estimated Length\n- Words: \n- Deadline: \n"
+    },
+    {
+      "stage": "story_pitch",
+      "name": "Source Map",
+      "description": "Map all potential sources and their relationships to the story",
+      "sort_order": 1,
+      "content": "# Source Map\n\n## Story\n<!-- Working headline -->\n\n## Primary Sources\n| Name | Affiliation | Perspective | Contact | Availability |\n|------|------------|------------|---------|-------------|\n|      |            |            |         |             |\n\n## Secondary Sources\n| Name / Org | Type | Value to Story |\n|-----------|------|---------------|\n|           |      |               |\n\n## Documents / Data\n- [ ] Public records: \n- [ ] FOIA requests: \n- [ ] Datasets: \n\n## Source Gaps\n<!-- Who do you still need? -->\n- \n"
+    },
+    {
+      "stage": "research_reporting",
+      "name": "Interview Notes",
+      "description": "Structured template for recording interview notes and quotes",
+      "sort_order": 0,
+      "content": "# Interview Notes\n\n## Source\n- **Name:** \n- **Title / Role:** \n- **Date:** \n- **Method:** Phone | In-person | Video | Email\n\n## Key Points\n1. \n2. \n3. \n\n## Usable Quotes\n> \"\"\n\n> \"\"\n\n## Background (not for attribution)\n- \n\n## Follow-Up Questions\n- \n\n## Fact-Check Items\n- [ ] \n"
+    },
+    {
+      "stage": "research_reporting",
+      "name": "Research Dossier",
+      "description": "Compile background research, data, and context for a story",
+      "sort_order": 1,
+      "content": "# Research Dossier\n\n## Story\n<!-- Working headline -->\n\n## Background Context\n<!-- Key context the reader needs -->\n\n## Timeline of Events\n| Date | Event | Source |\n|------|-------|--------|\n|      |       |        |\n\n## Key Data Points\n| Fact | Value | Source | Verified |\n|------|-------|--------|----------|\n|      |       |        | [ ]      |\n\n## Documents Collected\n- \n\n## Open Questions\n- \n"
+    },
+    {
+      "stage": "draft_article",
+      "name": "Article Draft",
+      "description": "Draft the article with structured sections and embedded notes",
+      "sort_order": 0,
+      "content": "# [Headline]\n\n## Lede\n<!-- First 1-2 paragraphs that hook the reader -->\n\n## Nut Graf\n<!-- Paragraph that tells the reader what this story is about and why it matters -->\n\n## Body\n\n### [Section 1]\n<!-- Draft -->\n\n### [Section 2]\n<!-- Draft -->\n\n## Kicker\n<!-- Strong closing paragraph -->\n\n## Notes to Editor\n- Word count: \n- Photos/graphics needed: \n- Sidebar opportunity: \n"
+    },
+    {
+      "stage": "draft_article",
+      "name": "Fact-Check Sheet",
+      "description": "Verify every factual claim in the article before submission",
+      "sort_order": 1,
+      "content": "# Fact-Check Sheet\n\n## Article\n<!-- Headline -->\n\n## Claims\n| # | Claim | Source | Verified | Notes |\n|---|-------|--------|----------|-------|\n| 1 |       |        | [ ]      |       |\n| 2 |       |        | [ ]      |       |\n| 3 |       |        | [ ]      |       |\n\n## Quotes\n| # | Quote | Speaker | Confirmed | Method |\n|---|-------|---------|-----------|--------|\n| 1 |       |         | [ ]       |        |\n\n## Numbers & Statistics\n| # | Stat | Original Source | Verified |\n|---|------|----------------|----------|\n| 1 |      |                | [ ]      |\n\n## Unresolved Items\n- \n"
+    },
+    {
+      "stage": "editorial_review",
+      "name": "Editorial Feedback",
+      "description": "Structured editorial feedback with prioritized revisions",
+      "sort_order": 0,
+      "content": "# Editorial Feedback\n\n## Article\n<!-- Headline and author -->\n\n## Overall Assessment\n<!-- 2-3 sentences on the draft's strengths and main issues -->\n\n## Structural Issues\n- \n\n## Reporting Gaps\n- [ ] \n\n## Line-Level Notes\n| Para # | Issue | Suggestion |\n|--------|-------|------------|\n|        |       |            |\n\n## Legal Concerns\n- \n\n## Priority Revisions\n1. \n2. \n3. \n\n## Deadline for Revisions\n- \n"
+    },
+    {
+      "stage": "editorial_review",
+      "name": "Headline & SEO Review",
+      "description": "Evaluate and refine headlines, subheads, and SEO metadata",
+      "sort_order": 1,
+      "content": "# Headline & SEO Review\n\n## Article\n<!-- Working headline -->\n\n## Headline Options\n| # | Headline | Print / Web | Character Count |\n|---|---------|-------------|----------------|\n| 1 |         |             |                |\n| 2 |         |             |                |\n| 3 |         |             |                |\n\n## Subhead / Deck\n- \n\n## SEO Metadata\n- **Title tag:** \n- **Meta description:** \n- **Focus keyword:** \n- **URL slug:** \n\n## Social Headlines\n- Twitter: \n- Facebook: \n\n## Selected Headline\n- \n"
+    },
+    {
+      "stage": "revisions",
+      "name": "Revision Punch List",
+      "description": "Track specific revisions needed before final publication",
+      "sort_order": 0,
+      "content": "# Revision Punch List\n\n## Article\n<!-- Headline -->\n\n## Required Revisions\n| # | Revision | Priority | Status |\n|---|---------|----------|--------|\n| 1 |         | Must     | [ ]    |\n| 2 |         | Must     | [ ]    |\n| 3 |         | Should   | [ ]    |\n\n## Additional Reporting Needed\n- [ ] \n\n## Copy Edits\n- [ ] AP Style check\n- [ ] Spelling of all names verified\n- [ ] Numbers and dates double-checked\n\n## Assets Needed\n- [ ] Photos with captions and credits\n- [ ] Pull quotes selected\n- [ ] Related links\n"
+    },
+    {
+      "stage": "revisions",
+      "name": "Legal Review Notes",
+      "description": "Document legal review findings and required changes",
+      "sort_order": 1,
+      "content": "# Legal Review Notes\n\n## Article\n<!-- Headline -->\n\n## Reviewer\n<!-- Legal reviewer name -->\n\n## Risk Assessment\n- **Overall risk:** Low | Medium | High\n\n## Flagged Items\n| # | Section | Concern | Required Change | Status |\n|---|---------|---------|----------------|--------|\n| 1 |         |         |                | [ ]    |\n\n## Defamation Check\n- [ ] All claims supported by evidence\n- [ ] Fair comment / opinion clearly labeled\n- [ ] Right of reply offered\n\n## Privacy Concerns\n- \n\n## Cleared for Publication\n- [ ] Yes / No\n- Conditions: \n"
+    },
+    {
+      "stage": "published",
+      "name": "Publication Record",
+      "description": "Record publication details and distribution information",
+      "sort_order": 0,
+      "content": "# Publication Record\n\n## Article\n<!-- Final headline -->\n\n## Publication Details\n- **Published:** YYYY-MM-DD HH:MM\n- **URL:** \n- **Section:** \n- **Author(s):** \n- **Editor:** \n\n## Distribution\n- [ ] Website\n- [ ] Newsletter\n- [ ] Social media\n- [ ] Syndication partners\n\n## Corrections Log\n| Date | Original | Correction | Reason |\n|------|----------|-----------|--------|\n|      |          |           |        |\n\n## Performance\n- Page views (24h): \n- Page views (7d): \n- Social shares: \n"
+    },
+    {
+      "stage": "published",
+      "name": "Post-Publication Review",
+      "description": "Evaluate the article impact and lessons learned",
+      "sort_order": 1,
+      "content": "# Post-Publication Review\n\n## Article\n<!-- Headline and date -->\n\n## Impact\n- Reader response: \n- Social engagement: \n- Follow-up coverage by others: \n\n## What Worked\n- \n\n## What Could Improve\n- \n\n## Follow-Up Stories\n| Angle | Priority | Notes |\n|-------|----------|-------|\n|       |          |       |\n\n## Corrections Needed\n- [ ] None | List: \n\n## Lessons Learned\n- \n"
+    }
+  ]
+}

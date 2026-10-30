@@ -1,0 +1,276 @@
+{
+  "slug": "game_design",
+  "label": "Game Design",
+  "description": "Game development from design document to release candidate",
+  "icon": "🎮",
+  "is_default": false,
+  "sort_order": 16,
+  "connectors": [
+    "Design document guides the mechanics prototype",
+    "Prototype informs level design",
+    "Levels go through playtesting",
+    "Playtest feedback drives polish pass",
+    "Polish produces the release candidate"
+  ],
+  "stages": [
+    {
+      "slug": "design_document",
+      "sort_order": 0,
+      "label": "Design Document",
+      "abbreviation": "GD",
+      "subtitle": "Game Vision",
+      "color": "bg-red-100",
+      "text_color": "text-red-700",
+      "dot_color": "bg-red-400",
+      "border_color": "border-red-300",
+      "hex": "#EF4444",
+      "who": "Game Designer",
+      "description": "Write the game design document",
+      "icon": "📋",
+      "ai": "Identifies inconsistencies, analyzes player loops",
+      "output": "Complete GDD",
+      "docs": [
+        "GDD",
+        "Core Mechanics",
+        "Narrative",
+        "Art Direction",
+        "Target Audience"
+      ],
+      "suggestions": [
+        "Check design consistency",
+        "Suggest mechanics",
+        "Analyze player loops"
+      ]
+    },
+    {
+      "slug": "mechanics_prototype",
+      "sort_order": 1,
+      "label": "Mechanics Prototype",
+      "abbreviation": "MP",
+      "subtitle": "Core Gameplay",
+      "color": "bg-orange-100",
+      "text_color": "text-orange-700",
+      "dot_color": "bg-orange-400",
+      "border_color": "border-orange-300",
+      "hex": "#F97316",
+      "who": "Gameplay Programmers",
+      "description": "Build and test core mechanics",
+      "icon": "⚙️",
+      "ai": "Analyzes game feel, suggests balance",
+      "output": "Playable prototype",
+      "docs": [
+        "Prototype Build",
+        "Mechanics Docs",
+        "Balance Sheet",
+        "Play Notes"
+      ],
+      "suggestions": [
+        "Analyze game feel",
+        "Suggest balance",
+        "Identify fun factor"
+      ]
+    },
+    {
+      "slug": "level_design",
+      "sort_order": 2,
+      "label": "Level Design",
+      "abbreviation": "LD",
+      "subtitle": "Content & Levels",
+      "color": "bg-yellow-100",
+      "text_color": "text-yellow-700",
+      "dot_color": "bg-yellow-400",
+      "border_color": "border-yellow-300",
+      "hex": "#EAB308",
+      "who": "Level Designers",
+      "description": "Design levels and progression",
+      "icon": "🗺️",
+      "ai": "Analyzes difficulty curves, suggests pacing",
+      "output": "Complete level designs",
+      "docs": [
+        "Level Layouts",
+        "Encounter Design",
+        "Progression",
+        "Difficulty Curve",
+        "Collectibles"
+      ],
+      "suggestions": [
+        "Analyze difficulty curve",
+        "Suggest pacing",
+        "Check progression"
+      ]
+    },
+    {
+      "slug": "playtesting_feedback",
+      "sort_order": 3,
+      "label": "Playtesting Feedback",
+      "abbreviation": "PF",
+      "subtitle": "Player Testing",
+      "color": "bg-lime-100",
+      "text_color": "text-lime-700",
+      "dot_color": "bg-lime-400",
+      "border_color": "border-lime-300",
+      "hex": "#A3E635",
+      "who": "QA, Playtesters",
+      "description": "Conduct playtests and collect feedback",
+      "icon": "🎯",
+      "ai": "Analyzes playtest data, identifies friction",
+      "output": "Playtest report",
+      "docs": [
+        "Playtest Report",
+        "Player Feedback",
+        "Bug Reports",
+        "Heatmaps",
+        "Sessions"
+      ],
+      "suggestions": [
+        "Analyze playtest data",
+        "Identify friction",
+        "Suggest UX fixes"
+      ]
+    },
+    {
+      "slug": "polish_pass",
+      "sort_order": 4,
+      "label": "Polish Pass",
+      "abbreviation": "PP",
+      "subtitle": "Final Polish",
+      "color": "bg-green-100",
+      "text_color": "text-green-700",
+      "dot_color": "bg-green-400",
+      "border_color": "border-green-300",
+      "hex": "#22C55E",
+      "who": "Full Team",
+      "description": "Bug fixes, visual and audio polish",
+      "icon": "✨",
+      "ai": "Prioritizes bugs, identifies bottlenecks",
+      "output": "Polished build",
+      "docs": [
+        "Bug Fix Log",
+        "Polish List",
+        "Performance Report",
+        "Audio Mix",
+        "Visual Polish"
+      ],
+      "suggestions": [
+        "Prioritize bugs",
+        "Suggest visual improvements",
+        "Check performance"
+      ]
+    },
+    {
+      "slug": "release_candidate",
+      "sort_order": 5,
+      "label": "Release Candidate",
+      "abbreviation": "RC",
+      "subtitle": "Ship It",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Producer, QA Lead",
+      "description": "Release candidate for certification",
+      "icon": "🏆",
+      "ai": "Generates release notes, validates platform requirements",
+      "output": "Certified release candidate",
+      "docs": [
+        "Release Candidate",
+        "Certification Checklist",
+        "Release Notes",
+        "Day-One Patch",
+        "Marketing"
+      ],
+      "suggestions": [
+        "Generate release notes",
+        "Validate platform requirements",
+        "Create patch list"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "design_document",
+      "name": "Game Design Document",
+      "description": "Core GDD covering concept, mechanics, and high-level design",
+      "sort_order": 0,
+      "content": "# Game Design Document\n\n## Title\n<!-- Working title -->\n\n## Concept\n<!-- 2-3 sentence pitch -->\n\n## Genre / Platform\n- Genre: \n- Platform: \n- Target rating: \n\n## Core Loop\n<!-- What does the player do repeatedly? -->\n1. \n2. \n3. \n\n## Mechanics\n| Mechanic | Description | Purpose |\n|----------|------------|--------|\n|          |            |        |\n\n## Player Motivation\n- \n\n## Art Style\n- \n\n## Audio Direction\n- \n\n## Technical Constraints\n- \n\n## Competitive Analysis\n| Game | Similarity | Differentiator |\n|------|-----------|---------------|\n|      |           |               |\n"
+    },
+    {
+      "stage": "design_document",
+      "name": "Narrative Design Brief",
+      "description": "Define the game narrative, world, and character arcs",
+      "sort_order": 1,
+      "content": "# Narrative Design Brief\n\n## Game\n<!-- Title -->\n\n## Story Premise\n<!-- 1 paragraph -->\n\n## Setting\n- World: \n- Time period: \n- Tone: \n\n## Characters\n| Name | Role | Motivation | Arc |\n|------|------|-----------|-----|\n|      | Protagonist | | |\n|      | Antagonist | | |\n|      | Companion | | |\n\n## Story Structure\n| Act | Events | Player Agency |\n|-----|--------|---------------|\n| 1   |        |               |\n| 2   |        |               |\n| 3   |        |               |\n\n## Branching Points\n- \n\n## Lore & World-Building\n- \n\n## Dialogue Style\n- \n"
+    },
+    {
+      "stage": "mechanics_prototype",
+      "name": "Prototype Scope",
+      "description": "Define what the mechanics prototype should demonstrate",
+      "sort_order": 0,
+      "content": "# Prototype Scope\n\n## Game\n<!-- Title -->\n\n## Prototype Goal\n<!-- What question does this prototype answer? -->\n\n## Core Mechanics to Prototype\n| Mechanic | Priority | Implementation | Status |\n|----------|----------|---------------|--------|\n|          | Must     |               | [ ]    |\n|          | Should   |               | [ ]    |\n\n## Not in Prototype\n- \n\n## Success Criteria\n- [ ] \n\n## Technical Approach\n- Engine: \n- Language: \n- Assets: Placeholder / Final\n\n## Timeline\n| Milestone | Date | Deliverable |\n|-----------|------|------------|\n|           |      |            |\n\n## Resources Needed\n- \n"
+    },
+    {
+      "stage": "mechanics_prototype",
+      "name": "Systems Design Sheet",
+      "description": "Detail a game system with variables, formulas, and balance targets",
+      "sort_order": 1,
+      "content": "# Systems Design Sheet\n\n## System Name\n<!-- e.g., Combat, Economy, Progression -->\n\n## Purpose\n<!-- What does this system do for the player experience? -->\n\n## Variables\n| Variable | Type | Range | Default | Affects |\n|----------|------|-------|---------|--------|\n|          |      |       |         |        |\n\n## Formulas\n<!-- Key calculations -->\n```\n[formula]\n```\n\n## Balance Targets\n| Metric | Target | Rationale |\n|--------|--------|----------|\n|        |        |          |\n\n## Edge Cases\n- \n\n## Tuning Parameters\n<!-- What values will designers tweak? -->\n- \n\n## Dependencies\n- Requires: \n- Feeds into: \n"
+    },
+    {
+      "stage": "level_design",
+      "name": "Level Design Document",
+      "description": "Plan a level with layout, pacing, and encounters",
+      "sort_order": 0,
+      "content": "# Level Design Document\n\n## Level Name\n<!-- Name -->\n\n## Level Number / Position\n<!-- Where in the game progression -->\n\n## Objectives\n- Primary: \n- Optional: \n\n## Layout Description\n<!-- Written description or reference to map -->\n\n## Pacing\n| Section | Duration | Intensity | Activity |\n|---------|----------|----------|----------|\n| Opening |          | Low      |          |\n| Midpoint|          | High     |          |\n| Climax  |          | Peak     |          |\n\n## Encounters\n| # | Type | Enemies / Challenges | Difficulty |\n|---|------|---------------------|------------|\n|   |      |                     |            |\n\n## Collectibles / Secrets\n- \n\n## New Mechanics Introduced\n- \n\n## Art Notes\n- \n"
+    },
+    {
+      "stage": "level_design",
+      "name": "Economy & Progression Design",
+      "description": "Design the in-game economy and player progression systems",
+      "sort_order": 1,
+      "content": "# Economy & Progression Design\n\n## Game\n<!-- Title -->\n\n## Currency / Resources\n| Resource | Source | Sink | Rate |\n|----------|--------|------|------|\n|          |        |      |      |\n\n## Progression Curve\n| Level | XP Required | Cumulative | Unlocks |\n|-------|-----------|-----------|--------|\n| 1     |           |           |        |\n| 2     |           |           |        |\n| 5     |           |           |        |\n| 10    |           |           |        |\n\n## Difficulty Curve\n- Early game: \n- Mid game: \n- Late game: \n\n## Reward Schedule\n- Fixed rewards: \n- Variable rewards: \n- Milestone rewards: \n\n## Balance Concerns\n- \n"
+    },
+    {
+      "stage": "playtesting_feedback",
+      "name": "Playtest Session Report",
+      "description": "Document playtest observations, metrics, and player feedback",
+      "sort_order": 0,
+      "content": "# Playtest Session Report\n\n## Build\n<!-- Version / date -->\n\n## Session Details\n- Date: \n- Testers: \n- Duration: \n- Focus area: \n\n## Quantitative Data\n| Metric | Target | Actual |\n|--------|--------|--------|\n| Completion rate | | |\n| Average playtime | | |\n| Deaths per level | | |\n| Tutorial drop-off | | |\n\n## Qualitative Observations\n| Time | Observation | Severity | Category |\n|------|------------|----------|----------|\n|      |            | Critical / Major / Minor | UX / Balance / Bug |\n\n## Player Quotes\n> \"\"\n\n## Top Issues\n1. \n2. \n3. \n\n## Action Items\n- [ ] \n"
+    },
+    {
+      "stage": "playtesting_feedback",
+      "name": "Bug & Issue Tracker",
+      "description": "Track bugs and design issues found during playtesting",
+      "sort_order": 1,
+      "content": "# Bug & Issue Tracker\n\n## Build\n<!-- Version -->\n\n## Bugs\n| ID | Description | Severity | Steps to Reproduce | Assigned | Status |\n|----|------------|----------|-------------------|----------|--------|\n| B1 |            | Critical / Major / Minor | 1. | | Open |\n| B2 |            |          |                   |          | Open |\n\n## Design Issues\n| ID | Description | Impact | Proposed Fix | Priority |\n|----|------------|--------|-------------|----------|\n| D1 |            |        |             |          |\n\n## Polish Items\n| ID | Description | Area | Priority |\n|----|------------|------|----------|\n| P1 |            |      |          |\n\n## Stats\n- Total bugs: \n- Critical: \n- Fixed this cycle: \n"
+    },
+    {
+      "stage": "polish_pass",
+      "name": "Polish Checklist",
+      "description": "Systematic polish pass covering visuals, audio, and feel",
+      "sort_order": 0,
+      "content": "# Polish Checklist\n\n## Build\n<!-- Version -->\n\n## Visual Polish\n- [ ] Screen shake / camera effects\n- [ ] Particle effects on key actions\n- [ ] UI animations and transitions\n- [ ] Loading screens\n- [ ] Menu polish\n\n## Audio Polish\n- [ ] Sound effects for all actions\n- [ ] Music transitions between areas\n- [ ] Ambient audio in all environments\n- [ ] UI sounds\n- [ ] Volume balancing\n\n## Game Feel\n- [ ] Input responsiveness\n- [ ] Animation blending\n- [ ] Hit feedback / juice\n- [ ] Camera feel\n\n## UX Polish\n- [ ] Tutorials clear\n- [ ] HUD informative but not cluttered\n- [ ] Accessibility options\n- [ ] Settings menu complete\n\n## Performance\n- [ ] Frame rate stable\n- [ ] Load times acceptable\n- [ ] Memory usage within budget\n"
+    },
+    {
+      "stage": "polish_pass",
+      "name": "Accessibility Review",
+      "description": "Review the game for accessibility features and compliance",
+      "sort_order": 1,
+      "content": "# Accessibility Review\n\n## Game\n<!-- Title -->\n\n## Visual Accessibility\n- [ ] Colorblind modes\n- [ ] Text size options\n- [ ] High contrast mode\n- [ ] Screen reader support\n- [ ] Subtitle options\n\n## Motor Accessibility\n- [ ] Remappable controls\n- [ ] One-handed mode\n- [ ] Auto-aim / assist options\n- [ ] Adjustable difficulty\n- [ ] Toggle vs. hold options\n\n## Auditory Accessibility\n- [ ] Visual cues for audio events\n- [ ] Subtitle customization\n- [ ] Mono audio option\n\n## Cognitive Accessibility\n- [ ] Clear objectives display\n- [ ] Adjustable game speed\n- [ ] Save anywhere\n- [ ] Tutorial replay option\n\n## Compliance\n- [ ] CVAA compliance\n- [ ] Xbox Accessibility Guidelines\n- [ ] AbleGamers review\n"
+    },
+    {
+      "stage": "release_candidate",
+      "name": "Release Candidate Checklist",
+      "description": "Final verification checklist before declaring release candidate",
+      "sort_order": 0,
+      "content": "# Release Candidate Checklist\n\n## Build\n<!-- Version -->\n\n## Blockers\n- [ ] Zero critical bugs\n- [ ] Zero major bugs\n- [ ] All cert requirements met\n\n## Content Complete\n- [ ] All levels playable\n- [ ] All cutscenes final\n- [ ] All dialogue recorded\n- [ ] Credits complete\n- [ ] Achievements / trophies working\n\n## Platform Requirements\n| Platform | TRC/TCR | Certification | Status |\n|----------|---------|--------------|--------|\n|          |         |              |        |\n\n## Online Features\n- [ ] Leaderboards\n- [ ] Multiplayer stability\n- [ ] Day-one patch plan\n\n## Ratings\n- [ ] ESRB submitted\n- [ ] PEGI submitted\n\n## Marketing\n- [ ] Store page assets final\n- [ ] Trailer published\n- [ ] Review copies sent\n"
+    },
+    {
+      "stage": "release_candidate",
+      "name": "Day-One Patch Notes",
+      "description": "Document known issues and planned day-one patch fixes",
+      "sort_order": 1,
+      "content": "# Day-One Patch Notes\n\n## Game\n<!-- Title -->\n\n## Version\n- Gold master: \n- Day-one patch: \n\n## Fixes\n### Critical\n- \n\n### Gameplay\n- \n\n### Visual\n- \n\n### Audio\n- \n\n### Performance\n- \n\n## Known Issues (shipping with)\n| Issue | Severity | Workaround | Fix Target |\n|-------|----------|-----------|------------|\n|       |          |           |            |\n\n## Post-Launch Roadmap\n| Update | Target Date | Content |\n|--------|-----------|--------|\n| 1.1    |           |        |\n| 1.2    |           |        |\n\n## Support Plan\n- Bug report channel: \n- Community manager: \n"
+    }
+  ]
+}

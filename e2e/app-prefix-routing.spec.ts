@@ -120,15 +120,6 @@ test.describe('App prefix routing (#346)', () => {
     await expect(page).toHaveURL(/\/app\/dashboard(\?.*)?$/, { timeout: 10_000 });
   });
 
-  test('/agent-map redirects to /app/operations?tab=agents', async ({
-    authenticatedPage: page,
-  }) => {
-    await page.goto('/agent-map');
-    await expect(page).toHaveURL(/\/app\/operations\?tab=agents$/, {
-      timeout: 10_000,
-    });
-  });
-
   test('/observability redirects to /app/operations?tab=observability', async ({
     authenticatedPage: page,
   }) => {

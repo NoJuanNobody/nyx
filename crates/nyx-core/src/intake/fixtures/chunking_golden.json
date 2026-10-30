@@ -1,0 +1,174 @@
+{
+ "short": {
+  "input": "hello world",
+  "opts": null,
+  "chunks": [
+   "hello world"
+  ]
+ },
+ "empty": {
+  "input": "   ",
+  "opts": null,
+  "chunks": []
+ },
+ "exact": {
+  "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "opts": null,
+  "chunks": [
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ]
+ },
+ "nobreak": {
+  "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "opts": {
+   "chunkSize": 20,
+   "overlap": 5
+  },
+  "chunks": [
+   "aaaaaaaaaaaaaaaaaaaa",
+   "aaaaaaaaaaaaaaaaaaaa",
+   "aaaaaaaaaaaaaaaaaaaa",
+   "aaaaa",
+   "aaaa",
+   "aaa",
+   "aa",
+   "a"
+  ]
+ },
+ "words": {
+  "input": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word",
+  "opts": {
+   "chunkSize": 40,
+   "overlap": 10
+  },
+  "chunks": [
+   "word word word word word word word word",
+   "word word word word word word word word",
+   "word word word word word word word word",
+   "word word word word word word word word",
+   "word word word word word word",
+   "word word",
+   "word word",
+   "ord word",
+   "rd word",
+   "d word",
+   "word",
+   "word",
+   "ord",
+   "rd",
+   "d"
+  ]
+ },
+ "sentences": {
+  "input": "This is one. Here is two! Is three? Yes four. Five is here now. Six goes on. Seven ends.",
+  "opts": {
+   "chunkSize": 40,
+   "overlap": 8
+  },
+  "chunks": [
+   "This is one. Here is two! Is three?",
+   "three? Yes four. Five is here now.",
+   "re now. Six goes on. Seven ends.",
+   "en ends.",
+   "n ends.",
+   "ends.",
+   "ends.",
+   "nds.",
+   "ds.",
+   "s.",
+   "."
+  ]
+ },
+ "paras": {
+  "input": "First paragraph text here.\n\nSecond paragraph is a bit longer than first.\n\nThird para.\n\nFourth one is last.",
+  "opts": {
+   "chunkSize": 50,
+   "overlap": 10
+  },
+  "chunks": [
+   "First paragraph text here.",
+   "xt here.\n\nSecond paragraph is a bit longer than",
+   "nger than first.\n\nThird para.\n\nFourth one is last.",
+   "e is last.",
+   "is last.",
+   "is last.",
+   "s last.",
+   "last.",
+   "last.",
+   "ast.",
+   "st.",
+   "t.",
+   "."
+  ]
+ },
+ "zeroOverlap": {
+  "input": "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghij",
+  "opts": {
+   "chunkSize": 20,
+   "overlap": 0
+  },
+  "chunks": [
+   "abcdefghijabcdefghij",
+   "abcdefghijabcdefghij",
+   "abcdefghij"
+  ]
+ },
+ "bigOverlap": {
+  "input": "abcdefghijabcdefghijabcdefghij",
+  "opts": {
+   "chunkSize": 10,
+   "overlap": 15
+  },
+  "chunks": [
+   "abcdefghij",
+   "bcdefghija",
+   "cdefghijab",
+   "defghijabc",
+   "efghijabcd",
+   "fghijabcde",
+   "ghijabcdef",
+   "hijabcdefg",
+   "ijabcdefgh",
+   "jabcdefghi",
+   "abcdefghij",
+   "bcdefghija",
+   "cdefghijab",
+   "defghijabc",
+   "efghijabcd",
+   "fghijabcde",
+   "ghijabcdef",
+   "hijabcdefg",
+   "ijabcdefgh",
+   "jabcdefghi",
+   "abcdefghij",
+   "bcdefghij",
+   "cdefghij",
+   "defghij",
+   "efghij",
+   "fghij",
+   "ghij",
+   "hij",
+   "ij",
+   "j"
+  ]
+ },
+ "unicode": {
+  "input": "héllo wörld ünï héllo wörld ünï héllo wörld ünï héllo wörld ünï héllo wörld ünï héllo wörld ünï ",
+  "opts": {
+   "chunkSize": 30,
+   "overlap": 6
+  },
+  "chunks": [
+   "héllo wörld ünï héllo wörld",
+   "wörld ünï héllo wörld ünï",
+   "d ünï héllo wörld ünï héllo",
+   "héllo wörld ünï héllo wörld",
+   "wörld ünï",
+   "d ünï",
+   "ünï",
+   "ünï",
+   "nï",
+   "ï"
+  ]
+ }
+}

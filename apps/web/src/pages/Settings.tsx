@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, type ReactElement } from 'react';
+import { useState, useCallback, useEffect, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -7,24 +7,25 @@ import {
   fetchTeamInvitations, cancelInvitation, type TeamInvitation,
   fetchIntegrations, deleteIntegration, testIntegration,
   updateProfile, deleteAccount,
-  fetchPlans, fetchCurrentSubscription, createCheckoutSession, createPortalSession,
-  fetchTeamCreditBalance,
-  type SubscriptionPlan, type Subscription,
+  fetchCreditBalance,
+  fetchCreditHistory,
+  allocateAgentCredits,
+  deallocateAgentCredits,
   fetchTeamAiKeyStatus, addTeamAiKey, rotateTeamAiKey, removeTeamAiKey,
   fetchTeamAiUsage, type TeamAiKeyStatus, type AiUsageSummary,
   fetchModels, setTeamModel, type ModelInfo,
   startIntegrationOAuth,
 } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
-import { trackPurchase } from '../lib/analytics';
 import { Portal } from '../components/Portal';
 import { SlackIntegration } from '../components/SlackIntegration';
 import { AtlassianIntegration } from '../components/AtlassianIntegration';
 import { NotificationPreferences } from '../components/NotificationPreferences';
+import { AppearanceSettings } from '../components/AppearanceSettings';
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type SettingsTab = 'team' | 'integrations' | 'api-keys' | 'ai-config' | 'notifications' | 'billing' | 'account';
+type SettingsTab = 'team' | 'integrations' | 'api-keys' | 'ai-config' | 'notifications' | 'appearance' | 'credits' | 'account';
 
 interface TeamMember {
   id: string;
@@ -104,8 +105,17 @@ const TABS: { key: SettingsTab; label: string; icon: ReactElement }[] = [
     ),
   },
   {
-    key: 'billing',
-    label: 'Billing',
+    key: 'appearance',
+    label: 'Appearance',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42" />
+      </svg>
+    ),
+  },
+  {
+    key: 'credits',
+    label: 'Credits',
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
@@ -993,7 +1003,7 @@ function ApiKeysPanel() {
         <h3 className="text-sm font-semibold text-green-800">Connect the hosted MCP server</h3>
         <p className="mt-1 text-xs text-green-700 leading-relaxed">
           Paste this URL into Claude Code, Cursor, or any MCP client and log in with your Nyx
-          account — no API key to copy. Tool usage draws on your account credits.
+          account — no API key to copy. Tool usage is metered against the credits you allocate to each agent.
         </p>
 
         {/* MCP endpoint URL */}
@@ -1182,15 +1192,6 @@ function ApiKeysPanel() {
     </div>
   );
 }
-
-// ── Billing Panel ────────────────────────────────────────────────────
-
-const PLAN_BADGE_COLORS: Record<string, string> = {
-  free: 'bg-slate-100 text-slate-600',
-  pro: 'bg-blue-100 text-blue-700',
-  team: 'bg-violet-100 text-violet-700',
-  enterprise: 'bg-amber-100 text-amber-700',
-};
 
 // ── AI Configuration Panel (BYOK) ─────────────────────────────────────
 
@@ -1642,229 +1643,171 @@ function AiConfigPanel() {
   );
 }
 
-function BillingPanel() {
-  const { user } = useAuthStore();
+function CreditsPanel() {
+  const queryClient = useQueryClient();
   const teamsQuery = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
   const teamId = teamsQuery.data?.[0]?.id;
+  const [scope, setScope] = useState<'personal' | 'team'>('personal');
+  const activeTeamId = scope === 'team' ? teamId : undefined;
+  const [agentName, setAgentName] = useState('');
+  const [amount, setAmount] = useState('');
 
-  const plansQuery = useQuery({ queryKey: ['plans'], queryFn: fetchPlans });
-  const subQuery = useQuery({
-    queryKey: ['subscription', teamId],
-    queryFn: () => fetchCurrentSubscription(teamId!),
-    enabled: !!teamId,
+  const balanceQuery = useQuery({
+    queryKey: ['credits-balance-detail', activeTeamId ?? 'personal'],
+    queryFn: () => fetchCreditBalance(activeTeamId),
+  });
+  const historyQuery = useQuery({
+    queryKey: ['credits-history', activeTeamId ?? 'personal'],
+    queryFn: () => fetchCreditHistory({ teamId: activeTeamId, limit: 20 }),
   });
 
-  const teamCreditQuery = useQuery({
-    queryKey: ['team-credit-balance', teamId],
-    queryFn: () => fetchTeamCreditBalance(teamId!),
-    enabled: !!teamId,
-  });
-
-  const checkoutMutation = useMutation({
-    mutationFn: createCheckoutSession,
-    onSuccess: (data) => {
-      if (data.url && typeof data.url === 'string' && data.url.startsWith('https://') && data.url.includes('stripe.com')) {
-        window.location.href = data.url;
-      } else if (data.url) {
-        console.warn('Blocked redirect to untrusted URL:', data.url);
-      }
-    },
-  });
-
-  const portalMutation = useMutation({
-    mutationFn: createPortalSession,
-    onSuccess: (data) => {
-      if (data.url && typeof data.url === 'string' && data.url.startsWith('https://') && data.url.includes('stripe.com')) {
-        window.location.href = data.url;
-      } else if (data.url) {
-        console.warn('Blocked redirect to untrusted URL:', data.url);
-      }
-    },
-  });
-
-  const currentPlan = subQuery.data?.plan ?? 'free';
-  const plans = plansQuery.data ?? [];
-
-  // Fire the purchase conversion once when Stripe redirects back with success.
-  // Wait for plans to load so we can attach the plan price as the value.
-  const purchaseTracked = useRef(false);
-  useEffect(() => {
-    if (purchaseTracked.current || plansQuery.isLoading) return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('success') !== 'true') return;
-    purchaseTracked.current = true;
-    const planId = params.get('plan') ?? undefined;
-    const price = plans.find((p) => p.id === planId)?.price ?? undefined;
-    trackPurchase({ plan: planId, value: price ?? undefined });
-    // Strip the params so a refresh doesn't re-fire the conversion.
-    params.delete('success');
-    params.delete('plan');
-    const qs = params.toString();
-    window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
-  }, [plansQuery.isLoading, plans]);
-
-  const handleUpgrade = (planId: string) => {
-    if (!teamId) return;
-    checkoutMutation.mutate({
-      plan: planId,
-      teamId,
-      successUrl: `${window.location.origin}/app/settings?tab=billing&success=true&plan=${planId}`,
-      cancelUrl: `${window.location.origin}/app/settings?tab=billing`,
-    });
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ['credits-balance-detail'] });
+    void queryClient.invalidateQueries({ queryKey: ['credits-history'] });
+    void queryClient.invalidateQueries({ queryKey: ['credits-balance'] });
   };
 
-  const handleManageBilling = () => {
-    if (!teamId) return;
-    portalMutation.mutate({
-      teamId,
-      returnUrl: `${window.location.origin}/app/settings?tab=billing`,
-    });
-  };
+  const move = useMutation({
+    mutationFn: (v: { agentId: string; amount: number; direction: 'allocate' | 'deallocate' }) =>
+      (v.direction === 'allocate' ? allocateAgentCredits : deallocateAgentCredits)({
+        agentId: v.agentId,
+        amount: v.amount,
+        teamId: activeTeamId,
+      }),
+    onSuccess: refresh,
+  });
 
-  if (plansQuery.isLoading || subQuery.isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-      </div>
-    );
-  }
+  const data = balanceQuery.data;
+  const parsed = Number.parseInt(amount, 10);
+  const canMove = agentName.trim().length > 0 && Number.isInteger(parsed) && parsed > 0 && !move.isPending;
 
   return (
     <div className="space-y-6">
-      {/* Current plan banner */}
       <div className="rounded-lg border border-slate-200 bg-white p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-800">Current Plan</h3>
-            <div className="mt-1 flex items-center gap-2">
-              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${PLAN_BADGE_COLORS[currentPlan] ?? PLAN_BADGE_COLORS.free}`}>
-                {currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}
-              </span>
-              {subQuery.data?.status && subQuery.data.status !== 'active' && (
-                <span className="text-xs text-amber-600">({subQuery.data.status})</span>
-              )}
-            </div>
-            {subQuery.data?.currentPeriodEnd && (
-              <p className="mt-1 text-xs text-slate-400">
-                {subQuery.data.cancelAtPeriodEnd
-                  ? `Cancels on ${new Date(subQuery.data.currentPeriodEnd).toLocaleDateString()}`
-                  : `Renews on ${new Date(subQuery.data.currentPeriodEnd).toLocaleDateString()}`}
-              </p>
-            )}
-            {teamCreditQuery.data !== undefined && (
-              <p className="mt-1.5 text-xs text-slate-500">
-                Team credits:{' '}
-                <span className="font-semibold text-slate-700">
-                  {teamCreditQuery.data.balance.toLocaleString()}
-                </span>
-              </p>
-            )}
-          </div>
-          {currentPlan !== 'free' && (
-            <button
-              type="button"
-              onClick={handleManageBilling}
-              disabled={portalMutation.isPending}
-              className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40"
-            >
-              {portalMutation.isPending ? 'Loading...' : 'Manage Billing'}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Plan comparison cards */}
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-slate-800">Available Plans</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {plans.map((plan) => {
-            const isCurrent = plan.id === currentPlan;
-            const isEnterprise = plan.id === 'enterprise';
-
-            return (
-              <div
-                key={plan.id}
-                className={`relative rounded-lg border p-4 transition-shadow ${
-                  isCurrent
-                    ? 'border-blue-300 bg-blue-50/30 shadow-sm'
-                    : 'border-slate-200 bg-white hover:shadow-sm'
-                }`}
+        <h3 className="text-sm font-semibold text-slate-800">Agent credits</h3>
+        <p className="mt-1 text-xs text-slate-500">
+          Credits are a local usage budget for agents that act on your behalf through MCP and the CLI.
+          They are never sold and have no cash value. You decide how many each agent may spend.
+        </p>
+        {teamId && (
+          <div className="mt-3 flex gap-2 text-xs">
+            {(['personal', 'team'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setScope(s)}
+                className={`rounded-md px-2.5 py-1 ${scope === s ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600'}`}
               >
-                {isCurrent && (
-                  <span className="absolute -top-2.5 left-3 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white">
-                    Current
-                  </span>
-                )}
+                {s === 'personal' ? 'Personal' : 'Team'}
+              </button>
+            ))}
+          </div>
+        )}
+        {data && (
+          <dl className="mt-4 grid grid-cols-3 gap-4 text-xs">
+            <div>
+              <dt className="text-slate-500">Unallocated</dt>
+              <dd className="text-lg font-semibold text-slate-800">{data.pool.toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Held by running tasks</dt>
+              <dd className="text-lg font-semibold text-slate-800">{data.held.toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Spent by agents</dt>
+              <dd className="text-lg font-semibold text-slate-800">{data.spent.toLocaleString()}</dd>
+            </div>
+          </dl>
+        )}
+      </div>
 
-                <h4 className="text-sm font-semibold text-slate-800">{plan.name}</h4>
+      <div className="rounded-lg border border-slate-200 bg-white p-5">
+        <h3 className="text-sm font-semibold text-slate-800">Usage per agent</h3>
+        {data && data.agents.length === 0 && (
+          <p className="mt-2 text-xs text-slate-500">
+            No agent has connected yet. Agents appear here the first time they call Nyx.
+          </p>
+        )}
+        {data && data.agents.length > 0 && (
+          <table className="mt-3 w-full text-left text-xs">
+            <thead className="text-slate-500">
+              <tr>
+                <th className="py-1 font-medium">Agent</th>
+                <th className="py-1 text-right font-medium">Budget left</th>
+                <th className="py-1 text-right font-medium">Held</th>
+                <th className="py-1 text-right font-medium">Spent</th>
+                <th className="py-1 text-right font-medium">Calls</th>
+              </tr>
+            </thead>
+            <tbody className="text-slate-700">
+              {data.agents.map((a) => (
+                <tr key={a.agentId} className="border-t border-slate-100">
+                  <td className="py-1.5 font-mono">{a.agentId}</td>
+                  <td className="py-1.5 text-right">{a.available.toLocaleString()}</td>
+                  <td className="py-1.5 text-right">{a.held.toLocaleString()}</td>
+                  <td className="py-1.5 text-right">{a.spent.toLocaleString()}</td>
+                  <td className="py-1.5 text-right">{a.commits.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
 
-                <div className="mt-2">
-                  {plan.price !== null ? (
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-slate-900">${plan.price}</span>
-                      {plan.interval && (
-                        <span className="text-xs text-slate-400">/{plan.interval}</span>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-lg font-semibold text-slate-600">Contact us</span>
-                  )}
-                </div>
-
-                <ul className="mt-3 space-y-1.5">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-1.5 text-xs text-slate-600">
-                      <svg
-                        className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={2.5}
-                        stroke="currentColor"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                      </svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-4">
-                  {isCurrent ? (
-                    <span className="block rounded-md bg-slate-100 px-3 py-1.5 text-center text-xs font-medium text-slate-400">
-                      Current plan
-                    </span>
-                  ) : isEnterprise ? (
-                    <a
-                      href="mailto:sales@nyx.io"
-                      className="block rounded-md border border-slate-200 bg-white px-3 py-1.5 text-center text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-                    >
-                      Contact Sales
-                    </a>
-                  ) : plan.price === 0 ? (
-                    <span className="block rounded-md bg-slate-50 px-3 py-1.5 text-center text-xs font-medium text-slate-400">
-                      Free forever
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleUpgrade(plan.id)}
-                      disabled={checkoutMutation.isPending}
-                      className="block w-full rounded-md bg-blue-600 px-3 py-1.5 text-center text-xs font-semibold text-white hover:bg-blue-700 transition-colors disabled:opacity-40"
-                    >
-                      {checkoutMutation.isPending ? 'Redirecting...' : 'Upgrade'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="mt-4 flex flex-wrap items-end gap-2 border-t border-slate-100 pt-4 text-xs">
+          <label className="flex flex-col gap-1 text-slate-500">
+            Agent
+            <input
+              value={agentName}
+              onChange={(e) => setAgentName(e.target.value)}
+              placeholder="claude-code"
+              className="w-40 rounded-md border border-slate-300 px-2 py-1 text-slate-800"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-slate-500">
+            Credits
+            <input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              inputMode="numeric"
+              placeholder="100"
+              className="w-24 rounded-md border border-slate-300 px-2 py-1 text-slate-800"
+            />
+          </label>
+          <button
+            type="button"
+            disabled={!canMove}
+            onClick={() => move.mutate({ agentId: agentName.trim(), amount: parsed, direction: 'allocate' })}
+            className="rounded-md bg-slate-800 px-3 py-1.5 text-white disabled:opacity-40"
+          >
+            Allocate
+          </button>
+          <button
+            type="button"
+            disabled={!canMove}
+            onClick={() => move.mutate({ agentId: agentName.trim(), amount: parsed, direction: 'deallocate' })}
+            className="rounded-md bg-slate-100 px-3 py-1.5 text-slate-700 disabled:opacity-40"
+          >
+            Take back
+          </button>
+          {move.isError && <span className="text-red-600">{(move.error as Error).message}</span>}
         </div>
       </div>
 
-      {/* Error display */}
-      {(checkoutMutation.error || portalMutation.error) && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
-          {(checkoutMutation.error ?? portalMutation.error)?.message ?? 'Something went wrong'}
+      {historyQuery.data && historyQuery.data.entries.length > 0 && (
+        <div className="rounded-lg border border-slate-200 bg-white p-5">
+          <h3 className="text-sm font-semibold text-slate-800">Recent activity</h3>
+          <ul className="mt-3 space-y-1 text-xs text-slate-600">
+            {historyQuery.data.entries.map((e) => (
+              <li key={e.id} className="flex justify-between gap-4">
+                <span>
+                  <span className="font-medium text-slate-700">{e.kind}</span>
+                  {e.agentId ? ` · ${e.agentId}` : ''}
+                  {e.memo ? ` · ${e.memo}` : ''}
+                </span>
+                <span className="text-slate-400">{new Date(e.ts).toLocaleString()}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
@@ -1912,7 +1855,8 @@ export function Settings() {
           {activeTab === 'api-keys' && <ApiKeysPanel />}
           {activeTab === 'ai-config' && <AiConfigPanel />}
           {activeTab === 'notifications' && <NotificationPreferences />}
-          {activeTab === 'billing' && <BillingPanel />}
+          {activeTab === 'appearance' && <AppearanceSettings />}
+          {activeTab === 'credits' && <CreditsPanel />}
           {activeTab === 'account' && <AccountPanel />}
         </div>
       </div>

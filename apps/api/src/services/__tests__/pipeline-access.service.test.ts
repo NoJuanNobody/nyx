@@ -34,6 +34,7 @@ vi.doMock('../../db/index.js', () => ({
         mockInsertValues(...args);
         return {
           onConflictDoUpdate: vi.fn().mockResolvedValue([]),
+          onConflictDoNothing: vi.fn().mockResolvedValue([]),
           returning: vi.fn().mockResolvedValue([{ id: 'new-id' }]),
         };
       }),
@@ -54,20 +55,6 @@ vi.doMock('../../db/schema.js', () => ({
     teamId: 'teamId',
     activatedAt: 'activatedAt',
     creditsPaid: 'creditsPaid',
-  },
-  creditBalances: {
-    userId: 'userId',
-    balance: 'balance',
-    updatedAt: 'updatedAt',
-  },
-  creditTransactions: {
-    id: 'id',
-    userId: 'userId',
-    amount: 'amount',
-    type: 'type',
-    description: 'description',
-    taskType: 'taskType',
-    createdAt: 'createdAt',
   },
 }));
 
@@ -99,40 +86,26 @@ describe('pipeline-access.service', () => {
   });
 
   describe('activatePipeline', () => {
-    it('should return alreadyOwned=true without charging when user already has access', async () => {
-      // hasPipelineAccess check returns existing row
+    it('returns alreadyOwned=true without inserting when user already has access', async () => {
       selectResults = [[{ id: 'access-1' }]];
 
       const { activatePipeline } = await import('../pipeline-access.service.js');
-      const result = await activatePipeline('user-1', 'pipeline-a', 'Test Pipeline', 10);
+      const result = await activatePipeline('user-1', 'pipeline-a', 'Test Pipeline');
 
-      expect(result.alreadyOwned).toBe(true);
-      expect(result.creditsPaid).toBe(0);
+      expect(result).toEqual({ alreadyOwned: true, creditsPaid: 0 });
       expect(mockInsertValues).not.toHaveBeenCalled();
     });
 
-    it('should deduct credits and record access for first-time activation', async () => {
-      // hasPipelineAccess check returns no row, then getBalance returns 50, then getBalance after deduct returns 40
-      selectResults = [[], [{ balance: 50 }], [{ balance: 40 }]];
-
-      const { activatePipeline } = await import('../pipeline-access.service.js');
-      const result = await activatePipeline('user-1', 'pipeline-a', 'Test Pipeline', 10);
-
-      expect(result.alreadyOwned).toBe(false);
-      expect(result.creditsPaid).toBe(10);
-      expect(result.balance).toBe(40);
-    });
-
-    it('should record access without deducting when creditCost is 0', async () => {
-      // hasPipelineAccess check returns no row
+    it('records access for free on first activation (no credit charge)', async () => {
       selectResults = [[]];
 
       const { activatePipeline } = await import('../pipeline-access.service.js');
-      const result = await activatePipeline('user-1', 'free-pipeline', 'Free Pipeline', 0);
+      const result = await activatePipeline('user-1', 'pipeline-a', 'Test Pipeline');
 
-      expect(result.alreadyOwned).toBe(false);
-      expect(result.creditsPaid).toBe(0);
-      expect(result.balance).toBe(0);
+      expect(result).toEqual({ alreadyOwned: false, creditsPaid: 0 });
+      expect(mockInsertValues).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'user-1', pipelineId: 'pipeline-a', creditsPaid: 0 }),
+      );
     });
   });
 

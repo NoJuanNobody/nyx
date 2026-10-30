@@ -463,44 +463,6 @@ export function editDocumentAI(
   });
 }
 
-// ── Agent ──────────────────────────────────────────────────────────
-
-export interface AgentWorkflow {
-  id: string;
-  name: string;
-  description: string;
-  defaultPrompt?: string;
-  postSessionSuggestions?: string[];
-}
-
-export function fetchWorkflows(): Promise<AgentWorkflow[]> {
-  return request<AgentWorkflow[]>('/agent/workflows');
-}
-
-export interface AgentSession {
-  id: string;
-  teamId: string;
-  userId: string;
-  documentId: string | null;
-  status: string;
-  prompt: string;
-  result: string | null;
-  toolCallCount: number;
-  tokenUsage: Record<string, number>;
-  createdAt: string;
-}
-
-export function getAgentSession(sessionId: string): Promise<{ session: AgentSession; toolCalls: unknown[] }> {
-  return request<{ session: AgentSession; toolCalls: unknown[] }>(`/agent/${sessionId}`);
-}
-
-export function cancelAgentSession(sessionId: string): Promise<{ cancelled: boolean }> {
-  return request<{ cancelled: boolean }>(`/agent/${sessionId}/cancel`, {
-    method: 'POST',
-    body: JSON.stringify({}),
-  });
-}
-
 // ── API Keys ─────────────────────────────────────────────────────────
 
 export interface ApiKey {
@@ -1265,41 +1227,6 @@ export function processTranscriptForIntake(
   });
 }
 
-// ── Subscriptions ───────────────────────────────────────────────────
-
-export interface SubscriptionPlan {
-  id: string;
-  name: string;
-  price: number | null;
-  interval: string | null;
-  features: string[];
-}
-
-export interface Subscription {
-  id: string;
-  teamId: string;
-  plan: string;
-  status: string;
-  currentPeriodEnd: string | null;
-  cancelAtPeriodEnd: boolean;
-}
-
-export function fetchPlans(): Promise<SubscriptionPlan[]> {
-  return request<SubscriptionPlan[]>('/subscriptions/plans');
-}
-
-export function fetchCurrentSubscription(teamId: string): Promise<Subscription | null> {
-  return request<Subscription | null>(`/subscriptions/current?teamId=${teamId}`);
-}
-
-export function createCheckoutSession(data: { plan: string; teamId: string; successUrl: string; cancelUrl: string }): Promise<{ url: string }> {
-  return request<{ url: string }>('/subscriptions/checkout', { method: 'POST', body: JSON.stringify(data) });
-}
-
-export function createPortalSession(data: { teamId: string; returnUrl: string }): Promise<{ url: string }> {
-  return request<{ url: string }>('/subscriptions/portal', { method: 'POST', body: JSON.stringify(data) });
-}
-
 // ── Notifications ────────────────────────────────────────────────────
 
 export function fetchNotifications(params?: { read?: boolean; eventType?: string; limit?: number; cursor?: string }) {
@@ -1375,36 +1302,73 @@ export interface ProjectShowcase {
   createdAt: string;
 }
 
+export interface AgentCreditUsage {
+  agentId: string;
+  available: number;
+  held: number;
+  spent: number;
+  commits: number;
+  lastActivityAt: number | null;
+}
+
+export interface CreditBalance {
+  workspaceId: string;
+  /** Unallocated credits owned by the workspace */
+  pool: number;
+  /** pool + every agent's available budget */
+  total: number;
+  /** Total unspent credits (same as total; kept for existing callers) */
+  balance: number;
+  held: number;
+  spent: number;
+  agents: AgentCreditUsage[];
+}
+
+export interface CreditHistoryEntry {
+  id: string;
+  ts: number;
+  kind: 'grant' | 'allocate' | 'deallocate' | 'reserve' | 'commit' | 'release' | 'refund';
+  agentId: string | null;
+  taskType: string | null;
+  memo: string;
+  actor: { kind: string; id: string };
+}
+
 export function fetchCreditCosts(): Promise<{ costs: Record<string, number> }> {
   return request<{ costs: Record<string, number> }>('/credits/costs');
 }
 
-export function fetchCreditBalance(): Promise<{ balance: number }> {
-  return request<{ balance: number }>('/credits/balance');
+export function fetchCreditBalance(teamId?: string): Promise<CreditBalance> {
+  const q = teamId ? `?teamId=${encodeURIComponent(teamId)}` : '';
+  return request<CreditBalance>(`/credits/balance${q}`);
 }
 
-export interface CreditPack {
-  id: string;
-  name: string;
-  credits: number;
-  priceUsd: number;
-  popular: boolean;
+export function fetchCreditHistory(opts: { teamId?: string; limit?: number } = {}): Promise<{ entries: CreditHistoryEntry[] }> {
+  const p = new URLSearchParams();
+  if (opts.teamId) p.set('teamId', opts.teamId);
+  if (opts.limit) p.set('limit', String(opts.limit));
+  const q = p.toString();
+  return request<{ entries: CreditHistoryEntry[] }>(`/credits/history${q ? `?${q}` : ''}`);
 }
 
-export function fetchCreditPacks(): Promise<{ packs: CreditPack[] }> {
-  return request<{ packs: CreditPack[] }>('/credits/packs');
+function newIdempotencyKey(): string {
+  return `ui:${crypto.randomUUID()}`;
 }
 
-export function deductCredits(data: { amount: number; taskType: string; description: string }): Promise<{ balance: number }> {
-  return request<{ balance: number }>('/credits/deduct', { method: 'POST', body: JSON.stringify(data) });
+/** Owner action: move credits from the workspace pool to an agent budget. */
+export function allocateAgentCredits(data: { agentId: string; amount: number; teamId?: string }): Promise<{ pool: number; available: number }> {
+  return request<{ pool: number; available: number }>('/credits/allocate', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, idempotencyKey: newIdempotencyKey() }),
+  });
 }
 
-export function purchaseCreditPack(packId: string): Promise<{ balance: number; pack: CreditPack }> {
-  return request<{ balance: number; pack: CreditPack }>('/credits/purchase', { method: 'POST', body: JSON.stringify({ packId }) });
-}
-
-export function fetchTeamCreditBalance(teamId: string): Promise<{ teamId: string; balance: number }> {
-  return request<{ teamId: string; balance: number }>(`/credits/team-balance?teamId=${encodeURIComponent(teamId)}`);
+/** Owner action: return an agent's unspent budget to the pool. */
+export function deallocateAgentCredits(data: { agentId: string; amount: number; teamId?: string }): Promise<{ pool: number; available: number }> {
+  return request<{ pool: number; available: number }>('/credits/deallocate', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, idempotencyKey: newIdempotencyKey() }),
+  });
 }
 
 // ── Pipeline Access ─────────────────────────────────────────────────
@@ -1424,10 +1388,9 @@ export function fetchOwnedPipelines(): Promise<{ pipelines: OwnedPipeline[] }> {
 export function activatePipeline(data: {
   pipelineId: string;
   pipelineLabel: string;
-  creditCost: number;
   teamId?: string;
-}): Promise<{ alreadyOwned: boolean; creditsPaid: number; balance: number }> {
-  return request<{ alreadyOwned: boolean; creditsPaid: number; balance: number }>('/pipelines/activate', {
+}): Promise<{ alreadyOwned: boolean; creditsPaid: number }> {
+  return request<{ alreadyOwned: boolean; creditsPaid: number }>('/pipelines/activate', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -1625,57 +1588,6 @@ export function expandTicketSuggestion(id: string): Promise<TicketSuggestion> {
   });
 }
 
-// ── Agent Registry ──────────────────────────────────────────────
-
-export interface AgentMapEntry {
-  type: string;
-  name: string;
-  description: string;
-  capabilities: string[];
-  currentState: string;
-  config: Record<string, unknown>;
-  enabledWorkspaces: string[];
-}
-
-export function fetchAgentRegistry(): Promise<AgentMapEntry[]> {
-  return request<AgentMapEntry[]>('/agent/registry');
-}
-
-export function fetchAgentDetails(type: string): Promise<AgentMapEntry> {
-  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}`);
-}
-
-export function updateAgentState(type: string, state: string): Promise<AgentMapEntry> {
-  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}/state`, {
-    method: 'PUT',
-    body: JSON.stringify({ state }),
-  });
-}
-
-export function updateAgentConfig(
-  type: string,
-  config: Record<string, unknown>,
-): Promise<AgentMapEntry> {
-  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}/config`, {
-    method: 'PUT',
-    body: JSON.stringify(config),
-  });
-}
-
-export function enableAgent(type: string, workspaceId: string): Promise<AgentMapEntry> {
-  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}/enable`, {
-    method: 'POST',
-    body: JSON.stringify({ workspaceId }),
-  });
-}
-
-export function disableAgent(type: string, workspaceId: string): Promise<AgentMapEntry> {
-  return request<AgentMapEntry>(`/agent/registry/${encodeURIComponent(type)}/disable`, {
-    method: 'POST',
-    body: JSON.stringify({ workspaceId }),
-  });
-}
-
 // ── Voice / Meetings ────────────────────────────────────────────────
 
 export interface VoiceSession {
@@ -1712,13 +1624,6 @@ export function createMeetingDocument(sessionId: string, teamId: string): Promis
 
 export function getCreditsBalance(): Promise<{ balance: number }> {
   return request<{ balance: number }>('/credits/balance');
-}
-
-export function purchaseCredits(amount: number): Promise<{ balance: number; added: number }> {
-  return request<{ balance: number; added: number }>('/credits/purchase', {
-    method: 'POST',
-    body: JSON.stringify({ amount }),
-  });
 }
 
 export function getCreditCosts(): Promise<Record<string, number>> {

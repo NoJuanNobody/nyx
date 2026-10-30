@@ -6,7 +6,6 @@ import {
   useLocation,
   useParams,
 } from 'react-router-dom';
-import { HashbrownProvider } from '@hashbrownai/react';
 import { Layout } from './components/Layout';
 import { AuthGuard } from './components/AuthGuard';
 import { Dashboard } from './pages/Dashboard';
@@ -22,7 +21,6 @@ import { OperationsPage } from './pages/OperationsPage';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 import { AcceptInvite } from './pages/AcceptInvite';
-import { Pricing } from './pages/Pricing';
 import { useAuthStore } from './stores/auth.store';
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -61,11 +59,8 @@ function RootRoute() {
   return <Landing />;
 }
 
-const GENERATIVE_ENDPOINT = `${import.meta.env.VITE_API_URL ?? ''}/api/generative/run`;
-
 export function App() {
   return (
-    <HashbrownProvider url={GENERATIVE_ENDPOINT}>
     <BrowserRouter>
       <Routes>
         {/* Public routes */}
@@ -73,7 +68,6 @@ export function App() {
         <Route path="/sign-in/*" element={<SignIn />} />
         <Route path="/sign-up/*" element={<SignUp />} />
         <Route path="/invite/:token" element={<AcceptInvite />} />
-        <Route path="/pricing" element={<Pricing />} />
         {/* `/landing` is retired — `/` is now the landing page */}
         <Route path="/landing" element={<Navigate to="/" replace />} />
 
@@ -93,10 +87,6 @@ export function App() {
             <Route path="operations" element={<OperationsPage />} />
             <Route path="getting-started" element={<Navigate to="/app/dashboard" replace />} />
             {/* In-app redirects (previously top-level) repointed under /app */}
-            <Route
-              path="agent-map"
-              element={<Navigate to="/app/operations?tab=agents" replace />}
-            />
             <Route
               path="observability"
               element={<Navigate to="/app/operations?tab=observability" replace />}
@@ -139,10 +129,6 @@ export function App() {
         />
         {/* Legacy tab-redirect helpers at the root also forward under /app */}
         <Route
-          path="/agent-map"
-          element={<Navigate to="/app/operations?tab=agents" replace />}
-        />
-        <Route
           path="/observability"
           element={<Navigate to="/app/operations?tab=observability" replace />}
         />
@@ -156,6 +142,5 @@ export function App() {
         />
       </Routes>
     </BrowserRouter>
-    </HashbrownProvider>
   );
 }

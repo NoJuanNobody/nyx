@@ -1,0 +1,271 @@
+{
+  "slug": "hr_policies",
+  "label": "HR Policies",
+  "description": "HR policy development from concept to published policy",
+  "icon": "👥",
+  "is_default": false,
+  "sort_order": 10,
+  "connectors": [
+    "Policy concept shapes stakeholder input",
+    "Input informs the draft policy",
+    "Draft goes through legal review",
+    "Legal review precedes employee feedback",
+    "Feedback finalizes the published policy"
+  ],
+  "stages": [
+    {
+      "slug": "policy_concept",
+      "sort_order": 0,
+      "label": "Policy Concept",
+      "abbreviation": "PC",
+      "subtitle": "Need Assessment",
+      "color": "bg-sky-100",
+      "text_color": "text-sky-700",
+      "dot_color": "bg-sky-400",
+      "border_color": "border-sky-300",
+      "hex": "#38BDF8",
+      "who": "HR Director",
+      "description": "Identify policy need and objectives",
+      "icon": "💡",
+      "ai": "Benchmarks against industry standards",
+      "output": "Policy concept brief",
+      "docs": [
+        "Policy Brief",
+        "Regulatory Requirements",
+        "Industry Benchmarks",
+        "Impact Assessment"
+      ],
+      "suggestions": [
+        "Benchmark industry standards",
+        "Identify regulations",
+        "Assess impact"
+      ]
+    },
+    {
+      "slug": "stakeholder_input",
+      "sort_order": 1,
+      "label": "Stakeholder Input",
+      "abbreviation": "SI",
+      "subtitle": "Consultation",
+      "color": "bg-cyan-100",
+      "text_color": "text-cyan-700",
+      "dot_color": "bg-cyan-400",
+      "border_color": "border-cyan-300",
+      "hex": "#22D3EE",
+      "who": "HR Team, Department Heads",
+      "description": "Gather stakeholder input",
+      "icon": "🗣️",
+      "ai": "Synthesizes feedback, identifies conflicts",
+      "output": "Stakeholder input summary",
+      "docs": [
+        "Feedback Summary",
+        "Stakeholder Map",
+        "Conflict Analysis",
+        "Recommendations"
+      ],
+      "suggestions": [
+        "Synthesize feedback",
+        "Identify conflicts",
+        "Suggest compromises"
+      ]
+    },
+    {
+      "slug": "draft_policy",
+      "sort_order": 2,
+      "label": "Draft Policy",
+      "abbreviation": "DP",
+      "subtitle": "Initial Draft",
+      "color": "bg-blue-100",
+      "text_color": "text-blue-700",
+      "dot_color": "bg-blue-400",
+      "border_color": "border-blue-300",
+      "hex": "#3B82F6",
+      "who": "HR Policy Writers",
+      "description": "Draft the policy document",
+      "icon": "📝",
+      "ai": "Checks clarity, suggests plain language",
+      "output": "Complete policy draft",
+      "docs": [
+        "Policy Draft",
+        "Procedures",
+        "FAQ",
+        "Exception Handling"
+      ],
+      "suggestions": [
+        "Check clarity",
+        "Ensure completeness",
+        "Suggest plain language"
+      ]
+    },
+    {
+      "slug": "legal_review",
+      "sort_order": 3,
+      "label": "Legal Review",
+      "abbreviation": "LR",
+      "subtitle": "Compliance Check",
+      "color": "bg-indigo-100",
+      "text_color": "text-indigo-700",
+      "dot_color": "bg-indigo-400",
+      "border_color": "border-indigo-300",
+      "hex": "#6366F1",
+      "who": "Legal Counsel",
+      "description": "Legal and compliance review",
+      "icon": "⚖️",
+      "ai": "Checks labor laws, identifies liability",
+      "output": "Legally reviewed policy",
+      "docs": [
+        "Legal Review",
+        "Compliance Checklist",
+        "Risk Assessment",
+        "Recommended Changes"
+      ],
+      "suggestions": [
+        "Check labor laws",
+        "Identify liability",
+        "Suggest protective language"
+      ]
+    },
+    {
+      "slug": "employee_feedback",
+      "sort_order": 4,
+      "label": "Employee Feedback",
+      "abbreviation": "EF",
+      "subtitle": "Comment Period",
+      "color": "bg-violet-100",
+      "text_color": "text-violet-700",
+      "dot_color": "bg-violet-400",
+      "border_color": "border-violet-300",
+      "hex": "#8B5CF6",
+      "who": "Employees",
+      "description": "Open comment period for employee feedback",
+      "icon": "💬",
+      "ai": "Analyzes sentiment, categorizes concerns",
+      "output": "Employee feedback summary",
+      "docs": [
+        "Employee Comments",
+        "Sentiment Analysis",
+        "Adjustments",
+        "Response Plan"
+      ],
+      "suggestions": [
+        "Analyze sentiment",
+        "Categorize concerns",
+        "Suggest adjustments"
+      ]
+    },
+    {
+      "slug": "published_policy",
+      "sort_order": 5,
+      "label": "Published Policy",
+      "abbreviation": "PP",
+      "subtitle": "Active Policy",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "HR Director",
+      "description": "Final approval and publication",
+      "icon": "📢",
+      "ai": "Generates communications, creates training materials",
+      "output": "Published policy with rollout plan",
+      "docs": [
+        "Final Policy",
+        "Communication",
+        "Training Materials",
+        "Review Schedule"
+      ],
+      "suggestions": [
+        "Generate communications",
+        "Create training materials",
+        "Set review schedule"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "policy_concept",
+      "name": "Policy Proposal",
+      "description": "Propose a new HR policy with rationale and scope",
+      "sort_order": 0,
+      "content": "# Policy Proposal\n\n## Policy Title\n<!-- Name -->\n\n## Proposed By\n- Name: \n- Date: \n\n## Problem Statement\n<!-- What issue does this policy address? -->\n\n## Proposed Policy Summary\n<!-- 2-3 sentences -->\n\n## Scope\n- Applies to: \n- Exceptions: \n\n## Business Rationale\n- \n\n## Legal Considerations\n- \n\n## Impact Assessment\n| Stakeholder | Impact | Notes |\n|------------|--------|-------|\n| Employees  |        |       |\n| Managers   |        |       |\n| HR         |        |       |\n| Legal      |        |       |\n\n## Comparable Policies (industry)\n- \n"
+    },
+    {
+      "stage": "policy_concept",
+      "name": "Policy Research Brief",
+      "description": "Research regulatory requirements and industry benchmarks for the policy area",
+      "sort_order": 1,
+      "content": "# Policy Research Brief\n\n## Policy Area\n<!-- e.g., Remote work, PTO, harassment -->\n\n## Regulatory Requirements\n| Jurisdiction | Law / Regulation | Requirement |\n|-------------|-----------------|------------|\n|             |                 |            |\n\n## Industry Benchmarks\n| Company / Source | Policy | Notes |\n|-----------------|--------|-------|\n|                 |        |       |\n\n## Best Practices\n- \n\n## Risk of Non-Compliance\n- \n\n## Recommendations\n1. \n2. \n3. \n"
+    },
+    {
+      "stage": "stakeholder_input",
+      "name": "Stakeholder Feedback Summary",
+      "description": "Compile feedback from stakeholders on the proposed policy",
+      "sort_order": 0,
+      "content": "# Stakeholder Feedback Summary\n\n## Policy\n<!-- Policy title -->\n\n## Stakeholders Consulted\n| Name | Role | Department | Date |\n|------|------|-----------|------|\n|      |      |           |      |\n\n## Feedback\n| Stakeholder | Support | Concerns | Suggestions |\n|------------|---------|----------|------------|\n|            |         |          |            |\n\n## Common Themes\n- \n\n## Conflicting Viewpoints\n- \n\n## Recommended Adjustments\n| # | Adjustment | Reason | Priority |\n|---|-----------|--------|----------|\n|   |           |        |          |\n"
+    },
+    {
+      "stage": "stakeholder_input",
+      "name": "Focus Group Notes",
+      "description": "Document employee focus group discussions about the proposed policy",
+      "sort_order": 1,
+      "content": "# Focus Group Notes\n\n## Policy\n<!-- Policy title -->\n\n## Session Details\n- Date: \n- Facilitator: \n- Participants: __ employees\n- Departments represented: \n\n## Discussion Questions\n1. \n2. \n3. \n\n## Key Themes\n| Theme | Frequency | Sentiment |\n|-------|-----------|----------|\n|       |           | Positive / Negative / Mixed |\n\n## Notable Quotes\n> \"\"\n\n> \"\"\n\n## Concerns Raised\n- \n\n## Suggestions\n- \n\n## Action Items\n- [ ] \n"
+    },
+    {
+      "stage": "draft_policy",
+      "name": "Policy Document Draft",
+      "description": "Draft the formal policy document with standard sections",
+      "sort_order": 0,
+      "content": "# [Policy Title]\n\n## Policy Number\n<!-- e.g., HR-2026-001 -->\n\n## Effective Date\n<!-- Date -->\n\n## Purpose\n<!-- Why does this policy exist? -->\n\n## Scope\n<!-- Who does this apply to? -->\n\n## Policy Statement\n<!-- The actual policy -->\n\n## Definitions\n| Term | Definition |\n|------|----------|\n|      |          |\n\n## Procedures\n1. \n2. \n3. \n\n## Responsibilities\n| Role | Responsibility |\n|------|---------------|\n| Employee | |\n| Manager | |\n| HR | |\n\n## Exceptions\n- \n\n## Violations & Consequences\n- \n\n## Related Policies\n- \n"
+    },
+    {
+      "stage": "draft_policy",
+      "name": "Policy FAQ",
+      "description": "Draft frequently asked questions for employees about the new policy",
+      "sort_order": 1,
+      "content": "# Policy FAQ: [Policy Title]\n\n## General\n\n### Q: What is this policy about?\nA: \n\n### Q: When does it take effect?\nA: \n\n### Q: Who does this apply to?\nA: \n\n## Specifics\n\n### Q: [Common question 1]?\nA: \n\n### Q: [Common question 2]?\nA: \n\n### Q: [Common question 3]?\nA: \n\n## Exceptions\n\n### Q: Are there any exceptions?\nA: \n\n## Process\n\n### Q: How do I request [action]?\nA: \n\n### Q: Who do I contact with questions?\nA: \n"
+    },
+    {
+      "stage": "legal_review",
+      "name": "Legal Review Memo",
+      "description": "Document legal counsel review findings and required changes",
+      "sort_order": 0,
+      "content": "# Legal Review Memo\n\n## Policy\n<!-- Policy title and number -->\n\n## Reviewed By\n- Counsel: \n- Date: \n\n## Compliance Assessment\n| Regulation | Compliant | Issue | Required Change |\n|-----------|-----------|-------|----------------|\n|           | Yes / No  |       |                |\n\n## Risk Assessment\n- **Overall risk:** Low | Medium | High\n\n## Required Changes\n| # | Section | Change | Priority |\n|---|---------|--------|----------|\n|   |         |        |          |\n\n## Recommended (Optional) Changes\n- \n\n## Approval\n- [ ] Approved as-is\n- [ ] Approved with required changes\n- [ ] Not approved — significant revision needed\n"
+    },
+    {
+      "stage": "legal_review",
+      "name": "Multi-Jurisdiction Compliance Check",
+      "description": "Verify policy compliance across different jurisdictions",
+      "sort_order": 1,
+      "content": "# Multi-Jurisdiction Compliance Check\n\n## Policy\n<!-- Policy title -->\n\n## Jurisdictions\n| Jurisdiction | Applicable Law | Compliant | Notes |\n|-------------|---------------|-----------|-------|\n| Federal     |               | [ ]       |       |\n| State 1     |               | [ ]       |       |\n| State 2     |               | [ ]       |       |\n| International |             | [ ]       |       |\n\n## Jurisdiction-Specific Variations\n| Jurisdiction | Required Variation | Impact |\n|-------------|-------------------|--------|\n|             |                   |        |\n\n## Resolution\n- [ ] Single global policy\n- [ ] Policy with jurisdiction addendums\n- [ ] Separate jurisdiction-specific policies\n"
+    },
+    {
+      "stage": "employee_feedback",
+      "name": "Employee Comment Period Summary",
+      "description": "Summarize employee comments during the feedback period",
+      "sort_order": 0,
+      "content": "# Employee Comment Period Summary\n\n## Policy\n<!-- Policy title -->\n\n## Comment Period\n- Open: \n- Close: \n- Responses received: \n\n## Feedback by Theme\n| Theme | # Comments | Sentiment | Action |\n|-------|-----------|-----------|--------|\n|       |           |           |        |\n\n## Most Requested Changes\n1. \n2. \n3. \n\n## Changes Incorporated\n| # | Feedback | Change Made |\n|---|---------|------------|\n|   |         |            |\n\n## Feedback Not Incorporated\n| # | Feedback | Reason |\n|---|---------|--------|\n|   |         |        |\n"
+    },
+    {
+      "stage": "employee_feedback",
+      "name": "Manager Readiness Assessment",
+      "description": "Assess whether managers are prepared to implement the new policy",
+      "sort_order": 1,
+      "content": "# Manager Readiness Assessment\n\n## Policy\n<!-- Policy title -->\n\n## Assessment\n| Area | Ready | Gaps | Action Needed |\n|------|-------|------|---------------|\n| Understanding of policy | | | |\n| Ability to explain to team | | | |\n| Process knowledge | | | |\n| Tools / systems access | | | |\n\n## Training Needs\n- [ ] Policy overview session\n- [ ] FAQ walkthrough\n- [ ] Scenario role-playing\n- [ ] System training\n\n## Support Resources\n- HR contact: \n- Policy document: \n- FAQ link: \n\n## Rollout Plan\n| Phase | Date | Action |\n|-------|------|--------|\n|       |      |        |\n"
+    },
+    {
+      "stage": "published_policy",
+      "name": "Policy Publication Record",
+      "description": "Record the official publication and distribution of the policy",
+      "sort_order": 0,
+      "content": "# Policy Publication Record\n\n## Policy\n- Title: \n- Number: \n- Version: \n- Effective date: \n\n## Approvals\n| Approver | Role | Date |\n|----------|------|------|\n|          |      |      |\n\n## Distribution\n- [ ] Employee handbook updated\n- [ ] HRIS / intranet published\n- [ ] All-hands email sent\n- [ ] Manager toolkit distributed\n- [ ] Training scheduled\n\n## Acknowledgment Tracking\n- Method: \n- Deadline: \n- Completion: __% as of [date]\n\n## Supersedes\n- Previous policy: \n- Previous version: \n"
+    },
+    {
+      "stage": "published_policy",
+      "name": "Policy Review Schedule",
+      "description": "Set up the recurring review cadence for the published policy",
+      "sort_order": 1,
+      "content": "# Policy Review Schedule\n\n## Policy\n<!-- Policy title and number -->\n\n## Review Cadence\n- Frequency: Annual | Bi-annual | As needed\n- Next review: \n\n## Review Triggers\n- [ ] Scheduled review date\n- [ ] Regulatory change\n- [ ] Organizational change\n- [ ] Employee complaint or incident\n\n## Review Responsibilities\n| Role | Responsibility |\n|------|---------------|\n| Policy owner | |\n| Legal | |\n| HR leadership | |\n\n## Review History\n| Date | Reviewer | Changes | Version |\n|------|---------|---------|--------|\n|      |         |         |        |\n\n## Metrics to Monitor\n- \n"
+    }
+  ]
+}

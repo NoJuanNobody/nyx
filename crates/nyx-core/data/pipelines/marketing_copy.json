@@ -1,0 +1,270 @@
+{
+  "slug": "marketing_copy",
+  "label": "Marketing Copy",
+  "description": "Marketing content from brief to live deployment",
+  "icon": "📣",
+  "is_default": false,
+  "sort_order": 4,
+  "connectors": [
+    "Brief shapes the draft variations",
+    "Variations feed A/B testing",
+    "Test data drives refinement",
+    "Refinement produces final version",
+    "Final version goes live"
+  ],
+  "stages": [
+    {
+      "slug": "brief_strategy",
+      "sort_order": 0,
+      "label": "Brief & Strategy",
+      "abbreviation": "BS",
+      "subtitle": "Campaign Plan",
+      "color": "bg-blue-100",
+      "text_color": "text-blue-700",
+      "dot_color": "bg-blue-400",
+      "border_color": "border-blue-300",
+      "hex": "#3B82F6",
+      "who": "Marketing Managers",
+      "description": "Define campaign objectives and messaging strategy",
+      "icon": "🎯",
+      "ai": "Analyzes audience segments, suggests positioning",
+      "output": "Complete creative brief",
+      "docs": [
+        "Creative Brief",
+        "Audience Personas",
+        "Messaging Framework",
+        "Competitive Positioning"
+      ],
+      "suggestions": [
+        "Define target audience",
+        "Analyze competition",
+        "Set campaign goals"
+      ]
+    },
+    {
+      "slug": "draft_variations",
+      "sort_order": 1,
+      "label": "Draft Variations",
+      "abbreviation": "DV",
+      "subtitle": "Copy Options",
+      "color": "bg-indigo-100",
+      "text_color": "text-indigo-700",
+      "dot_color": "bg-indigo-400",
+      "border_color": "border-indigo-300",
+      "hex": "#6366F1",
+      "who": "Copywriters",
+      "description": "Write multiple copy variations for testing",
+      "icon": "✍️",
+      "ai": "Generates headline variants, checks tone alignment",
+      "output": "Multiple copy variations",
+      "docs": [
+        "Headline Variations",
+        "Body Copy Drafts",
+        "CTA Options",
+        "Channel Adaptations"
+      ],
+      "suggestions": [
+        "Generate headline options",
+        "Vary CTAs",
+        "Adapt for channels"
+      ]
+    },
+    {
+      "slug": "ab_testing",
+      "sort_order": 2,
+      "label": "A/B Testing Data",
+      "abbreviation": "AB",
+      "subtitle": "Performance Data",
+      "color": "bg-violet-100",
+      "text_color": "text-violet-700",
+      "dot_color": "bg-violet-400",
+      "border_color": "border-violet-300",
+      "hex": "#8B5CF6",
+      "who": "Growth Team, Analysts",
+      "description": "Run A/B tests and collect performance data",
+      "icon": "📊",
+      "ai": "Analyzes test results, recommends winners",
+      "output": "Test results with analysis",
+      "docs": [
+        "Test Setup",
+        "Performance Metrics",
+        "Statistical Analysis",
+        "Winner Recommendation"
+      ],
+      "suggestions": [
+        "Analyze significance",
+        "Identify winners",
+        "Spot patterns"
+      ]
+    },
+    {
+      "slug": "refinement",
+      "sort_order": 3,
+      "label": "Refinement",
+      "abbreviation": "RF",
+      "subtitle": "Optimization",
+      "color": "bg-purple-100",
+      "text_color": "text-purple-700",
+      "dot_color": "bg-purple-400",
+      "border_color": "border-purple-300",
+      "hex": "#A855F7",
+      "who": "Copywriters, Marketing Lead",
+      "description": "Refine winning copy based on test data",
+      "icon": "🔧",
+      "ai": "Suggests improvements based on data",
+      "output": "Optimized copy",
+      "docs": [
+        "Refined Copy",
+        "Stakeholder Feedback",
+        "Channel-Specific Versions"
+      ],
+      "suggestions": [
+        "Apply test learnings",
+        "Check brand voice",
+        "Optimize CTAs"
+      ]
+    },
+    {
+      "slug": "final_version",
+      "sort_order": 4,
+      "label": "Final Version",
+      "abbreviation": "FV",
+      "subtitle": "Approved Copy",
+      "color": "bg-fuchsia-100",
+      "text_color": "text-fuchsia-700",
+      "dot_color": "bg-fuchsia-400",
+      "border_color": "border-fuchsia-300",
+      "hex": "#D946EF",
+      "who": "Marketing Lead, Legal",
+      "description": "Final approval and legal review",
+      "icon": "✅",
+      "ai": "Checks legal compliance, brand guidelines",
+      "output": "Approved final copy",
+      "docs": [
+        "Approved Copy",
+        "Legal Review",
+        "Brand Compliance",
+        "Approval Chain"
+      ],
+      "suggestions": [
+        "Check legal compliance",
+        "Verify brand guidelines",
+        "Review accessibility"
+      ]
+    },
+    {
+      "slug": "live",
+      "sort_order": 5,
+      "label": "Live",
+      "abbreviation": "LV",
+      "subtitle": "Deployed",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Marketing Ops",
+      "description": "Deploy to live channels and monitor",
+      "icon": "🚀",
+      "ai": "Monitors performance, suggests optimizations",
+      "output": "Live copy with monitoring",
+      "docs": [
+        "Deployment Log",
+        "Performance Dashboard",
+        "Optimization Notes",
+        "Post-Launch Report"
+      ],
+      "suggestions": [
+        "Monitor performance",
+        "Suggest optimizations",
+        "Flag issues"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "brief_strategy",
+      "name": "Creative Brief",
+      "description": "Define the messaging strategy, audience, and tone for a campaign",
+      "sort_order": 0,
+      "content": "# Creative Brief\n\n## Project\n<!-- Campaign or asset name -->\n\n## Objective\n<!-- What should this copy accomplish? -->\n\n## Target Audience\n- **Demographics:** \n- **Psychographics:** \n- **Pain Points:** \n\n## Key Message\n<!-- Single most important takeaway -->\n\n## Supporting Points\n1. \n2. \n3. \n\n## Tone & Voice\n<!-- e.g., Professional but approachable -->\n\n## Deliverables\n- [ ] \n\n## Constraints\n- Brand guidelines: \n- Word count: \n- Deadline: \n"
+    },
+    {
+      "stage": "brief_strategy",
+      "name": "Audience Messaging Matrix",
+      "description": "Map key messages to audience segments and channels",
+      "sort_order": 1,
+      "content": "# Audience Messaging Matrix\n\n## Campaign\n<!-- Campaign name -->\n\n## Segments\n| Segment | Pain Point | Key Message | Proof Point | CTA |\n|---------|-----------|-------------|------------|-----|\n|         |           |             |            |     |\n\n## Channel Strategy\n| Channel | Segment | Format | Tone Adjustment |\n|---------|---------|--------|----------------|\n| Email   |         |        |                |\n| Social  |         |        |                |\n| Web     |         |        |                |\n\n## Messaging Hierarchy\n1. Primary: \n2. Secondary: \n3. Tertiary: \n"
+    },
+    {
+      "stage": "draft_variations",
+      "name": "Headline Variations",
+      "description": "Generate and compare multiple headline options",
+      "sort_order": 0,
+      "content": "# Headline Variations\n\n## Asset\n<!-- What is this headline for? -->\n\n## Target Emotion\n<!-- e.g., Curiosity, urgency, trust -->\n\n## Variations\n| # | Headline | Approach | Length |\n|---|---------|----------|--------|\n| 1 |         | Benefit-led |     |\n| 2 |         | Question |       |\n| 3 |         | Social proof |   |\n| 4 |         | Urgency |       |\n| 5 |         | Curiosity gap | |\n\n## Supporting Subheadlines\n- For #__: \n- For #__: \n\n## Team Vote\n| # | Votes | Notes |\n|---|-------|-------|\n|   |       |       |\n"
+    },
+    {
+      "stage": "draft_variations",
+      "name": "Body Copy Drafts",
+      "description": "Write and compare multiple body copy approaches",
+      "sort_order": 1,
+      "content": "# Body Copy Drafts\n\n## Asset\n<!-- e.g., Landing page, email, ad -->\n\n## Version A: [Approach]\n<!-- Draft -->\n\n---\n\n## Version B: [Approach]\n<!-- Draft -->\n\n---\n\n## Comparison\n| Criteria | Version A | Version B |\n|----------|-----------|----------|\n| Clarity  |           |          |\n| Emotional appeal |   |          |\n| CTA strength |       |          |\n| Brand alignment |    |          |\n\n## Recommended Version\n<!-- Which one and why -->\n"
+    },
+    {
+      "stage": "ab_testing",
+      "name": "A/B Test Plan",
+      "description": "Define test hypotheses, variants, and success metrics",
+      "sort_order": 0,
+      "content": "# A/B Test Plan\n\n## Test Name\n<!-- Descriptive name -->\n\n## Hypothesis\n<!-- Changing [X] will increase [metric] by [amount] because [reason] -->\n\n## Variants\n| Variant | Description | Key Difference |\n|---------|-------------|---------------|\n| Control |             |               |\n| Test A  |             |               |\n| Test B  |             |               |\n\n## Metrics\n- **Primary:** \n- **Secondary:** \n- **Guardrail:** \n\n## Traffic Split\n- \n\n## Duration\n- Start: \n- Minimum runtime: \n- Sample size needed: \n"
+    },
+    {
+      "stage": "ab_testing",
+      "name": "A/B Test Results",
+      "description": "Record test outcomes and statistical significance",
+      "sort_order": 1,
+      "content": "# A/B Test Results\n\n## Test Name\n<!-- Name -->\n\n## Duration\n- Start: \n- End: \n- Total visitors: \n\n## Results\n| Variant | Conversions | Rate | Lift vs Control | Confidence |\n|---------|------------|------|----------------|------------|\n| Control |            |      | —              |            |\n| Test A  |            |      |                |            |\n\n## Winner\n<!-- Which variant and why -->\n\n## Insights\n- \n\n## Next Steps\n- [ ] Implement winner\n- [ ] Plan follow-up test\n"
+    },
+    {
+      "stage": "refinement",
+      "name": "Copy Refinement Notes",
+      "description": "Track iterative improvements to copy based on data and feedback",
+      "sort_order": 0,
+      "content": "# Copy Refinement Notes\n\n## Asset\n<!-- Asset name -->\n\n## Current Version\n<!-- Paste current copy -->\n\n## Feedback Received\n| Source | Feedback | Priority |\n|--------|----------|----------|\n|        |          |          |\n\n## Changes Made\n| Section | Before | After | Reason |\n|---------|--------|-------|--------|\n|         |        |       |        |\n\n## Performance Comparison\n| Metric | Before | After | Change |\n|--------|--------|-------|--------|\n|        |        |       |        |\n"
+    },
+    {
+      "stage": "refinement",
+      "name": "Brand Voice Check",
+      "description": "Audit copy against brand voice guidelines and tone requirements",
+      "sort_order": 1,
+      "content": "# Brand Voice Check\n\n## Asset\n<!-- Asset name -->\n\n## Voice Attributes\n| Attribute | Target | Current | Adjustment Needed |\n|-----------|--------|---------|------------------|\n| Tone      |        |         |                  |\n| Formality |        |         |                  |\n| Humor     |        |         |                  |\n\n## Checklist\n- [ ] Aligns with brand voice guide\n- [ ] Consistent with other campaign assets\n- [ ] No off-brand terminology\n- [ ] Reading level appropriate for audience\n- [ ] Inclusive language verified\n\n## Flagged Phrases\n| Phrase | Issue | Replacement |\n|--------|-------|------------|\n|        |       |            |\n"
+    },
+    {
+      "stage": "final_version",
+      "name": "Final Copy Approval",
+      "description": "Capture stakeholder sign-offs on final copy",
+      "sort_order": 0,
+      "content": "# Final Copy Approval\n\n## Asset\n<!-- Asset name and version -->\n\n## Final Copy\n<!-- Paste final approved copy here -->\n\n## Approvals\n| Stakeholder | Role | Approved | Date | Notes |\n|------------|------|----------|------|-------|\n|            |      | [ ]      |      |       |\n\n## Legal / Compliance\n- [ ] Claims verified\n- [ ] Disclaimers included\n- [ ] Trademark usage correct\n\n## Final Checklist\n- [ ] Spelling and grammar verified\n- [ ] Links tested\n- [ ] CTA confirmed\n- [ ] Tracking parameters added\n"
+    },
+    {
+      "stage": "final_version",
+      "name": "Asset Specification Sheet",
+      "description": "Document all specifications for final production of copy assets",
+      "sort_order": 1,
+      "content": "# Asset Specification Sheet\n\n## Campaign\n<!-- Campaign name -->\n\n## Assets\n| Asset | Format | Dimensions | Word Count | Status |\n|-------|--------|-----------|-----------|--------|\n|       |        |           |           |        |\n\n## Copy Per Asset\n\n### [Asset 1]\n- **Headline:** \n- **Body:** \n- **CTA:** \n\n### [Asset 2]\n- **Headline:** \n- **Body:** \n- **CTA:** \n\n## Handoff To\n- Design: \n- Development: \n- Media: \n"
+    },
+    {
+      "stage": "live",
+      "name": "Launch Checklist",
+      "description": "Pre-launch verification checklist for live copy deployment",
+      "sort_order": 0,
+      "content": "# Launch Checklist\n\n## Asset\n<!-- Asset name -->\n\n## Pre-Launch\n- [ ] Final copy matches approved version\n- [ ] All links working\n- [ ] Tracking pixels / UTM parameters set\n- [ ] Mobile rendering verified\n- [ ] Accessibility checked\n\n## Launch\n- [ ] Published to correct URL / channel\n- [ ] Confirmed live and loading correctly\n- [ ] Team notified\n\n## Post-Launch Monitoring\n- [ ] Analytics baseline captured\n- [ ] Error monitoring active\n- [ ] First 24-hour check scheduled\n\n## Rollback Plan\n- \n"
+    },
+    {
+      "stage": "live",
+      "name": "Performance Dashboard",
+      "description": "Track live copy performance against KPIs",
+      "sort_order": 1,
+      "content": "# Performance Dashboard\n\n## Campaign\n<!-- Campaign name -->\n\n## KPIs\n| Metric | Target | Actual | Status |\n|--------|--------|--------|--------|\n| CTR    |        |        |        |\n| Conversion Rate | |     |        |\n| Bounce Rate |    |        |        |\n| Revenue |        |        |        |\n\n## Weekly Trend\n| Week | Impressions | Clicks | Conversions |\n|------|------------|--------|-------------|\n| 1    |            |        |             |\n| 2    |            |        |             |\n\n## Insights\n- \n\n## Optimization Actions\n- \n"
+    }
+  ]
+}

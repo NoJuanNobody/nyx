@@ -8,11 +8,13 @@ import {
 import { NyxClient } from '@nyx/harness-core';
 import { getConfig } from './auth.js';
 import { performWebSearch } from './search/search.service.js';
+import { CREDIT_TOOL_DEFINITIONS, executeCreditTool, isCreditTool } from './credits.js';
 
 const MAX_FILE_SIZE = 100 * 1024; // 100 KB
 
 export type { ToolDefinition };
-export { TOOL_DEFINITIONS };
+const ALL_TOOL_DEFINITIONS: ToolDefinition[] = [...TOOL_DEFINITIONS, ...CREDIT_TOOL_DEFINITIONS];
+export { ALL_TOOL_DEFINITIONS as TOOL_DEFINITIONS };
 
 /**
  * Build a NyxClient from the current auth configuration.
@@ -30,6 +32,8 @@ export async function executeTool(
   name: string,
   args: Record<string, unknown>,
 ): Promise<unknown> {
+  if (isCreditTool(name)) return executeCreditTool(name, args);
+
   // Handle environment-specific tools before delegating to harness-core
   switch (name) {
     case 'nyx_web_search': {

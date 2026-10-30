@@ -1,0 +1,273 @@
+{
+  "slug": "marketing_campaigns",
+  "label": "Marketing Campaigns",
+  "description": "Full marketing campaign from strategy to launch",
+  "icon": "📢",
+  "is_default": false,
+  "sort_order": 15,
+  "connectors": [
+    "Strategy brief drives asset drafts",
+    "Drafts go through stakeholder feedback",
+    "Feedback drives refinements",
+    "Refinements produce final assets",
+    "Final assets go to launch"
+  ],
+  "stages": [
+    {
+      "slug": "strategy_brief",
+      "sort_order": 0,
+      "label": "Strategy & Creative Brief",
+      "abbreviation": "SB",
+      "subtitle": "Campaign Plan",
+      "color": "bg-blue-100",
+      "text_color": "text-blue-700",
+      "dot_color": "bg-blue-400",
+      "border_color": "border-blue-300",
+      "hex": "#3B82F6",
+      "who": "Marketing Director",
+      "description": "Define campaign strategy and creative direction",
+      "icon": "🎯",
+      "ai": "Analyzes market opportunity, defines KPIs",
+      "output": "Campaign strategy and brief",
+      "docs": [
+        "Strategy",
+        "Creative Brief",
+        "Target Audience",
+        "Budget",
+        "KPIs"
+      ],
+      "suggestions": [
+        "Analyze market opportunity",
+        "Define KPIs",
+        "Suggest themes"
+      ]
+    },
+    {
+      "slug": "asset_drafts",
+      "sort_order": 1,
+      "label": "Asset Drafts",
+      "abbreviation": "AD",
+      "subtitle": "Content Creation",
+      "color": "bg-indigo-100",
+      "text_color": "text-indigo-700",
+      "dot_color": "bg-indigo-400",
+      "border_color": "border-indigo-300",
+      "hex": "#6366F1",
+      "who": "Creative Team",
+      "description": "Create draft campaign assets",
+      "icon": "🎨",
+      "ai": "Checks brand consistency, generates variations",
+      "output": "Draft assets",
+      "docs": [
+        "Visual Assets",
+        "Copy Drafts",
+        "Video Scripts",
+        "Social Content",
+        "Email Templates"
+      ],
+      "suggestions": [
+        "Check brand consistency",
+        "Generate variations",
+        "Adapt for channels"
+      ]
+    },
+    {
+      "slug": "stakeholder_feedback",
+      "sort_order": 2,
+      "label": "Stakeholder Feedback",
+      "abbreviation": "SF",
+      "subtitle": "Internal Review",
+      "color": "bg-violet-100",
+      "text_color": "text-violet-700",
+      "dot_color": "bg-violet-400",
+      "border_color": "border-violet-300",
+      "hex": "#8B5CF6",
+      "who": "Stakeholders, Legal",
+      "description": "Collect stakeholder feedback",
+      "icon": "💬",
+      "ai": "Synthesizes feedback, prioritizes changes",
+      "output": "Consolidated feedback",
+      "docs": [
+        "Feedback Summary",
+        "Action Items",
+        "Legal Review",
+        "Approval Status"
+      ],
+      "suggestions": [
+        "Synthesize feedback",
+        "Prioritize changes",
+        "Track approvals"
+      ]
+    },
+    {
+      "slug": "refinements",
+      "sort_order": 3,
+      "label": "Refinements",
+      "abbreviation": "RF",
+      "subtitle": "Final Edits",
+      "color": "bg-purple-100",
+      "text_color": "text-purple-700",
+      "dot_color": "bg-purple-400",
+      "border_color": "border-purple-300",
+      "hex": "#A855F7",
+      "who": "Creative Team",
+      "description": "Refine assets based on feedback",
+      "icon": "🔧",
+      "ai": "Tracks feedback implementation",
+      "output": "Refined assets",
+      "docs": [
+        "Updated Assets",
+        "Revision Log",
+        "Quality Check",
+        "Channel Specs"
+      ],
+      "suggestions": [
+        "Track implementation",
+        "Check quality",
+        "Verify specifications"
+      ]
+    },
+    {
+      "slug": "final_assets",
+      "sort_order": 4,
+      "label": "Final Assets",
+      "abbreviation": "FA",
+      "subtitle": "Approved Creative",
+      "color": "bg-pink-100",
+      "text_color": "text-pink-700",
+      "dot_color": "bg-pink-400",
+      "border_color": "border-pink-300",
+      "hex": "#EC4899",
+      "who": "Marketing Director",
+      "description": "Final approval of all assets",
+      "icon": "✅",
+      "ai": "Validates specs, checks compliance",
+      "output": "Approved final assets",
+      "docs": [
+        "Final Assets",
+        "Asset Inventory",
+        "Legal Sign-off",
+        "Distribution Matrix"
+      ],
+      "suggestions": [
+        "Validate specs",
+        "Check compliance",
+        "Generate inventory"
+      ]
+    },
+    {
+      "slug": "launch_ready",
+      "sort_order": 5,
+      "label": "Launch Ready",
+      "abbreviation": "LR",
+      "subtitle": "Go Live",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Campaign Manager",
+      "description": "Launch with monitoring",
+      "icon": "🚀",
+      "ai": "Creates launch checklist, sets up monitoring",
+      "output": "Launched campaign",
+      "docs": [
+        "Launch Checklist",
+        "Distribution Schedule",
+        "Monitoring Dashboard",
+        "Post-Launch Report"
+      ],
+      "suggestions": [
+        "Create launch checklist",
+        "Schedule distribution",
+        "Set up monitoring"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "strategy_brief",
+      "name": "Campaign Strategy Brief",
+      "description": "Define the campaign strategy with goals, audience, and channels",
+      "sort_order": 0,
+      "content": "# Campaign Strategy Brief\n\n## Campaign Name\n<!-- Name -->\n\n## Objective\n<!-- What is the campaign trying to achieve? -->\n\n## KPIs\n| Metric | Target | Measurement |\n|--------|--------|------------|\n|        |        |            |\n\n## Target Audience\n- **Primary:** \n- **Secondary:** \n\n## Key Message\n<!-- Single core message -->\n\n## Channels\n| Channel | Role | Budget % | KPI |\n|---------|------|----------|-----|\n|         |      |          |     |\n\n## Timeline\n| Phase | Dates | Focus |\n|-------|-------|-------|\n| Pre-launch | | |\n| Launch | | |\n| Sustain | | |\n\n## Budget\n- Total: $\n"
+    },
+    {
+      "stage": "strategy_brief",
+      "name": "Competitor Campaign Audit",
+      "description": "Analyze competitor campaigns to identify opportunities and gaps",
+      "sort_order": 1,
+      "content": "# Competitor Campaign Audit\n\n## Our Campaign\n<!-- Campaign name -->\n\n## Competitors Analyzed\n| Competitor | Campaign | Channel | Message | Strengths | Weaknesses |\n|-----------|---------|---------|---------|-----------|------------|\n|           |         |         |         |           |            |\n\n## Channel Presence\n| Channel | Competitor A | Competitor B | Gap / Opportunity |\n|---------|-------------|-------------|------------------|\n| Paid Search | | | |\n| Social | | | |\n| Email | | | |\n| Content | | | |\n\n## Messaging Themes\n- Common across competitors: \n- Underused angles: \n\n## Our Differentiation\n- \n\n## Actionable Insights\n1. \n2. \n"
+    },
+    {
+      "stage": "asset_drafts",
+      "name": "Creative Asset Brief",
+      "description": "Brief the creative team on assets needed for the campaign",
+      "sort_order": 0,
+      "content": "# Creative Asset Brief\n\n## Campaign\n<!-- Campaign name -->\n\n## Assets Required\n| Asset | Format | Dimensions | Copy Length | CTA | Due Date |\n|-------|--------|-----------|-----------|-----|----------|\n| Banner ad | Static / Animated | 300x250 | | | |\n| Social post | Image / Video | 1080x1080 | | | |\n| Email header | Static | 600x200 | | | |\n| Landing page | Web | Responsive | | | |\n\n## Creative Direction\n- Visual style: \n- Color palette: \n- Photography style: \n- Typography: \n\n## Key Message\n- Headline: \n- Body: \n- CTA: \n\n## Brand Assets Available\n- Logo files: \n- Brand guidelines: \n- Image library: \n"
+    },
+    {
+      "stage": "asset_drafts",
+      "name": "Content Calendar",
+      "description": "Plan content publication schedule across all campaign channels",
+      "sort_order": 1,
+      "content": "# Content Calendar\n\n## Campaign\n<!-- Campaign name -->\n\n## Month: [Month Year]\n\n### Week 1\n| Day | Channel | Content Type | Topic / Message | Status |\n|-----|---------|-------------|----------------|--------|\n| Mon |         |             |                | [ ]    |\n| Wed |         |             |                | [ ]    |\n| Fri |         |             |                | [ ]    |\n\n### Week 2\n| Day | Channel | Content Type | Topic / Message | Status |\n|-----|---------|-------------|----------------|--------|\n| Mon |         |             |                | [ ]    |\n| Wed |         |             |                | [ ]    |\n| Fri |         |             |                | [ ]    |\n\n## Recurring Content\n- \n\n## Approval Workflow\n1. Draft → \n2. Review → \n3. Approve → \n4. Schedule → \n"
+    },
+    {
+      "stage": "stakeholder_feedback",
+      "name": "Creative Review Summary",
+      "description": "Compile stakeholder feedback on creative assets",
+      "sort_order": 0,
+      "content": "# Creative Review Summary\n\n## Campaign\n<!-- Campaign name -->\n\n## Assets Reviewed\n| Asset | Version | Reviewer | Feedback | Status |\n|-------|---------|----------|----------|--------|\n|       |         |          |          | Approved / Revise |\n\n## Common Feedback Themes\n- \n\n## Required Changes\n| # | Asset | Change | Priority | Assigned To |\n|---|-------|--------|----------|------------|\n| 1 |       |        |          |            |\n\n## Approved Assets\n- [ ] \n\n## Next Review Date\n- \n\n## Sign-Off\n| Stakeholder | Approved | Date |\n|------------|----------|------|\n|            | [ ]      |      |\n"
+    },
+    {
+      "stage": "stakeholder_feedback",
+      "name": "Budget Review",
+      "description": "Review campaign budget allocation with stakeholders",
+      "sort_order": 1,
+      "content": "# Budget Review\n\n## Campaign\n<!-- Campaign name -->\n\n## Budget Allocation\n| Category | Planned | Actual | Variance |\n|----------|---------|--------|----------|\n| Paid media | | | |\n| Creative production | | | |\n| Influencer / partnerships | | | |\n| Events | | | |\n| Tools / software | | | |\n| **Total** | | | |\n\n## ROI Projections\n| Scenario | Spend | Revenue | ROI |\n|----------|-------|---------|-----|\n| Conservative | | | |\n| Expected | | | |\n| Optimistic | | | |\n\n## Budget Changes Requested\n| Change | Amount | Justification | Approved |\n|--------|--------|--------------|----------|\n|        |        |              | [ ]      |\n"
+    },
+    {
+      "stage": "refinements",
+      "name": "Asset Refinement Tracker",
+      "description": "Track iterative refinements to campaign assets",
+      "sort_order": 0,
+      "content": "# Asset Refinement Tracker\n\n## Campaign\n<!-- Campaign name -->\n\n## Refinements\n| Asset | Version | Change Made | Requested By | Date |\n|-------|---------|-----------|-------------|------|\n|       | v1 → v2 |           |             |      |\n\n## A/B Test Results Applied\n| Test | Winner | Change Applied |\n|------|--------|---------------|\n|      |        |               |\n\n## Performance-Driven Changes\n| Asset | Metric | Before | After | Change Made |\n|-------|--------|--------|-------|------------|\n|       |        |        |       |            |\n\n## Final Versions\n| Asset | Final Version | Approved By | Date |\n|-------|-------------|------------|------|\n|       |             |            |      |\n"
+    },
+    {
+      "stage": "refinements",
+      "name": "Channel Optimization Notes",
+      "description": "Document optimization decisions for each campaign channel",
+      "sort_order": 1,
+      "content": "# Channel Optimization Notes\n\n## Campaign\n<!-- Campaign name -->\n\n## Channel Performance\n| Channel | Spend | Impressions | Clicks | Conversions | CPA | ROAS |\n|---------|-------|------------|--------|------------|-----|------|\n|         |       |            |        |            |     |      |\n\n## Optimizations Made\n| Date | Channel | Change | Expected Impact |\n|------|---------|--------|----------------|\n|      |         |        |                |\n\n## Budget Reallocation\n| From | To | Amount | Reason |\n|------|-----|--------|--------|\n|      |     |        |        |\n\n## Audience Insights\n- Top performing segments: \n- Underperforming segments: \n\n## Next Actions\n- \n"
+    },
+    {
+      "stage": "final_assets",
+      "name": "Final Asset Package",
+      "description": "Complete inventory of all finalized campaign assets",
+      "sort_order": 0,
+      "content": "# Final Asset Package\n\n## Campaign\n<!-- Campaign name -->\n\n## Asset Inventory\n| Asset | Format | Dimensions | File Name | Location | Approved |\n|-------|--------|-----------|-----------|----------|----------|\n|       |        |           |           |          | [ ]      |\n\n## Copy Matrix\n| Asset | Headline | Body | CTA |\n|-------|---------|------|-----|\n|       |         |      |     |\n\n## Tracking Setup\n| Asset | UTM Source | UTM Medium | UTM Campaign | UTM Content |\n|-------|-----------|-----------|-------------|------------|\n|       |           |           |             |            |\n\n## Handoff\n- Design files: \n- Copy doc: \n- Specs doc: \n- Approved by: \n"
+    },
+    {
+      "stage": "final_assets",
+      "name": "QA Checklist",
+      "description": "Quality assurance checklist for all campaign assets before launch",
+      "sort_order": 1,
+      "content": "# QA Checklist\n\n## Campaign\n<!-- Campaign name -->\n\n## Per-Asset Checks\n| Asset | Brand Compliant | Links Work | Mobile OK | Load Speed | Approved |\n|-------|----------------|-----------|----------|-----------|----------|\n|       | [ ]            | [ ]       | [ ]      | [ ]       | [ ]      |\n\n## Landing Pages\n- [ ] Form submissions working\n- [ ] Thank you page / confirmation\n- [ ] Analytics tracking firing\n- [ ] Page speed < 3s\n- [ ] Mobile responsive\n\n## Email\n- [ ] Subject line tested\n- [ ] Preview text set\n- [ ] Unsubscribe link working\n- [ ] CAN-SPAM compliant\n- [ ] Renders in major clients\n\n## Paid Ads\n- [ ] Ad copy within character limits\n- [ ] Images meet platform specs\n- [ ] Landing page URL correct\n- [ ] Targeting verified\n"
+    },
+    {
+      "stage": "launch_ready",
+      "name": "Launch Plan",
+      "description": "Step-by-step launch plan with timing and responsibilities",
+      "sort_order": 0,
+      "content": "# Launch Plan\n\n## Campaign\n<!-- Campaign name -->\n\n## Launch Date\n- Date: \n- Time: \n\n## Launch Sequence\n| Time | Action | Owner | Status |\n|------|--------|-------|--------|\n| T-24h | Final QA | | [ ] |\n| T-12h | Schedule social posts | | [ ] |\n| T-1h | Activate paid campaigns | | [ ] |\n| T-0 | Send email blast | | [ ] |\n| T+1h | Verify all channels live | | [ ] |\n| T+4h | First performance check | | [ ] |\n\n## Monitoring Plan\n- Dashboard: \n- Alert thresholds: \n- On-call: \n\n## Rollback Plan\n- Trigger: \n- Steps: \n\n## Post-Launch Meeting\n- Date: \n- Attendees: \n"
+    },
+    {
+      "stage": "launch_ready",
+      "name": "Campaign Performance Dashboard",
+      "description": "Set up the performance tracking dashboard for the campaign",
+      "sort_order": 1,
+      "content": "# Campaign Performance Dashboard\n\n## Campaign\n<!-- Campaign name -->\n\n## Overall KPIs\n| Metric | Target | Week 1 | Week 2 | Week 3 | Week 4 |\n|--------|--------|--------|--------|--------|--------|\n| Impressions | | | | | |\n| Clicks | | | | | |\n| Conversions | | | | | |\n| Revenue | | | | | |\n| ROAS | | | | | |\n\n## Channel Breakdown\n| Channel | Spend | Results | CPA | Notes |\n|---------|-------|---------|-----|-------|\n|         |       |         |     |       |\n\n## Top Performing\n- Creative: \n- Audience: \n- Channel: \n\n## Underperforming\n- \n\n## Optimization Actions\n- \n\n## Report Frequency\n- Daily: \n- Weekly: \n- Monthly: \n"
+    }
+  ]
+}

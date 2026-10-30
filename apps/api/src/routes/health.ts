@@ -57,16 +57,6 @@ async function probeGitHub(timeoutMs: number): Promise<CheckResult> {
   return probeHttp('https://api.github.com/rate_limit', timeoutMs);
 }
 
-async function probeStripe(timeoutMs: number): Promise<CheckResult> {
-  const secretKey = config.STRIPE_SECRET_KEY;
-  if (!secretKey) {
-    return { status: 'unavailable', latencyMs: null, error: 'STRIPE_SECRET_KEY not configured' };
-  }
-  return probeHttp('https://api.stripe.com/v1/balance', timeoutMs, {
-    Authorization: `Bearer ${secretKey}`,
-  });
-}
-
 // ── Helpers ────────────────────────────────────────────────────────
 
 async function probeHttp(
@@ -138,18 +128,16 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
   app.get('/health/ready', async (_request, reply) => {
     const timeout = config.HEALTH_PROBE_TIMEOUT_MS;
 
-    const [database, clerk, github, stripe] = await Promise.allSettled([
+    const [database, clerk, github] = await Promise.allSettled([
       probeDatabase(timeout),
       probeClerk(timeout),
       probeGitHub(timeout),
-      probeStripe(timeout),
     ]);
 
     const checks: Record<string, CheckResult> = {
       database: settledValue(database, timeout),
       clerk: settledValue(clerk, timeout),
       github: settledValue(github, timeout),
-      stripe: settledValue(stripe, timeout),
     };
 
     const status = deriveStatus(checks);

@@ -1,0 +1,27 @@
+[package]
+name = "nyx-mcp"
+description = "Nyx MCP server (stdio, JSON-RPC 2.0) over nyx-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lib]
+name = "nyx_mcp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "nyx-mcp"
+path = "src/main.rs"
+
+[dependencies]
+nyx-app.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

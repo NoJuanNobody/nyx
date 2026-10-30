@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 220" width="640" height="220" role="img" aria-label="Nyx logo, concept Owl of Night (mono)">
+  <title>Nyx - Owl of Night - mono</title>
+  <rect width="640" height="220" fill="none"/>
+  <g transform="translate(30 20) scale(1.8)"><path d="M20 34 L32 14 L50 26 L68 14 L80 34 V60 Q80 88 50 92 Q20 88 20 60 Z" fill="none" stroke="#000000" stroke-width="6" stroke-linejoin="round"/><circle cx="36" cy="50" r="12" fill="#000000"/><circle cx="64" cy="50" r="12" fill="#000000"/><path d="M36 44 V56 M30 50 H42" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M58 50 H70" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M45 66 L55 66 L50 76 Z" fill="#000000"/></g>
+  <text x="240" y="138" font-family="'Space Grotesk','Inter','Helvetica Neue',Arial,sans-serif" font-size="96" font-weight="600" letter-spacing="2" fill="#000000">Nyx</text>
+</svg>

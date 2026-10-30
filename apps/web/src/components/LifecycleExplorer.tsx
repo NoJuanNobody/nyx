@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { STAGES, CONNECTORS } from '../lib/stages';
 import { useUIStore } from '../stores/ui.store';
 import { getLifecycle } from '../lib/lifecycles';
@@ -15,21 +15,29 @@ export function LifecycleExplorer({
   initialPhase = 0,
 }: LifecycleExplorerProps) {
   const [active, setActive] = useState(initialPhase);
-  const [, setAnimated] = useState(false);
   const activeLifecycleSlug = useUIStore((s) => s.activeLifecycleSlug);
   const activeLifecycle = getLifecycle(activeLifecycleSlug);
 
-  useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href =
-      'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap';
-    document.head.appendChild(link);
-    setTimeout(() => setAnimated(true), 100);
-  }, []);
-
   const stage = STAGES[active];
   const isLastPhase = active === STAGES.length - 1;
+
+  // Left/Right (and Home/End) move between stages when the rail has focus.
+  const onRailKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const last = STAGES.length - 1;
+    const next =
+      e.key === 'ArrowRight' ? Math.min(last, active + 1)
+      : e.key === 'ArrowLeft' ? Math.max(0, active - 1)
+      : e.key === 'Home' ? 0
+      : e.key === 'End' ? last
+      : null;
+    if (next === null) return;
+    e.preventDefault();
+    setActive(next);
+    const rail = e.currentTarget;
+    requestAnimationFrame(() =>
+      (rail.querySelector(`[data-testid="stage-node-${next}"]`) as HTMLElement | null)?.focus(),
+    );
+  };
 
   return (
     <div
@@ -85,7 +93,7 @@ export function LifecycleExplorer({
               background: 'transparent',
               border: 'none',
               color: '#64748B',
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
               fontSize: 12,
               cursor: 'pointer',
               textDecoration: 'underline',
@@ -97,7 +105,7 @@ export function LifecycleExplorer({
         )}
         <div
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
             fontSize: 11,
             color: stage.hex,
             letterSpacing: '0.2em',
@@ -124,7 +132,7 @@ export function LifecycleExplorer({
             fontSize: 13,
             color: '#64748B',
             marginTop: 8,
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
           }}
         >
           From first idea to living codebase.
@@ -133,6 +141,9 @@ export function LifecycleExplorer({
 
       {/* Stage rail */}
       <div
+        role="group"
+        aria-label={`${activeLifecycle.label} stages`}
+        onKeyDown={onRailKeyDown}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -148,6 +159,8 @@ export function LifecycleExplorer({
             <button
               data-testid={`stage-node-${i}`}
               aria-label={`Go to stage ${s.label}`}
+              aria-current={active === i ? 'step' : undefined}
+              tabIndex={active === i ? 0 : -1}
               onClick={() => setActive(i)}
               style={{
                 display: 'flex',
@@ -181,7 +194,7 @@ export function LifecycleExplorer({
               <div
                 style={{
                   fontSize: 10,
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
                   color: active === i ? s.hex : '#475569',
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em',
@@ -246,7 +259,7 @@ export function LifecycleExplorer({
             <div>
               <div
                 style={{
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
                   fontSize: 11,
                   color: stage.hex,
                   letterSpacing: '0.15em',
@@ -272,7 +285,7 @@ export function LifecycleExplorer({
                   fontSize: 13,
                   color: '#64748B',
                   marginTop: 4,
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
                 }}
               >
                 {stage.who}
@@ -305,7 +318,7 @@ export function LifecycleExplorer({
         <div style={{ padding: '20px 28px', borderBottom: '1px solid #0F1923' }}>
           <div
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
               fontSize: 10,
               color: '#475569',
               textTransform: 'uppercase',
@@ -326,7 +339,7 @@ export function LifecycleExplorer({
                   padding: '5px 12px',
                   fontSize: 12,
                   color: stage.hex,
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
                   transition: 'all 0.3s',
                 }}
               >
@@ -350,7 +363,7 @@ export function LifecycleExplorer({
             >
               <div
                 style={{
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
                   fontSize: 10,
                   color: stage.hex,
                   textTransform: 'uppercase',
@@ -375,7 +388,7 @@ export function LifecycleExplorer({
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
                 fontSize: 10,
                 color: '#475569',
                 textTransform: 'uppercase',
@@ -423,7 +436,7 @@ export function LifecycleExplorer({
             <span style={{ color: stage.hex, fontSize: 12 }}>↓</span>
             <span
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
                 fontSize: 11,
                 color: '#475569',
               }}
@@ -455,7 +468,7 @@ export function LifecycleExplorer({
             padding: '8px 20px',
             color: active === 0 ? '#1E293B' : '#64748B',
             cursor: active === 0 ? 'not-allowed' : 'pointer',
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
             fontSize: 12,
             transition: 'all 0.2s',
           }}
@@ -496,7 +509,7 @@ export function LifecycleExplorer({
                 padding: '8px 20px',
                 color: stage.hex,
                 cursor: 'pointer',
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
                 fontSize: 12,
                 transition: 'all 0.3s',
               }}
@@ -513,7 +526,7 @@ export function LifecycleExplorer({
                 padding: '8px 20px',
                 color: '#64748B',
                 cursor: 'pointer',
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
                 fontSize: 12,
                 transition: 'all 0.2s',
               }}
@@ -534,7 +547,7 @@ export function LifecycleExplorer({
               padding: '8px 20px',
               color: isLastPhase ? '#1E293B' : stage.hex,
               cursor: isLastPhase ? 'not-allowed' : 'pointer',
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
               fontSize: 12,
               transition: 'all 0.3s',
             }}
@@ -549,7 +562,7 @@ export function LifecycleExplorer({
         style={{
           textAlign: 'center',
           marginTop: 32,
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
           fontSize: 11,
           color: '#1E293B',
         }}

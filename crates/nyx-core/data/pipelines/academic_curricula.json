@@ -1,0 +1,273 @@
+{
+  "slug": "academic_curricula",
+  "label": "Academic Curricula",
+  "description": "Curriculum development from learning objectives to final program",
+  "icon": "🎓",
+  "is_default": false,
+  "sort_order": 6,
+  "connectors": [
+    "Objectives shape the content outline",
+    "Outline drives lesson materials",
+    "Materials inform assessments",
+    "Assessments are validated through pilot testing",
+    "Pilot results finalize the curriculum"
+  ],
+  "stages": [
+    {
+      "slug": "learning_objectives",
+      "sort_order": 0,
+      "label": "Learning Objectives",
+      "abbreviation": "LO",
+      "subtitle": "Goals & Outcomes",
+      "color": "bg-blue-100",
+      "text_color": "text-blue-700",
+      "dot_color": "bg-blue-400",
+      "border_color": "border-blue-300",
+      "hex": "#3B82F6",
+      "who": "Curriculum Designer",
+      "description": "Define learning objectives and outcomes",
+      "icon": "🎯",
+      "ai": "Checks Bloom's taxonomy alignment",
+      "output": "Learning objectives with alignment matrix",
+      "docs": [
+        "Learning Objectives",
+        "Bloom's Map",
+        "Prerequisite Analysis",
+        "Outcome Metrics"
+      ],
+      "suggestions": [
+        "Check Bloom's alignment",
+        "Define measurable outcomes",
+        "Identify prerequisites"
+      ]
+    },
+    {
+      "slug": "content_outline",
+      "sort_order": 1,
+      "label": "Content Outline",
+      "abbreviation": "CO",
+      "subtitle": "Course Structure",
+      "color": "bg-indigo-100",
+      "text_color": "text-indigo-700",
+      "dot_color": "bg-indigo-400",
+      "border_color": "border-indigo-300",
+      "hex": "#6366F1",
+      "who": "Curriculum Designer",
+      "description": "Create detailed content outline",
+      "icon": "📋",
+      "ai": "Suggests logical sequencing, identifies gaps",
+      "output": "Detailed course outline",
+      "docs": [
+        "Course Outline",
+        "Module Breakdown",
+        "Time Allocation",
+        "Resource List"
+      ],
+      "suggestions": [
+        "Suggest module sequence",
+        "Identify content gaps",
+        "Estimate time"
+      ]
+    },
+    {
+      "slug": "lesson_materials",
+      "sort_order": 2,
+      "label": "Lesson Materials",
+      "abbreviation": "LM",
+      "subtitle": "Content Creation",
+      "color": "bg-violet-100",
+      "text_color": "text-violet-700",
+      "dot_color": "bg-violet-400",
+      "border_color": "border-violet-300",
+      "hex": "#8B5CF6",
+      "who": "Content Developers",
+      "description": "Develop lesson plans, slides, activities",
+      "icon": "📖",
+      "ai": "Suggests activities, checks reading level",
+      "output": "Complete lesson materials",
+      "docs": [
+        "Lesson Plans",
+        "Slides",
+        "Readings",
+        "Activity Guides",
+        "Discussion Prompts"
+      ],
+      "suggestions": [
+        "Suggest activities",
+        "Check reading level",
+        "Generate prompts"
+      ]
+    },
+    {
+      "slug": "assessments",
+      "sort_order": 3,
+      "label": "Assessments",
+      "abbreviation": "AS",
+      "subtitle": "Evaluation Tools",
+      "color": "bg-purple-100",
+      "text_color": "text-purple-700",
+      "dot_color": "bg-purple-400",
+      "border_color": "border-purple-300",
+      "hex": "#A855F7",
+      "who": "Assessment Designers",
+      "description": "Create quizzes, exams, rubrics",
+      "icon": "📝",
+      "ai": "Aligns assessments to objectives",
+      "output": "Complete assessment suite",
+      "docs": [
+        "Quiz Bank",
+        "Exam Templates",
+        "Rubrics",
+        "Project Briefs",
+        "Assessment Map"
+      ],
+      "suggestions": [
+        "Align to objectives",
+        "Suggest question types",
+        "Validate rubrics"
+      ]
+    },
+    {
+      "slug": "pilot_testing",
+      "sort_order": 4,
+      "label": "Pilot Testing",
+      "abbreviation": "PT",
+      "subtitle": "Trial Run",
+      "color": "bg-pink-100",
+      "text_color": "text-pink-700",
+      "dot_color": "bg-pink-400",
+      "border_color": "border-pink-300",
+      "hex": "#EC4899",
+      "who": "Pilot Instructors, Students",
+      "description": "Run pilot and collect feedback",
+      "icon": "🧪",
+      "ai": "Analyzes student performance data",
+      "output": "Pilot results with recommendations",
+      "docs": [
+        "Pilot Feedback",
+        "Performance Data",
+        "Instructor Notes",
+        "Improvement Plan"
+      ],
+      "suggestions": [
+        "Analyze performance data",
+        "Identify pain points",
+        "Suggest fixes"
+      ]
+    },
+    {
+      "slug": "final_curriculum",
+      "sort_order": 5,
+      "label": "Final Curriculum",
+      "abbreviation": "FC",
+      "subtitle": "Approved Program",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Department Head",
+      "description": "Finalize and approve curriculum",
+      "icon": "🏫",
+      "ai": "Checks accreditation requirements",
+      "output": "Approved curriculum",
+      "docs": [
+        "Final Curriculum",
+        "Instructor Guide",
+        "Student Handbook",
+        "Accreditation Docs"
+      ],
+      "suggestions": [
+        "Generate summary",
+        "Check accreditation",
+        "Create instructor guide"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "learning_objectives",
+      "name": "Course Learning Outcomes",
+      "description": "Define measurable learning outcomes using Bloom's taxonomy",
+      "sort_order": 0,
+      "content": "# Course Learning Outcomes\n\n## Course Title\n<!-- Course name and code -->\n\n## Target Audience\n- Level: \n- Prerequisites: \n\n## Learning Outcomes\n| # | Outcome (Students will be able to...) | Bloom's Level | Assessment Method |\n|---|---------------------------------------|--------------|------------------|\n| 1 |                                       |              |                  |\n| 2 |                                       |              |                  |\n| 3 |                                       |              |                  |\n\n## Alignment\n| Outcome | Program Goal | Industry Standard |\n|---------|-------------|------------------|\n|         |             |                  |\n"
+    },
+    {
+      "stage": "learning_objectives",
+      "name": "Needs Analysis",
+      "description": "Assess learner needs and gaps to inform curriculum design",
+      "sort_order": 1,
+      "content": "# Needs Analysis\n\n## Program / Course\n<!-- Name -->\n\n## Current State\n<!-- What do learners currently know? -->\n\n## Desired State\n<!-- What should they know after the course? -->\n\n## Gap Analysis\n| Knowledge Area | Current Level | Target Level | Gap |\n|---------------|--------------|-------------|-----|\n|               |              |             |     |\n\n## Stakeholder Input\n| Stakeholder | Key Needs | Priority |\n|------------|-----------|----------|\n|            |           |          |\n\n## Constraints\n- Duration: \n- Budget: \n- Technology: \n"
+    },
+    {
+      "stage": "content_outline",
+      "name": "Course Syllabus Draft",
+      "description": "Outline the course structure with modules, topics, and timeline",
+      "sort_order": 0,
+      "content": "# Course Syllabus Draft\n\n## Course Title\n<!-- Name and code -->\n\n## Instructor\n<!-- Name -->\n\n## Course Description\n<!-- 2-3 sentences -->\n\n## Module Outline\n| Week | Module | Topics | Readings | Assignment |\n|------|--------|--------|----------|------------|\n| 1    |        |        |          |            |\n| 2    |        |        |          |            |\n| 3    |        |        |          |            |\n\n## Grading\n| Component | Weight |\n|-----------|--------|\n|           |        |\n\n## Required Materials\n- \n\n## Policies\n- Attendance: \n- Late work: \n"
+    },
+    {
+      "stage": "content_outline",
+      "name": "Module Map",
+      "description": "Map the progression of modules and their dependencies",
+      "sort_order": 1,
+      "content": "# Module Map\n\n## Course\n<!-- Course name -->\n\n## Modules\n| # | Module Title | Key Concepts | Prerequisites | Duration |\n|---|-------------|-------------|--------------|----------|\n| 1 |             |             | None         |          |\n| 2 |             |             | Module 1     |          |\n| 3 |             |             |              |          |\n\n## Skills Progression\n<!-- How do skills build across modules? -->\n1. \n2. \n3. \n\n## Cross-Module Connections\n- \n\n## Capstone Integration\n<!-- How does the final project tie modules together? -->\n"
+    },
+    {
+      "stage": "lesson_materials",
+      "name": "Lesson Plan",
+      "description": "Detailed plan for a single class session with activities and timing",
+      "sort_order": 0,
+      "content": "# Lesson Plan\n\n## Module / Week\n<!-- Module name and session number -->\n\n## Learning Objectives\n- By the end of this lesson, students will:\n  1. \n  2. \n\n## Lesson Flow\n| Time | Activity | Method | Materials |\n|------|----------|--------|----------|\n| 10 min | Warm-up / review | | |\n| 20 min | Core instruction | | |\n| 15 min | Practice activity | | |\n| 10 min | Discussion | | |\n| 5 min | Wrap-up / preview | | |\n\n## Key Questions\n- \n\n## Differentiation\n- Advanced: \n- Struggling: \n\n## Homework\n- \n"
+    },
+    {
+      "stage": "lesson_materials",
+      "name": "Activity Design Sheet",
+      "description": "Design a classroom activity with instructions and rubric",
+      "sort_order": 1,
+      "content": "# Activity Design Sheet\n\n## Activity Title\n<!-- Name -->\n\n## Linked Objective\n<!-- Which learning outcome does this address? -->\n\n## Format\n- Type: Individual | Pair | Group\n- Duration: \n- Materials: \n\n## Instructions\n1. \n2. \n3. \n\n## Expected Outcome\n<!-- What should students produce? -->\n\n## Assessment Rubric\n| Criteria | Excellent | Proficient | Developing |\n|----------|-----------|-----------|------------|\n|          |           |           |            |\n\n## Debrief Questions\n- \n"
+    },
+    {
+      "stage": "assessments",
+      "name": "Assessment Blueprint",
+      "description": "Design assessments aligned to learning objectives with rubrics",
+      "sort_order": 0,
+      "content": "# Assessment Blueprint\n\n## Course\n<!-- Course name -->\n\n## Assessment Type\nQuiz | Exam | Project | Portfolio | Presentation\n\n## Objective Alignment\n| Question / Task | Learning Outcome | Bloom's Level | Points |\n|----------------|-----------------|--------------|--------|\n|                |                 |              |        |\n\n## Rubric\n| Criteria | Weight | 4 (Excellent) | 3 (Good) | 2 (Developing) | 1 (Beginning) |\n|----------|--------|--------------|----------|---------------|---------------|\n|          |        |              |          |               |               |\n\n## Accommodations\n- \n\n## Estimated Completion Time\n- \n"
+    },
+    {
+      "stage": "assessments",
+      "name": "Question Bank Template",
+      "description": "Organize assessment questions by topic and difficulty",
+      "sort_order": 1,
+      "content": "# Question Bank\n\n## Course / Module\n<!-- Name -->\n\n## Questions\n| ID | Question | Type | Difficulty | Objective | Answer Key |\n|----|---------|------|-----------|-----------|------------|\n| Q1 |         | MC / SA / Essay | Easy / Med / Hard | | |\n| Q2 |         |      |           |           |            |\n\n## Distribution Guide\n| Difficulty | Count | Percentage |\n|-----------|-------|------------|\n| Easy      |       | 30%        |\n| Medium    |       | 50%        |\n| Hard      |       | 20%        |\n\n## Review Status\n- [ ] Peer reviewed\n- [ ] Bias checked\n- [ ] Tested with sample group\n"
+    },
+    {
+      "stage": "pilot_testing",
+      "name": "Pilot Evaluation Form",
+      "description": "Collect structured feedback from pilot participants",
+      "sort_order": 0,
+      "content": "# Pilot Evaluation Form\n\n## Course\n<!-- Course name and pilot dates -->\n\n## Participant Info\n- Role: Student | Instructor | Observer\n- Date: \n\n## Ratings (1-5)\n| Aspect | Rating | Comments |\n|--------|--------|----------|\n| Content relevance |  |        |\n| Pacing |         |          |\n| Clarity of materials | | |\n| Engagement level |   |        |\n| Assessment fairness | | |\n\n## What worked well?\n- \n\n## What needs improvement?\n- \n\n## Suggestions\n- \n\n## Would you recommend this course? Why?\n- \n"
+    },
+    {
+      "stage": "pilot_testing",
+      "name": "Pilot Results Summary",
+      "description": "Aggregate pilot feedback and identify required changes",
+      "sort_order": 1,
+      "content": "# Pilot Results Summary\n\n## Course\n<!-- Course name -->\n\n## Pilot Details\n- Participants: \n- Duration: \n- Sections piloted: \n\n## Aggregate Ratings\n| Aspect | Avg Rating | Std Dev | Target |\n|--------|-----------|---------|--------|\n|        |           |         |        |\n\n## Top Issues\n| # | Issue | Frequency | Severity | Planned Fix |\n|---|-------|-----------|----------|------------|\n| 1 |       |           |          |            |\n\n## Positive Highlights\n- \n\n## Required Changes Before Launch\n- [ ] \n\n## Timeline for Revisions\n- \n"
+    },
+    {
+      "stage": "final_curriculum",
+      "name": "Final Curriculum Package",
+      "description": "Complete curriculum package with all components listed",
+      "sort_order": 0,
+      "content": "# Final Curriculum Package\n\n## Course\n<!-- Course name and version -->\n\n## Included Materials\n- [ ] Syllabus (final)\n- [ ] Module outlines (all)\n- [ ] Lesson plans\n- [ ] Slide decks\n- [ ] Handouts and worksheets\n- [ ] Assessment instruments\n- [ ] Answer keys and rubrics\n- [ ] Instructor guide\n\n## Delivery Requirements\n- Platform: \n- Software: \n- Equipment: \n\n## Maintenance Plan\n- Review frequency: \n- Update responsibility: \n- Feedback mechanism: \n\n## Approvals\n| Approver | Role | Date | Signature |\n|----------|------|------|-----------|\n|          |      |      |           |\n"
+    },
+    {
+      "stage": "final_curriculum",
+      "name": "Instructor Guide",
+      "description": "Guide for instructors delivering the curriculum",
+      "sort_order": 1,
+      "content": "# Instructor Guide\n\n## Course\n<!-- Course name -->\n\n## Course Overview\n<!-- 1 paragraph summary -->\n\n## Preparation Checklist\n- [ ] Review all materials\n- [ ] Set up LMS\n- [ ] Prepare physical materials\n- [ ] Test technology\n\n## Module-by-Module Tips\n| Module | Key Points | Common Pitfalls | Time Tips |\n|--------|-----------|----------------|----------|\n|        |           |                |          |\n\n## Facilitation Notes\n- Discussion strategies: \n- Managing difficult topics: \n- Engagement techniques: \n\n## FAQ from Previous Cohorts\n- \n"
+    }
+  ]
+}

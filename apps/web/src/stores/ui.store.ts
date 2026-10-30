@@ -1,18 +1,20 @@
 import { create } from 'zustand';
+import {
+  applyAccent,
+  applyTheme,
+  loadAccent,
+  loadTheme,
+  saveAccent,
+  saveTheme,
+  type Theme,
+} from '../lib/theme';
 
-type Theme = 'light' | 'dark' | 'system';
-
-function getSystemTheme(): 'light' | 'dark' {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
-function applyTheme(theme: Theme) {
-  const resolved = theme === 'system' ? getSystemTheme() : theme;
-  document.documentElement.classList.toggle('dark', resolved === 'dark');
-}
-
-function loadTheme(): Theme {
-  return (localStorage.getItem('nyx:theme') as Theme) ?? 'system';
+function safeGet(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
 }
 
 interface UIState {
@@ -23,6 +25,8 @@ interface UIState {
   toggleSidebarCollapsed: () => void;
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  accent: string;
+  setAccent: (id: string) => void;
   seeding: boolean;
   setSeeding: (seeding: boolean) => void;
   activeLifecycleSlug: string;
@@ -32,6 +36,8 @@ interface UIState {
 // Apply theme immediately on module load (before first render)
 const initialTheme = loadTheme();
 applyTheme(initialTheme);
+const initialAccent = loadAccent();
+applyAccent(initialAccent);
 
 export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: false,
@@ -41,23 +47,25 @@ export const useUIStore = create<UIState>((set) => ({
   toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
   theme: initialTheme,
   setTheme: (theme) => {
-    localStorage.setItem('nyx:theme', theme);
+    saveTheme(theme);
     applyTheme(theme);
     set({ theme });
   },
+  accent: initialAccent,
+  setAccent: (id) => {
+    saveAccent(id);
+    applyAccent(id);
+    set({ accent: id });
+  },
   seeding: false,
   setSeeding: (seeding) => set({ seeding }),
-  activeLifecycleSlug: localStorage.getItem('nyx:activeLifecycle') ?? 'software_development',
+  activeLifecycleSlug: safeGet('nyx:activeLifecycle') ?? 'software_development',
   setActiveLifecycleSlug: (slug) => {
-    localStorage.setItem('nyx:activeLifecycle', slug);
+    try {
+      localStorage.setItem('nyx:activeLifecycle', slug);
+    } catch {
+      // storage unavailable
+    }
     set({ activeLifecycleSlug: slug });
   },
 }));
-
-// Re-apply when system preference changes (only matters when theme === 'system')
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  const { theme } = useUIStore.getState();
-  if (theme === 'system') {
-    applyTheme('system');
-  }
-});
