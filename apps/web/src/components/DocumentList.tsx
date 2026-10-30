@@ -65,7 +65,7 @@ export function DocumentList() {
 
   if (isLoading) {
     return (
-      <div className="py-12 text-center text-sm text-slate-400">
+      <div role="status" className="py-12 text-center text-sm text-slate-400">
         Loading documents...
       </div>
     );
@@ -182,7 +182,7 @@ export function DocumentList() {
       </div>
 
       {createError && (
-        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div role="alert" className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {createError}
         </div>
       )}
@@ -214,7 +214,7 @@ export function DocumentList() {
       )}
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <ul className="divide-y divide-slate-100">
+        <ul aria-label="Documents" className="divide-y divide-slate-100">
           {documents.map((doc) => (
             <li key={doc.id}>
               <Link
