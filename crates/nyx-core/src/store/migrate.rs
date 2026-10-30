@@ -71,6 +71,11 @@ pub const CORE_MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0172_deliverables.sql"),
     },
     Migration {
+        version: 173,
+        name: "intake_records",
+        sql: include_str!("../../migrations/0173_intake_records.sql"),
+    },
+    Migration {
         version: 175,
         name: "ai",
         sql: include_str!("../../migrations/0175_ai.sql"),
