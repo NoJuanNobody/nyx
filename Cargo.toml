@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
-members = ["crates/nyx-core", "crates/nyx-cli", "crates/nyx-mcp", "apps/desktop/src-tauri"]
+members = ["crates/nyx-core", "crates/nyx-app", "crates/nyx-cli", "crates/nyx-mcp", "apps/desktop/src-tauri"]
 # Plain `cargo build/test` skips the Tauri shell (needs system webview libs on Linux).
 # Use `--workspace` or `-p nyx-desktop` to include it. See docs/rust-workspace.md.
-default-members = ["crates/nyx-core", "crates/nyx-cli", "crates/nyx-mcp"]
+default-members = ["crates/nyx-core", "crates/nyx-app", "crates/nyx-cli", "crates/nyx-mcp"]
 
 [workspace.package]
 version = "0.0.1"
@@ -15,7 +15,10 @@ publish = false
 
 [workspace.dependencies]
 nyx-core = { path = "crates/nyx-core" }
+nyx-app = { path = "crates/nyx-app" }
+nyx-mcp = { path = "crates/nyx-mcp" }
 clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
 thiserror = "2"
 rusqlite = { version = "0.40", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
