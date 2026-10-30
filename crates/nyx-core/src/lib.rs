@@ -37,6 +37,7 @@ pub mod integrations;
 pub mod ledger;
 pub mod lifecycle;
 pub mod model;
+pub mod net;
 pub mod notify;
 pub mod profile;
 pub mod scan;

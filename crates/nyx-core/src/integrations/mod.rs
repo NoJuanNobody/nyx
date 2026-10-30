@@ -41,7 +41,7 @@ pub mod slack;
 
 use crate::git_provider::GitError;
 
-pub use crate::git_provider::{Headers, HttpMethod, HttpRequest, HttpResponse, HttpTransport};
+pub use crate::net::{Headers, HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 
 /// Errors from the integrations module. Converts into [`crate::Error`].
 #[derive(Debug, thiserror::Error)]
@@ -129,6 +129,16 @@ impl From<GitError> for IntegrationError {
     fn from(e: GitError) -> Self {
         match e {
             GitError::Transport(m) => Self::Transport(m),
+            other => Self::Transport(other.to_string()),
+        }
+    }
+}
+
+impl From<crate::net::NetError> for IntegrationError {
+    fn from(e: crate::net::NetError) -> Self {
+        match e {
+            crate::net::NetError::Parse(m) => Self::Parse(m),
+            crate::net::NetError::Transport(m) => Self::Transport(m),
             other => Self::Transport(other.to_string()),
         }
     }

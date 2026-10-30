@@ -7,7 +7,7 @@ use secrecy::SecretString;
 
 use super::pagination::{fetch_pages, DEFAULT_MAX_PAGES};
 use super::rate_limit::{self, RateLimit};
-use super::transport::{HttpRequest, HttpResponse, HttpTransport};
+use crate::net::{HttpRequest, HttpResponse, HttpTransport};
 use super::util::truncate;
 use super::{GitError, GitResult, OAuthToken, ProviderKind};
 use crate::profile::{SecretKey, SecretStore};

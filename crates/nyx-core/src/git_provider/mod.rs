@@ -43,6 +43,16 @@ pub use github::GitHubProvider;
 pub use gitlab::GitLabProvider;
 pub use rate_limit::RateLimit;
 pub use transport::{FakeTransport, Headers, HttpMethod, HttpRequest, HttpResponse, HttpTransport};
+
+impl From<crate::net::NetError> for GitError {
+    fn from(e: crate::net::NetError) -> Self {
+        match e {
+            crate::net::NetError::Parse(m) => Self::Parse(m),
+            crate::net::NetError::Transport(m) => Self::Transport(m),
+            other => Self::Transport(other.to_string()),
+        }
+    }
+}
 pub use webhook::{CommentEvent, IssueEvent, IssueStatus, PushCommit, PushEvent, WebhookEvent};
 
 use crate::profile::SecretStore;

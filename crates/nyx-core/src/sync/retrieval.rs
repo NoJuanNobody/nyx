@@ -30,93 +30,13 @@ use crate::intake::{chunk_text, store_doc_chunks, ChunkOptions, Embeddings};
 use crate::model::{Document, NewCodeChunk};
 use crate::store::{ChunkRepo, SqliteChunks};
 
-/// Turns text into vectors. Implementations: [`HashingEmbedder`] (offline), a provider-backed
-/// one (TODO(AI-74 wiring): HTTP embeddings through the BYOK transport), or a test double.
-pub trait Embedder: Send + Sync {
-    /// Model name stored next to every vector.
-    fn model(&self) -> &str;
-    /// One vector per input text, same order.
-    ///
-    /// # Errors
-    /// Provider failure.
-    fn embed(&self, texts: &[String]) -> Result<Vec<Vec<f32>>>;
-}
-
-/// Deterministic, offline feature-hashing embedder: lowercase word unigrams hashed (FNV-1a) into
-/// `dim` signed buckets and L2-normalised. Quality is lexical, not semantic, but it needs no key
-/// and no network, so retrieval and drift matching work out of the box.
-#[derive(Debug, Clone)]
-pub struct HashingEmbedder {
-    dim: usize,
-    model: String,
-}
-
-impl HashingEmbedder {
-    /// New embedder; `dim` is clamped to at least 8.
-    #[must_use]
-    pub fn new(dim: usize) -> Self {
-        let dim = dim.max(8);
-        Self {
-            dim,
-            model: format!("nyx-hashing-{dim}"),
-        }
-    }
-}
-
-impl Default for HashingEmbedder {
-    fn default() -> Self {
-        Self::new(256)
-    }
-}
-
-fn fnv1a(s: &str) -> u64 {
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    for b in s.bytes() {
-        h ^= u64::from(b);
-        h = h.wrapping_mul(0x0100_0000_01b3);
-    }
-    h
-}
-
-impl Embedder for HashingEmbedder {
-    fn model(&self) -> &str {
-        &self.model
-    }
-
-    fn embed(&self, texts: &[String]) -> Result<Vec<Vec<f32>>> {
-        Ok(texts
-            .iter()
-            .map(|t| {
-                let mut v = vec![0.0_f32; self.dim];
-                for tok in tokens(t) {
-                    let h = fnv1a(&tok);
-                    let idx = usize::try_from(h % self.dim as u64).unwrap_or(0);
-                    v[idx] += if (h >> 63) & 1 == 0 { 1.0 } else { -1.0 };
-                }
-                let n = v.iter().map(|x| x * x).sum::<f32>().sqrt();
-                if n > 0.0 {
-                    for x in &mut v {
-                        *x /= n;
-                    }
-                }
-                v
-            })
-            .collect())
-    }
-}
+use crate::ai::embedder::tokens;
+pub use crate::ai::embedder::{Embedder, HashingEmbedder};
 
 const STOP_WORDS: &[&str] = &[
     "the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "is", "are", "was", "be", "it",
     "this", "that", "with", "as", "at", "by", "from", "how", "what", "do", "does",
 ];
-
-/// Lowercase alphanumeric words of length >= 2 (stop words included).
-fn tokens(text: &str) -> Vec<String> {
-    text.split(|c: char| !c.is_alphanumeric() && c != '_')
-        .filter(|w| w.chars().count() >= 2)
-        .map(str::to_lowercase)
-        .collect()
-}
 
 fn query_terms(text: &str) -> Vec<String> {
     let mut seen = HashSet::new();

@@ -30,7 +30,7 @@ use super::matching::{match_specs, normalize_path, MatchConfig, SpecMatch};
 use crate::ai::prompts::{self, Tier};
 use crate::ai::{LlmProvider, LlmRequest, ModelPair};
 use crate::error::{Error, Result};
-use crate::git_provider::transport::Headers;
+use crate::net::Headers;
 use crate::git_provider::webhook::{self, PushEvent, WebhookEvent};
 use crate::git_provider::ProviderKind;
 use crate::model::{new_id, now_ms, AuditEventType, Id, NewAuditEvent, Timestamp};
