@@ -62,18 +62,16 @@ impl TrackerKind {
         }
     }
 
-    /// The `tickets.provider` value, if the tickets table can hold this tracker.
-    ///
-    /// Linear is `None`: the `tickets.provider` CHECK constraint (migration 0004) does not allow
-    /// it, so Linear refs live on the draft row only (see `docs/rust-core/tickets.md`).
+    /// The `tickets.provider` value for this tracker (every tracker has one since migration 180
+    /// added `linear` to the CHECK constraint).
     #[must_use]
-    pub fn ticket_provider(self) -> Option<TicketProvider> {
+    pub fn ticket_provider(self) -> TicketProvider {
         match self {
-            Self::Github => Some(TicketProvider::Github),
-            Self::Gitlab => Some(TicketProvider::Gitlab),
-            Self::Bitbucket => Some(TicketProvider::Bitbucket),
-            Self::Jira => Some(TicketProvider::Jira),
-            Self::Linear => None,
+            Self::Github => TicketProvider::Github,
+            Self::Gitlab => TicketProvider::Gitlab,
+            Self::Bitbucket => TicketProvider::Bitbucket,
+            Self::Jira => TicketProvider::Jira,
+            Self::Linear => TicketProvider::Linear,
         }
     }
 

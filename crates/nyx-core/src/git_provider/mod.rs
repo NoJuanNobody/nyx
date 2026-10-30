@@ -227,6 +227,12 @@ pub struct GitTreeEntry {
     pub kind: TreeEntryKind,
     /// Size in bytes when the provider reports it.
     pub size: Option<u64>,
+    /// Git blob id of the file content when the tree listing reports it (GitHub `sha`, GitLab
+    /// `id`). `None` for directories and for providers that do not expose it (Bitbucket Cloud's
+    /// `src` listing carries only the commit). Equal blob ids mean equal content, so incremental
+    /// scans use it to skip unchanged files without fetching them.
+    #[serde(default)]
+    pub sha: Option<String>,
 }
 
 /// File content as returned by the provider (usually base64).

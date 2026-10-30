@@ -70,6 +70,8 @@ struct RawTreeEntry {
     kind: String,
     #[serde(default)]
     size: Option<u64>,
+    #[serde(default)]
+    sha: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -530,6 +532,7 @@ pub fn parse_tree(resp: &HttpResponse) -> GitResult<Vec<GitTreeEntry>> {
             },
             path: e.path,
             size: e.size,
+            sha: e.sha.filter(|s| !s.is_empty()),
         })
         .collect())
 }
@@ -1026,6 +1029,12 @@ mod tests {
         assert_eq!(tree.len(), 3);
         assert_eq!(tree[1].kind, TreeEntryKind::Blob);
         assert_eq!(tree[1].size, Some(120));
+        assert_eq!(tree[1].sha.as_deref(), Some("b"));
+        assert_eq!(
+            tree[0].sha.as_deref(),
+            Some("a"),
+            "git reports tree ids too; only blobs are used"
+        );
         assert_eq!(tree[2].kind, TreeEntryKind::Tree);
         assert!(t.requests()[0]
             .url

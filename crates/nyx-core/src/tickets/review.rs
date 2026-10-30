@@ -625,7 +625,7 @@ pub enum PostResult {
     Posted {
         /// Updated draft.
         draft: DraftRecord,
-        /// Board row (none for Linear).
+        /// Board row.
         ticket: Option<Ticket>,
         /// The draft was already posted; the tracker was not called.
         already_posted: bool,
@@ -660,10 +660,8 @@ fn link_ticket(
     ext: &ExternalRef,
     body: &str,
     actor_id: &str,
-) -> Result<Option<Ticket>> {
-    let Some(provider) = ext.kind.ticket_provider() else {
-        return Ok(None);
-    };
+) -> Result<Ticket> {
+    let provider = ext.kind.ticket_provider();
     let tickets = SqliteTickets::new(conn);
     let existing = tickets
         .list_by_document(&draft.document_id)?
@@ -690,7 +688,7 @@ fn link_ticket(
         "UPDATE ticket_drafts SET ticket_id = ?2 WHERE id = ?1",
         params![draft.id, t.id],
     )?;
-    Ok(Some(t))
+    Ok(t)
 }
 
 /// Post one `approved` or `failed` draft. See the module docs for the guarantees.
@@ -713,7 +711,7 @@ pub fn post(
         // Idempotent replay; also heals a crash between "posted" and the ticket link.
         let ticket = match (&cur.ticket_id, &cur.external) {
             (Some(tid), _) => Some(SqliteTickets::new(conn).get(tid)?),
-            (None, Some(ext)) => link_ticket(conn, &cur, ext, &cur.body, actor_id)?,
+            (None, Some(ext)) => Some(link_ticket(conn, &cur, ext, &cur.body, actor_id)?),
             (None, None) => None,
         };
         return Ok(PostResult::Posted {
@@ -791,7 +789,7 @@ pub fn post(
                 )
                 .map_err(db_err)?;
                 let posted = store.get(draft_id)?;
-                let ticket = link_ticket(conn, &posted, &ext, &body, actor_id)?;
+                let ticket = Some(link_ticket(conn, &posted, &ext, &body, actor_id)?);
                 let mut ev = NewAuditEvent::new(&doc.team_id, AuditEventType::TicketCreated);
                 ev.actor_id = Some(actor_id.to_owned());
                 ev.document_id = Some(posted.document_id.clone());
@@ -1372,7 +1370,7 @@ mod tests {
     }
 
     #[test]
-    fn linear_posts_without_a_board_row() {
+    fn linear_posts_to_the_board() {
         let f = fx();
         let d = doc(&f, "# Spec");
         let lin = Arc::new(FakeTracker::new(TrackerKind::Linear));
@@ -1390,8 +1388,9 @@ mod tests {
         else {
             panic!()
         };
-        assert!(ticket.is_none());
-        assert_eq!(draft.ticket_id, None);
+        let ticket = ticket.expect("linear tickets reach the board");
+        assert_eq!(ticket.provider, crate::model::TicketProvider::Linear);
+        assert_eq!(draft.ticket_id.as_deref(), Some(ticket.id.as_str()));
         assert_eq!(draft.external.unwrap().kind, TrackerKind::Linear);
     }
 

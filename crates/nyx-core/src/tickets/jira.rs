@@ -22,8 +22,8 @@ use super::tracker::{
     check_response, title_key, Destination, NewIssue, RemoteIssue, TicketTracker, TrackerError,
     TrackerKind,
 };
-use crate::net::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 use crate::model::TicketStatus;
+use crate::net::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 
 /// Jira site + API-token credentials (`integrations.config` for type `jira`).
 #[derive(Clone)]

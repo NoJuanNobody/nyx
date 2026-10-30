@@ -50,6 +50,8 @@ pub fn extract_repo_name(external_url: &str, provider: TicketProvider) -> String
         TicketProvider::Jira => cap(r"/browse/([A-Z][A-Z0-9_]+)-\d+"),
         TicketProvider::Gitlab => cap(r"^https?://[^/]+/(.+?)/-/issues/"),
         TicketProvider::Bitbucket => cap(r"bitbucket\.org/([^/]+/[^/]+)"),
+        // Workspace slug: https://linear.app/<workspace>/issue/ENG-42/title
+        TicketProvider::Linear => cap(r"^https?://linear\.app/([^/]+)/issue/"),
     }
 }
 
@@ -68,6 +70,7 @@ pub fn extract_repo_url(external_url: &str, provider: TicketProvider) -> String 
         TicketProvider::Jira => cap(r"(https?://[^/]+)"),
         TicketProvider::Gitlab => cap(r"^(https?://[^/]+/.+?)/-/issues/"),
         TicketProvider::Bitbucket => cap(r"(https?://bitbucket\.org/[^/]+/[^/]+)"),
+        TicketProvider::Linear => cap(r"^(https?://linear\.app/[^/]+)/issue/"),
     }
 }
 
@@ -131,6 +134,16 @@ pub fn destination_of(t: &Ticket) -> Option<Destination> {
             Destination::Bitbucket { owner, repo }
         }
         TicketProvider::Jira => Destination::Jira { project_key: name },
+        // The URL carries the workspace, not the team id. The identifier prefix (`ENG` of
+        // `ENG-42`) is the team *key*; status sync only needs the tracker kind.
+        TicketProvider::Linear => Destination::Linear {
+            team_id: t
+                .external_id
+                .rsplit_once('-')
+                .map(|(k, _)| k)
+                .filter(|k| !k.is_empty())?
+                .to_owned(),
+        },
     })
 }
 
@@ -140,6 +153,7 @@ fn kind_of(p: TicketProvider) -> TrackerKind {
         TicketProvider::Gitlab => TrackerKind::Gitlab,
         TicketProvider::Bitbucket => TrackerKind::Bitbucket,
         TicketProvider::Jira => TrackerKind::Jira,
+        TicketProvider::Linear => TrackerKind::Linear,
     }
 }
 
@@ -434,6 +448,49 @@ mod tests {
             sync_status(c, &set, "nope"),
             Err(Error::NotFound(_))
         ));
+    }
+
+    #[test]
+    fn linear_tickets_reach_the_board_and_sync() {
+        use TicketProvider as P;
+        let url = "https://linear.app/acme/issue/ENG-42/fix-login";
+        assert_eq!(extract_repo_name(url, P::Linear), "acme");
+        assert_eq!(extract_repo_url(url, P::Linear), "https://linear.app/acme");
+        assert_eq!(extract_repo_name("https://linear.app/acme", P::Linear), "");
+
+        let f = fx();
+        let d = doc(&f, "content");
+        let t = add(&f, &d.id, P::Linear, "ENG-42", url);
+        let c = f.db.conn();
+        let rows = list_for_team(
+            c,
+            &f.team.id,
+            &BoardFilter {
+                status: None,
+                provider: Some(P::Linear),
+            },
+        )
+        .unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].repo_name, "acme");
+        assert_eq!(
+            destination_of(&t),
+            Some(Destination::Linear {
+                team_id: "ENG".into()
+            })
+        );
+
+        let lin = Arc::new(FakeTracker::new(TrackerKind::Linear));
+        lin.set_status("ENG-42", TicketStatus::InProgress);
+        let set = TrackerSet::new().with(lin);
+        assert_eq!(
+            sync_status(c, &set, &t.id).unwrap().status,
+            TicketStatus::InProgress
+        );
+        assert_eq!(sync_all(c, &set, &f.team.id).unwrap(), 1);
+        // an id with no team prefix cannot be turned back into a destination
+        let odd = add(&f, &d.id, P::Linear, "42", url);
+        assert_eq!(destination_of(&odd), None);
     }
 
     #[test]

@@ -2,7 +2,7 @@
 //!
 //! Incremental re-scan is by revision token. When the source reports a per-file `sha` (blob sha /
 //! content hash) an unchanged file is recognised from the listing alone and never fetched. When it
-//! does not (current provider trees carry no blob sha) every known file is planned as
+//! does not (Bitbucket Cloud trees carry no blob sha) every known file is planned as
 //! [`PlannedFile::needs_verify`] and the indexer compares a content hash after reading it, which
 //! saves chunking, embedding and credits but not the fetch. A repo-level `head_token` match skips
 //! the listing entirely.
