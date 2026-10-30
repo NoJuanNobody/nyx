@@ -3,6 +3,7 @@
 //! - [`model`]: typed domain model ported from the Drizzle schema.
 //! - [`store`]: SQLite persistence, migrations, repositories, Postgres import.
 //! - [`ledger`]: append-only credit ledger (agent-native utility tokens).
+//! - [`lifecycle`]: lifecycle stages, domain pipelines, transitions, templates.
 //! - [`error`]: shared error type.
 #![allow(
     clippy::missing_errors_doc,
@@ -19,6 +20,7 @@
 
 pub mod error;
 pub mod ledger;
+pub mod lifecycle;
 pub mod model;
 pub mod profile;
 pub mod store;

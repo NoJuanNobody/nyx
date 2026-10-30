@@ -1,0 +1,273 @@
+{
+  "slug": "music_production",
+  "label": "Music Production",
+  "description": "Music creation from composition to distribution",
+  "icon": "🎵",
+  "is_default": false,
+  "sort_order": 13,
+  "connectors": [
+    "Composition guides recording sessions",
+    "Recordings become the mixing draft",
+    "Mix informs mastering notes",
+    "Mastering produces the final mix",
+    "Final mix becomes distribution-ready"
+  ],
+  "stages": [
+    {
+      "slug": "composition_arrangement",
+      "sort_order": 0,
+      "label": "Composition & Arrangement",
+      "abbreviation": "CA",
+      "subtitle": "Songwriting",
+      "color": "bg-violet-100",
+      "text_color": "text-violet-700",
+      "dot_color": "bg-violet-400",
+      "border_color": "border-violet-300",
+      "hex": "#8B5CF6",
+      "who": "Songwriter, Composer",
+      "description": "Write and arrange the composition",
+      "icon": "🎼",
+      "ai": "Suggests chord progressions, checks structure",
+      "output": "Complete arrangement",
+      "docs": [
+        "Lead Sheet",
+        "Arrangement Notes",
+        "Chord Chart",
+        "Lyrics",
+        "References"
+      ],
+      "suggestions": [
+        "Suggest chord progressions",
+        "Check song structure",
+        "Identify arrangement gaps"
+      ]
+    },
+    {
+      "slug": "recording_sessions",
+      "sort_order": 1,
+      "label": "Recording Sessions",
+      "abbreviation": "RS",
+      "subtitle": "Tracking",
+      "color": "bg-purple-100",
+      "text_color": "text-purple-700",
+      "dot_color": "bg-purple-400",
+      "border_color": "border-purple-300",
+      "hex": "#A855F7",
+      "who": "Musicians, Engineer",
+      "description": "Record all tracks",
+      "icon": "🎙️",
+      "ai": "Tracks session progress, identifies issues",
+      "output": "Complete multitrack recording",
+      "docs": [
+        "Session Log",
+        "Track List",
+        "Performance Notes",
+        "Technical Settings"
+      ],
+      "suggestions": [
+        "Track session progress",
+        "Note performance issues",
+        "Log technical settings"
+      ]
+    },
+    {
+      "slug": "mixing_draft",
+      "sort_order": 2,
+      "label": "Mixing Draft",
+      "abbreviation": "MD",
+      "subtitle": "Initial Mix",
+      "color": "bg-fuchsia-100",
+      "text_color": "text-fuchsia-700",
+      "dot_color": "bg-fuchsia-400",
+      "border_color": "border-fuchsia-300",
+      "hex": "#D946EF",
+      "who": "Mixing Engineer",
+      "description": "Create the initial mix",
+      "icon": "🎚️",
+      "ai": "Analyzes frequency balance, suggests EQ",
+      "output": "Draft mix",
+      "docs": [
+        "Mix Notes",
+        "Plugin Chain",
+        "Revision Requests",
+        "Reference Comparison"
+      ],
+      "suggestions": [
+        "Analyze frequency balance",
+        "Suggest EQ adjustments",
+        "Check phase"
+      ]
+    },
+    {
+      "slug": "mastering_notes",
+      "sort_order": 3,
+      "label": "Mastering Notes",
+      "abbreviation": "MN",
+      "subtitle": "Final Polish",
+      "color": "bg-pink-100",
+      "text_color": "text-pink-700",
+      "dot_color": "bg-pink-400",
+      "border_color": "border-pink-300",
+      "hex": "#EC4899",
+      "who": "Mastering Engineer",
+      "description": "Prepare mastering specifications",
+      "icon": "📊",
+      "ai": "Analyzes loudness, checks format requirements",
+      "output": "Mastering specs",
+      "docs": [
+        "Mastering Specs",
+        "Loudness Analysis",
+        "Format Requirements",
+        "Notes"
+      ],
+      "suggestions": [
+        "Analyze loudness",
+        "Check format requirements",
+        "Suggest approach"
+      ]
+    },
+    {
+      "slug": "final_mix",
+      "sort_order": 4,
+      "label": "Final Mix",
+      "abbreviation": "FM",
+      "subtitle": "Approved Master",
+      "color": "bg-rose-100",
+      "text_color": "text-rose-700",
+      "dot_color": "bg-rose-400",
+      "border_color": "border-rose-300",
+      "hex": "#F43F5E",
+      "who": "Artist, Producer",
+      "description": "Final approved mix and master",
+      "icon": "✅",
+      "ai": "Quality check, cross-platform analysis",
+      "output": "Approved final master",
+      "docs": [
+        "Final Master",
+        "Approval Notes",
+        "Quality Check",
+        "Metadata"
+      ],
+      "suggestions": [
+        "Quality check",
+        "Cross-platform analysis",
+        "Validate metadata"
+      ]
+    },
+    {
+      "slug": "distribution_ready",
+      "sort_order": 5,
+      "label": "Distribution Ready",
+      "abbreviation": "DR",
+      "subtitle": "Release Package",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Artist, Distributor",
+      "description": "Complete release package",
+      "icon": "📦",
+      "ai": "Validates ISRC codes, checks platform requirements",
+      "output": "Distribution-ready package",
+      "docs": [
+        "Release Package",
+        "ISRC Registration",
+        "Artwork",
+        "Distribution Plan",
+        "Marketing Brief"
+      ],
+      "suggestions": [
+        "Validate ISRC codes",
+        "Check platform requirements",
+        "Create timeline"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "composition_arrangement",
+      "name": "Song Structure",
+      "description": "Map out the song structure with sections, keys, and tempos",
+      "sort_order": 0,
+      "content": "# Song Structure\n\n## Title\n<!-- Working title -->\n\n## Key / BPM / Time Signature\n- Key: \n- BPM: \n- Time: 4/4 | 3/4 | 6/8\n\n## Structure\n| Section | Bars | Chord Progression | Notes |\n|---------|------|------------------|-------|\n| Intro   |      |                  |       |\n| Verse 1 |      |                  |       |\n| Chorus  |      |                  |       |\n| Verse 2 |      |                  |       |\n| Bridge  |      |                  |       |\n| Outro   |      |                  |       |\n\n## Lyrics (Draft)\n<!-- Verse 1 -->\n\n<!-- Chorus -->\n\n## Mood / References\n- \n"
+    },
+    {
+      "stage": "composition_arrangement",
+      "name": "Arrangement Plan",
+      "description": "Plan instrumentation and arrangement for each section",
+      "sort_order": 1,
+      "content": "# Arrangement Plan\n\n## Song\n<!-- Title -->\n\n## Instrumentation\n| Instrument | Player | Notes |\n|-----------|--------|-------|\n|           |        |       |\n\n## Section Arrangement\n| Section | Instruments Playing | Dynamic | Texture |\n|---------|-------------------|---------|--------|\n| Intro   |                   | pp      | Sparse |\n| Verse 1 |                   | mp      |        |\n| Chorus  |                   | f       | Full   |\n| Bridge  |                   |         |        |\n\n## Builds & Transitions\n- Verse → Chorus: \n- Chorus → Verse 2: \n- Bridge → Final Chorus: \n\n## Production Notes\n- Sound palette: \n- Reference tracks: \n"
+    },
+    {
+      "stage": "recording_sessions",
+      "name": "Session Plan",
+      "description": "Plan a recording session with schedule, setup, and goals",
+      "sort_order": 0,
+      "content": "# Recording Session Plan\n\n## Date / Time\n- Date: \n- Start: \n- End: \n\n## Studio / Location\n- \n\n## Musicians\n| Name | Instrument | Call Time |\n|------|-----------|----------|\n|      |           |          |\n\n## Session Goals\n- [ ] \n\n## Track List\n| # | Song | What to Record | Estimated Time |\n|---|------|---------------|---------------|\n| 1 |      |               |               |\n\n## Equipment Needs\n- Microphones: \n- DI boxes: \n- Headphone mixes: \n\n## Signal Chain Notes\n- \n\n## Prep Reminders\n- [ ] Charts printed\n- [ ] Scratch tracks ready\n- [ ] Backup drives ready\n"
+    },
+    {
+      "stage": "recording_sessions",
+      "name": "Session Log",
+      "description": "Log takes, notes, and keeper selections during recording",
+      "sort_order": 1,
+      "content": "# Session Log\n\n## Date\n<!-- Date -->\n\n## Song\n<!-- Title -->\n\n## Takes\n| Track | Take | Time | Notes | Keeper |\n|-------|------|------|-------|--------|\n|       | 1    |      |       | [ ]    |\n|       | 2    |      |       | [ ]    |\n|       | 3    |      |       | [ ]    |\n\n## Overdubs\n| Instrument | Take | Notes | Keeper |\n|-----------|------|-------|--------|\n|           |      |       | [ ]    |\n\n## Technical Notes\n- Mic positions: \n- Preamp settings: \n- Room notes: \n\n## Punch List\n<!-- What still needs to be recorded -->\n- \n"
+    },
+    {
+      "stage": "mixing_draft",
+      "name": "Mix Notes",
+      "description": "Document mix decisions, levels, and processing for each track",
+      "sort_order": 0,
+      "content": "# Mix Notes\n\n## Song\n<!-- Title -->\n\n## Mix Version\n<!-- e.g., Mix v3 -->\n\n## Track Notes\n| Track | Level | Pan | EQ Notes | Compression | Effects |\n|-------|-------|-----|----------|------------|--------|\n| Kick  |       | C   |          |            |        |\n| Snare |       | C   |          |            |        |\n| Bass  |       | C   |          |            |        |\n| Guitar|       |     |          |            |        |\n| Vocal |       | C   |          |            |        |\n\n## Bus Processing\n- Drum bus: \n- Vocal bus: \n- Mix bus: \n\n## Reference Tracks\n- \n\n## Issues to Address\n- \n"
+    },
+    {
+      "stage": "mixing_draft",
+      "name": "Mix Revision Tracker",
+      "description": "Track client or artist mix revision requests",
+      "sort_order": 1,
+      "content": "# Mix Revision Tracker\n\n## Song\n<!-- Title -->\n\n## Revisions\n| Version | Date | Requested By | Changes Requested | Status |\n|---------|------|-------------|------------------|--------|\n| Mix v1  |      |             |                  | Done   |\n| Mix v2  |      |             |                  |        |\n\n## Current Revision Notes\n| # | Request | Specific Detail | Done |\n|---|---------|----------------|------|\n| 1 |         |                | [ ]  |\n| 2 |         |                | [ ]  |\n\n## Approved Mix\n- Version: \n- Date: \n- Approved by: \n\n## Alternate Mixes Needed\n- [ ] Instrumental\n- [ ] Radio edit\n- [ ] TV mix\n- [ ] Acapella\n"
+    },
+    {
+      "stage": "mastering_notes",
+      "name": "Mastering Brief",
+      "description": "Provide the mastering engineer with context and specifications",
+      "sort_order": 0,
+      "content": "# Mastering Brief\n\n## Project\n<!-- Album / single title -->\n\n## Artist\n<!-- Name -->\n\n## Mastering Engineer\n- Name: \n- Studio: \n\n## Tracks\n| # | Title | Duration | BPM | Key | Notes |\n|---|-------|----------|-----|-----|-------|\n| 1 |       |          |     |     |       |\n\n## Reference Tracks\n- \n\n## Specifications\n- Target loudness: __ LUFS\n- Format: Streaming / CD / Vinyl\n- Sample rate: \n- Bit depth: \n\n## Notes for Engineer\n- Overall tonal goals: \n- Problem areas: \n- Sequencing / gaps: \n\n## Deliverables Needed\n- [ ] Streaming master\n- [ ] CD master (DDP)\n- [ ] Vinyl master\n"
+    },
+    {
+      "stage": "mastering_notes",
+      "name": "Mastering QC Checklist",
+      "description": "Quality control checks for mastered tracks",
+      "sort_order": 1,
+      "content": "# Mastering QC Checklist\n\n## Project\n<!-- Title -->\n\n## Per-Track QC\n| Track | Loudness (LUFS) | Peak (dBTP) | Fades OK | Gaps OK | Noise |\n|-------|----------------|------------|---------|---------|-------|\n|       |                |            | [ ]     | [ ]     | [ ]   |\n\n## Album-Level Checks\n- [ ] Consistent loudness across tracks\n- [ ] Transitions and gaps feel right\n- [ ] Track order confirmed\n- [ ] ISRC codes embedded\n- [ ] CD text / metadata correct\n\n## Format Checks\n- [ ] Streaming version (16/44.1 or 24/48)\n- [ ] CD version (16/44.1, DDP)\n- [ ] Hi-res version (24/96 or 24/48)\n\n## Approvals\n- Artist: [ ] Approved\n- Producer: [ ] Approved\n- Label: [ ] Approved\n"
+    },
+    {
+      "stage": "final_mix",
+      "name": "Final Deliverables Checklist",
+      "description": "Ensure all final audio files and metadata are complete",
+      "sort_order": 0,
+      "content": "# Final Deliverables Checklist\n\n## Project\n<!-- Title -->\n\n## Audio Files\n| Track | WAV (Master) | MP3 (320k) | Instrumental | Stems |\n|-------|-------------|-----------|-------------|-------|\n|       | [ ]         | [ ]       | [ ]         | [ ]   |\n\n## Metadata\n- [ ] Track titles finalized\n- [ ] Artist name consistent\n- [ ] ISRC codes assigned\n- [ ] UPC / EAN assigned\n- [ ] Genre tags set\n- [ ] Copyright info embedded\n\n## Documentation\n- [ ] Credits sheet complete\n- [ ] Lyrics sheet finalized\n- [ ] Liner notes written\n\n## Backup\n- [ ] Session files archived\n- [ ] Final masters backed up (2 locations)\n"
+    },
+    {
+      "stage": "final_mix",
+      "name": "Credits Sheet",
+      "description": "Document all credits, roles, and publishing information",
+      "sort_order": 1,
+      "content": "# Credits Sheet\n\n## Project\n<!-- Album / single title -->\n\n## Personnel\n| Name | Role | Tracks |\n|------|------|--------|\n|      | Artist / Performer | |\n|      | Producer | |\n|      | Songwriter | |\n|      | Mix Engineer | |\n|      | Mastering Engineer | |\n|      | Session Musician | |\n\n## Studios\n| Studio | Location | Tracks |\n|--------|----------|--------|\n|        |          |        |\n\n## Publishing\n| Song | Writers | Publisher | Split |\n|------|---------|----------|-------|\n|      |         |          |       |\n\n## Special Thanks\n- \n\n## Copyright\n- (P) \n- (C) \n"
+    },
+    {
+      "stage": "distribution_ready",
+      "name": "Distribution Plan",
+      "description": "Plan the release strategy across platforms and territories",
+      "sort_order": 0,
+      "content": "# Distribution Plan\n\n## Release\n<!-- Title -->\n\n## Release Date\n- Street date: \n- Pre-save date: \n\n## Platforms\n| Platform | Distributor | Status | Link |\n|----------|-----------|--------|------|\n| Spotify  |           | [ ]    |      |\n| Apple Music |        | [ ]    |      |\n| YouTube Music |      | [ ]    |      |\n| Amazon Music |       | [ ]    |      |\n| Tidal    |           | [ ]    |      |\n\n## Territories\n- [ ] Worldwide\n- [ ] Specific: \n\n## Pricing\n- Single: \n- Album: \n\n## Pre-Release\n- [ ] Pre-save campaign\n- [ ] Playlist pitching (Spotify 4 weeks ahead)\n- [ ] Press release\n"
+    },
+    {
+      "stage": "distribution_ready",
+      "name": "Release Checklist",
+      "description": "Final release day checklist for music distribution",
+      "sort_order": 1,
+      "content": "# Release Checklist\n\n## Release\n<!-- Title and date -->\n\n## Pre-Release (T-4 weeks)\n- [ ] Distributor upload complete\n- [ ] Metadata verified on all platforms\n- [ ] Cover art uploaded (3000x3000 min)\n- [ ] Pre-save links generated\n\n## Release Week\n- [ ] Social media posts scheduled\n- [ ] Music video / visualizer ready\n- [ ] Press release sent\n- [ ] Playlist curators contacted\n\n## Release Day\n- [ ] Verify live on all platforms\n- [ ] Share links on all channels\n- [ ] Smart link active (Linkfire / ToneDen)\n- [ ] Monitor for issues\n\n## Post-Release\n- [ ] First week numbers reviewed\n- [ ] Playlist placements tracked\n- [ ] Press coverage collected\n"
+    }
+  ]
+}

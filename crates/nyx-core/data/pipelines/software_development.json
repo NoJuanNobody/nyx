@@ -1,0 +1,302 @@
+{
+  "slug": "software_development",
+  "label": "Software Development",
+  "description": "Full software product lifecycle from idea to deployed code",
+  "icon": "◎",
+  "is_default": true,
+  "sort_order": 0,
+  "connectors": [
+    "Concept brief seeds the PRD",
+    "PRD requirements drive architecture",
+    "Architecture shapes implementation specs",
+    "Specs generate code via AI agents"
+  ],
+  "stages": [
+    {
+      "slug": "conception",
+      "sort_order": 0,
+      "label": "Conception",
+      "abbreviation": "CO",
+      "subtitle": "Idea & Vision",
+      "color": "bg-amber-100",
+      "text_color": "text-amber-700",
+      "dot_color": "bg-amber-400",
+      "border_color": "border-amber-300",
+      "hex": "#E8C547",
+      "who": "Product Managers, Founders",
+      "description": "Capture the initial idea, problem space, and vision",
+      "icon": "◎",
+      "ai": "Stress-tests your idea, identifies blind spots, suggests missing angles",
+      "output": "Validated concept brief ready for product definition",
+      "docs": [
+        "Problem Statement",
+        "Value Proposition",
+        "Market Opportunity",
+        "Rough Concept Notes"
+      ],
+      "suggestions": [
+        "Stress-test this idea",
+        "Identify blind spots",
+        "Suggest target user personas"
+      ]
+    },
+    {
+      "slug": "definition",
+      "sort_order": 1,
+      "label": "Definition",
+      "abbreviation": "DF",
+      "subtitle": "Product Spec",
+      "color": "bg-teal-100",
+      "text_color": "text-teal-700",
+      "dot_color": "bg-teal-400",
+      "border_color": "border-teal-300",
+      "hex": "#4EC9B0",
+      "who": "Product Managers, Designers",
+      "description": "Translate the idea into a complete product specification",
+      "icon": "◈",
+      "ai": "Flags ambiguous requirements, generates user stories from PRD, scores completeness",
+      "output": "Structured PRD that engineering can trust",
+      "docs": [
+        "Product Requirements Doc (PRD)",
+        "User Stories",
+        "Personas",
+        "Feature List",
+        "Competitive Analysis"
+      ],
+      "suggestions": [
+        "Generate user stories",
+        "Flag ambiguous requirements",
+        "Suggest success metrics"
+      ]
+    },
+    {
+      "slug": "architecture",
+      "sort_order": 2,
+      "label": "Architecture",
+      "abbreviation": "AR",
+      "subtitle": "System Design",
+      "color": "bg-indigo-100",
+      "text_color": "text-indigo-700",
+      "dot_color": "bg-indigo-400",
+      "border_color": "border-indigo-300",
+      "hex": "#7B9FE0",
+      "who": "Tech Leads, Senior Engineers",
+      "description": "Design the system that implements the specification",
+      "icon": "◫",
+      "ai": "Reviews architecture for gaps, suggests patterns, links decisions back to PRD intent",
+      "output": "Architecture docs linked to every PRD requirement they serve",
+      "docs": [
+        "System Architecture Doc",
+        "Data Models",
+        "API Contracts",
+        "Component Hierarchy",
+        "Tech Stack Decisions"
+      ],
+      "suggestions": [
+        "Review for gaps",
+        "Link back to PRD",
+        "Identify scalability concerns"
+      ]
+    },
+    {
+      "slug": "implementation",
+      "sort_order": 3,
+      "label": "Implementation",
+      "abbreviation": "IM",
+      "subtitle": "Dev Specs",
+      "color": "bg-violet-100",
+      "text_color": "text-violet-700",
+      "dot_color": "bg-violet-400",
+      "border_color": "border-violet-300",
+      "hex": "#C084FC",
+      "who": "Engineers, QA",
+      "description": "Create developer-ready specifications for AI coding agents",
+      "icon": "◧",
+      "ai": "Scores spec quality for AI code generation, auto-generates tickets, suggests edge cases",
+      "output": "Implementation-ready specs optimized for Claude Code & Copilot",
+      "docs": [
+        "AI-Ready Feature Specs",
+        "Ticket Breakdowns",
+        "Acceptance Criteria",
+        "Edge Cases",
+        "Test Plans"
+      ],
+      "suggestions": [
+        "Score AI-readiness",
+        "Generate ticket breakdown",
+        "Add edge cases"
+      ]
+    },
+    {
+      "slug": "execution",
+      "sort_order": 4,
+      "label": "Execution",
+      "abbreviation": "EX",
+      "subtitle": "Code & Sync",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#F87171",
+      "who": "Engineers, DevOps",
+      "description": "Track the living codebase and keep docs in sync",
+      "icon": "◉",
+      "ai": "Watches commits, detects doc-code drift in real time, flags intent violations",
+      "output": "Codebase that never diverges silently from its original intent",
+      "docs": [
+        "Living Codebase",
+        "Auto-Updated Docs",
+        "Drift Alerts",
+        "Change History",
+        "Rollback Points"
+      ],
+      "suggestions": [
+        "Check for drift",
+        "Summarize changes",
+        "Generate release notes"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "conception",
+      "name": "Problem Statement",
+      "description": "Define the problem you are solving and for whom",
+      "sort_order": 0,
+      "content": "# Problem Statement\n\n## The Problem\n<!-- What specific problem are you solving? Who experiences it? -->\n\n## Current Solutions\n<!-- How do people solve this today? What's broken about existing approaches? -->\n\n## Target Users\n<!-- Who are the primary users? What are their characteristics? -->\n\n## Impact\n<!-- What happens if this problem remains unsolved? What's the cost? -->\n\n## Proposed Direction\n<!-- High-level idea for a solution (not detailed spec — just direction) -->\n"
+    },
+    {
+      "stage": "conception",
+      "name": "Value Proposition Canvas",
+      "description": "Map customer jobs, pains, and gains against your value map",
+      "sort_order": 1,
+      "content": "# Value Proposition Canvas\n\n## Customer Profile\n\n### Jobs to Be Done\n- \n\n### Pains\n- \n\n### Gains\n- \n\n## Value Map\n\n### Products & Services\n- \n\n### Pain Relievers\n- \n\n### Gain Creators\n- \n"
+    },
+    {
+      "stage": "conception",
+      "name": "Market Analysis",
+      "description": "Analyze market size, competition, and trends",
+      "sort_order": 2,
+      "content": "# Market Analysis\n\n## Market Size\n<!-- TAM, SAM, SOM estimates -->\n\n## Competitive Landscape\n| Competitor | Strengths | Weaknesses | Differentiator |\n|-----------|-----------|------------|----------------|\n|           |           |            |                |\n\n## Trends\n<!-- What market trends support this direction? -->\n\n## Risks\n<!-- What could prevent market adoption? -->\n"
+    },
+    {
+      "stage": "conception",
+      "name": "Rough Notes",
+      "description": "Capture unstructured ideas and brain dumps",
+      "sort_order": 3,
+      "content": "# Rough Notes\n\n## Key Ideas\n- \n\n## Open Questions\n- \n\n## References\n- \n\n## Next Steps\n- \n"
+    },
+    {
+      "stage": "definition",
+      "name": "Product Requirements Document (PRD)",
+      "description": "Complete product specification with goals, user stories, and requirements",
+      "sort_order": 0,
+      "content": "# Product Requirements Document\n\n## Overview\n<!-- One-paragraph summary of what we're building and why -->\n\n## Goals & Success Metrics\n| Goal | Metric | Target |\n|------|--------|--------|\n|      |        |        |\n\n## User Stories\n\n### As a [user type]\n- I want to [action] so that [benefit]\n\n## Functional Requirements\n\n### Must Have (P0)\n- [ ] \n\n### Should Have (P1)\n- [ ] \n\n### Nice to Have (P2)\n- [ ] \n\n## Non-Functional Requirements\n- Performance: \n- Security: \n- Scalability: \n\n## Out of Scope\n- \n\n## Timeline\n| Milestone | Date | Description |\n|-----------|------|-------------|\n|           |      |             |\n"
+    },
+    {
+      "stage": "definition",
+      "name": "User Stories & Personas",
+      "description": "Define user personas and map their stories",
+      "sort_order": 1,
+      "content": "# User Stories & Personas\n\n## Personas\n\n### Persona 1: [Name]\n- **Role:** \n- **Goals:** \n- **Pain Points:** \n- **Tech Comfort:** \n\n## User Stories\n\n### Epic: [Epic Name]\n| ID | Story | Acceptance Criteria | Priority |\n|----|-------|-------------------|----------|\n|    |       |                   |          |\n"
+    },
+    {
+      "stage": "definition",
+      "name": "Feature Specification",
+      "description": "Detailed specification for a single feature",
+      "sort_order": 2,
+      "content": "# Feature Specification\n\n## Feature: [Name]\n\n### Summary\n<!-- What does this feature do? -->\n\n### User Flow\n1. \n2. \n3. \n\n### UI/UX Requirements\n<!-- Wireframes, mockups, or detailed descriptions -->\n\n### Business Rules\n- \n\n### Edge Cases\n- \n\n### Dependencies\n- \n"
+    },
+    {
+      "stage": "definition",
+      "name": "Competitive Analysis",
+      "description": "Compare your product against competitors",
+      "sort_order": 3,
+      "content": "# Competitive Analysis\n\n## Our Product\n<!-- One-line description -->\n\n## Competitors\n\n### [Competitor 1]\n- **What they do well:** \n- **What they miss:** \n- **Pricing:** \n- **Target audience:** \n\n## Feature Comparison\n| Feature | Us | Competitor 1 | Competitor 2 |\n|---------|-----|-------------|-------------|\n|         |     |             |             |\n\n## Our Advantage\n<!-- What makes us different? -->\n"
+    },
+    {
+      "stage": "architecture",
+      "name": "Architecture Decision Record (ADR)",
+      "description": "Document a significant architectural decision",
+      "sort_order": 0,
+      "content": "# ADR: [Decision Title]\n\n## Status\nProposed | Accepted | Deprecated | Superseded\n\n## Context\n<!-- What is the technical context? What forces are at play? -->\n\n## Decision\n<!-- What is the change that we're proposing? -->\n\n## Consequences\n\n### Positive\n- \n\n### Negative\n- \n\n### Risks\n- \n\n## Alternatives Considered\n| Option | Pros | Cons |\n|--------|------|------|\n|        |      |      |\n"
+    },
+    {
+      "stage": "architecture",
+      "name": "Data Model Design",
+      "description": "Design database entities, relationships, and indexes",
+      "sort_order": 1,
+      "content": "# Data Model Design\n\n## Entities\n\n### [Entity Name]\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n|       |      |          |             |\n\n## Relationships\n<!-- Entity relationship descriptions or diagram references -->\n\n## Indexes\n- \n\n## Migration Notes\n- \n"
+    },
+    {
+      "stage": "architecture",
+      "name": "API Contract",
+      "description": "Define API endpoints, request/response schemas, and auth",
+      "sort_order": 2,
+      "content": "# API Contract\n\n## Base URL\n`https://api.example.com/v1`\n\n## Authentication\n<!-- How do clients authenticate? -->\n\n## Endpoints\n\n### [POST /resource]\n**Description:** \n\n**Request Body:**\n```json\n{}\n```\n\n**Response (201):**\n```json\n{}\n```\n\n**Error Responses:**\n| Status | Description |\n|--------|-------------|\n| 400    |             |\n| 401    |             |\n\n## Rate Limits\n- \n"
+    },
+    {
+      "stage": "architecture",
+      "name": "Component Specification",
+      "description": "Specify a system component: interface, state, and behavior",
+      "sort_order": 3,
+      "content": "# Component Specification\n\n## Component: [Name]\n\n### Purpose\n<!-- What does this component do? -->\n\n### Interface\n<!-- Props, inputs, events, outputs -->\n\n### Internal State\n<!-- What state does it manage? -->\n\n### Dependencies\n- \n\n### Error Handling\n- \n\n### Performance Considerations\n- \n"
+    },
+    {
+      "stage": "implementation",
+      "name": "AI-Ready Implementation Spec",
+      "description": "Implementation spec optimized for AI coding agents",
+      "sort_order": 0,
+      "content": "# Implementation Spec: [Feature Name]\n\n## Context\n<!-- Link to PRD section and architecture decisions -->\n\n## Scope\n<!-- Exactly what code changes are needed -->\n\n## Technical Approach\n\n### Step 1: [Description]\n- Files to modify: \n- Changes: \n\n## Acceptance Criteria\n- [ ] \n\n## Test Plan\n- [ ] Unit: \n- [ ] Integration: \n- [ ] E2E: \n\n## Edge Cases\n| Scenario | Expected Behavior |\n|----------|------------------|\n|          |                  |\n\n## Rollback Plan\n<!-- How to revert if something goes wrong -->\n"
+    },
+    {
+      "stage": "implementation",
+      "name": "Ticket Breakdown",
+      "description": "Break a feature into actionable development tickets",
+      "sort_order": 1,
+      "content": "# Ticket Breakdown: [Feature Name]\n\n## Overview\n<!-- What feature or epic are these tickets for? -->\n\n## Tickets\n\n### Ticket 1: [Title]\n- **Type:** Feature | Bug | Chore\n- **Priority:** P0 | P1 | P2\n- **Estimate:** \n- **Description:** \n- **Acceptance Criteria:**\n  - [ ] \n- **Dependencies:** None\n"
+    },
+    {
+      "stage": "implementation",
+      "name": "Test Plan",
+      "description": "Comprehensive test plan with unit, integration, and E2E cases",
+      "sort_order": 2,
+      "content": "# Test Plan: [Feature Name]\n\n## Scope\n<!-- What is being tested? -->\n\n## Test Cases\n\n### Unit Tests\n| ID | Description | Input | Expected Output |\n|----|-------------|-------|-----------------|\n|    |             |       |                 |\n\n### Integration Tests\n| ID | Description | Setup | Expected Result |\n|----|-------------|-------|-----------------|\n|    |             |       |                 |\n\n### E2E Tests\n| ID | User Flow | Steps | Expected Result |\n|----|-----------|-------|-----------------|\n|    |           |       |                 |\n\n## Edge Cases\n- \n\n## Performance Benchmarks\n- \n"
+    },
+    {
+      "stage": "implementation",
+      "name": "Edge Cases & Error Handling",
+      "description": "Document error scenarios and boundary conditions",
+      "sort_order": 3,
+      "content": "# Edge Cases & Error Handling\n\n## Feature: [Name]\n\n## Error Scenarios\n\n### [Scenario 1]\n- **Trigger:** \n- **Expected behavior:** \n- **User message:** \n- **Recovery:** \n\n## Boundary Conditions\n| Input | Min | Max | Invalid |\n|-------|-----|-----|--------|\n|       |     |     |        |\n\n## Concurrency Issues\n- \n\n## Data Integrity\n- \n"
+    },
+    {
+      "stage": "execution",
+      "name": "Release Notes",
+      "description": "Document a release with highlights, features, and fixes",
+      "sort_order": 0,
+      "content": "# Release Notes — v[X.Y.Z]\n\n**Release Date:** YYYY-MM-DD\n\n## Highlights\n<!-- 1-2 sentence summary of the release -->\n\n## New Features\n- \n\n## Improvements\n- \n\n## Bug Fixes\n- \n\n## Breaking Changes\n- \n\n## Migration Guide\n<!-- Steps for users to upgrade -->\n\n## Known Issues\n- \n"
+    },
+    {
+      "stage": "execution",
+      "name": "Changelog",
+      "description": "Running log of all notable changes",
+      "sort_order": 1,
+      "content": "# Changelog\n\nAll notable changes to this project are documented here.\n\n## [Unreleased]\n\n### Added\n- \n\n### Changed\n- \n\n### Fixed\n- \n\n### Removed\n- \n"
+    },
+    {
+      "stage": "execution",
+      "name": "Drift Report",
+      "description": "Report on spec-code drift with severity and actions",
+      "sort_order": 2,
+      "content": "# Drift Report\n\n**Generated:** YYYY-MM-DD\n**Spec Version:** \n**Code Commit:** \n\n## Summary\n<!-- Overall drift status -->\n\n## Drift Items\n\n### [Area 1]\n- **Spec says:** \n- **Code does:** \n- **Severity:** Low | Medium | High\n- **Action:** Update spec | Update code | Investigate\n\n## No Drift\n- [List areas where spec and code are in sync]\n\n## Recommendations\n- \n"
+    },
+    {
+      "stage": "execution",
+      "name": "Deployment Notes",
+      "description": "Pre/post deployment checklist and rollback procedure",
+      "sort_order": 3,
+      "content": "# Deployment Notes — v[X.Y.Z]\n\n## Pre-Deployment Checklist\n- [ ] Database migrations reviewed\n- [ ] Environment variables updated\n- [ ] Feature flags configured\n- [ ] Monitoring alerts set\n\n## Deployment Steps\n1. \n2. \n3. \n\n## Post-Deployment Verification\n- [ ] Health check passing\n- [ ] Key flows tested\n- [ ] Metrics baseline confirmed\n\n## Rollback Procedure\n1. \n2. \n\n## Contacts\n- **On-call:** \n- **Product:** \n"
+    }
+  ]
+}

@@ -1,0 +1,270 @@
+{
+  "slug": "real_estate_listings",
+  "label": "Real Estate Listings",
+  "description": "Property listing from intake to live market listing",
+  "icon": "🏠",
+  "is_default": false,
+  "sort_order": 8,
+  "connectors": [
+    "Property intake guides photos & description",
+    "Description informs market analysis",
+    "Analysis shapes the listing draft",
+    "Draft requires owner approval",
+    "Approval puts the listing live"
+  ],
+  "stages": [
+    {
+      "slug": "property_intake",
+      "sort_order": 0,
+      "label": "Property Intake",
+      "abbreviation": "PI",
+      "subtitle": "Initial Info",
+      "color": "bg-amber-100",
+      "text_color": "text-amber-700",
+      "dot_color": "bg-amber-400",
+      "border_color": "border-amber-300",
+      "hex": "#F59E0B",
+      "who": "Listing Agent",
+      "description": "Gather property details and listing agreement",
+      "icon": "📋",
+      "ai": "Identifies missing details, suggests comparables",
+      "output": "Complete intake package",
+      "docs": [
+        "Property Details",
+        "Listing Agreement",
+        "Owner Info",
+        "Initial Assessment"
+      ],
+      "suggestions": [
+        "Check missing details",
+        "Suggest comparables",
+        "Estimate timeline"
+      ]
+    },
+    {
+      "slug": "photos_description",
+      "sort_order": 1,
+      "label": "Photos & Description",
+      "abbreviation": "PD",
+      "subtitle": "Visual Assets",
+      "color": "bg-orange-100",
+      "text_color": "text-orange-700",
+      "dot_color": "bg-orange-400",
+      "border_color": "border-orange-300",
+      "hex": "#F97316",
+      "who": "Photographer, Copywriter",
+      "description": "Professional photography and property description",
+      "icon": "📸",
+      "ai": "Writes compelling descriptions, highlights features",
+      "output": "Professional photos and description",
+      "docs": [
+        "Photo Gallery",
+        "Virtual Tour",
+        "Property Description",
+        "Feature Highlights"
+      ],
+      "suggestions": [
+        "Write description",
+        "Highlight features",
+        "Suggest angles"
+      ]
+    },
+    {
+      "slug": "market_analysis",
+      "sort_order": 2,
+      "label": "Market Analysis",
+      "abbreviation": "MA",
+      "subtitle": "Pricing Strategy",
+      "color": "bg-yellow-100",
+      "text_color": "text-yellow-700",
+      "dot_color": "bg-yellow-400",
+      "border_color": "border-yellow-300",
+      "hex": "#EAB308",
+      "who": "Listing Agent",
+      "description": "Analyze comparable sales and pricing",
+      "icon": "📊",
+      "ai": "Pulls comparable data, analyzes trends",
+      "output": "CMA report",
+      "docs": [
+        "CMA",
+        "Pricing Strategy",
+        "Market Trends",
+        "Comparable Sales"
+      ],
+      "suggestions": [
+        "Pull comparable sales",
+        "Analyze trends",
+        "Suggest pricing"
+      ]
+    },
+    {
+      "slug": "listing_draft",
+      "sort_order": 3,
+      "label": "Listing Draft",
+      "abbreviation": "LD",
+      "subtitle": "MLS Entry",
+      "color": "bg-lime-100",
+      "text_color": "text-lime-700",
+      "dot_color": "bg-lime-400",
+      "border_color": "border-lime-300",
+      "hex": "#A3E635",
+      "who": "Listing Agent",
+      "description": "Draft the MLS listing",
+      "icon": "📝",
+      "ai": "Optimizes MLS fields, checks disclosures",
+      "output": "Complete MLS draft",
+      "docs": [
+        "MLS Draft",
+        "Disclosures",
+        "Marketing Plan",
+        "Showing Instructions"
+      ],
+      "suggestions": [
+        "Optimize MLS fields",
+        "Check disclosures",
+        "Enhance searchability"
+      ]
+    },
+    {
+      "slug": "approval",
+      "sort_order": 4,
+      "label": "Approval",
+      "abbreviation": "AP",
+      "subtitle": "Owner Sign-off",
+      "color": "bg-green-100",
+      "text_color": "text-green-700",
+      "dot_color": "bg-green-400",
+      "border_color": "border-green-300",
+      "hex": "#22C55E",
+      "who": "Property Owner",
+      "description": "Owner reviews and approves listing",
+      "icon": "✅",
+      "ai": "Generates review summary, confirms accuracy",
+      "output": "Approved listing",
+      "docs": [
+        "Owner Approval",
+        "Review Checklist",
+        "Marketing Approval"
+      ],
+      "suggestions": [
+        "Generate review summary",
+        "Confirm accuracy",
+        "Highlight key points"
+      ]
+    },
+    {
+      "slug": "live_listing",
+      "sort_order": 5,
+      "label": "Live Listing",
+      "abbreviation": "LL",
+      "subtitle": "On Market",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Listing Agent",
+      "description": "Listing goes live on MLS",
+      "icon": "🏡",
+      "ai": "Monitors response, suggests adjustments",
+      "output": "Active listing",
+      "docs": [
+        "Live Listing",
+        "Marketing Distribution",
+        "Showing Feedback",
+        "Market Response"
+      ],
+      "suggestions": [
+        "Monitor response",
+        "Suggest adjustments",
+        "Track showings"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "property_intake",
+      "name": "Property Intake Form",
+      "description": "Collect essential property details from the seller or owner",
+      "sort_order": 0,
+      "content": "# Property Intake Form\n\n## Owner Information\n- Name: \n- Phone: \n- Email: \n\n## Property Details\n| Field | Value |\n|-------|-------|\n| Address | |\n| Type | Single Family / Condo / Multi-Family / Commercial |\n| Bedrooms | |\n| Bathrooms | |\n| Sq Ft | |\n| Lot Size | |\n| Year Built | |\n| Parking | |\n\n## Condition\n- Overall: Excellent / Good / Fair / Needs Work\n- Recent upgrades: \n- Known issues: \n\n## Seller Motivation\n- Timeline: \n- Price expectation: \n\n## HOA\n- Fees: \n- Restrictions: \n"
+    },
+    {
+      "stage": "property_intake",
+      "name": "Property Feature Checklist",
+      "description": "Comprehensive checklist of property features and amenities",
+      "sort_order": 1,
+      "content": "# Property Feature Checklist\n\n## Address\n<!-- Property address -->\n\n## Interior Features\n- [ ] Updated kitchen\n- [ ] Hardwood floors\n- [ ] Central A/C\n- [ ] Fireplace\n- [ ] In-unit laundry\n- [ ] Walk-in closets\n- [ ] Home office space\n\n## Exterior Features\n- [ ] Garage\n- [ ] Pool\n- [ ] Deck / Patio\n- [ ] Fenced yard\n- [ ] Garden / Landscaping\n\n## Building Amenities (if applicable)\n- [ ] Doorman\n- [ ] Gym\n- [ ] Rooftop\n- [ ] Storage\n\n## Neighborhood Highlights\n- Schools: \n- Transit: \n- Shopping: \n- Parks: \n"
+    },
+    {
+      "stage": "photos_description",
+      "name": "Photo Shot List",
+      "description": "Plan the photography session with required shots and angles",
+      "sort_order": 0,
+      "content": "# Photo Shot List\n\n## Property\n<!-- Address -->\n\n## Shoot Date\n- Date: \n- Time: \n- Photographer: \n\n## Required Shots\n| # | Room / Area | Angle | Staging Notes | Status |\n|---|-----------|-------|--------------|--------|\n| 1 | Exterior front | Street view | Landscaping clean | [ ] |\n| 2 | Living room | Wide angle | | [ ] |\n| 3 | Kitchen | From entrance | | [ ] |\n| 4 | Master bedroom | Window side | | [ ] |\n| 5 | Bathroom | | | [ ] |\n| 6 | Backyard | From house | | [ ] |\n\n## Staging Prep\n- [ ] Declutter all rooms\n- [ ] Clean windows\n- [ ] Lights on, blinds open\n- [ ] Fresh flowers / towels\n"
+    },
+    {
+      "stage": "photos_description",
+      "name": "Property Description Draft",
+      "description": "Write the listing description with compelling marketing copy",
+      "sort_order": 1,
+      "content": "# Property Description Draft\n\n## Address\n<!-- Address -->\n\n## Headline\n<!-- Attention-grabbing headline -->\n\n## Opening Hook\n<!-- 1-2 sentences that capture the essence -->\n\n## Property Description\n<!-- 150-250 words highlighting key features -->\n\n## Room-by-Room Highlights\n- **Kitchen:** \n- **Living Areas:** \n- **Bedrooms:** \n- **Bathrooms:** \n- **Outdoor:** \n\n## Neighborhood\n<!-- Nearby amenities, schools, transit -->\n\n## Closing CTA\n<!-- Urgency or invitation to view -->\n\n## Keywords for MLS\n- \n"
+    },
+    {
+      "stage": "market_analysis",
+      "name": "Comparative Market Analysis",
+      "description": "Analyze comparable properties to determine pricing strategy",
+      "sort_order": 0,
+      "content": "# Comparative Market Analysis\n\n## Subject Property\n- Address: \n- Beds/Baths: \n- Sq Ft: \n\n## Comparable Sales\n| Address | Beds/Baths | Sq Ft | Sale Price | $/SqFt | Days on Market | Date |\n|---------|-----------|-------|-----------|--------|---------------|------|\n|         |           |       |           |        |               |      |\n\n## Active Listings (Competition)\n| Address | List Price | Sq Ft | $/SqFt | Days Listed |\n|---------|-----------|-------|--------|------------|\n|         |           |       |        |            |\n\n## Price Recommendation\n- Low: $\n- Recommended: $\n- High: $\n\n## Market Conditions\n- Avg days on market: \n- Inventory level: \n- Trend: Buyer's / Balanced / Seller's\n"
+    },
+    {
+      "stage": "market_analysis",
+      "name": "Pricing Strategy Memo",
+      "description": "Document the pricing rationale and positioning strategy",
+      "sort_order": 1,
+      "content": "# Pricing Strategy Memo\n\n## Property\n<!-- Address -->\n\n## Recommended List Price\n$__\n\n## Rationale\n<!-- 2-3 paragraphs explaining the pricing -->\n\n## Pricing Factors\n| Factor | Impact | Notes |\n|--------|--------|-------|\n| Location | + / - | |\n| Condition | + / - | |\n| Market trend | + / - | |\n| Unique features | + / - | |\n| Competition | + / - | |\n\n## Strategy\n- [ ] Price at market\n- [ ] Price below to generate offers\n- [ ] Price above with room to negotiate\n\n## Price Reduction Plan\n- If no offers in __ days, reduce by __\n"
+    },
+    {
+      "stage": "listing_draft",
+      "name": "MLS Listing Draft",
+      "description": "Complete MLS listing with all required fields and descriptions",
+      "sort_order": 0,
+      "content": "# MLS Listing Draft\n\n## Property\n| Field | Value |\n|-------|-------|\n| MLS # | |\n| Address | |\n| List Price | $ |\n| Property Type | |\n| Beds | |\n| Baths | |\n| Sq Ft | |\n| Lot Size | |\n| Year Built | |\n| Garage | |\n| HOA Fee | |\n\n## Public Remarks (MLS description)\n<!-- 250 character max for some MLS -->\n\n## Agent Remarks (private)\n<!-- Showing instructions, seller preferences -->\n\n## Disclosures\n- [ ] Seller disclosure uploaded\n- [ ] Lead paint disclosure (pre-1978)\n- [ ] HOA documents\n\n## Open Houses\n- Date: \n- Time: \n"
+    },
+    {
+      "stage": "listing_draft",
+      "name": "Marketing Plan",
+      "description": "Define the marketing channels and timeline for the listing",
+      "sort_order": 1,
+      "content": "# Marketing Plan\n\n## Property\n<!-- Address -->\n\n## Marketing Channels\n| Channel | Action | Date | Status |\n|---------|--------|------|--------|\n| MLS | List property | | [ ] |\n| Zillow / Realtor.com | Syndication | | [ ] |\n| Social media | Post campaign | | [ ] |\n| Email blast | Send to buyer agents | | [ ] |\n| Print | Flyer / brochure | | [ ] |\n| Open house | Schedule | | [ ] |\n| Virtual tour | 3D tour upload | | [ ] |\n\n## Budget\n| Item | Cost |\n|------|------|\n| Photography | |\n| Staging | |\n| Advertising | |\n| Print materials | |\n\n## Timeline\n- Coming soon: \n- Active on MLS: \n- First open house: \n"
+    },
+    {
+      "stage": "approval",
+      "name": "Seller Approval Form",
+      "description": "Get seller sign-off on listing details, price, and marketing plan",
+      "sort_order": 0,
+      "content": "# Seller Approval Form\n\n## Property\n<!-- Address -->\n\n## Listing Details for Approval\n- List Price: $\n- Listing Description: Attached\n- Photos: __ photos reviewed\n- Marketing Plan: Attached\n\n## Seller Review\n- [ ] Price approved\n- [ ] Description approved\n- [ ] Photos approved\n- [ ] Marketing plan approved\n- [ ] Showing instructions confirmed\n\n## Changes Requested\n- \n\n## Approval\n- Seller signature: \n- Date: \n- Agent: \n"
+    },
+    {
+      "stage": "approval",
+      "name": "Compliance Review",
+      "description": "Ensure listing meets brokerage and fair housing compliance",
+      "sort_order": 1,
+      "content": "# Compliance Review\n\n## Property\n<!-- Address -->\n\n## Fair Housing Compliance\n- [ ] No discriminatory language\n- [ ] No references to protected classes\n- [ ] Neighborhood description is factual only\n\n## Brokerage Standards\n- [ ] Listing agreement signed\n- [ ] Commission structure documented\n- [ ] Seller disclosures on file\n- [ ] Photos meet quality standards\n- [ ] Description meets MLS rules\n\n## Legal Documents\n- [ ] Listing agreement\n- [ ] Agency disclosure\n- [ ] Property disclosure\n\n## Reviewed By\n- Name: \n- Date: \n- Status: Approved / Changes Needed\n"
+    },
+    {
+      "stage": "live_listing",
+      "name": "Listing Activity Report",
+      "description": "Track showings, feedback, and interest on an active listing",
+      "sort_order": 0,
+      "content": "# Listing Activity Report\n\n## Property\n<!-- Address -->\n\n## Week of\n<!-- Date range -->\n\n## Showing Activity\n| Date | Agent | Buyer Feedback | Interest Level |\n|------|-------|---------------|---------------|\n|      |       |               | Hot / Warm / Cold |\n\n## Online Activity\n| Platform | Views | Saves | Inquiries |\n|----------|-------|-------|-----------|\n| Zillow   |       |       |           |\n| MLS      |       |       |           |\n\n## Offers Received\n| # | Price | Terms | Status |\n|---|-------|-------|--------|\n|   |       |       |        |\n\n## Recommendations\n- [ ] Continue as-is\n- [ ] Price adjustment\n- [ ] Refresh photos\n- [ ] Additional marketing\n"
+    },
+    {
+      "stage": "live_listing",
+      "name": "Offer Comparison Sheet",
+      "description": "Compare multiple offers side by side for seller decision",
+      "sort_order": 1,
+      "content": "# Offer Comparison Sheet\n\n## Property\n<!-- Address -->\n\n## Offers\n| Criteria | Offer 1 | Offer 2 | Offer 3 |\n|----------|---------|---------|--------|\n| Price | | | |\n| Down payment | | | |\n| Financing type | | | |\n| Pre-approval | | | |\n| Contingencies | | | |\n| Closing date | | | |\n| Earnest money | | | |\n| Escalation clause | | | |\n| Inspection period | | | |\n\n## Agent Assessment\n- Strongest offer: \n- Reasoning: \n\n## Seller Decision\n- Accepted: Offer #__\n- Counter: \n- Date: \n"
+    }
+  ]
+}
