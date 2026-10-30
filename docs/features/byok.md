@@ -2,7 +2,7 @@
 
 **Issue:** #6
 **Status:** Draft
-**Tier availability:** Team & Enterprise plans only
+**Availability:** All teams (plan gating removed in AI-55)
 
 ---
 
@@ -301,20 +301,7 @@ Every key lifecycle event is logged to an `audit_log` table:
 
 ## 8. Tier Gating
 
-| Plan | AI Access | BYOK |
-|---|---|---|
-| **Free** | Limited SyncDocs-managed AI (quota-capped) | Not available |
-| **Pro** | SyncDocs-managed AI (higher quota) | Not available |
-| **Team** | SyncDocs-managed AI + BYOK option | Available |
-| **Enterprise** | SyncDocs-managed AI + BYOK option | Available |
-
-### Enforcement
-
-- The `POST /api/teams/:id/ai-key` endpoint checks the team's subscription tier before accepting a key. Returns `403` with message: "BYOK is available on Team and Enterprise plans."
-- The Settings UI conditionally renders the "Add API Key" button. On Free/Pro plans, the section shows an upgrade prompt instead.
-- Tier checking should use the existing Stripe subscription data to determine plan level.
-
----
+Removed in AI-55. BYOK is available to every team; there are no plans or tiers.
 
 ## 9. API Endpoints
 
@@ -398,15 +385,6 @@ Then the AI request fails with 401 from the provider
   And subsequent AI requests fall back to the SyncDocs-managed key
 ```
 
-#### Flow 6: Tier Gating Enforcement
-
-```gherkin
-Given the team is on a Free or Pro plan
-When the admin navigates to Settings > AI Configuration
-Then the "Add Your Own API Key" button is not shown
-  And an upgrade prompt is displayed instead
-```
-
 #### Flow 7: Non-Admin Cannot Manage Keys
 
 ```gherkin
@@ -423,7 +401,6 @@ Then they see the key status (active/provider/suffix) as read-only
 | Anthropic API (key validation) | **Mock** — intercept HTTP calls to `api.anthropic.com` and return controlled 200/401/429 responses. Use Playwright `route.fulfill()`. |
 | Encryption/decryption | **Live** — use real AES-256-GCM with a test encryption secret. Verify round-trip: encrypt then decrypt returns original key. |
 | Database (key storage) | **Live** — use the test database. Verify encrypted value is stored (not plaintext). |
-| Stripe (tier checking) | **Mock** — stub the subscription lookup to return controlled plan levels. |
 | AI service routing | **Mock** — verify that `resolveClient()` returns different clients based on team key presence. Unit test via Vitest in `apps/api/src/services/__tests__/ai.service.test.ts`. |
 
 ### Test Data Requirements
@@ -452,8 +429,7 @@ Then they see the key status (active/provider/suffix) as read-only
 4. **AI service refactor:** Update `ai.service.ts` to accept `teamId`, implement `resolveClient()` with caching.
 5. **Usage logging:** Add token logging after each AI response in `ai.service.ts`.
 6. **Frontend:** Build the AI Configuration settings tab and Add Key modal in `apps/web/`.
-7. **Tier gating:** Wire up Stripe plan checks in the API and conditional rendering in the UI.
-8. **E2E tests:** Write Playwright tests for all flows above.
+7. **E2E tests:** Write Playwright tests for all flows above.
 9. **Unit tests:** Vitest tests for encryption round-trip, client resolution logic, and usage aggregation.
 
 ---

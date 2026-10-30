@@ -22,7 +22,6 @@ import { OperationsPage } from './pages/OperationsPage';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 import { AcceptInvite } from './pages/AcceptInvite';
-import { Pricing } from './pages/Pricing';
 import { useAuthStore } from './stores/auth.store';
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -73,7 +72,6 @@ export function App() {
         <Route path="/sign-in/*" element={<SignIn />} />
         <Route path="/sign-up/*" element={<SignUp />} />
         <Route path="/invite/:token" element={<AcceptInvite />} />
-        <Route path="/pricing" element={<Pricing />} />
         {/* `/landing` is retired — `/` is now the landing page */}
         <Route path="/landing" element={<Navigate to="/" replace />} />
 

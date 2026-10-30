@@ -2,11 +2,9 @@
  * Post-build prerender for the public marketing pages.
  *
  * Runs after `vite build`. Bundles the SSR entry with Rollup (which correctly
- * handles react-router-dom's CommonJS named exports), renders the Landing and
- * Pricing pages to static HTML, and injects each into a copy of the built
+ * handles react-router-dom's CommonJS named exports), renders the Landing page to static HTML, and injects it into a copy of the built
  * index.html shell, writing:
  *   dist/index.html          (Landing)
- *   dist/pricing/index.html  (Pricing)
  *
  * The client SPA is untouched — real users still boot the app (createRoot),
  * which replaces the prerendered markup. Crawlers/AI engines that don't run JS

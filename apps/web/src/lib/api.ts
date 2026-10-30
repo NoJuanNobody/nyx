@@ -1265,41 +1265,6 @@ export function processTranscriptForIntake(
   });
 }
 
-// ── Subscriptions ───────────────────────────────────────────────────
-
-export interface SubscriptionPlan {
-  id: string;
-  name: string;
-  price: number | null;
-  interval: string | null;
-  features: string[];
-}
-
-export interface Subscription {
-  id: string;
-  teamId: string;
-  plan: string;
-  status: string;
-  currentPeriodEnd: string | null;
-  cancelAtPeriodEnd: boolean;
-}
-
-export function fetchPlans(): Promise<SubscriptionPlan[]> {
-  return request<SubscriptionPlan[]>('/subscriptions/plans');
-}
-
-export function fetchCurrentSubscription(teamId: string): Promise<Subscription | null> {
-  return request<Subscription | null>(`/subscriptions/current?teamId=${teamId}`);
-}
-
-export function createCheckoutSession(data: { plan: string; teamId: string; successUrl: string; cancelUrl: string }): Promise<{ url: string }> {
-  return request<{ url: string }>('/subscriptions/checkout', { method: 'POST', body: JSON.stringify(data) });
-}
-
-export function createPortalSession(data: { teamId: string; returnUrl: string }): Promise<{ url: string }> {
-  return request<{ url: string }>('/subscriptions/portal', { method: 'POST', body: JSON.stringify(data) });
-}
-
 // ── Notifications ────────────────────────────────────────────────────
 
 export function fetchNotifications(params?: { read?: boolean; eventType?: string; limit?: number; cursor?: string }) {
@@ -1383,24 +1348,8 @@ export function fetchCreditBalance(): Promise<{ balance: number }> {
   return request<{ balance: number }>('/credits/balance');
 }
 
-export interface CreditPack {
-  id: string;
-  name: string;
-  credits: number;
-  priceUsd: number;
-  popular: boolean;
-}
-
-export function fetchCreditPacks(): Promise<{ packs: CreditPack[] }> {
-  return request<{ packs: CreditPack[] }>('/credits/packs');
-}
-
 export function deductCredits(data: { amount: number; taskType: string; description: string }): Promise<{ balance: number }> {
   return request<{ balance: number }>('/credits/deduct', { method: 'POST', body: JSON.stringify(data) });
-}
-
-export function purchaseCreditPack(packId: string): Promise<{ balance: number; pack: CreditPack }> {
-  return request<{ balance: number; pack: CreditPack }>('/credits/purchase', { method: 'POST', body: JSON.stringify({ packId }) });
 }
 
 export function fetchTeamCreditBalance(teamId: string): Promise<{ teamId: string; balance: number }> {
@@ -1712,13 +1661,6 @@ export function createMeetingDocument(sessionId: string, teamId: string): Promis
 
 export function getCreditsBalance(): Promise<{ balance: number }> {
   return request<{ balance: number }>('/credits/balance');
-}
-
-export function purchaseCredits(amount: number): Promise<{ balance: number; added: number }> {
-  return request<{ balance: number; added: number }>('/credits/purchase', {
-    method: 'POST',
-    body: JSON.stringify({ amount }),
-  });
 }
 
 export function getCreditCosts(): Promise<Record<string, number>> {

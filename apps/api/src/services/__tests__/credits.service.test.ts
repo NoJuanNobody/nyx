@@ -63,7 +63,7 @@ vi.doMock('../../db/schema.js', () => ({
     type: 'type',
     description: 'description',
     taskType: 'taskType',
-    stripeSessionId: 'stripeSessionId',
+    externalRef: 'externalRef',
     createdAt: 'createdAt',
   },
 }));
@@ -204,7 +204,7 @@ describe('credits.service', () => {
       expect(mockInsert).toHaveBeenCalledTimes(2);
     });
 
-    it('should accept optional stripeSessionId and include it in transaction', async () => {
+    it('should accept optional externalRef and include it in transaction', async () => {
       selectResults = [[{ balance: 50 }]];
 
       const { addCredits } = await import('../credits.service.js');
@@ -215,7 +215,7 @@ describe('credits.service', () => {
       expect(mockInsert).toHaveBeenCalledTimes(2);
     });
 
-    it('should work without stripeSessionId (null stored)', async () => {
+    it('should work without externalRef (null stored)', async () => {
       selectResults = [[{ balance: 200 }]];
 
       const { addCredits } = await import('../credits.service.js');

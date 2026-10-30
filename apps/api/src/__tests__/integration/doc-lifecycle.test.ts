@@ -17,15 +17,6 @@ vi.mock('../../middleware/permissions.js', () => ({
   requireRole: () => async () => {},
 }));
 
-// ── Mock plan-limits service — default to allowed so the create path
-//    doesn't run real DB-backed limit queries against the mocked DB ──
-const mockCheckLimit = vi.hoisted(() =>
-  vi.fn().mockResolvedValue({ allowed: true, limit: -1, current: 0, plan: 'pro' }),
-);
-vi.mock('../../services/plan-limits.service.js', () => ({
-  checkLimit: mockCheckLimit,
-}));
-
 // ── Mock timeline + audit (fire-and-forget side effects) ────────────
 vi.mock('../../services/timeline.service.js', () => ({
   timelineService: { create: vi.fn().mockResolvedValue({}) },

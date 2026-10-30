@@ -87,17 +87,7 @@ PROVIDER-BY-PROVIDER STEPS
         --set "ENCRYPTION_SECRET=<new>" \
         --set "BYOK_ENCRYPTION_SECRET=<new>"
 
-6. STRIPE (if configured)
-   ─────────────────────────
-   a. Go to https://dashboard.stripe.com → Developers → API Keys
-   b. Roll the secret key → copy new sk_live_* value
-   c. Generate a new webhook endpoint secret in Stripe → Webhooks → <endpoint> → Signing secret
-   d. Update Railway:
-      railway variables \
-        --set "STRIPE_SECRET_KEY=sk_live_<new>" \
-        --set "STRIPE_WEBHOOK_SECRET=whsec_<new>"
-
-7. ATLASSIAN / JIRA (if configured)
+6. ATLASSIAN / JIRA (if configured)
    ─────────────────────────────────
    a. Go to https://developer.atlassian.com/console/myapps → Nyx app → Settings
    b. Create new secret → copy it
@@ -108,7 +98,7 @@ PROVIDER-BY-PROVIDER STEPS
         --set "ATLASSIAN_CLIENT_SECRET=<new>" \
         --set "JIRA_WEBHOOK_SECRET=<new>"
 
-8. SLACK (if configured)
+7. SLACK (if configured)
    ─────────────────────────
    a. Go to https://api.slack.com/apps → Nyx → Basic Information
    b. Rotate Client Secret and Signing Secret
@@ -129,7 +119,6 @@ VERIFY OLD KEYS ARE REVOKED
    - Clerk dashboard: confirm old key shows "Revoked"
    - Anthropic console: confirm old key is deleted
    - GitHub: confirm old client secret is removed
-   - Stripe: confirm old secret key is rolled / deleted
 HELP
   exit 0
 fi

@@ -3,7 +3,6 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { documents, integrations } from '../db/schema.js';
 import { aiService } from '../services/ai.service.js';
-import { checkLimit } from '../services/plan-limits.service.js';
 import { deductCredits, CREDIT_COSTS } from '../services/credits.service.js';
 import { codeEmbeddingService } from '../services/code-embedding.service.js';
 import {
@@ -25,20 +24,6 @@ import {
 } from '@nyx/shared';
 
 export const aiRoutes: FastifyPluginAsync = async (app) => {
-  // Gate every /api/ai/* endpoint: verify the user's plan allows AI features.
-  app.addHook('preHandler', async (request, reply) => {
-    const userId = request.user?.id;
-    if (!userId) return; // global auth hook already handles unauthenticated
-    const check = await checkLimit(userId, 'use_ai');
-    if (!check.allowed) {
-      return reply.code(403).send({
-        error: 'AI features are not available on your current plan.',
-        upgradeRequired: true,
-        plan: check.plan,
-      });
-    }
-  });
-
   // Deduct credits after each successful AI response (2xx status).
   // Route URL suffix maps to a task type in CREDIT_COSTS (e.g. /detect-drift → drift_detection).
   const ROUTE_TO_TASK: Record<string, string> = {

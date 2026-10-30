@@ -40,7 +40,7 @@ program
 
   Platform:
     sprint                Sprint capacity & gating
-    billing / credits     Plans, usage, credits
+    credits               Agent credits balance & usage
     notifications         Notification management
     permissions           Role & permission checks
     governance            Policy validation
@@ -92,7 +92,6 @@ const commands: Array<[string[], string, string[]]> = [
   [['byok'], './commands/byok.js', ['registerByokCommand']],
   [['credits'], './commands/credits.js', ['registerCreditsCommand']],
   [['registry'], './commands/registry.js', ['registerRegistryCommand']],
-  [['billing'], './commands/billing.js', ['registerBillingCommand']],
   [['voice'], './commands/voice.js', ['registerVoiceCommand']],
   [['features'], './commands/features.js', ['registerFeaturesCommand']],
   [['admin'], './commands/admin.js', ['registerAdminCommand']],

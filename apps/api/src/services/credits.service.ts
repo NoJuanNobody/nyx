@@ -64,7 +64,7 @@ export async function addCredits(
   userId: string,
   amount: number,
   description: string,
-  stripeSessionId?: string,
+  externalRef?: string,
 ): Promise<{ balance: number; added: number }> {
   if (amount <= 0) {
     throw { statusCode: 400, message: 'Amount must be positive' };
@@ -88,7 +88,7 @@ export async function addCredits(
     amount,
     type: 'purchase',
     description,
-    stripeSessionId: stripeSessionId ?? null,
+    externalRef: externalRef ?? null,
   });
 
   const newBalance = await getBalance(userId);
@@ -178,25 +178,24 @@ export async function getTeamBalance(teamId: string): Promise<number> {
 }
 
 /**
- * Add credits to the team pool. Idempotent per stripeInvoiceId — safe to call
- * on webhook retries.
+ * Add credits to the team pool. Idempotent per externalRef (opaque caller-supplied reference) — safe to retry.
  */
 export async function addTeamCredits(
   teamId: string,
   amount: number,
   description: string,
-  stripeInvoiceId?: string,
+  externalRef?: string,
 ): Promise<{ balance: number; added: number }> {
   if (amount <= 0) {
     return { balance: await getTeamBalance(teamId), added: 0 };
   }
 
   // Idempotency: skip if this invoice was already processed
-  if (stripeInvoiceId) {
+  if (externalRef) {
     const [existing] = await db
       .select({ id: creditTransactions.id })
       .from(creditTransactions)
-      .where(eq(creditTransactions.stripeSessionId, stripeInvoiceId))
+      .where(eq(creditTransactions.externalRef, externalRef))
       .limit(1);
     if (existing) {
       return { balance: await getTeamBalance(teamId), added: 0 };
@@ -220,7 +219,7 @@ export async function addTeamCredits(
     amount,
     type: 'purchase',
     description,
-    stripeSessionId: stripeInvoiceId ?? null,
+    externalRef: externalRef ?? null,
   });
 
   return { balance: await getTeamBalance(teamId), added: amount };
