@@ -8,6 +8,7 @@
 /// Every `#[tauri::command]` exposed to the webview. Keep in sync with `generate_handler!`.
 const APP_COMMANDS: &[&str] = &["core_hello"];
 
+#[allow(clippy::expect_used)] // a build script should fail the build loudly
 fn main() {
     tauri_build::try_build(
         tauri_build::Attributes::new()
