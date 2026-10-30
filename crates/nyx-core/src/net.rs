@@ -161,8 +161,10 @@ impl Headers {
     }
 }
 
-/// Header names whose values must never be printed.
-fn is_sensitive_header(name: &str) -> bool {
+/// Header names whose values must never be printed, and must never follow a redirect to another
+/// origin (`authorization`, `x-api-key`, `proxy-authorization`, cookies, anything with `token`).
+#[must_use]
+pub fn is_sensitive_header(name: &str) -> bool {
     let n = name.to_ascii_lowercase();
     n == "authorization"
         || n == "x-api-key"
