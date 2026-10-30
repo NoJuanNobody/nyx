@@ -27,8 +27,6 @@ import { suggestionRoutes } from './routes/suggestions.js';
 import { changeProposalRoutes } from './routes/change-proposals.js';
 import { auditRoutes } from './routes/audit.js';
 import { traceRoutes } from './routes/trace.js';
-import { agentRoutes } from './routes/agent.js';
-import { agentRegistryRoutes } from './routes/agent-registry.js';
 import { apiKeyRoutes } from './routes/api-keys.js';
 import { userRoutes } from './routes/users.js';
 import { waitlistRoutes } from './routes/waitlist.js';
@@ -233,8 +231,6 @@ export function buildApp() {
   app.register(changeProposalRoutes, { prefix: '/api' });
   app.register(auditRoutes, { prefix: '/api' });
   app.register(traceRoutes, { prefix: '/api' });
-  app.register(agentRoutes, { prefix: '/api/agent' });
-  app.register(agentRegistryRoutes, { prefix: '/api/agent/registry' });
   app.register(apiKeyRoutes, { prefix: '/api/api-keys' });
   app.register(userRoutes, { prefix: '/api/users' });
   app.register(waitlistRoutes, { prefix: '/api/waitlist' });

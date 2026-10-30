@@ -11,7 +11,6 @@ export const auditEventTypeEnum = pgEnum('audit_event_type', [
   'agent_workflow',
 ]);
 export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'rejected', 'expired']);
-export const agentSessionStatusEnum = pgEnum('agent_session_status', ['running', 'completed', 'failed', 'cancelled']);
 export const jobStatusEnum = pgEnum('job_status', ['pending', 'running', 'completed', 'failed']);
 export const notificationEmailModeEnum = pgEnum('notification_email_mode', ['instant', 'daily', 'weekly', 'off']);
 export const emailDeliveryStatusEnum = pgEnum('email_delivery_status', ['queued', 'sent', 'failed', 'bounced']);
@@ -305,41 +304,6 @@ export const auditTrail = pgTable('audit_trail', {
   commitSha: text('commit_sha'),
   parentEventId: uuid('parent_event_id'),
   metadata: jsonb('metadata').notNull().default({}),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-// ── Agent Sessions ────────────────────────────────────
-
-export const agentSessions = pgTable('agent_sessions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  teamId: uuid('team_id')
-    .notNull()
-    .references(() => teams.id),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id),
-  documentId: uuid('document_id').references(() => documents.id),
-  conversationId: uuid('conversation_id'),  // groups sessions in one logical conversation
-  status: agentSessionStatusEnum('status').notNull().default('running'),
-  prompt: text('prompt').notNull(),
-  result: text('result'),
-  toolCallCount: integer('tool_call_count').notNull().default(0),
-  tokenUsage: jsonb('token_usage').notNull().default({}),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const agentToolCalls = pgTable('agent_tool_calls', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  sessionId: uuid('session_id')
-    .notNull()
-    .references(() => agentSessions.id),
-  toolName: text('tool_name').notNull(),
-  input: jsonb('input').notNull().default({}),
-  output: jsonb('output').notNull().default({}),
-  durationMs: integer('duration_ms').notNull().default(0),
-  error: text('error'),
-  sequence: integer('sequence').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

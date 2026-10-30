@@ -94,10 +94,6 @@ export function App() {
             <Route path="getting-started" element={<Navigate to="/app/dashboard" replace />} />
             {/* In-app redirects (previously top-level) repointed under /app */}
             <Route
-              path="agent-map"
-              element={<Navigate to="/app/operations?tab=agents" replace />}
-            />
-            <Route
               path="observability"
               element={<Navigate to="/app/operations?tab=observability" replace />}
             />
@@ -138,10 +134,6 @@ export function App() {
           element={<LegacyRedirect to="/app/getting-started" />}
         />
         {/* Legacy tab-redirect helpers at the root also forward under /app */}
-        <Route
-          path="/agent-map"
-          element={<Navigate to="/app/operations?tab=agents" replace />}
-        />
         <Route
           path="/observability"
           element={<Navigate to="/app/operations?tab=observability" replace />}
