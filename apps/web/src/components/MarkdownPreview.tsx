@@ -1,11 +1,25 @@
-import { isValidElement, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
-import ReactMarkdown from 'react-markdown';
+import {
+  isValidElement,
+  memo,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+} from 'react';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { codeToHtml, type BundledLanguage } from 'shiki';
-import DOMPurify from 'dompurify';
+import { safeUrl, sanitizeHighlightHtml, splitForRender } from '../lib/markdownSafety';
+import { parseMentionHref } from '../lib/slashCommands';
 
 interface MarkdownPreviewProps {
   content: string;
+  /** Called when a `nyx://doc/<id>` mention is activated. Without it mentions render as plain chips. */
+  onMentionClick?: (documentId: string) => void;
 }
 
 // Cache highlighted HTML to avoid re-highlighting identical blocks
@@ -65,10 +79,7 @@ function CodeBlock({ className, children }: { className?: string; children?: Rea
         {/* Highlighted code */}
         <div
           className="overflow-x-auto text-[13px] leading-relaxed [&>pre]:!m-0 [&>pre]:!rounded-none [&>pre]:!border-0 [&>pre]:px-4 [&>pre]:py-3"
-          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html, {
-            ALLOWED_TAGS: ['pre', 'code', 'span', 'div', 'br'],
-            ALLOWED_ATTR: ['class', 'style'],
-          }) }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHighlightHtml(html) }}
         />
       </div>
     );
@@ -111,15 +122,31 @@ function CodeBlock({ className, children }: { className?: string; children?: Rea
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      // Clipboard can be unavailable (permissions, insecure context): fail quietly.
+      return;
+    }
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopied(false), 1500);
   }, [text]);
 
   return (
     <button
       type="button"
+      aria-label={copied ? 'Code copied' : 'Copy code'}
       onClick={handleCopy}
       className="rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-400 transition-colors hover:bg-slate-700 hover:text-slate-200"
     >
@@ -177,40 +204,103 @@ function extractCodeChild(
   return found;
 }
 
-export function MarkdownPreview({ content }: MarkdownPreviewProps) {
-  if (!content) {
+function PreviewImage({ src, alt }: { src?: string | Blob; alt?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (typeof src !== 'string' || !src || failed) {
+    // Remote images need a network; keep the alt text so offline previews stay readable.
     return (
-      <p className="italic text-slate-300 text-sm">Nothing to preview yet.</p>
+      <span className="rounded border border-dashed border-slate-300 px-1.5 py-0.5 text-xs text-slate-400">
+        {alt ? `Image: ${alt}` : 'Image unavailable'}
+      </span>
     );
+  }
+  return <img src={src} alt={alt ?? ''} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
+}
+
+/** One top-level chunk of the document. Memoized so unchanged chunks are not re-parsed while typing. */
+const MarkdownChunk = memo(function MarkdownChunk({
+  text,
+  components,
+}: {
+  text: string;
+  components: Components;
+}) {
+  return (
+    <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={safeUrl} components={components}>
+      {text}
+    </ReactMarkdown>
+  );
+});
+
+export const MarkdownPreview = memo(function MarkdownPreview({ content, onMentionClick }: MarkdownPreviewProps) {
+  // Keep typing responsive on big documents: the preview trails the editor by a frame.
+  const deferred = useDeferredValue(content);
+  const mentionRef = useRef(onMentionClick);
+  mentionRef.current = onMentionClick;
+
+  const components = useMemo<Components>(
+    () => ({
+      code({ children }) {
+        // Block code is intercepted one level up by the pre() override, so
+        // anything that reaches here is true inline code.
+        return <InlineCode>{children}</InlineCode>;
+      },
+      pre({ children }) {
+        // Fenced code blocks always arrive as <pre><code>...</code></pre>.
+        // Extract the inner <code> child and route it through CodeBlock so
+        // we don't depend on a language-* className being present.
+        const codeChild = extractCodeChild(children);
+        if (codeChild) {
+          return <CodeBlock className={codeChild.className}>{codeChild.children}</CodeBlock>;
+        }
+        // Defensive fallback — render whatever the child was.
+        return <>{children}</>;
+      },
+      a({ href, children }: ComponentProps<'a'>) {
+        const docId = parseMentionHref(href);
+        if (docId) {
+          return (
+            <a
+              href={`#doc-${docId}`}
+              data-mention={docId}
+              className="rounded bg-blue-50 px-1 py-0.5 font-medium text-blue-700 no-underline"
+              onClick={(e) => {
+                e.preventDefault();
+                mentionRef.current?.(docId);
+              }}
+            >
+              {children}
+            </a>
+          );
+        }
+        const external = !!href && /^(https?:)?\/\//i.test(href);
+        return (
+          <a href={href} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
+            {children}
+          </a>
+        );
+      },
+      img({ src, alt }: ComponentProps<'img'>) {
+        return <PreviewImage src={src} alt={alt} />;
+      },
+    }),
+    [],
+  );
+
+  const chunks = useMemo(() => splitForRender(deferred), [deferred]);
+
+  if (!deferred) {
+    return <p className="text-sm italic text-slate-300">Nothing to preview yet.</p>;
   }
 
   return (
-    <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed prose-p:my-3 prose-headings:mt-4 prose-headings:mb-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-pre:p-0 prose-pre:bg-transparent prose-pre:border-0">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          code({ children }) {
-            // Block code is intercepted one level up by the pre() override, so
-            // anything that reaches here is true inline code.
-            return <InlineCode>{children}</InlineCode>;
-          },
-          pre({ children }) {
-            // Fenced code blocks always arrive as <pre><code>...</code></pre>.
-            // Extract the inner <code> child and route it through CodeBlock so
-            // we don't depend on a language-* className being present.
-            const codeChild = extractCodeChild(children);
-            if (codeChild) {
-              return (
-                <CodeBlock className={codeChild.className}>{codeChild.children}</CodeBlock>
-              );
-            }
-            // Defensive fallback — render whatever the child was.
-            return <>{children}</>;
-          },
-        }}
-      >
-        {content}
-      </ReactMarkdown>
+    <div
+      data-testid="markdown-preview-body"
+      className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed prose-p:my-3 prose-headings:mt-4 prose-headings:mb-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-pre:p-0 prose-pre:bg-transparent prose-pre:border-0"
+    >
+      {chunks.map((text, i) => (
+        <MarkdownChunk key={i} text={text} components={components} />
+      ))}
     </div>
   );
-}
+});
