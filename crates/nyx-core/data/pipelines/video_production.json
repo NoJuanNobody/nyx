@@ -1,0 +1,275 @@
+{
+  "slug": "video_production",
+  "label": "Video Production",
+  "description": "Video content from script to final delivery",
+  "icon": "🎬",
+  "is_default": false,
+  "sort_order": 17,
+  "connectors": [
+    "Script drives the storyboard",
+    "Storyboard informs production notes",
+    "Production produces the rough cut",
+    "Rough cut gets color & sound",
+    "Color & sound produce the final delivery"
+  ],
+  "stages": [
+    {
+      "slug": "script_treatment",
+      "sort_order": 0,
+      "label": "Script & Treatment",
+      "abbreviation": "ST",
+      "subtitle": "Concept & Script",
+      "color": "bg-amber-100",
+      "text_color": "text-amber-700",
+      "dot_color": "bg-amber-400",
+      "border_color": "border-amber-300",
+      "hex": "#F59E0B",
+      "who": "Writer, Director",
+      "description": "Write script and treatment",
+      "icon": "📝",
+      "ai": "Suggests structure, generates shot list",
+      "output": "Approved script",
+      "docs": [
+        "Script",
+        "Treatment",
+        "Creative Brief",
+        "Characters",
+        "Locations"
+      ],
+      "suggestions": [
+        "Suggest story structure",
+        "Identify pacing issues",
+        "Generate shot list"
+      ]
+    },
+    {
+      "slug": "storyboard",
+      "sort_order": 1,
+      "label": "Storyboard",
+      "abbreviation": "SB",
+      "subtitle": "Visual Planning",
+      "color": "bg-orange-100",
+      "text_color": "text-orange-700",
+      "dot_color": "bg-orange-400",
+      "border_color": "border-orange-300",
+      "hex": "#F97316",
+      "who": "Storyboard Artist",
+      "description": "Create visual storyboard",
+      "icon": "🎞️",
+      "ai": "Suggests camera angles, checks continuity",
+      "output": "Complete storyboard",
+      "docs": [
+        "Storyboard Panels",
+        "Shot List",
+        "Camera Notes",
+        "Timing"
+      ],
+      "suggestions": [
+        "Suggest camera angles",
+        "Check visual continuity",
+        "Estimate timing"
+      ]
+    },
+    {
+      "slug": "production_notes",
+      "sort_order": 2,
+      "label": "Production Notes",
+      "abbreviation": "PN",
+      "subtitle": "Pre-Production",
+      "color": "bg-yellow-100",
+      "text_color": "text-yellow-700",
+      "dot_color": "bg-yellow-400",
+      "border_color": "border-yellow-300",
+      "hex": "#EAB308",
+      "who": "Producer, AD",
+      "description": "Create production schedule and logistics",
+      "icon": "📋",
+      "ai": "Generates schedule, identifies conflicts",
+      "output": "Pre-production package",
+      "docs": [
+        "Schedule",
+        "Call Sheets",
+        "Budget",
+        "Equipment",
+        "Crew List"
+      ],
+      "suggestions": [
+        "Generate schedule",
+        "Identify conflicts",
+        "Estimate budget"
+      ]
+    },
+    {
+      "slug": "rough_cut",
+      "sort_order": 3,
+      "label": "Rough Cut",
+      "abbreviation": "RC",
+      "subtitle": "First Edit",
+      "color": "bg-lime-100",
+      "text_color": "text-lime-700",
+      "dot_color": "bg-lime-400",
+      "border_color": "border-lime-300",
+      "hex": "#A3E635",
+      "who": "Editor, Director",
+      "description": "Assemble the rough cut",
+      "icon": "🎬",
+      "ai": "Analyzes pacing, suggests alternate takes",
+      "output": "Rough cut for review",
+      "docs": [
+        "Rough Cut",
+        "Edit Decision List",
+        "Missing Coverage",
+        "Temp Music"
+      ],
+      "suggestions": [
+        "Analyze pacing",
+        "Suggest alternate takes",
+        "Identify missing coverage"
+      ]
+    },
+    {
+      "slug": "color_sound",
+      "sort_order": 4,
+      "label": "Color & Sound",
+      "abbreviation": "CS",
+      "subtitle": "Post-Production",
+      "color": "bg-teal-100",
+      "text_color": "text-teal-700",
+      "dot_color": "bg-teal-400",
+      "border_color": "border-teal-300",
+      "hex": "#2DD4BF",
+      "who": "Colorist, Sound Designer",
+      "description": "Color grading and audio mixing",
+      "icon": "🎨",
+      "ai": "Checks color consistency, audio levels",
+      "output": "Color-graded and mixed version",
+      "docs": [
+        "Color Grade",
+        "Sound Design",
+        "Audio Mix",
+        "VFX",
+        "Music Cues"
+      ],
+      "suggestions": [
+        "Check color consistency",
+        "Analyze audio levels",
+        "Suggest sound design"
+      ]
+    },
+    {
+      "slug": "final_delivery",
+      "sort_order": 5,
+      "label": "Final Delivery",
+      "abbreviation": "FD",
+      "subtitle": "Deliverables",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Post Supervisor",
+      "description": "Final deliverables in all formats",
+      "icon": "📦",
+      "ai": "Validates delivery specs, generates QC report",
+      "output": "Complete delivery package",
+      "docs": [
+        "Final Master",
+        "Manifest",
+        "QC Report",
+        "Captions",
+        "Promo Materials"
+      ],
+      "suggestions": [
+        "Validate delivery specs",
+        "Generate QC report",
+        "Create manifest"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "script_treatment",
+      "name": "Creative Treatment",
+      "description": "Define the creative vision, tone, and narrative approach for the video",
+      "sort_order": 0,
+      "content": "# Creative Treatment\n\n## Project Title\n<!-- Title -->\n\n## Format / Duration\n- Type: Commercial / Documentary / Corporate / Music Video\n- Duration: \n\n## Concept\n<!-- 1 paragraph describing the creative vision -->\n\n## Tone & Style\n- Mood: \n- Visual references: \n- Audio direction: \n\n## Narrative Approach\n- Structure: Linear / Non-linear / Vignette\n- POV: \n- Hook: \n\n## Key Scenes\n| # | Description | Visual | Audio |\n|---|------------|--------|-------|\n| 1 |            |        |       |\n| 2 |            |        |       |\n| 3 |            |        |       |\n\n## Target Audience\n- \n\n## Distribution\n- \n"
+    },
+    {
+      "stage": "script_treatment",
+      "name": "Script Draft",
+      "description": "Two-column script with visuals and audio/dialogue",
+      "sort_order": 1,
+      "content": "# Script: [Title]\n\n## Duration\n<!-- Target length -->\n\n## Script\n\n| Time | Visual | Audio / Dialogue |\n|------|--------|------------------|\n| 0:00 |        |                  |\n| 0:05 |        |                  |\n| 0:10 |        |                  |\n| 0:15 |        |                  |\n| 0:20 |        |                  |\n| 0:25 |        |                  |\n| 0:30 |        |                  |\n\n## Voice-Over Script\n<!-- Full VO text -->\n\n## Music Notes\n- \n\n## Graphics / Text Overlays\n| Time | Text | Style |\n|------|------|-------|\n|      |      |       |\n\n## Legal Disclaimers\n- \n"
+    },
+    {
+      "stage": "storyboard",
+      "name": "Storyboard Template",
+      "description": "Frame-by-frame storyboard with shot descriptions and transitions",
+      "sort_order": 0,
+      "content": "# Storyboard: [Title]\n\n## Scene\n<!-- Scene number -->\n\n## Frames\n| Frame # | Shot Type | Description | Camera Movement | Duration | Audio |\n|---------|----------|------------|----------------|----------|-------|\n| 1 | Wide | | Static | 3s | |\n| 2 | Close-up | | Pan left | 2s | |\n| 3 | Medium | | Dolly in | 4s | |\n| 4 | | | | | |\n| 5 | | | | | |\n| 6 | | | | | |\n\n## Transition Notes\n- Frame 1→2: Cut\n- Frame 2→3: Dissolve\n\n## Visual References\n- \n\n## Props / Wardrobe Notes\n- \n"
+    },
+    {
+      "stage": "storyboard",
+      "name": "Shot List",
+      "description": "Detailed shot list with angles, lenses, and equipment needs",
+      "sort_order": 1,
+      "content": "# Shot List: [Title]\n\n## Scene / Location\n<!-- Location name -->\n\n## Shots\n| # | Shot | Angle | Lens | Movement | Description | Duration |\n|---|------|-------|------|----------|------------|----------|\n| 1 | Wide establishing | Eye level | 24mm | Static | | 5s |\n| 2 | Medium | Low angle | 50mm | Dolly | | 3s |\n| 3 | Close-up | Eye level | 85mm | Handheld | | 2s |\n| 4 | Insert | Top down | 35mm | Static | | 2s |\n\n## Equipment Needed\n- Camera: \n- Lenses: \n- Lighting: \n- Grip: \n- Audio: \n\n## Estimated Shoot Time\n- Setup: \n- Shooting: \n- Wrap: \n"
+    },
+    {
+      "stage": "production_notes",
+      "name": "Production Schedule",
+      "description": "Detailed production schedule with call times and locations",
+      "sort_order": 0,
+      "content": "# Production Schedule\n\n## Project\n<!-- Title -->\n\n## Shoot Day: [Date]\n\n| Time | Activity | Location | Talent | Crew | Notes |\n|------|----------|----------|--------|------|-------|\n| 6:00 | Crew call | | | All | Load in |\n| 7:00 | Setup | | | | |\n| 8:00 | Talent call | | | | Hair/makeup |\n| 9:00 | Scene 1 | | | | |\n| 12:00 | Lunch | | | | |\n| 13:00 | Scene 2 | | | | |\n| 16:00 | Scene 3 | | | | |\n| 18:00 | Wrap | | | | |\n\n## Crew List\n| Role | Name | Contact |\n|------|------|--------|\n| Director | | |\n| DP | | |\n| Sound | | |\n| PA | | |\n\n## Weather Backup\n- \n"
+    },
+    {
+      "stage": "production_notes",
+      "name": "Location & Logistics",
+      "description": "Document location details, permits, and logistics",
+      "sort_order": 1,
+      "content": "# Location & Logistics\n\n## Project\n<!-- Title -->\n\n## Locations\n| # | Name | Address | Contact | Permit | Parking |\n|---|------|---------|---------|--------|---------|\n| 1 |      |         |         | [ ]    |         |\n\n## Permits Required\n| Permit | Agency | Status | Expiry |\n|--------|--------|--------|--------|\n|        |        | [ ]    |        |\n\n## Equipment Rental\n| Item | Vendor | Pickup | Return | Cost |\n|------|--------|--------|--------|------|\n|      |        |        |        |      |\n\n## Talent / Releases\n- [ ] Talent agreements signed\n- [ ] Location releases signed\n- [ ] Music licenses secured\n\n## Insurance\n- [ ] Production insurance certificate\n- [ ] Location named as additional insured\n\n## Catering\n- \n"
+    },
+    {
+      "stage": "rough_cut",
+      "name": "Edit Decision Notes",
+      "description": "Document editing decisions and revision notes for the rough cut",
+      "sort_order": 0,
+      "content": "# Edit Decision Notes\n\n## Project\n<!-- Title -->\n\n## Edit Version\n<!-- e.g., Rough Cut v1 -->\n\n## Structure\n| Timecode | Section | Content | Notes |\n|----------|---------|---------|-------|\n| 00:00    | Opening |         |       |\n| 00:15    |         |         |       |\n| 00:30    |         |         |       |\n| 00:45    |         |         |       |\n| 01:00    | Closing |         |       |\n\n## Pacing Notes\n- \n\n## Music / Sound Design\n- \n\n## Graphics / Titles\n- \n\n## Revision Requests\n| # | Timecode | Change | Priority | Status |\n|---|----------|--------|----------|--------|\n| 1 |          |        |          | [ ]    |\n"
+    },
+    {
+      "stage": "rough_cut",
+      "name": "Client Review Form",
+      "description": "Structured form for collecting client feedback on the rough cut",
+      "sort_order": 1,
+      "content": "# Client Review Form\n\n## Project\n<!-- Title and edit version -->\n\n## Link\n<!-- Review link with password -->\n\n## Feedback\n\n### Overall Impression\n<!-- 1-2 sentences -->\n\n### Pacing\n- Too fast / Just right / Too slow\n- Specific notes: \n\n### Content\n- [ ] Key message clear\n- [ ] All required content included\n- [ ] Nothing off-brand\n\n### Specific Changes\n| Timecode | Current | Requested Change | Priority |\n|----------|---------|-----------------|----------|\n|          |         |                 |          |\n\n### Music / Audio\n- \n\n### Graphics / Text\n- \n\n### Approval\n- [ ] Approved for fine cut\n- [ ] Revisions needed\n"
+    },
+    {
+      "stage": "color_sound",
+      "name": "Color Grade Notes",
+      "description": "Document color grading decisions and look references",
+      "sort_order": 0,
+      "content": "# Color Grade Notes\n\n## Project\n<!-- Title -->\n\n## Colorist\n- Name: \n- Software: DaVinci Resolve / Baselight / Other\n\n## Overall Look\n- Reference: \n- Tone: Warm / Cool / Neutral\n- Contrast: High / Medium / Low\n- Saturation: \n\n## Scene-by-Scene Notes\n| Scene | Timecode | Look | Notes |\n|-------|----------|------|-------|\n| 1     |          |      |       |\n| 2     |          |      |       |\n\n## Skin Tone Targets\n- \n\n## Technical Specs\n- Color space: Rec. 709 / P3 / Rec. 2020\n- HDR: Yes / No\n- LUT applied: \n\n## Revisions\n| # | Note | Status |\n|---|------|--------|\n|   |      | [ ]    |\n"
+    },
+    {
+      "stage": "color_sound",
+      "name": "Sound Design & Mix Notes",
+      "description": "Document sound design and final audio mix specifications",
+      "sort_order": 1,
+      "content": "# Sound Design & Mix Notes\n\n## Project\n<!-- Title -->\n\n## Sound Designer / Mixer\n- Name: \n\n## Sound Design Elements\n| Timecode | Element | Description | Source | Status |\n|----------|---------|------------|--------|--------|\n|          | SFX     |            |        | [ ]    |\n|          | Foley   |            |        | [ ]    |\n|          | Ambience|            |        | [ ]    |\n\n## Music\n| Timecode | Track | Artist | License | Status |\n|----------|-------|--------|---------|--------|\n|          |       |        |         | [ ]    |\n\n## Mix Specifications\n- Loudness target: __ LUFS\n- Format: Stereo / 5.1 / Atmos\n- Platform requirements: \n\n## VO\n- [ ] Cleaned and leveled\n- [ ] De-essed\n- [ ] Room tone matched\n\n## Deliverable Formats\n- [ ] Stereo mix\n- [ ] M&E (music & effects)\n- [ ] Stems\n"
+    },
+    {
+      "stage": "final_delivery",
+      "name": "Delivery Specifications",
+      "description": "Document all delivery formats and technical specifications",
+      "sort_order": 0,
+      "content": "# Delivery Specifications\n\n## Project\n<!-- Title -->\n\n## Master File\n- Codec: ProRes 422 HQ / DNxHR / Other\n- Resolution: \n- Frame rate: \n- Audio: \n\n## Deliverables\n| Platform | Resolution | Codec | Bitrate | Aspect Ratio | Audio | Status |\n|----------|-----------|-------|---------|-------------|-------|--------|\n| Broadcast |          |       |         |             |       | [ ]    |\n| YouTube  | 1920x1080 | H.264 |         | 16:9        |       | [ ]    |\n| Social   | 1080x1080 | H.264 |         | 1:1         |       | [ ]    |\n| Instagram| 1080x1920 | H.264 |         | 9:16        |       | [ ]    |\n\n## Closed Captions\n- [ ] SRT file\n- [ ] Burned-in version\n\n## Thumbnail\n- [ ] Custom thumbnail created\n\n## Archive\n- [ ] Project files archived\n- [ ] Raw footage backed up\n"
+    },
+    {
+      "stage": "final_delivery",
+      "name": "Final Approval & Handoff",
+      "description": "Get final sign-off and deliver all files to the client",
+      "sort_order": 1,
+      "content": "# Final Approval & Handoff\n\n## Project\n<!-- Title -->\n\n## Final Review\n- [ ] Client watched final version\n- [ ] All revision requests addressed\n- [ ] Legal approved\n- [ ] Brand approved\n\n## Approvals\n| Approver | Role | Date | Approved |\n|----------|------|------|----------|\n|          |      |      | [ ]      |\n\n## Deliverables Sent\n| File | Format | Delivery Method | Date | Confirmed |\n|------|--------|----------------|------|-----------|\n|      |        | Link / Drive / FTP |  | [ ]      |\n\n## Usage Rights\n- License: \n- Duration: \n- Territory: \n- Platforms: \n\n## Project Wrap\n- [ ] Final invoice sent\n- [ ] Project files archived\n- [ ] Team debrief scheduled\n"
+    }
+  ]
+}

@@ -1,0 +1,274 @@
+{
+  "slug": "educational_textbooks",
+  "label": "Educational Textbooks",
+  "description": "Textbook development from outline to publication",
+  "icon": "📖",
+  "is_default": false,
+  "sort_order": 14,
+  "connectors": [
+    "Outline structures the chapter drafts",
+    "Drafts go through subject matter review",
+    "Review precedes copyediting pass",
+    "Editing leads to illustrations & layout",
+    "Layout produces publication-ready files"
+  ],
+  "stages": [
+    {
+      "slug": "outline_structure",
+      "sort_order": 0,
+      "label": "Outline & Structure",
+      "abbreviation": "OS",
+      "subtitle": "Book Plan",
+      "color": "bg-blue-100",
+      "text_color": "text-blue-700",
+      "dot_color": "bg-blue-400",
+      "border_color": "border-blue-300",
+      "hex": "#3B82F6",
+      "who": "Author, Publisher",
+      "description": "Create detailed table of contents",
+      "icon": "📋",
+      "ai": "Suggests sequencing, identifies gaps",
+      "output": "Approved book outline",
+      "docs": [
+        "Table of Contents",
+        "Chapter Outlines",
+        "Standards Map",
+        "Scope & Sequence"
+      ],
+      "suggestions": [
+        "Check standard alignment",
+        "Suggest sequencing",
+        "Identify gaps"
+      ]
+    },
+    {
+      "slug": "chapter_drafts",
+      "sort_order": 1,
+      "label": "Chapter Drafts",
+      "abbreviation": "CD",
+      "subtitle": "Content Writing",
+      "color": "bg-indigo-100",
+      "text_color": "text-indigo-700",
+      "dot_color": "bg-indigo-400",
+      "border_color": "border-indigo-300",
+      "hex": "#6366F1",
+      "who": "Author",
+      "description": "Write complete chapter drafts",
+      "icon": "✍️",
+      "ai": "Checks reading level, suggests examples",
+      "output": "Complete chapter manuscripts",
+      "docs": [
+        "Chapter Drafts",
+        "Examples",
+        "Practice Problems",
+        "Key Terms",
+        "Summaries"
+      ],
+      "suggestions": [
+        "Check reading level",
+        "Suggest examples",
+        "Generate problems"
+      ]
+    },
+    {
+      "slug": "subject_matter_review",
+      "sort_order": 2,
+      "label": "Subject Matter Review",
+      "abbreviation": "SM",
+      "subtitle": "Expert Review",
+      "color": "bg-violet-100",
+      "text_color": "text-violet-700",
+      "dot_color": "bg-violet-400",
+      "border_color": "border-violet-300",
+      "hex": "#8B5CF6",
+      "who": "Subject Matter Experts",
+      "description": "Expert review for accuracy",
+      "icon": "🔍",
+      "ai": "Identifies errors, evaluates pedagogy",
+      "output": "Expert review report",
+      "docs": [
+        "Review Comments",
+        "Accuracy Check",
+        "Pedagogy Assessment",
+        "Content Gaps"
+      ],
+      "suggestions": [
+        "Check accuracy",
+        "Evaluate pedagogy",
+        "Suggest additions"
+      ]
+    },
+    {
+      "slug": "copyediting_pass",
+      "sort_order": 3,
+      "label": "Copyediting Pass",
+      "abbreviation": "CE",
+      "subtitle": "Editorial Review",
+      "color": "bg-purple-100",
+      "text_color": "text-purple-700",
+      "dot_color": "bg-purple-400",
+      "border_color": "border-purple-300",
+      "hex": "#A855F7",
+      "who": "Copyeditors",
+      "description": "Thorough copyediting",
+      "icon": "📝",
+      "ai": "Checks grammar, enforces style guide",
+      "output": "Copyedited manuscript",
+      "docs": [
+        "Copyedit Markup",
+        "Style Queries",
+        "Consistency Check",
+        "Author Queries"
+      ],
+      "suggestions": [
+        "Check grammar",
+        "Enforce style guide",
+        "Ensure consistency"
+      ]
+    },
+    {
+      "slug": "illustrations_layout",
+      "sort_order": 4,
+      "label": "Illustrations & Layout",
+      "abbreviation": "IL",
+      "subtitle": "Visual Design",
+      "color": "bg-pink-100",
+      "text_color": "text-pink-700",
+      "dot_color": "bg-pink-400",
+      "border_color": "border-pink-300",
+      "hex": "#EC4899",
+      "who": "Illustrators, Designers",
+      "description": "Create illustrations and page layout",
+      "icon": "🎨",
+      "ai": "Suggests diagram types, checks accessibility",
+      "output": "Illustrated and typeset manuscript",
+      "docs": [
+        "Illustrations",
+        "Diagrams",
+        "Page Proofs",
+        "Captions",
+        "Layout Specs"
+      ],
+      "suggestions": [
+        "Suggest diagram types",
+        "Check accessibility",
+        "Validate references"
+      ]
+    },
+    {
+      "slug": "publication_ready",
+      "sort_order": 5,
+      "label": "Publication Ready",
+      "abbreviation": "PB",
+      "subtitle": "Print Ready",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Publisher",
+      "description": "Final proofread and production files",
+      "icon": "📚",
+      "ai": "Generates index, checks print specs",
+      "output": "Publication-ready files",
+      "docs": [
+        "Final Manuscript",
+        "Index",
+        "Print Specs",
+        "Digital Formats",
+        "Errata"
+      ],
+      "suggestions": [
+        "Generate index",
+        "Validate cross-references",
+        "Check print specs"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "outline_structure",
+      "name": "Textbook Outline",
+      "description": "Structure the textbook with parts, chapters, and learning goals",
+      "sort_order": 0,
+      "content": "# Textbook Outline\n\n## Title\n<!-- Working title -->\n\n## Subject / Course Level\n- Subject: \n- Level: \n- Prerequisites: \n\n## Table of Contents\n| Part | Chapter | Title | Pages (est.) | Learning Goals |\n|------|---------|-------|-------------|---------------|\n| I    | 1       |       |             |               |\n|      | 2       |       |             |               |\n| II   | 3       |       |             |               |\n|      | 4       |       |             |               |\n\n## Pedagogical Features\n- [ ] Chapter objectives\n- [ ] Key terms\n- [ ] Worked examples\n- [ ] Practice problems\n- [ ] Chapter summaries\n- [ ] Review questions\n\n## Ancillaries Planned\n- [ ] Instructor manual\n- [ ] Test bank\n- [ ] Slide decks\n"
+    },
+    {
+      "stage": "outline_structure",
+      "name": "Market & Adoption Analysis",
+      "description": "Analyze competing textbooks and target adoption market",
+      "sort_order": 1,
+      "content": "# Market & Adoption Analysis\n\n## Subject Area\n<!-- e.g., Introductory Biology -->\n\n## Target Market\n- Course type: \n- Enrollment size: \n- Institutions: \n\n## Competing Textbooks\n| Title | Author | Publisher | Edition | Price | Strengths | Weaknesses |\n|-------|--------|----------|---------|-------|-----------|------------|\n|       |        |          |         |       |           |            |\n\n## Our Differentiators\n1. \n2. \n3. \n\n## Adoption Decision Makers\n- \n\n## Digital vs. Print Considerations\n- \n\n## Estimated Market Size\n- \n"
+    },
+    {
+      "stage": "chapter_drafts",
+      "name": "Chapter Draft Template",
+      "description": "Standard template for drafting a textbook chapter",
+      "sort_order": 0,
+      "content": "# Chapter [Number]: [Title]\n\n## Learning Objectives\nAfter reading this chapter, students will be able to:\n1. \n2. \n3. \n\n## Chapter Outline\n- [Section heading]\n- [Section heading]\n- [Section heading]\n\n## Opening Scenario / Case Study\n<!-- Real-world hook -->\n\n---\n\n## [Section heading]\n<!-- Content -->\n\n### Key Term\n**[Term]:** Definition\n\n### Worked Example\n<!-- Step-by-step example -->\n\n---\n\n## Chapter Summary\n- \n\n## Key Terms\n| Term | Definition |\n|------|----------|\n|      |          |\n\n## Review Questions\n1. \n2. \n\n## Practice Problems\n1. \n"
+    },
+    {
+      "stage": "chapter_drafts",
+      "name": "Figure & Table Plan",
+      "description": "Plan all figures, tables, and visual elements for a chapter",
+      "sort_order": 1,
+      "content": "# Figure & Table Plan\n\n## Chapter\n<!-- Chapter number and title -->\n\n## Figures\n| Fig # | Description | Type | Source | Status |\n|-------|------------|------|--------|--------|\n| 1.1   |            | Diagram / Photo / Graph | Original / Licensed | [ ] |\n| 1.2   |            |      |        | [ ]    |\n\n## Tables\n| Table # | Title | Data Source | Status |\n|---------|-------|-----------|--------|\n| 1.1     |       |           | [ ]    |\n\n## Boxes / Sidebars\n| Type | Title | Page Location |\n|------|-------|---------------|\n| Case Study | | |\n| Did You Know | | |\n\n## Permissions Needed\n| Item | Source | Status | Cost |\n|------|--------|--------|------|\n|      |        | [ ]    |      |\n"
+    },
+    {
+      "stage": "subject_matter_review",
+      "name": "SME Review Form",
+      "description": "Structured form for subject matter expert review of chapter content",
+      "sort_order": 0,
+      "content": "# Subject Matter Expert Review\n\n## Chapter\n<!-- Chapter number and title -->\n\n## Reviewer\n- Name: \n- Expertise: \n- Date: \n\n## Accuracy Review\n| Section | Accurate | Issues | Suggested Change |\n|---------|----------|--------|------------------|\n|         | Yes / No |        |                  |\n\n## Completeness\n- [ ] All essential concepts covered\n- [ ] Appropriate depth for level\n- [ ] Current with latest research\n- [ ] No significant omissions\n\n## Pedagogy\n- [ ] Examples are clear and relevant\n- [ ] Difficulty progression appropriate\n- [ ] Practice problems test objectives\n\n## Overall Assessment\n- \n\n## Priority Changes\n1. \n2. \n"
+    },
+    {
+      "stage": "subject_matter_review",
+      "name": "Review Consolidation",
+      "description": "Consolidate feedback from multiple reviewers and plan revisions",
+      "sort_order": 1,
+      "content": "# Review Consolidation\n\n## Chapter\n<!-- Chapter number -->\n\n## Reviewers\n| Reviewer | Role | Key Concern |\n|----------|------|------------|\n|          |      |            |\n\n## Consolidated Feedback\n| Topic | Reviewer(s) | Consensus | Action |\n|-------|-----------|-----------|--------|\n|       |           |           |        |\n\n## Conflicting Reviews\n| Topic | Reviewer A Says | Reviewer B Says | Resolution |\n|-------|----------------|----------------|------------|\n|       |                |                |            |\n\n## Revision Priority\n1. Critical (accuracy): \n2. Important (pedagogy): \n3. Minor (style): \n\n## Revised Draft Due\n- \n"
+    },
+    {
+      "stage": "copyediting_pass",
+      "name": "Copyediting Checklist",
+      "description": "Systematic copyediting checklist for textbook chapters",
+      "sort_order": 0,
+      "content": "# Copyediting Checklist\n\n## Chapter\n<!-- Chapter number -->\n\n## Language & Style\n- [ ] Consistent voice and tone\n- [ ] Reading level appropriate\n- [ ] Jargon defined on first use\n- [ ] Gendered language avoided\n- [ ] Active voice preferred\n\n## Formatting\n- [ ] Heading hierarchy correct\n- [ ] Figure/table numbering sequential\n- [ ] Cross-references accurate\n- [ ] Footnotes/endnotes consistent\n- [ ] Bibliography format correct\n\n## Technical Accuracy\n- [ ] Equations numbered and formatted\n- [ ] Units consistent (SI / Imperial)\n- [ ] Significant figures appropriate\n- [ ] Code samples tested (if applicable)\n\n## Permissions\n- [ ] All borrowed material attributed\n- [ ] Permission letters on file\n"
+    },
+    {
+      "stage": "copyediting_pass",
+      "name": "Style Guide Decisions",
+      "description": "Document style choices specific to this textbook",
+      "sort_order": 1,
+      "content": "# Textbook Style Guide\n\n## Title\n<!-- Textbook title -->\n\n## General Style\n- Base style guide: Chicago / APA / Other\n- Spelling: American / British\n- Numbers: Spell out below __\n- Lists: Parallel structure enforced\n\n## Technical Conventions\n| Element | Convention | Example |\n|---------|-----------|--------|\n| Variables | | *x*, *y* |\n| Equations | | Eq. (1.1) |\n| Units | | 5 kg, 10 m/s |\n| Code | | `monospace` |\n\n## Terminology\n| Preferred | Avoid |\n|-----------|-------|\n|           |       |\n\n## Feature Formatting\n| Feature | Format |\n|---------|--------|\n| Key Terms | Bold on first use |\n| Definitions | |\n| Examples | |\n| Warnings | |\n"
+    },
+    {
+      "stage": "illustrations_layout",
+      "name": "Illustration Brief",
+      "description": "Brief the illustrator on required figures with specifications",
+      "sort_order": 0,
+      "content": "# Illustration Brief\n\n## Chapter\n<!-- Chapter number -->\n\n## Illustrator\n- Name: \n- Due date: \n\n## Figures to Create\n| Fig # | Description | Type | Size | Color | Reference |\n|-------|------------|------|------|-------|-----------|\n|       |            | Line art / Diagram / Infographic | Full / Half page | 2-color / Full | |\n\n## Style Guidelines\n- Color palette: \n- Line weight: \n- Label font: \n- Consistency with: Chapter __ figures\n\n## Technical Requirements\n- File format: EPS / SVG / TIFF\n- Resolution: 300 dpi minimum\n- Bleed: \n\n## Review Process\n1. Rough sketch → Author approval\n2. Final art → Production review\n"
+    },
+    {
+      "stage": "illustrations_layout",
+      "name": "Page Layout Specifications",
+      "description": "Define the page layout, trim size, and typographic grid",
+      "sort_order": 1,
+      "content": "# Page Layout Specifications\n\n## Textbook\n<!-- Title -->\n\n## Page Specs\n- Trim size: \n- Margins: Top __ / Bottom __ / Inside __ / Outside __\n- Columns: \n- Grid: \n\n## Typography\n| Element | Font | Size | Leading | Color |\n|---------|------|------|---------|-------|\n| Body text | | | | |\n| H1 (Chapter) | | | | |\n| H2 (Section) | | | | |\n| H3 (Subsection) | | | | |\n| Captions | | | | |\n| Sidebar | | | | |\n\n## Feature Boxes\n| Type | Background | Border | Icon |\n|------|-----------|--------|------|\n| Key Concept | | | |\n| Example | | | |\n| Warning | | | |\n\n## Running Headers / Footers\n- Recto: \n- Verso: \n"
+    },
+    {
+      "stage": "publication_ready",
+      "name": "Pre-Press Checklist",
+      "description": "Final pre-press verification before sending to printer",
+      "sort_order": 0,
+      "content": "# Pre-Press Checklist\n\n## Textbook\n<!-- Title and edition -->\n\n## Content\n- [ ] All chapters final\n- [ ] TOC matches chapters\n- [ ] Index generated and proofread\n- [ ] Front matter complete (preface, acknowledgments)\n- [ ] Back matter complete (glossary, bibliography, index)\n\n## Production\n- [ ] All figures placed at correct resolution\n- [ ] Color proofs approved\n- [ ] Page numbers sequential\n- [ ] Cross-references verified\n- [ ] ISBN assigned and printed\n\n## Digital\n- [ ] eBook version generated\n- [ ] Links tested in digital version\n- [ ] Accessibility compliance checked\n\n## Legal\n- [ ] Copyright page complete\n- [ ] All permissions cleared\n- [ ] Credits accurate\n\n## Printer Specs\n- Paper: \n- Binding: \n- Print run: \n"
+    },
+    {
+      "stage": "publication_ready",
+      "name": "Ancillary Materials Checklist",
+      "description": "Ensure all supplementary materials are ready for publication",
+      "sort_order": 1,
+      "content": "# Ancillary Materials Checklist\n\n## Textbook\n<!-- Title -->\n\n## Instructor Resources\n- [ ] Instructor manual complete\n- [ ] Test bank (__ questions per chapter)\n- [ ] PowerPoint slides (__ per chapter)\n- [ ] Solution manual\n- [ ] Sample syllabus\n\n## Student Resources\n- [ ] Study guide\n- [ ] Practice quizzes\n- [ ] Supplementary readings\n- [ ] Online simulations / labs\n\n## Digital Platform\n- [ ] LMS integration tested\n- [ ] Homework system configured\n- [ ] Adaptive learning content ready\n\n## Marketing\n- [ ] Sample chapters available\n- [ ] Desk copy program set up\n- [ ] Adoption information sheet\n\n## Delivery\n| Resource | Format | Platform | Status |\n|----------|--------|----------|--------|\n|          |        |          |        |\n"
+    }
+  ]
+}

@@ -183,7 +183,7 @@ fn new_migrations_apply_on_top_of_existing_db() {
 #[test]
 fn extra_migrations_extend_core_and_foreign_keys_are_on() {
     let db = Db::open_in_memory_with(&[Migration {
-        version: 100,
+        version: 9000,
         name: "extra",
         sql: "CREATE TABLE extra(id TEXT PRIMARY KEY)",
     }])

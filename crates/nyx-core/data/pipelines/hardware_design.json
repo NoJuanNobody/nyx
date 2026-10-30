@@ -1,0 +1,271 @@
+{
+  "slug": "hardware_design",
+  "label": "Hardware Design",
+  "description": "Electronic and mechanical hardware from schematic to manufacturing",
+  "icon": "🔧",
+  "is_default": false,
+  "sort_order": 2,
+  "connectors": [
+    "Schematic drives the PCB layout",
+    "Layout becomes the prototype",
+    "Prototype goes through testing",
+    "Test results inform manufacturing prep",
+    "Prep produces final specifications"
+  ],
+  "stages": [
+    {
+      "slug": "schematic_design",
+      "sort_order": 0,
+      "label": "Schematic Design",
+      "abbreviation": "SD",
+      "subtitle": "Circuit Design",
+      "color": "bg-red-100",
+      "text_color": "text-red-700",
+      "dot_color": "bg-red-400",
+      "border_color": "border-red-300",
+      "hex": "#F87171",
+      "who": "Electrical Engineers",
+      "description": "Design circuit schematics and select components",
+      "icon": "⚡",
+      "ai": "Validates component compatibility, suggests alternatives",
+      "output": "Complete schematic with BOM",
+      "docs": [
+        "Schematic Diagram",
+        "Bill of Materials",
+        "Component Selection",
+        "Design Constraints"
+      ],
+      "suggestions": [
+        "Check component availability",
+        "Validate power budget",
+        "Review design constraints"
+      ]
+    },
+    {
+      "slug": "pcb_layout",
+      "sort_order": 1,
+      "label": "PCB Layout",
+      "abbreviation": "PL",
+      "subtitle": "Board Design",
+      "color": "bg-orange-100",
+      "text_color": "text-orange-700",
+      "dot_color": "bg-orange-400",
+      "border_color": "border-orange-300",
+      "hex": "#FB923C",
+      "who": "PCB Designers",
+      "description": "Translate schematic into physical PCB layout",
+      "icon": "🖥️",
+      "ai": "Checks trace routing, thermal analysis, signal integrity",
+      "output": "Gerber-ready PCB layout files",
+      "docs": [
+        "PCB Layout",
+        "Layer Stack-up",
+        "DRC Report",
+        "Thermal Analysis"
+      ],
+      "suggestions": [
+        "Check trace widths",
+        "Verify thermal design",
+        "Run DRC"
+      ]
+    },
+    {
+      "slug": "prototyping",
+      "sort_order": 2,
+      "label": "Prototyping",
+      "abbreviation": "PT",
+      "subtitle": "Build & Verify",
+      "color": "bg-yellow-100",
+      "text_color": "text-yellow-700",
+      "dot_color": "bg-yellow-400",
+      "border_color": "border-yellow-300",
+      "hex": "#FACC15",
+      "who": "Hardware Engineers",
+      "description": "Build physical prototypes and verify functionality",
+      "icon": "🔨",
+      "ai": "Generates test procedures, tracks prototype iterations",
+      "output": "Working prototype with assembly notes",
+      "docs": [
+        "Assembly Instructions",
+        "Prototype Log",
+        "Test Results",
+        "Issue Tracker"
+      ],
+      "suggestions": [
+        "Generate test procedure",
+        "Track assembly issues",
+        "Document deviations"
+      ]
+    },
+    {
+      "slug": "testing",
+      "sort_order": 3,
+      "label": "Testing",
+      "abbreviation": "TS",
+      "subtitle": "Validation",
+      "color": "bg-lime-100",
+      "text_color": "text-lime-700",
+      "dot_color": "bg-lime-400",
+      "border_color": "border-lime-300",
+      "hex": "#A3E635",
+      "who": "Test Engineers, QA",
+      "description": "Run comprehensive functional and compliance tests",
+      "icon": "🧪",
+      "ai": "Suggests test cases, compares results to specifications",
+      "output": "Complete test report",
+      "docs": [
+        "Test Plan",
+        "Test Results",
+        "Compliance Report",
+        "Failure Analysis"
+      ],
+      "suggestions": [
+        "Suggest edge cases",
+        "Compare to spec",
+        "Identify failure modes"
+      ]
+    },
+    {
+      "slug": "manufacturing_prep",
+      "sort_order": 4,
+      "label": "Manufacturing Prep",
+      "abbreviation": "MP",
+      "subtitle": "Production Ready",
+      "color": "bg-teal-100",
+      "text_color": "text-teal-700",
+      "dot_color": "bg-teal-400",
+      "border_color": "border-teal-300",
+      "hex": "#2DD4BF",
+      "who": "Manufacturing Engineers",
+      "description": "Prepare for mass production",
+      "icon": "🏭",
+      "ai": "Reviews DFM, identifies cost optimization",
+      "output": "Manufacturing package",
+      "docs": [
+        "Manufacturing Plan",
+        "DFM Report",
+        "QC Plan",
+        "Supply Chain Setup"
+      ],
+      "suggestions": [
+        "Review DFM",
+        "Optimize BOM cost",
+        "Check supply chain"
+      ]
+    },
+    {
+      "slug": "final_specs",
+      "sort_order": 5,
+      "label": "Final Specs",
+      "abbreviation": "FS",
+      "subtitle": "Release Package",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#34D399",
+      "who": "Engineering Lead",
+      "description": "Compile final specifications and release docs",
+      "icon": "📋",
+      "ai": "Cross-references specs, generates compliance matrix",
+      "output": "Complete product spec package",
+      "docs": [
+        "Final Specifications",
+        "Datasheet",
+        "Certification Docs",
+        "Release Notes"
+      ],
+      "suggestions": [
+        "Cross-reference specs",
+        "Generate compliance matrix",
+        "Validate completeness"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "schematic_design",
+      "name": "Circuit Requirements",
+      "description": "Define electrical requirements and component selection criteria",
+      "sort_order": 0,
+      "content": "# Circuit Requirements\n\n## Project\n<!-- Hardware project name -->\n\n## Electrical Specifications\n| Parameter | Min | Typical | Max | Unit |\n|-----------|-----|---------|-----|------|\n| Supply Voltage |  |     |     | V    |\n| Current Draw   |  |     |     | mA   |\n| Operating Temp  |  |     |     | °C   |\n\n## Key Components\n| Component | Part Number | Quantity | Rationale |\n|-----------|------------|----------|----------|\n|           |            |          |          |\n\n## Interface Requirements\n- \n\n## Constraints\n- \n"
+    },
+    {
+      "stage": "schematic_design",
+      "name": "Block Diagram",
+      "description": "Document the high-level system block diagram and signal flow",
+      "sort_order": 1,
+      "content": "# System Block Diagram\n\n## System Overview\n<!-- Describe the overall system architecture -->\n\n## Functional Blocks\n| Block | Function | Key ICs | Interface |\n|-------|----------|---------|----------|\n|       |          |         |          |\n\n## Signal Flow\n1. \n2. \n3. \n\n## Power Distribution\n- Input: \n- Regulators: \n- Rails: \n\n## External Connectors\n- \n"
+    },
+    {
+      "stage": "pcb_layout",
+      "name": "PCB Layout Guidelines",
+      "description": "Define layout rules for trace widths, clearances, and layer stack",
+      "sort_order": 0,
+      "content": "# PCB Layout Guidelines\n\n## Board Dimensions\n- Size: __ x __ mm\n- Layers: \n- Thickness: \n\n## Layer Stack-up\n| Layer | Type | Thickness | Material |\n|-------|------|-----------|----------|\n| L1    | Signal |         |          |\n| L2    | Ground |         |          |\n\n## Design Rules\n- Min trace width: \n- Min clearance: \n- Min via size: \n- Impedance targets: \n\n## Placement Priorities\n1. \n2. \n3. \n\n## Thermal Considerations\n- \n"
+    },
+    {
+      "stage": "pcb_layout",
+      "name": "Design Review Checklist",
+      "description": "Pre-fabrication review checklist for PCB layout verification",
+      "sort_order": 1,
+      "content": "# PCB Design Review Checklist\n\n## Board\n<!-- Board name and revision -->\n\n## Schematic vs Layout\n- [ ] Netlist matches schematic\n- [ ] All components placed\n- [ ] No unconnected nets\n\n## Design Rules\n- [ ] DRC passes with zero errors\n- [ ] Trace widths meet current requirements\n- [ ] Clearances meet voltage requirements\n\n## Manufacturing\n- [ ] Drill sizes within fab capability\n- [ ] Silkscreen legible and correct\n- [ ] Fiducials placed for SMT assembly\n- [ ] Panelization considered\n\n## Signal Integrity\n- [ ] High-speed traces impedance controlled\n- [ ] Decoupling caps near IC power pins\n- [ ] Ground plane unbroken under critical traces\n"
+    },
+    {
+      "stage": "prototyping",
+      "name": "Prototype Build Log",
+      "description": "Track prototype assembly steps and deviations from design",
+      "sort_order": 0,
+      "content": "# Prototype Build Log\n\n## Prototype Version\n<!-- e.g., Rev A, Rev B -->\n\n## Date\nYYYY-MM-DD\n\n## Assembly Notes\n| Step | Description | Status | Issues |\n|------|-------------|--------|--------|\n| 1    |             | Done   |        |\n| 2    |             |        |        |\n\n## Component Substitutions\n| Original | Substitute | Reason |\n|----------|-----------|--------|\n|          |           |        |\n\n## Photos / Observations\n- \n\n## Initial Power-On Results\n- Supply current: \n- Voltages verified: \n"
+    },
+    {
+      "stage": "prototyping",
+      "name": "Bring-Up Procedure",
+      "description": "Step-by-step procedure for safely powering and validating a prototype",
+      "sort_order": 1,
+      "content": "# Bring-Up Procedure\n\n## Board\n<!-- Board name and revision -->\n\n## Safety Precautions\n- [ ] Current limit set on power supply\n- [ ] ESD precautions in place\n\n## Step-by-Step Bring-Up\n\n### Step 1: Visual Inspection\n- [ ] No solder bridges\n- [ ] Components correctly oriented\n\n### Step 2: Power Rails\n| Rail | Expected | Measured | Pass |\n|------|----------|----------|------|\n|      |          |          |      |\n\n### Step 3: Clock Verification\n- \n\n### Step 4: Communication Check\n- \n\n## Go / No-Go Decision\n- \n"
+    },
+    {
+      "stage": "testing",
+      "name": "Hardware Test Plan",
+      "description": "Define test procedures for electrical and functional validation",
+      "sort_order": 0,
+      "content": "# Hardware Test Plan\n\n## Device Under Test\n<!-- Board name and revision -->\n\n## Test Equipment\n| Equipment | Model | Calibration Date |\n|-----------|-------|------------------|\n|           |       |                  |\n\n## Test Cases\n| ID | Test | Procedure | Pass Criteria | Result |\n|----|------|-----------|--------------|--------|\n| T1 |      |           |              |        |\n| T2 |      |           |              |        |\n\n## Environmental Tests\n- [ ] Temperature range\n- [ ] Humidity\n- [ ] Vibration\n\n## Summary\n- Tests passed: __ / __\n- Issues found: \n"
+    },
+    {
+      "stage": "testing",
+      "name": "EMC Pre-Compliance Report",
+      "description": "Document pre-compliance EMC testing results and mitigations",
+      "sort_order": 1,
+      "content": "# EMC Pre-Compliance Report\n\n## Device\n<!-- Product name and revision -->\n\n## Standards Targeted\n- [ ] FCC Part 15\n- [ ] CE EN 55032\n- [ ] Other: \n\n## Radiated Emissions\n| Frequency | Level (dBuV/m) | Limit | Margin | Pass |\n|-----------|---------------|-------|--------|------|\n|           |               |       |        |      |\n\n## Conducted Emissions\n| Frequency | Level | Limit | Pass |\n|-----------|-------|-------|------|\n|           |       |       |      |\n\n## Mitigations Applied\n- \n\n## Open Issues\n- \n"
+    },
+    {
+      "stage": "manufacturing_prep",
+      "name": "Bill of Materials (BOM)",
+      "description": "Complete BOM with sourcing and cost information",
+      "sort_order": 0,
+      "content": "# Bill of Materials\n\n## Product\n<!-- Product name and revision -->\n\n## BOM\n| Ref Des | Description | Part Number | Manufacturer | Qty | Unit Cost | Total | Availability |\n|---------|-------------|------------|--------------|-----|-----------|-------|--------------|\n|         |             |            |              |     |           |       |              |\n\n## Alternate Parts\n| Primary | Alternate | Notes |\n|---------|-----------|-------|\n|         |           |       |\n\n## Total BOM Cost\n- Per unit: $__\n- Tooling: $__\n"
+    },
+    {
+      "stage": "manufacturing_prep",
+      "name": "Assembly Instructions",
+      "description": "Document assembly sequence and quality checkpoints for manufacturing",
+      "sort_order": 1,
+      "content": "# Assembly Instructions\n\n## Product\n<!-- Product name and revision -->\n\n## Required Tools & Fixtures\n- \n\n## Assembly Sequence\n| Step | Operation | Details | QC Check |\n|------|-----------|---------|----------|\n| 1    | SMT placement |     | AOI      |\n| 2    | Reflow    |         | Visual   |\n| 3    | Through-hole |      |          |\n| 4    | Final assembly |   |          |\n\n## Quality Checkpoints\n- [ ] Solder paste inspection\n- [ ] Post-reflow AOI\n- [ ] Functional test\n- [ ] Final visual inspection\n\n## Packaging\n- \n"
+    },
+    {
+      "stage": "final_specs",
+      "name": "Product Datasheet",
+      "description": "Customer-facing datasheet with specifications and features",
+      "sort_order": 0,
+      "content": "# Product Datasheet\n\n## Product Name\n<!-- Name and model number -->\n\n## Features\n- \n\n## Specifications\n| Parameter | Value | Unit |\n|-----------|-------|------|\n| Supply Voltage | | V |\n| Current Consumption | | mA |\n| Operating Temperature | | °C |\n| Dimensions | | mm |\n| Weight | | g |\n\n## Pin / Connector Description\n| Pin | Name | Function |\n|-----|------|----------|\n|     |      |          |\n\n## Ordering Information\n| Part Number | Description | Package |\n|------------|-------------|--------|\n|            |             |        |\n"
+    },
+    {
+      "stage": "final_specs",
+      "name": "Certification Summary",
+      "description": "Summary of regulatory certifications and compliance status",
+      "sort_order": 1,
+      "content": "# Certification Summary\n\n## Product\n<!-- Product name and model -->\n\n## Certifications\n| Standard | Status | Lab | Report # | Expiry |\n|----------|--------|-----|----------|--------|\n| FCC Part 15 | | | | |\n| CE Mark | | | | |\n| UL/CSA | | | | |\n| RoHS | | | | |\n\n## Test Reports on File\n- \n\n## Labeling Requirements\n- [ ] FCC ID label\n- [ ] CE mark\n- [ ] Serial number format\n\n## Notes\n- \n"
+    }
+  ]
+}

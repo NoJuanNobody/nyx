@@ -1,0 +1,273 @@
+{
+  "slug": "architectural_design",
+  "label": "Architectural Design",
+  "description": "Building design from concept to construction-ready documents",
+  "icon": "🏗️",
+  "is_default": false,
+  "sort_order": 12,
+  "connectors": [
+    "Concept sketches guide detailed drawings",
+    "Drawings inform materials specification",
+    "Materials feed cost analysis",
+    "Cost analysis goes through contractor review",
+    "Review produces construction-ready documents"
+  ],
+  "stages": [
+    {
+      "slug": "concept_sketch",
+      "sort_order": 0,
+      "label": "Concept Sketch",
+      "abbreviation": "CS",
+      "subtitle": "Design Vision",
+      "color": "bg-amber-100",
+      "text_color": "text-amber-700",
+      "dot_color": "bg-amber-400",
+      "border_color": "border-amber-300",
+      "hex": "#F59E0B",
+      "who": "Architect, Client",
+      "description": "Develop initial design concepts",
+      "icon": "✏️",
+      "ai": "Suggests approaches, identifies site constraints",
+      "output": "Approved concept sketches",
+      "docs": [
+        "Concept Sketches",
+        "Site Analysis",
+        "Design Brief",
+        "Mood Board",
+        "Precedents"
+      ],
+      "suggestions": [
+        "Suggest design approaches",
+        "Analyze site constraints",
+        "Generate mood board"
+      ]
+    },
+    {
+      "slug": "detailed_drawings",
+      "sort_order": 1,
+      "label": "Detailed Drawings",
+      "abbreviation": "DD",
+      "subtitle": "Technical Drawings",
+      "color": "bg-orange-100",
+      "text_color": "text-orange-700",
+      "dot_color": "bg-orange-400",
+      "border_color": "border-orange-300",
+      "hex": "#F97316",
+      "who": "Architect, Drafters",
+      "description": "Create detailed architectural drawings",
+      "icon": "📐",
+      "ai": "Checks building codes, validates dimensions",
+      "output": "Complete drawing set",
+      "docs": [
+        "Floor Plans",
+        "Elevations",
+        "Sections",
+        "Details",
+        "Site Plan"
+      ],
+      "suggestions": [
+        "Check building codes",
+        "Validate dimensions",
+        "Suggest structural solutions"
+      ]
+    },
+    {
+      "slug": "materials_spec",
+      "sort_order": 2,
+      "label": "Materials Spec",
+      "abbreviation": "MS",
+      "subtitle": "Material Selection",
+      "color": "bg-yellow-100",
+      "text_color": "text-yellow-700",
+      "dot_color": "bg-yellow-400",
+      "border_color": "border-yellow-300",
+      "hex": "#EAB308",
+      "who": "Architect",
+      "description": "Select and specify materials",
+      "icon": "🧱",
+      "ai": "Suggests alternatives, checks sustainability",
+      "output": "Material specification",
+      "docs": [
+        "Material Schedule",
+        "Finish Schedule",
+        "Sustainability Report",
+        "Product Specs"
+      ],
+      "suggestions": [
+        "Suggest alternatives",
+        "Check sustainability",
+        "Estimate lead times"
+      ]
+    },
+    {
+      "slug": "cost_analysis",
+      "sort_order": 3,
+      "label": "Cost Analysis",
+      "abbreviation": "CA",
+      "subtitle": "Budget Estimate",
+      "color": "bg-lime-100",
+      "text_color": "text-lime-700",
+      "dot_color": "bg-lime-400",
+      "border_color": "border-lime-300",
+      "hex": "#A3E635",
+      "who": "Quantity Surveyor",
+      "description": "Prepare cost estimates",
+      "icon": "💲",
+      "ai": "Generates estimates, identifies VE opportunities",
+      "output": "Detailed cost estimate",
+      "docs": [
+        "Cost Estimate",
+        "Budget Analysis",
+        "VE Options",
+        "Cash Flow"
+      ],
+      "suggestions": [
+        "Generate estimates",
+        "Find VE opportunities",
+        "Compare to budget"
+      ]
+    },
+    {
+      "slug": "contractor_review",
+      "sort_order": 4,
+      "label": "Contractor Review",
+      "abbreviation": "CR",
+      "subtitle": "Builder Feedback",
+      "color": "bg-green-100",
+      "text_color": "text-green-700",
+      "dot_color": "bg-green-400",
+      "border_color": "border-green-300",
+      "hex": "#22C55E",
+      "who": "General Contractor",
+      "description": "Contractor constructability review",
+      "icon": "🏗️",
+      "ai": "Identifies constructability issues",
+      "output": "Reviewed plans with RFI responses",
+      "docs": [
+        "Contractor Comments",
+        "RFI Log",
+        "Constructability Review",
+        "Coordination"
+      ],
+      "suggestions": [
+        "Identify constructability issues",
+        "Suggest sequencing",
+        "Flag coordination"
+      ]
+    },
+    {
+      "slug": "construction_ready",
+      "sort_order": 5,
+      "label": "Construction Ready",
+      "abbreviation": "CX",
+      "subtitle": "Permit Set",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Architect, Owner",
+      "description": "Final construction documents",
+      "icon": "🏛️",
+      "ai": "Validates permit requirements",
+      "output": "Construction-ready documents",
+      "docs": [
+        "Construction Docs",
+        "Permit Application",
+        "Project Schedule",
+        "Contract Docs"
+      ],
+      "suggestions": [
+        "Validate permit requirements",
+        "Generate checklist",
+        "Create timeline"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "concept_sketch",
+      "name": "Design Brief",
+      "description": "Capture client requirements, site constraints, and design vision",
+      "sort_order": 0,
+      "content": "# Design Brief\n\n## Project Name\n<!-- Name -->\n\n## Client\n<!-- Name and contact -->\n\n## Project Type\n<!-- Residential / Commercial / Mixed-Use / Renovation -->\n\n## Program Requirements\n| Space | Area (sq ft) | Notes |\n|-------|-------------|-------|\n|       |             |       |\n\n## Site Information\n- Address: \n- Lot size: \n- Zoning: \n- Setbacks: \n- Orientation: \n\n## Client Vision\n<!-- Style preferences, inspiration, must-haves -->\n\n## Budget Range\n- \n\n## Timeline\n- Design completion: \n- Construction start: \n\n## Constraints\n- \n"
+    },
+    {
+      "stage": "concept_sketch",
+      "name": "Site Analysis",
+      "description": "Document site conditions, context, and design opportunities",
+      "sort_order": 1,
+      "content": "# Site Analysis\n\n## Project\n<!-- Project name -->\n\n## Location\n- Address: \n- Coordinates: \n\n## Physical Conditions\n| Factor | Observation |\n|--------|------------|\n| Topography | |\n| Soil type | |\n| Vegetation | |\n| Drainage | |\n| Sun path | |\n| Prevailing winds | |\n\n## Context\n- Adjacent buildings: \n- Street character: \n- Views to preserve: \n- Noise sources: \n\n## Regulatory\n- Zoning: \n- Height limit: \n- FAR: \n- Parking requirements: \n\n## Opportunities\n- \n\n## Challenges\n- \n"
+    },
+    {
+      "stage": "detailed_drawings",
+      "name": "Drawing Set Checklist",
+      "description": "Track completion of all required architectural drawings",
+      "sort_order": 0,
+      "content": "# Drawing Set Checklist\n\n## Project\n<!-- Project name -->\n\n## Drawing Set\n| Sheet # | Title | Scale | Status | Date |\n|---------|-------|-------|--------|------|\n| A1.0 | Site Plan | 1\"=20' | | |\n| A1.1 | Floor Plan — Level 1 | 1/4\"=1' | | |\n| A1.2 | Floor Plan — Level 2 | 1/4\"=1' | | |\n| A2.0 | Elevations | 1/4\"=1' | | |\n| A3.0 | Building Sections | 1/4\"=1' | | |\n| A4.0 | Wall Sections | 1-1/2\"=1' | | |\n| A5.0 | Details | Various | | |\n| A6.0 | Door/Window Schedule | | | |\n\n## Coordination\n- [ ] Structural reviewed\n- [ ] MEP reviewed\n- [ ] Code review complete\n"
+    },
+    {
+      "stage": "detailed_drawings",
+      "name": "Space Planning Summary",
+      "description": "Document room layouts, adjacencies, and area calculations",
+      "sort_order": 1,
+      "content": "# Space Planning Summary\n\n## Project\n<!-- Project name -->\n\n## Area Summary\n| Level | Gross Area | Net Area | Efficiency |\n|-------|-----------|----------|------------|\n| 1     |           |          |            |\n| 2     |           |          |            |\n| Total |           |          |            |\n\n## Room Schedule\n| Room | Level | Area | Ceiling Ht | Flooring | Notes |\n|------|-------|------|-----------|----------|-------|\n|      |       |      |           |          |       |\n\n## Adjacency Requirements\n| Space A | Space B | Relationship |\n|---------|---------|-------------|\n|         |         | Adjacent / Near / Separate |\n\n## Code Compliance\n- Occupancy type: \n- Occupant load: \n- Required exits: \n- ADA compliance: \n"
+    },
+    {
+      "stage": "materials_spec",
+      "name": "Material Specifications",
+      "description": "Specify materials, finishes, and performance requirements",
+      "sort_order": 0,
+      "content": "# Material Specifications\n\n## Project\n<!-- Project name -->\n\n## Exterior Materials\n| Element | Material | Color / Finish | Product | Notes |\n|---------|---------|---------------|---------|-------|\n| Cladding | | | | |\n| Roofing | | | | |\n| Windows | | | | |\n| Doors | | | | |\n\n## Interior Finishes\n| Room | Floor | Walls | Ceiling | Trim |\n|------|-------|-------|---------|------|\n|      |       |       |         |      |\n\n## Performance Requirements\n| Material | Fire Rating | Insulation | Acoustic | Sustainability |\n|---------|------------|-----------|---------|---------------|\n|         |            |           |         |               |\n\n## Sustainability Goals\n- [ ] LEED points targeted: \n- [ ] Recycled content: \n- [ ] Local sourcing: \n"
+    },
+    {
+      "stage": "materials_spec",
+      "name": "Fixture & Equipment Schedule",
+      "description": "Schedule all fixtures, equipment, and hardware selections",
+      "sort_order": 1,
+      "content": "# Fixture & Equipment Schedule\n\n## Project\n<!-- Project name -->\n\n## Plumbing Fixtures\n| Location | Fixture | Manufacturer | Model | Finish | Cost |\n|----------|---------|-------------|-------|--------|------|\n|          |         |             |       |        |      |\n\n## Lighting Fixtures\n| Location | Type | Manufacturer | Model | Wattage | Cost |\n|----------|------|-------------|-------|---------|------|\n|          |      |             |       |         |      |\n\n## Hardware\n| Item | Type | Finish | Manufacturer | Model |\n|------|------|--------|-------------|-------|\n| Door handles | | | | |\n| Cabinet pulls | | | | |\n\n## Appliances\n| Item | Manufacturer | Model | Dimensions | Cost |\n|------|-------------|-------|-----------|------|\n|      |             |       |           |      |\n"
+    },
+    {
+      "stage": "cost_analysis",
+      "name": "Construction Cost Estimate",
+      "description": "Estimate construction costs by category and building system",
+      "sort_order": 0,
+      "content": "# Construction Cost Estimate\n\n## Project\n<!-- Project name -->\n\n## Summary\n| Category | Cost | $/SF |\n|----------|------|------|\n| Site Work | | |\n| Foundation | | |\n| Structure | | |\n| Exterior Envelope | | |\n| Interior Finishes | | |\n| MEP Systems | | |\n| Contingency (10%) | | |\n| **Total** | | |\n\n## Assumptions\n- Construction type: \n- Labor market: \n- Escalation rate: \n\n## Value Engineering Options\n| Item | Savings | Impact |\n|------|---------|--------|\n|      |         |        |\n\n## Exclusions\n- \n"
+    },
+    {
+      "stage": "cost_analysis",
+      "name": "Budget Comparison",
+      "description": "Compare estimated costs against client budget with options",
+      "sort_order": 1,
+      "content": "# Budget Comparison\n\n## Project\n<!-- Project name -->\n\n## Budget vs. Estimate\n| Category | Budget | Estimate | Variance |\n|----------|--------|----------|----------|\n|          |        |          |          |\n| **Total** | | | |\n\n## Over-Budget Items\n| Item | Over By | Alternatives |\n|------|---------|-------------|\n|      |         |             |\n\n## Cost Reduction Options\n| Option | Savings | Impact on Design | Recommended |\n|--------|---------|-----------------|------------|\n|        |         |                 | Yes / No   |\n\n## Client Decision Required\n- [ ] Increase budget by $__\n- [ ] Accept value engineering options\n- [ ] Reduce scope\n\n## Next Steps\n- \n"
+    },
+    {
+      "stage": "contractor_review",
+      "name": "Contractor Bid Analysis",
+      "description": "Compare contractor bids and evaluate qualifications",
+      "sort_order": 0,
+      "content": "# Contractor Bid Analysis\n\n## Project\n<!-- Project name -->\n\n## Bids Received\n| Contractor | Bid Amount | Timeline | Qualifications | References |\n|-----------|-----------|----------|---------------|------------|\n|           |           |          |               |            |\n\n## Bid Comparison\n| Line Item | Contractor A | Contractor B | Contractor C |\n|-----------|-------------|-------------|-------------|\n|           |             |             |             |\n| **Total** |             |             |             |\n\n## Evaluation Criteria\n| Criteria | Weight | Contractor A | Contractor B |\n|----------|--------|-------------|-------------|\n| Price | 40% | | |\n| Experience | 25% | | |\n| Timeline | 20% | | |\n| References | 15% | | |\n\n## Recommendation\n- \n"
+    },
+    {
+      "stage": "contractor_review",
+      "name": "Constructability Review",
+      "description": "Review drawings for constructability issues before bidding",
+      "sort_order": 1,
+      "content": "# Constructability Review\n\n## Project\n<!-- Project name -->\n\n## Reviewer\n<!-- Name and role -->\n\n## Issues Found\n| # | Drawing | Issue | Severity | Resolution |\n|---|---------|-------|----------|------------|\n| 1 |         |       | High / Med / Low | |\n| 2 |         |       |          |            |\n\n## Coordination Issues\n- [ ] Structural vs. architectural conflicts\n- [ ] MEP routing clearances\n- [ ] Waterproofing details\n- [ ] Expansion joints\n\n## Sequencing Concerns\n- \n\n## Material Availability\n| Material | Lead Time | Risk |\n|---------|-----------|------|\n|         |           |      |\n\n## Recommendations\n- \n"
+    },
+    {
+      "stage": "construction_ready",
+      "name": "Permit Submission Checklist",
+      "description": "Ensure all documents are ready for building permit submission",
+      "sort_order": 0,
+      "content": "# Permit Submission Checklist\n\n## Project\n<!-- Project name and address -->\n\n## Required Documents\n- [ ] Completed application form\n- [ ] Site plan\n- [ ] Architectural drawings (stamped)\n- [ ] Structural drawings (stamped)\n- [ ] MEP drawings\n- [ ] Energy compliance (Title 24 / IECC)\n- [ ] Soils report\n- [ ] Survey\n- [ ] HOA approval (if applicable)\n\n## Code Compliance\n- [ ] Zoning verified\n- [ ] Building code compliance path documented\n- [ ] Fire rating requirements met\n- [ ] Accessibility requirements met\n\n## Fees\n- Permit fee: $\n- Plan check fee: $\n\n## Submission Date\n- \n\n## Expected Review Period\n- \n"
+    },
+    {
+      "stage": "construction_ready",
+      "name": "Construction Documents Summary",
+      "description": "Summary of the final construction document set for handoff",
+      "sort_order": 1,
+      "content": "# Construction Documents Summary\n\n## Project\n<!-- Project name -->\n\n## Document Set\n| Discipline | Sheets | Firm | Stamp Date |\n|-----------|--------|------|----------|\n| Architectural | | | |\n| Structural | | | |\n| Mechanical | | | |\n| Electrical | | | |\n| Plumbing | | | |\n| Civil | | | |\n| Landscape | | | |\n\n## Specifications\n- Spec sections: \n- Format: \n\n## Addenda\n| # | Date | Description |\n|---|------|------------|\n|   |      |            |\n\n## Distribution\n| Recipient | Copies | Format | Date |\n|-----------|--------|--------|------|\n|           |        |        |      |\n"
+    }
+  ]
+}

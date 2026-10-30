@@ -1,0 +1,271 @@
+{
+  "slug": "contract_law",
+  "label": "Contract Law",
+  "description": "Legal contract lifecycle from requirements to executed agreement",
+  "icon": "⚖️",
+  "is_default": false,
+  "sort_order": 11,
+  "connectors": [
+    "Requirements shape the draft agreement",
+    "Draft goes through stakeholder review",
+    "Review drives legal revision",
+    "Revision enables negotiation rounds",
+    "Negotiation produces the final executed contract"
+  ],
+  "stages": [
+    {
+      "slug": "requirements_scope",
+      "sort_order": 0,
+      "label": "Requirements & Scope",
+      "abbreviation": "RS",
+      "subtitle": "Deal Terms",
+      "color": "bg-amber-100",
+      "text_color": "text-amber-700",
+      "dot_color": "bg-amber-400",
+      "border_color": "border-amber-300",
+      "hex": "#F59E0B",
+      "who": "Business Owner, Legal Lead",
+      "description": "Define contract requirements and scope",
+      "icon": "📋",
+      "ai": "Identifies missing terms, benchmarks agreements",
+      "output": "Requirements with term sheet",
+      "docs": [
+        "Requirements",
+        "Term Sheet",
+        "Scope Definition",
+        "Risk Profile"
+      ],
+      "suggestions": [
+        "Identify missing terms",
+        "Suggest standard clauses",
+        "Assess risks"
+      ]
+    },
+    {
+      "slug": "draft_agreement",
+      "sort_order": 1,
+      "label": "Draft Agreement",
+      "abbreviation": "DA",
+      "subtitle": "Initial Draft",
+      "color": "bg-orange-100",
+      "text_color": "text-orange-700",
+      "dot_color": "bg-orange-400",
+      "border_color": "border-orange-300",
+      "hex": "#F97316",
+      "who": "Legal Counsel",
+      "description": "Draft the complete agreement",
+      "icon": "📝",
+      "ai": "Generates clause language, checks consistency",
+      "output": "Complete contract draft",
+      "docs": [
+        "Contract Draft",
+        "Schedules",
+        "Definitions",
+        "Boilerplate"
+      ],
+      "suggestions": [
+        "Generate clause language",
+        "Check consistency",
+        "Add protective provisions"
+      ]
+    },
+    {
+      "slug": "stakeholder_review",
+      "sort_order": 2,
+      "label": "Stakeholder Review",
+      "abbreviation": "SR",
+      "subtitle": "Internal Review",
+      "color": "bg-yellow-100",
+      "text_color": "text-yellow-700",
+      "dot_color": "bg-yellow-400",
+      "border_color": "border-yellow-300",
+      "hex": "#EAB308",
+      "who": "Business, Finance, Ops",
+      "description": "Internal stakeholder review",
+      "icon": "👥",
+      "ai": "Summarizes business impact, flags unusual provisions",
+      "output": "Reviewed draft with comments",
+      "docs": [
+        "Review Comments",
+        "Business Impact",
+        "Operational Assessment",
+        "Sign-off"
+      ],
+      "suggestions": [
+        "Summarize business impact",
+        "Flag unusual provisions",
+        "Track approvals"
+      ]
+    },
+    {
+      "slug": "legal_revision",
+      "sort_order": 3,
+      "label": "Legal Revision",
+      "abbreviation": "LV",
+      "subtitle": "Redlining",
+      "color": "bg-red-100",
+      "text_color": "text-red-700",
+      "dot_color": "bg-red-400",
+      "border_color": "border-red-300",
+      "hex": "#EF4444",
+      "who": "Legal Counsel",
+      "description": "Incorporate feedback, prepare redline",
+      "icon": "🔴",
+      "ai": "Tracks changes, prepares redline comparison",
+      "output": "Revised draft with tracked changes",
+      "docs": [
+        "Redlined Draft",
+        "Change Summary",
+        "Issue Log",
+        "Outstanding Items"
+      ],
+      "suggestions": [
+        "Track all changes",
+        "Prepare redline",
+        "Resolve issues"
+      ]
+    },
+    {
+      "slug": "negotiation_rounds",
+      "sort_order": 4,
+      "label": "Negotiation Rounds",
+      "abbreviation": "NR",
+      "subtitle": "Counterparty Talks",
+      "color": "bg-rose-100",
+      "text_color": "text-rose-700",
+      "dot_color": "bg-rose-400",
+      "border_color": "border-rose-300",
+      "hex": "#F43F5E",
+      "who": "Legal Teams (Both Parties)",
+      "description": "Exchange drafts and negotiate terms",
+      "icon": "🤝",
+      "ai": "Analyzes counterparty redlines, suggests compromises",
+      "output": "Negotiated agreement",
+      "docs": [
+        "Counterparty Redline",
+        "Negotiation Log",
+        "Compromises",
+        "Open Issues"
+      ],
+      "suggestions": [
+        "Analyze counterparty changes",
+        "Suggest compromises",
+        "Track progress"
+      ]
+    },
+    {
+      "slug": "final_executed",
+      "sort_order": 5,
+      "label": "Final Executed",
+      "abbreviation": "FE",
+      "subtitle": "Signed Contract",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Authorized Signatories",
+      "description": "Final execution with signatures",
+      "icon": "✍️",
+      "ai": "Generates execution checklist, creates obligation tracker",
+      "output": "Fully executed agreement",
+      "docs": [
+        "Executed Agreement",
+        "Signature Page",
+        "Obligation Tracker",
+        "Key Dates"
+      ],
+      "suggestions": [
+        "Generate execution checklist",
+        "Verify conditions",
+        "Create obligation tracker"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "requirements_scope",
+      "name": "Contract Requirements Brief",
+      "description": "Define the business requirements and scope for the contract",
+      "sort_order": 0,
+      "content": "# Contract Requirements Brief\n\n## Matter\n<!-- Deal or project name -->\n\n## Parties\n| Party | Role | Contact |\n|-------|------|--------|\n|       |      |        |\n\n## Business Objectives\n<!-- What should this contract accomplish? -->\n\n## Key Terms Required\n| Term | Requirement | Priority |\n|------|-----------|----------|\n| Duration | | Must |\n| Payment | | Must |\n| IP Rights | | Must |\n| Termination | | Must |\n| Liability | | Should |\n\n## Constraints\n- Budget: \n- Timeline: \n- Regulatory: \n\n## Precedent Agreements\n- \n"
+    },
+    {
+      "stage": "requirements_scope",
+      "name": "Term Sheet",
+      "description": "Outline the principal terms before drafting the full agreement",
+      "sort_order": 1,
+      "content": "# Term Sheet\n\n## Parties\n- Party A: \n- Party B: \n\n## Purpose\n<!-- Transaction summary -->\n\n## Principal Terms\n| Term | Details |\n|------|--------|\n| Effective Date | |\n| Duration | |\n| Consideration | |\n| Payment Terms | |\n| Deliverables | |\n| Warranties | |\n| Indemnification | |\n| Limitation of Liability | |\n| Termination | |\n| Governing Law | |\n| Dispute Resolution | |\n\n## Conditions Precedent\n- \n\n## Non-Binding\n<!-- This term sheet is non-binding except for [specify] -->\n\n## Next Steps\n- \n"
+    },
+    {
+      "stage": "draft_agreement",
+      "name": "Contract Draft Outline",
+      "description": "Structure the contract draft with standard clauses",
+      "sort_order": 0,
+      "content": "# Contract Draft Outline\n\n## Agreement Title\n<!-- e.g., Master Services Agreement -->\n\n## Sections\n1. Recitals\n2. Definitions\n3. Scope of Services / Deliverables\n4. Term and Termination\n5. Compensation and Payment\n6. Representations and Warranties\n7. Indemnification\n8. Limitation of Liability\n9. Confidentiality\n10. Intellectual Property\n11. Insurance\n12. Force Majeure\n13. Governing Law and Dispute Resolution\n14. General Provisions\n15. Signatures\n\n## Drafting Notes\n| Section | Notes | Precedent |\n|---------|-------|-----------|\n|         |       |           |\n\n## Attachments / Exhibits\n- \n"
+    },
+    {
+      "stage": "draft_agreement",
+      "name": "Key Clause Drafts",
+      "description": "Draft critical contract clauses with alternative language options",
+      "sort_order": 1,
+      "content": "# Key Clause Drafts\n\n## Contract\n<!-- Agreement name -->\n\n## Indemnification\n### Option A (Broad)\n<!-- Draft -->\n\n### Option B (Narrow)\n<!-- Draft -->\n\n## Limitation of Liability\n### Option A (Cap at contract value)\n<!-- Draft -->\n\n### Option B (Mutual cap)\n<!-- Draft -->\n\n## Termination\n### For Cause\n<!-- Draft -->\n\n### For Convenience\n<!-- Draft -->\n\n## IP Assignment\n### Option A (Full assignment)\n<!-- Draft -->\n\n### Option B (License)\n<!-- Draft -->\n\n## Recommendation\n| Clause | Recommended Option | Reason |\n|--------|-------------------|--------|\n|        |                   |        |\n"
+    },
+    {
+      "stage": "stakeholder_review",
+      "name": "Internal Review Comments",
+      "description": "Collect and track internal stakeholder comments on the draft",
+      "sort_order": 0,
+      "content": "# Internal Review Comments\n\n## Contract\n<!-- Agreement name and version -->\n\n## Reviewers\n| Reviewer | Department | Date Sent | Date Returned |\n|----------|-----------|-----------|---------------|\n|          |           |           |               |\n\n## Comments\n| # | Section | Reviewer | Comment | Priority | Resolution |\n|---|---------|----------|---------|----------|------------|\n| 1 |         |          |         |          |            |\n| 2 |         |          |         |          |            |\n\n## Unresolved Issues\n- \n\n## Escalations Required\n- \n\n## Next Steps\n- [ ] Incorporate feedback\n- [ ] Second review if needed\n"
+    },
+    {
+      "stage": "stakeholder_review",
+      "name": "Risk Assessment Matrix",
+      "description": "Assess and categorize risks in the contract terms",
+      "sort_order": 1,
+      "content": "# Contract Risk Assessment\n\n## Contract\n<!-- Agreement name -->\n\n## Risk Matrix\n| Clause | Risk | Likelihood | Impact | Mitigation | Acceptable |\n|--------|------|-----------|--------|-----------|------------|\n| Indemnification | | L / M / H | L / M / H | | Yes / No |\n| Liability Cap | | | | | |\n| Termination | | | | | |\n| IP Rights | | | | | |\n| Warranties | | | | | |\n\n## High-Risk Items\n- \n\n## Deal Breakers\n- \n\n## Recommended Actions\n1. \n2. \n3. \n"
+    },
+    {
+      "stage": "legal_revision",
+      "name": "Redline Summary",
+      "description": "Summarize key redline changes between contract versions",
+      "sort_order": 0,
+      "content": "# Redline Summary\n\n## Contract\n<!-- Agreement name -->\n\n## Versions Compared\n- From: v__ (date)\n- To: v__ (date)\n\n## Material Changes\n| Section | Previous Language | New Language | Impact |\n|---------|-----------------|-------------|--------|\n|         |                 |             |        |\n\n## Minor / Clarifying Changes\n- \n\n## Changes Rejected\n| Section | Proposed Change | Reason for Rejection |\n|---------|----------------|--------------------|\n|         |                |                    |\n\n## Open Items\n- \n\n## Requires Approval From\n- \n"
+    },
+    {
+      "stage": "legal_revision",
+      "name": "Counterparty Markup Response",
+      "description": "Track and respond to the counterparty redline markup",
+      "sort_order": 1,
+      "content": "# Counterparty Markup Response\n\n## Contract\n<!-- Agreement name -->\n\n## Counterparty Changes\n| # | Section | Their Change | Accept | Counter | Rationale |\n|---|---------|-------------|--------|---------|----------|\n| 1 |         |             | [ ]    |         |          |\n| 2 |         |             | [ ]    |         |          |\n\n## Summary\n- Changes accepted: __ / __\n- Changes countered: __ / __\n- Changes rejected: __ / __\n\n## New Issues Raised\n- \n\n## Strategy for Next Round\n- Key positions to hold: \n- Acceptable concessions: \n- Escalation triggers: \n"
+    },
+    {
+      "stage": "negotiation_rounds",
+      "name": "Negotiation Position Paper",
+      "description": "Document your negotiation positions and fallback options",
+      "sort_order": 0,
+      "content": "# Negotiation Position Paper\n\n## Contract\n<!-- Agreement name -->\n\n## Key Issues\n| Issue | Our Position | Their Position | BATNA | Priority |\n|-------|-------------|---------------|-------|----------|\n|       |             |               |       | Must / Nice |\n\n## Trade-Offs\n<!-- What are we willing to give to get what we need? -->\n| Give | Get |\n|------|-----|\n|      |     |\n\n## Walk-Away Points\n- \n\n## Negotiation Strategy\n- Opening: \n- Approach: \n- Timeline pressure: \n\n## Authority Levels\n| Decision | Authority |\n|---------|-----------|\n|         |           |\n"
+    },
+    {
+      "stage": "negotiation_rounds",
+      "name": "Negotiation Log",
+      "description": "Track negotiation rounds, concessions, and remaining issues",
+      "sort_order": 1,
+      "content": "# Negotiation Log\n\n## Contract\n<!-- Agreement name -->\n\n## Rounds\n| # | Date | Participants | Key Decisions | Open Items |\n|---|------|-------------|--------------|------------|\n| 1 |      |             |              |            |\n| 2 |      |             |              |            |\n\n## Concessions Made\n| # | By Us | By Them | Value |\n|---|-------|---------|-------|\n|   |       |         |       |\n\n## Remaining Issues\n| Issue | Status | Next Step |\n|-------|--------|----------|\n|       |        |          |\n\n## Target Close Date\n- \n\n## Escalation Needed\n- [ ] Yes — Issue: \n- [ ] No\n"
+    },
+    {
+      "stage": "final_executed",
+      "name": "Execution Checklist",
+      "description": "Final checklist before signing the contract",
+      "sort_order": 0,
+      "content": "# Execution Checklist\n\n## Contract\n<!-- Agreement title and final version -->\n\n## Pre-Execution\n- [ ] Final version matches negotiated terms\n- [ ] All exhibits and schedules attached\n- [ ] Correct legal entity names\n- [ ] Authorized signatories confirmed\n- [ ] Insurance requirements met\n- [ ] Board approval (if required)\n- [ ] Regulatory approvals (if required)\n\n## Execution\n- [ ] All parties signed\n- [ ] Dates filled in\n- [ ] Counterparts exchanged\n\n## Post-Execution\n- [ ] Fully executed copies distributed\n- [ ] Filed in contract management system\n- [ ] Key dates added to calendar\n- [ ] Stakeholders notified\n\n## Key Dates\n| Event | Date |\n|-------|------|\n| Effective | |\n| First payment | |\n| Renewal / Expiration | |\n"
+    },
+    {
+      "stage": "final_executed",
+      "name": "Contract Summary Sheet",
+      "description": "One-page summary of the executed contract for stakeholders",
+      "sort_order": 1,
+      "content": "# Contract Summary Sheet\n\n## Parties\n- Party A: \n- Party B: \n\n## Agreement Type\n<!-- e.g., MSA, NDA, License -->\n\n## Key Terms\n| Term | Detail |\n|------|--------|\n| Effective Date | |\n| Duration | |\n| Value | |\n| Payment Terms | |\n| Auto-Renewal | Yes / No |\n| Termination Notice | |\n| Governing Law | |\n\n## Key Obligations\n| Party | Obligation | Deadline |\n|-------|-----------|----------|\n|       |           |          |\n\n## Important Restrictions\n- \n\n## Contract Manager\n- Name: \n- Next review date: \n"
+    }
+  ]
+}
