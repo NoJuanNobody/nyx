@@ -43,6 +43,7 @@ pub mod scan;
 pub mod security;
 pub mod store;
 pub mod sync;
+pub mod tickets;
 pub mod tree;
 pub mod vcs;
 
