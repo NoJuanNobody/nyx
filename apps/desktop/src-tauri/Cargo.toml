@@ -1,0 +1,19 @@
+[package]
+name = "nyx-desktop"
+description = "Nyx desktop shell (Tauri 2)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[dependencies]
+tauri.workspace = true
+nyx-core.workspace = true
+
+[lints]
+workspace = true
