@@ -8,6 +8,7 @@
 //! - [`security`]: input validation, path jail, SSRF guard, sanitizers, rate limiting, crypto, redaction.
 //! - [`git_provider`]: GitHub/GitLab/Bitbucket integration behind a `GitProvider` trait.
 //! - [`export`]: document export (Markdown, TXT, PDF, DOCX, LaTeX, Jupyter) and deliverables.
+//! - [`ai`]: BYOK model providers and the AI quality / Advisor surface.
 //! - [`error`]: shared error type.
 #![allow(
     clippy::missing_errors_doc,
@@ -22,6 +23,7 @@
     clippy::cast_precision_loss
 )]
 
+pub mod ai;
 pub mod error;
 pub mod export;
 pub mod git_provider;
