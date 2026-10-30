@@ -3,6 +3,7 @@
 //! - [`model`]: typed domain model ported from the Drizzle schema.
 //! - [`store`]: SQLite persistence, migrations, repositories, Postgres import.
 //! - [`ledger`]: append-only credit ledger (agent-native utility tokens).
+//! - [`ai`]: BYOK model providers and the AI quality / Advisor surface.
 //! - [`error`]: shared error type.
 #![allow(
     clippy::missing_errors_doc,
@@ -17,6 +18,7 @@
     clippy::cast_precision_loss
 )]
 
+pub mod ai;
 pub mod error;
 pub mod ledger;
 pub mod model;
