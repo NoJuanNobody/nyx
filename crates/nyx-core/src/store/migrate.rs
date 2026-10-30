@@ -76,6 +76,11 @@ pub const CORE_MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0170_vcs.sql"),
     },
     Migration {
+        version: 171,
+        name: "slack_connections",
+        sql: include_str!("../../migrations/0171_slack_connections.sql"),
+    },
+    Migration {
         version: 172,
         name: "deliverables",
         sql: include_str!("../../migrations/0172_deliverables.sql"),

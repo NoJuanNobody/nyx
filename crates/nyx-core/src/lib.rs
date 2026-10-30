@@ -9,6 +9,7 @@
 //! - [`git_provider`]: GitHub/GitLab/Bitbucket integration behind a `GitProvider` trait.
 //! - [`export`]: document export (Markdown, TXT, PDF, DOCX, LaTeX, Jupyter) and deliverables.
 //! - [`tree`]: folder/document tree (folders, cycle-safe moves, path resolution, ordering, subtrees).
+//! - [`integrations`]: Jira, Confluence and Slack clients, OAuth helpers and webhook handlers.
 //! - [`ai`]: BYOK model providers and the AI quality / Advisor surface.
 //! - [`sync`]: live sync: impact graph, drift detection on push, semantic retrieval, context matching.
 //! - [`error`]: shared error type.
@@ -31,6 +32,7 @@ pub mod export;
 pub mod git_provider;
 pub mod governance;
 pub mod intake;
+pub mod integrations;
 pub mod ledger;
 pub mod lifecycle;
 pub mod model;
