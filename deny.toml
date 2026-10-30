@@ -27,6 +27,7 @@ allow = [
   "0BSD",
   "MPL-2.0",
   "BSL-1.0",
+  "CDLA-Permissive-2.0", # webpki-root-certs: Mozilla CA bundle data (permissive)
 ]
 confidence-threshold = 0.8
 # Workspace crates carry `LicenseRef-TBD` until the project license is chosen.
