@@ -2,7 +2,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider } from '@clerk/clerk-react';
+import '@fontsource-variable/inter/wght.css';
 import { App } from './App';
+import { ThemeProvider } from './components/ThemeProvider';
 import { initAnalytics, captureAttribution } from './lib/analytics';
 import './index.css';
 
@@ -28,9 +30,11 @@ function Providers({ children }: { children: React.ReactNode }) {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Providers>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </ThemeProvider>
     </Providers>
   </StrictMode>,
 );

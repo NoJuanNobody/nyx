@@ -24,18 +24,8 @@
     <meta name="twitter:description" content="Detects doc-code drift, turns doc changes into GitHub & Jira tickets, and feeds specs into Cursor, Copilot & Claude Code." />
     <meta name="twitter:image" content="https://nyx-creative.com/logo.jpeg" />
     <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://clerk.nyx-creative.com https://accounts.nyx-creative.com https://*.clerk.accounts.dev https://www.googletagmanager.com https://www.googleadservices.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.up.railway.app https://fonts.googleapis.com https://clerk.nyx-creative.com https://accounts.nyx-creative.com https://*.clerk.accounts.dev wss://clerk.nyx-creative.com wss://accounts.nyx-creative.com wss://*.clerk.accounts.dev https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://googleads.g.doubleclick.net; img-src 'self' data: https:; frame-src 'self' blob: https://accounts.nyx-creative.com https://*.clerk.accounts.dev https://td.doubleclick.net;">
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <script>
-      // Prevent flash of wrong theme on load
-      (function() {
-        var t = localStorage.getItem('nyx:theme') || 'dark';
-        var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        if (dark) document.documentElement.classList.add('dark');
-      })();
-    </script>
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://clerk.nyx-creative.com https://accounts.nyx-creative.com https://*.clerk.accounts.dev https://www.googletagmanager.com https://www.googleadservices.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://*.up.railway.app https://clerk.nyx-creative.com https://accounts.nyx-creative.com https://*.clerk.accounts.dev wss://clerk.nyx-creative.com wss://accounts.nyx-creative.com wss://*.clerk.accounts.dev https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://googleads.g.doubleclick.net; img-src 'self' data: https:; frame-src 'self' blob: https://accounts.nyx-creative.com https://*.clerk.accounts.dev https://td.doubleclick.net;">
+    <script src="/theme-init.js"></script>
 
     <!-- Structured data for search + AI answer engines -->
     <script type="application/ld+json">
@@ -47,12 +37,7 @@
       "operatingSystem": "Web",
       "url": "https://nyx-creative.com/",
       "description": "Nyx keeps product specs in sync with code — it detects doc-code drift, turns doc changes into GitHub and Jira tickets, and feeds accurate specs into Cursor, Copilot and Claude Code.",
-      "offers": [
-        { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD" },
-        { "@type": "Offer", "name": "Starter", "price": "24", "priceCurrency": "USD" },
-        { "@type": "Offer", "name": "Pro", "price": "59", "priceCurrency": "USD" },
-        { "@type": "Offer", "name": "Team", "price": "129", "priceCurrency": "USD" }
-      ],
+      "isAccessibleForFree": true,
       "publisher": { "@type": "Organization", "name": "Nyx", "url": "https://nyx-creative.com/", "logo": "https://nyx-creative.com/logo.jpeg" }
     }
     </script>

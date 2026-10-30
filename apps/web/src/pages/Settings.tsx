@@ -21,10 +21,11 @@ import { Portal } from '../components/Portal';
 import { SlackIntegration } from '../components/SlackIntegration';
 import { AtlassianIntegration } from '../components/AtlassianIntegration';
 import { NotificationPreferences } from '../components/NotificationPreferences';
+import { AppearanceSettings } from '../components/AppearanceSettings';
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type SettingsTab = 'team' | 'integrations' | 'api-keys' | 'ai-config' | 'notifications' | 'credits' | 'account';
+type SettingsTab = 'team' | 'integrations' | 'api-keys' | 'ai-config' | 'notifications' | 'appearance' | 'credits' | 'account';
 
 interface TeamMember {
   id: string;
@@ -100,6 +101,15 @@ const TABS: { key: SettingsTab; label: string; icon: ReactElement }[] = [
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+      </svg>
+    ),
+  },
+  {
+    key: 'appearance',
+    label: 'Appearance',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42" />
       </svg>
     ),
   },
@@ -1845,6 +1855,7 @@ export function Settings() {
           {activeTab === 'api-keys' && <ApiKeysPanel />}
           {activeTab === 'ai-config' && <AiConfigPanel />}
           {activeTab === 'notifications' && <NotificationPreferences />}
+          {activeTab === 'appearance' && <AppearanceSettings />}
           {activeTab === 'credits' && <CreditsPanel />}
           {activeTab === 'account' && <AccountPanel />}
         </div>
