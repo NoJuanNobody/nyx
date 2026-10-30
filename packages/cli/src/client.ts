@@ -88,6 +88,7 @@ export class NyxClient {
     method: string,
     path: string,
     body?: unknown,
+    extraHeaders?: Record<string, string>,
   ): Promise<T> {
     const url = `${this.config.apiUrl}${path}`;
     const options: RequestInit = {
@@ -95,6 +96,7 @@ export class NyxClient {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.config.apiKey}`,
+        ...extraHeaders,
       },
     };
 
@@ -116,8 +118,8 @@ export class NyxClient {
     return this.request<T>('GET', path);
   }
 
-  async post<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>('POST', path, body);
+  async post<T>(path: string, body?: unknown, headers?: Record<string, string>): Promise<T> {
+    return this.request<T>('POST', path, body, headers);
   }
 
   async put<T>(path: string, body?: unknown): Promise<T> {

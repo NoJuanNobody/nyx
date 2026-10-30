@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "@nyx/harness-core": "workspace:*"
+    "@nyx/harness-core": "workspace:*",
+    "zod": "^3"
   },
   "devDependencies": {
     "tsx": "^4.19.2",
