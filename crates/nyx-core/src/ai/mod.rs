@@ -12,7 +12,8 @@
 //! |---|---|
 //! | [`provider`] | The shared [`LlmProvider`] trait, request/response types, [`FakeLlm`], [`complete_full`] |
 //! | [`wire`] | Pure Anthropic Messages and OpenAI-compatible request builders / response parsers |
-//! | [`transport`] | [`HttpTransport`] seam, [`FakeTransport`], real impl is a documented TODO for the wiring wave |
+//! | [`transport`] | Re-export of the canonical [`crate::net`] seam ([`HttpTransport`], [`FakeTransport`]); the real impl is the `nyx-net` crate |
+//! | [`embedder`] | The one [`Embedder`] trait, [`HashingEmbedder`], OpenAI-compatible [`HttpEmbedder`] |
 //! | [`config`] | [`ProviderConfig`], [`ByokKeys`] (keys live in `profile::SecretStore`), [`select_provider`] |
 //! | [`client`] | [`HttpLlm`]: config + secrets + transport = a real provider |
 //! | [`models`] | Model picker catalog with fallback and TTL cache |
@@ -38,6 +39,7 @@
 pub mod advisor;
 pub mod client;
 pub mod config;
+pub mod embedder;
 pub mod insights;
 pub mod models;
 pub mod parse;
@@ -54,6 +56,7 @@ pub use config::{
     normalize_model_slug, select_provider, ByokKeys, KeyStatus, ModelPair, ProviderConfig,
     ProviderKind,
 };
+pub use embedder::{EmbedError, Embedder, HashingEmbedder, HttpEmbedder};
 pub use models::{ModelCatalog, ModelInfo};
 pub use provider::{
     complete_full, FakeLlm, LlmError, LlmProvider, LlmRequest, LlmResponse, Message, Role,

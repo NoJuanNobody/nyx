@@ -127,8 +127,8 @@ impl LlmProvider for HttpLlm {
         let http = self.build_http_request(request)?;
         let resp = self.transport.send(&http)?;
         match self.config.kind.wire() {
-            Wire::Anthropic => wire::parse_anthropic_response(resp.status, &resp.body),
-            Wire::OpenAi => wire::parse_openai_response(resp.status, &resp.body),
+            Wire::Anthropic => wire::parse_anthropic_response(resp.status, &resp.text()),
+            Wire::OpenAi => wire::parse_openai_response(resp.status, &resp.text()),
         }
     }
 }
@@ -157,11 +157,11 @@ mod tests {
     #[test]
     fn anthropic_roundtrip_through_fake_transport() {
         let (llm, t) = setup(ProviderKind::Anthropic, Some("sk-ant-SECRET"));
-        t.push(200, r#"{"model":"claude","content":[{"type":"text","text":"pong"}],"stop_reason":"end_turn","usage":{"input_tokens":1,"output_tokens":1}}"#);
+        t.push_text(200, r#"{"model":"claude","content":[{"type":"text","text":"pong"}],"stop_reason":"end_turn","usage":{"input_tokens":1,"output_tokens":1}}"#);
         let r = llm.complete(&req()).unwrap();
         assert_eq!(r.text, "pong");
         let sent = t.requests();
-        assert_eq!(sent[0].header("x-api-key"), Some("sk-ant-SECRET"));
+        assert_eq!(sent[0].header_value("x-api-key"), Some("sk-ant-SECRET"));
         assert_eq!(sent[0].url, "https://api.anthropic.com/v1/messages");
         assert!(!format!("{:?}", sent[0]).contains("SECRET"));
         assert!(!format!("{llm:?}").contains("SECRET"));
@@ -170,26 +170,26 @@ mod tests {
     #[test]
     fn openrouter_sends_bearer_and_attribution() {
         let (llm, t) = setup(ProviderKind::OpenRouter, Some("sk-or-1"));
-        t.push(
+        t.push_text(
             200,
             r#"{"choices":[{"message":{"content":"ok"},"finish_reason":"stop"}]}"#,
         );
         assert_eq!(llm.complete(&req()).unwrap().text, "ok");
         let sent = &t.requests()[0];
-        assert_eq!(sent.header("authorization"), Some("Bearer sk-or-1"));
-        assert_eq!(sent.header("x-title"), Some("Nyx"));
+        assert_eq!(sent.header_value("authorization"), Some("Bearer sk-or-1"));
+        assert_eq!(sent.header_value("x-title"), Some("Nyx"));
         assert_eq!(sent.url, "https://openrouter.ai/api/v1/chat/completions");
     }
 
     #[test]
     fn ollama_needs_no_key() {
         let (llm, t) = setup(ProviderKind::Ollama, None);
-        t.push(
+        t.push_text(
             200,
             r#"{"choices":[{"message":{"content":"local"},"finish_reason":"stop"}]}"#,
         );
         assert_eq!(llm.complete(&req()).unwrap().text, "local");
-        assert!(t.requests()[0].header("authorization").is_none());
+        assert!(t.requests()[0].header_value("authorization").is_none());
     }
 
     #[test]
@@ -202,7 +202,7 @@ mod tests {
     #[test]
     fn http_and_transport_errors_surface() {
         let (llm, t) = setup(ProviderKind::OpenAi, Some("k"));
-        t.push(401, r#"{"error":{"message":"bad key"}}"#);
+        t.push_text(401, r#"{"error":{"message":"bad key"}}"#);
         t.push_error("timeout");
         assert!(matches!(
             llm.complete(&req()),
@@ -227,9 +227,12 @@ mod tests {
         )
         .unwrap();
         keys.rotate(ProviderKind::OpenAi, "new").unwrap();
-        t.push(200, r#"{"choices":[{"message":{"content":"x"}}]}"#);
+        t.push_text(200, r#"{"choices":[{"message":{"content":"x"}}]}"#);
         llm.complete(&req()).unwrap();
-        assert_eq!(t.requests()[0].header("authorization"), Some("Bearer new"));
+        assert_eq!(
+            t.requests()[0].header_value("authorization"),
+            Some("Bearer new")
+        );
     }
 
     #[test]

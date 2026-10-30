@@ -54,13 +54,17 @@ posted -> tickets row (board) + audit_trail ticket_created + timeline ticket_cre
 
 ## Parity gaps and deliberate changes (honest list)
 
-- **Linear tickets have no `tickets` row.** `tickets.provider` has a CHECK constraint
-  (`0004_tickets_audit.sql`) that does not allow `linear`, and `model::TicketProvider` has no such
-  variant. Linear refs live on `ticket_drafts` (`external_*`) only, so Linear tickets do not show on
-  the board and `TrackerSink` (proposal push) rejects Linear. Fixing it needs a table rebuild
-  migration plus a model variant (touches shared files): human/orchestrator decision.
-- **No real HTTP for Jira/Linear.** Only request building and response parsing plus an
-  `HttpTransport`-backed adapter; the wiring wave supplies the transport (same as `git_provider`).
+- **Linear tickets reach the board** (migration 180, `0180_tickets_linear.sql`). SQLite cannot widen a
+  CHECK, so `tickets` is rebuilt (rows stashed, table dropped and recreated under the same name so the
+  `REFERENCES tickets(id)` of `audit_trail` / `ticket_drafts` stay valid, `defer_foreign_keys` until
+  COMMIT) and existing posted Linear drafts get a `linear` ticket row (status `open`, corrected by the
+  next status sync) and are linked. `TicketProvider::Linear` exists; `TrackerKind::ticket_provider()`
+  returns a plain `TicketProvider` (it was an `Option`); `TrackerSink` and `review::post` create board
+  rows for Linear. Board derivations: repo name = workspace slug from
+  `linear.app/<workspace>/issue/...`; the rebuilt `Destination::Linear.team_id` is the team *key* (`ENG`
+  of `ENG-42`), which is enough for status sync (the Linear tracker ignores the destination there).
+- **Jira/Linear over the live transport are untested against real services.** Request building and response parsing plus an
+  `HttpTransport`-backed adapter; `nyx-net` supplies the transport (same as `git_provider`).
   The Jira/Linear request shapes follow the public docs and fixtures; they have **not** been run
   against live services. Jira search uses `/rest/api/3/search/jql` (the TS used the older
   `/rest/api/3/search`, which Atlassian is retiring). The full Jira/Confluence/Slack clients are AI-71.

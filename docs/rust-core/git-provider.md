@@ -7,7 +7,7 @@ Rust port of the GitHub / GitLab / Bitbucket integration. Module: `crates/nyx-co
 | File | Contents |
 | --- | --- |
 | `mod.rs` | `GitProvider` trait (owned by AI-66), normalised types, `GitError`, `ProviderKind`, `new_provider` |
-| `transport.rs` | `HttpTransport` trait, `HttpRequest`/`HttpResponse`/`Headers`, scripted `FakeTransport` |
+| `transport.rs` | Re-export of `crate::net` (`HttpTransport`, `HttpRequest`/`HttpResponse`/`Headers`, scripted `FakeTransport`) |
 | `github.rs`, `gitlab.rs`, `bitbucket.rs` | Pure request builders + response parsers (serde) + a provider struct per host |
 | `webhook.rs` | Signature verification and normalised event parsing (push, issues, issue comment) |
 | `pagination.rs` | `Link` header and Bitbucket `next` pagination, cross-origin guard, `fetch_pages` |
@@ -53,5 +53,6 @@ New vs TS: commits list, per-commit diffs, branch creation, PR/MR creation, GitL
 
 ## TODO
 
-- Real `reqwest` transport (TLS, timeouts, redirect handling; Bitbucket `/diff` redirects) behind `HttpTransport`, to be added in the wiring wave. Tests never touch the network.
+- The real transport is `nyx-net::UreqTransport` (TLS, timeouts, redirects with credential stripping). Tests never touch the network.
+- `GitTreeEntry::sha` carries the git blob id for GitHub (`sha`) and GitLab (`id`); Bitbucket Cloud's `src` listing exposes none, so it is `None` there and scans fall back to content hashing.
 - Expose through MCP/CLI/Tauri (AI-74); unify with any `GitProvider` stubs other modules defined locally.

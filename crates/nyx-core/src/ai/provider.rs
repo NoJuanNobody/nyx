@@ -47,6 +47,16 @@ pub enum LlmError {
     Exhausted,
 }
 
+impl From<crate::net::NetError> for LlmError {
+    fn from(e: crate::net::NetError) -> Self {
+        match e {
+            crate::net::NetError::Transport(m) => Self::Transport(m),
+            crate::net::NetError::Exhausted => Self::Exhausted,
+            other => Self::Transport(other.to_string()),
+        }
+    }
+}
+
 impl From<LlmError> for Error {
     fn from(e: LlmError) -> Self {
         match e {

@@ -138,7 +138,7 @@ mod tests {
                 Ok(pages.next().unwrap())
             },
             next_link,
-            |r| r.json(),
+            |r| r.json().map_err(Into::into),
         )
         .unwrap();
         assert_eq!(out, vec![1, 2, 3]);
@@ -149,7 +149,7 @@ mod tests {
             2,
             |_| Ok(resp(Some("<https://a.com/p?page=9>; rel=\"next\""), "[1]")),
             next_link,
-            |r| r.json(),
+            |r| r.json().map_err(Into::into),
         )
         .unwrap();
         assert_eq!(out.len(), 2);
@@ -162,7 +162,7 @@ mod tests {
             3,
             |_| Ok(resp(Some("<https://evil.test/p>; rel=\"next\""), "[1]")),
             next_link,
-            |r| r.json(),
+            |r| r.json().map_err(Into::into),
         );
         assert!(matches!(r, Err(GitError::Parse(_))));
     }

@@ -39,5 +39,11 @@ pub enum Error {
     Io(#[from] std::io::Error),
 }
 
+impl From<crate::net::NetError> for Error {
+    fn from(e: crate::net::NetError) -> Self {
+        Self::Invalid(e.to_string())
+    }
+}
+
 /// Core result alias.
 pub type Result<T> = std::result::Result<T, Error>;

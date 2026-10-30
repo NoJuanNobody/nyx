@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::provider::{LlmError, LlmRequest, LlmResponse, StopReason, Usage};
-use super::transport::{HttpRequest, Method};
+use super::transport::{Headers, HttpRequest, Method};
 
 /// `anthropic-version` header value.
 pub const ANTHROPIC_VERSION: &str = "2023-06-01";
@@ -89,13 +89,13 @@ pub fn anthropic_http_request(
     Ok(HttpRequest {
         method: Method::Post,
         url: join_url(base_url, "v1/messages"),
-        headers: vec![
-            ("x-api-key".into(), api_key.to_owned()),
-            ("anthropic-version".into(), ANTHROPIC_VERSION.into()),
-            ("content-type".into(), "application/json".into()),
-        ],
-        body: Some(body),
-        timeout_secs: DEFAULT_TIMEOUT_SECS,
+        headers: Headers::from_pairs([
+            ("x-api-key", api_key),
+            ("anthropic-version", ANTHROPIC_VERSION),
+            ("content-type", "application/json"),
+        ]),
+        body: Some(body.into_bytes()),
+        timeout_secs: Some(DEFAULT_TIMEOUT_SECS),
     })
 }
 
@@ -209,9 +209,9 @@ pub fn openai_http_request(
     Ok(HttpRequest {
         method: Method::Post,
         url: join_url(base_url, "chat/completions"),
-        headers,
-        body: Some(body),
-        timeout_secs: DEFAULT_TIMEOUT_SECS,
+        headers: Headers::from_pairs(headers),
+        body: Some(body.into_bytes()),
+        timeout_secs: Some(DEFAULT_TIMEOUT_SECS),
     })
 }
 
@@ -307,9 +307,9 @@ mod tests {
     fn anthropic_request_shape() {
         let h = anthropic_http_request("https://api.anthropic.com/", "sk-ant-x", &req()).unwrap();
         assert_eq!(h.url, "https://api.anthropic.com/v1/messages");
-        assert_eq!(h.header("x-api-key"), Some("sk-ant-x"));
-        assert_eq!(h.header("anthropic-version"), Some(ANTHROPIC_VERSION));
-        let v: Value = serde_json::from_str(h.body.as_deref().unwrap()).unwrap();
+        assert_eq!(h.header_value("x-api-key"), Some("sk-ant-x"));
+        assert_eq!(h.header_value("anthropic-version"), Some(ANTHROPIC_VERSION));
+        let v: Value = serde_json::from_slice(h.body.as_deref().unwrap()).unwrap();
         assert_eq!(v["system"], "be terse");
         assert_eq!(v["max_tokens"], 64);
         assert_eq!(v["messages"].as_array().unwrap().len(), 3);
@@ -379,9 +379,9 @@ mod tests {
         )
         .unwrap();
         assert_eq!(h.url, "https://openrouter.ai/api/v1/chat/completions");
-        assert_eq!(h.header("authorization"), Some("Bearer sk-or-1"));
-        assert_eq!(h.header("x-title"), Some("Nyx"));
-        let v: Value = serde_json::from_str(h.body.as_deref().unwrap()).unwrap();
+        assert_eq!(h.header_value("authorization"), Some("Bearer sk-or-1"));
+        assert_eq!(h.header_value("x-title"), Some("Nyx"));
+        let v: Value = serde_json::from_slice(h.body.as_deref().unwrap()).unwrap();
         assert_eq!(v["messages"][0]["role"], "system");
         assert_eq!(v["messages"].as_array().unwrap().len(), 4);
         assert!(!format!("{h:?}").contains("sk-or-1"));
@@ -390,7 +390,7 @@ mod tests {
     #[test]
     fn openai_keyless_has_no_auth_header() {
         let h = openai_http_request("http://localhost:11434/v1", None, &[], &req()).unwrap();
-        assert!(h.header("authorization").is_none());
+        assert!(h.header_value("authorization").is_none());
     }
 
     #[test]

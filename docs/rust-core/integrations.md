@@ -89,11 +89,11 @@ Block Kit builders, channel listing, `auth.test`.
 - Not ported: user-id based connection lookup (single profile), `FRONTEND_URL` redirects (UI concern), the Jira
   route's ticket DB updates (the caller applies `JiraWebhookAction` to its tickets).
 - Added `HttpMethod::Put` to `git_provider::transport` (one enum variant) because Jira/Confluence updates need it and
-  the brief's `ai::HttpTransport` has neither PUT/DELETE nor response headers (needed for `Retry-After`).
+  the brief's `ai::HttpTransport` has neither PUT/DELETE nor response headers (needed for `Retry-After`). Both transports are now one: `crate::net`.
 
 ## TODO (wiring wave, AI-74)
 
-- A real `HttpTransport` (reqwest/ureq) and the loopback TCP listener that feeds `oauth::parse_callback`.
+- Done in `nyx-net`: the real `HttpTransport` and `LoopbackListener` (implements `oauth::CallbackReceiver`, feeds `parse_callback`). See `net.md`.
 - Slack OAuth v2 only accepts https redirect URLs: the desktop app needs an https relay page forwarding `code`/`state`
   to the loopback listener, or manual bot-token entry (`slack::store::connect_with_token` after `auth.test`).
 - Expose through MCP/CLI/Tauri; persist the signing/webhook secrets via `SecretStore` keys listed above.

@@ -16,6 +16,8 @@ string_enum! {
         Gitlab => "gitlab",
         /// Bitbucket.
         Bitbucket => "bitbucket",
+        /// Linear (added by migration 180).
+        Linear => "linear",
     }
 }
 

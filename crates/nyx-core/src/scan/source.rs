@@ -3,8 +3,9 @@
 //! [`RepoSource`] is the seam between the scan pipeline and file access. Entries carry an
 //! optional *revision token* (`sha`): the git blob sha when the source knows it (local folders
 //! and in-memory sources compute it without any network), so unchanged files are detected from
-//! the listing alone. Sources that cannot know it (the current [`GitProvider`] tree has no sha)
-//! return `None` and the indexer falls back to a content hash after fetching.
+//! the listing alone. Git hosts report the blob sha in the tree (`git-blob:<sha>`), so unchanged
+//! files are skipped without being fetched. Sources that cannot know it (Bitbucket Cloud) return
+//! `None` and the indexer falls back to a content hash after fetching.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -92,7 +93,8 @@ impl RepoSource for GitProviderSource<'_> {
             .map(|e| SourceEntry {
                 path: e.path,
                 size: e.size,
-                sha: None,
+                // Namespaced so it can never collide with a `sha256:` content token.
+                sha: e.sha.map(|s| format!("git-blob:{s}")),
             })
             .collect())
     }

@@ -28,7 +28,7 @@ pub mod review;
 pub mod sprint;
 pub mod tracker;
 
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::vcs::proposal::{ExternalTicket, SuggestedTicket, TicketSink};
 
 use tracker::{Destination, NewIssue, TrackerSet};
@@ -36,10 +36,8 @@ use tracker::{Destination, NewIssue, TrackerSet};
 /// [`TicketSink`] bound to one destination, so change-proposal pushes
 /// ([`crate::vcs::proposal::push`]) can post through any tracker. The sink is stateless and
 /// non-idempotent (the proposal's `pushed` status is what prevents repeats); use
-/// [`review::post`] when you need idempotency and traceability.
-///
-/// Linear destinations are rejected: [`ExternalTicket`] carries a `TicketProvider`, which cannot
-/// represent Linear.
+/// [`review::post`] when you need idempotency and traceability. Every tracker, Linear included,
+/// maps to a `TicketProvider` (migration 180), so the pushed ticket lands on the board.
 #[derive(Debug)]
 pub struct TrackerSink<'a> {
     trackers: &'a TrackerSet,
@@ -59,9 +57,7 @@ impl<'a> TrackerSink<'a> {
 
 impl TicketSink for TrackerSink<'_> {
     fn create_ticket(&self, document_id: &str, ticket: &SuggestedTicket) -> Result<ExternalTicket> {
-        let provider = self.destination.kind().ticket_provider().ok_or_else(|| {
-            Error::Invalid("Linear tickets cannot be recorded through a proposal push".into())
-        })?;
+        let provider = self.destination.kind().ticket_provider();
         let tracker = self.trackers.for_destination(&self.destination)?;
         let d = draft::draft_from_parts(
             &ticket.title,
@@ -125,7 +121,28 @@ mod tests {
     }
 
     #[test]
-    fn sink_rejects_linear_and_missing_tracker() {
+    fn sink_posts_linear_with_linear_provider() {
+        let fake = Arc::new(FakeTracker::new(TrackerKind::Linear));
+        let set = TrackerSet::new().with(fake);
+        let sink = TrackerSink::new(
+            &set,
+            Destination::Linear {
+                team_id: "team-1".into(),
+            },
+        );
+        let s = SuggestedTicket {
+            title: "Linear work".into(),
+            description: String::new(),
+            priority: String::new(),
+            labels: vec![],
+        };
+        let e = sink.create_ticket("doc-1", &s).unwrap();
+        assert_eq!(e.provider, crate::model::TicketProvider::Linear);
+        assert_eq!(e.external_id, "ENG-1");
+    }
+
+    #[test]
+    fn sink_rejects_missing_tracker() {
         let set = TrackerSet::new();
         let s = SuggestedTicket {
             title: "t".into(),
@@ -139,7 +156,7 @@ mod tests {
                 team_id: "t".into(),
             },
         );
-        assert!(matches!(lin.create_ticket("d", &s), Err(Error::Invalid(_))));
+        assert!(lin.create_ticket("d", &s).is_err());
         let gh = TrackerSink::new(
             &set,
             Destination::Github {

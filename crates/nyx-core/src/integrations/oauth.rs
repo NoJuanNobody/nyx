@@ -203,6 +203,21 @@ impl PendingAuths {
     }
 }
 
+/// Receives the browser redirect of the desktop loopback flow. Implemented by `nyx-net`'s
+/// `LoopbackListener`; kept as a trait here so this crate stays free of sockets and tests can
+/// script the callback.
+pub trait CallbackReceiver {
+    /// The `redirect_uri` to put in the authorise URL (see [`loopback_redirect_uri`]).
+    fn redirect_uri(&self) -> String;
+    /// Block until the redirect arrives (or `timeout` passes) and return the authorisation
+    /// `code` after validating `expected_state` (see [`parse_callback`]). One-shot.
+    ///
+    /// # Errors
+    /// [`IntegrationError::OAuth`] for a provider error or state mismatch,
+    /// [`IntegrationError::Transport`] on timeout or socket failure.
+    fn wait_for_code(&self, expected_state: &str, timeout: std::time::Duration) -> Result<String>;
+}
+
 /// Build `https://host/path?k=v` with proper encoding.
 pub(crate) fn url_with_params(base: &str, params: &[(&str, &str)]) -> Result<String> {
     Url::parse_with_params(base, params)
