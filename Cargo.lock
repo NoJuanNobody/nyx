@@ -2296,6 +2296,7 @@ dependencies = [
  "getrandom 0.2.17",
  "hex",
  "keyring",
+ "regex",
  "rusqlite",
  "secrecy",
  "serde",
@@ -2304,6 +2305,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "time",
+ "url",
  "uuid",
  "zeroize",
 ]

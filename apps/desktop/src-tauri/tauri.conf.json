@@ -2,19 +2,63 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Nyx",
   "identifier": "dev.nyx.desktop",
-  "build": { "frontendDist": "../ui" },
+  "build": {
+    "frontendDist": "../ui"
+  },
   "app": {
-    "windows": [{ "label": "main", "title": "Nyx", "width": 1200, "height": 800 }],
+    "windows": [
+      {
+        "label": "main",
+        "title": "Nyx",
+        "width": 1200,
+        "height": 800
+      }
+    ],
     "withGlobalTauri": true,
-    "security": { "csp": null }
+    "security": {
+      "csp": {
+        "default-src": "'none'",
+        "script-src": "'self'",
+        "style-src": "'self'",
+        "img-src": "'self' data:",
+        "font-src": "'self'",
+        "connect-src": "ipc: http://ipc.localhost",
+        "object-src": "'none'",
+        "frame-src": "'none'",
+        "worker-src": "'none'",
+        "media-src": "'none'",
+        "base-uri": "'none'",
+        "form-action": "'none'",
+        "frame-ancestors": "'none'"
+      },
+      "freezePrototype": true,
+      "dangerousDisableAssetCspModification": false,
+      "assetProtocol": {
+        "enable": false,
+        "scope": []
+      },
+      "capabilities": [
+        "default"
+      ]
+    }
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg", "nsis", "msi", "deb", "rpm", "appimage"],
+    "targets": [
+      "app",
+      "dmg",
+      "nsis",
+      "msi",
+      "deb",
+      "rpm",
+      "appimage"
+    ],
     "createUpdaterArtifacts": true,
     "category": "DeveloperTool",
     "shortDescription": "Agent-native workspace with utility-token metering.",
-    "icon": ["icons/icon.png"],
+    "icon": [
+      "icons/icon.png"
+    ],
     "macOS": {
       "minimumSystemVersion": "11.0",
       "hardenedRuntime": true,
@@ -25,10 +69,14 @@
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
       "timestampUrl": "http://timestamp.digicert.com",
-      "nsis": { "installMode": "currentUser" }
+      "nsis": {
+        "installMode": "currentUser"
+      }
     },
     "linux": {
-      "deb": { "depends": [] }
+      "deb": {
+        "depends": []
+      }
     }
   },
   "plugins": {
@@ -37,7 +85,9 @@
       "endpoints": [
         "https://github.com/NoJuanNobody/nyx/releases/latest/download/latest.json"
       ],
-      "windows": { "installMode": "passive" }
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }
