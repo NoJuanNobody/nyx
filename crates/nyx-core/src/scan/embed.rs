@@ -3,10 +3,10 @@
 //! Ports `embedding.service.ts` (`OpenAI` `text-embedding-3-small`, one batched request) and the
 //! batching loop of `code-embedding.service.ts` (`EMBEDDING_BATCH_SIZE = 50`).
 //!
-//! - [`Embedder`] is the provider trait. [`FakeEmbedder`] is deterministic (hash-derived unit
-//!   vectors) with failure injection. [`HttpEmbedder`] speaks the OpenAI-compatible
-//!   `/v1/embeddings` wire format over [`crate::ai::HttpTransport`] (the real transport is wired
-//!   later; tests use the scripted fake transport). A real local model is out of scope.
+//! - [`Embedder`] is the core-wide provider trait, defined in [`crate::ai::embedder`] and
+//!   re-exported here with [`HttpEmbedder`] (OpenAI-compatible `/embeddings` over the unified
+//!   [`crate::net::HttpTransport`]). [`FakeEmbedder`] is deterministic (hash-derived unit
+//!   vectors) with failure injection and batch recording. A real local model is out of scope.
 //! - [`embed_texts`] deduplicates identical texts by SHA-256, serves repeats from the
 //!   `embedding_cache` table (so re-indexing unchanged or moved code costs nothing) and sends only
 //!   the remaining unique texts in batches. Each batch is cached as soon as it returns, so a
@@ -17,65 +17,13 @@ use std::fmt;
 use std::sync::Mutex;
 
 use rusqlite::Connection;
-use secrecy::{ExposeSecret, SecretString};
-use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
 use super::store;
-use crate::ai::transport::{HttpRequest, HttpTransport, Method};
-use crate::ai::LlmError;
-use crate::error::Error;
-
-/// Default OpenAI-compatible embedding model (1536 dimensions, as in the TS).
-pub const DEFAULT_EMBEDDING_MODEL: &str = "text-embedding-3-small";
-/// Texts per embedding request (TS `EMBEDDING_BATCH_SIZE`).
-pub const DEFAULT_BATCH_SIZE: usize = 50;
-
-/// Embedding failure.
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-pub enum EmbedError {
-    /// Worth retrying later: rate limit, 5xx, network.
-    #[error("transient embedding failure: {0}")]
-    Transient(String),
-    /// Retrying will not help: bad key, malformed response, wrong shape.
-    #[error("embedding failure: {0}")]
-    Permanent(String),
-}
-
-impl EmbedError {
-    /// True when a retry may succeed.
-    #[must_use]
-    pub fn is_transient(&self) -> bool {
-        matches!(self, Self::Transient(_))
-    }
-}
-
-impl From<EmbedError> for Error {
-    fn from(e: EmbedError) -> Self {
-        Self::Invalid(e.to_string())
-    }
-}
-
-impl From<Error> for EmbedError {
-    fn from(e: Error) -> Self {
-        Self::Permanent(e.to_string())
-    }
-}
-
-/// Turns text into vectors.
-pub trait Embedder: Send + Sync {
-    /// Model name recorded with every stored vector.
-    fn model(&self) -> &str;
-    /// Largest batch the provider accepts per call.
-    fn max_batch(&self) -> usize {
-        DEFAULT_BATCH_SIZE
-    }
-    /// One vector per input, same order.
-    ///
-    /// # Errors
-    /// [`EmbedError`].
-    fn embed(&self, texts: &[String]) -> Result<Vec<Vec<f32>>, EmbedError>;
-}
+pub use crate::ai::embedder::{
+    build_embeddings_request, parse_embeddings_response, validate_vectors, EmbedError, Embedder,
+    HttpEmbedder, DEFAULT_BATCH_SIZE, DEFAULT_EMBEDDING_MODEL,
+};
 
 /// SHA-256 hex of the text: the dedupe / cache key.
 #[must_use]
@@ -219,145 +167,6 @@ impl Embedder for FakeEmbedder {
     }
 }
 
-// ---------------------------------------------------------------- OpenAI-compatible HTTP
-
-/// Build the `/v1/embeddings` request (pure).
-#[must_use]
-pub fn build_embeddings_request(
-    base_url: &str,
-    api_key: &str,
-    model: &str,
-    texts: &[String],
-) -> HttpRequest {
-    HttpRequest {
-        method: Method::Post,
-        url: format!("{}/embeddings", base_url.trim_end_matches('/')),
-        headers: vec![
-            ("authorization".into(), format!("Bearer {api_key}")),
-            ("content-type".into(), "application/json".into()),
-        ],
-        body: Some(json!({"model": model, "input": texts}).to_string()),
-        timeout_secs: 60,
-    }
-}
-
-/// Parse an embeddings response: `data[].{index, embedding}`, returned in input order (the TS
-/// sorted by `index`). Validates the count and a uniform finite dimension.
-///
-/// # Errors
-/// [`EmbedError::Permanent`] when the body is not a well-formed embeddings response.
-pub fn parse_embeddings_response(body: &str, expected: usize) -> Result<Vec<Vec<f32>>, EmbedError> {
-    let bad = |m: &str| EmbedError::Permanent(format!("unreadable embeddings response: {m}"));
-    let v: Value = serde_json::from_str(body).map_err(|e| bad(&e.to_string()))?;
-    let data = v
-        .get("data")
-        .and_then(Value::as_array)
-        .ok_or_else(|| bad("missing `data`"))?;
-    let mut rows: Vec<(u64, Vec<f32>)> = Vec::with_capacity(data.len());
-    for (pos, item) in data.iter().enumerate() {
-        let idx = item
-            .get("index")
-            .and_then(Value::as_u64)
-            .unwrap_or(pos as u64);
-        let emb = item
-            .get("embedding")
-            .and_then(Value::as_array)
-            .ok_or_else(|| bad("missing `embedding`"))?;
-        let vec: Option<Vec<f32>> = emb.iter().map(|n| n.as_f64().map(|f| f as f32)).collect();
-        let vec = vec.ok_or_else(|| bad("non-numeric embedding"))?;
-        rows.push((idx, vec));
-    }
-    rows.sort_by_key(|(i, _)| *i);
-    if rows.len() != expected {
-        return Err(bad(&format!(
-            "expected {expected} vectors, got {}",
-            rows.len()
-        )));
-    }
-    let out: Vec<Vec<f32>> = rows.into_iter().map(|(_, v)| v).collect();
-    validate_vectors(&out)?;
-    Ok(out)
-}
-
-fn validate_vectors(v: &[Vec<f32>]) -> Result<(), EmbedError> {
-    let dim = v.first().map_or(0, Vec::len);
-    if v.iter().any(|x| x.len() != dim || x.is_empty()) {
-        return Err(EmbedError::Permanent(
-            "embeddings have inconsistent or zero dimension".into(),
-        ));
-    }
-    if v.iter().flatten().any(|x| !x.is_finite()) {
-        return Err(EmbedError::Permanent(
-            "embedding contains NaN or infinity".into(),
-        ));
-    }
-    Ok(())
-}
-
-/// [`Embedder`] for an OpenAI-compatible embeddings endpoint over an injected transport.
-/// The key is held as a secret and never printed.
-pub struct HttpEmbedder<'a> {
-    transport: &'a dyn HttpTransport,
-    base_url: String,
-    api_key: SecretString,
-    model: String,
-}
-
-impl<'a> HttpEmbedder<'a> {
-    /// `base_url` like `https://api.openai.com/v1`.
-    #[must_use]
-    pub fn new(
-        transport: &'a dyn HttpTransport,
-        base_url: &str,
-        api_key: SecretString,
-        model: &str,
-    ) -> Self {
-        Self {
-            transport,
-            base_url: base_url.to_string(),
-            api_key,
-            model: model.to_string(),
-        }
-    }
-}
-
-impl Embedder for HttpEmbedder<'_> {
-    fn model(&self) -> &str {
-        &self.model
-    }
-
-    fn max_batch(&self) -> usize {
-        // OpenAI accepts up to 2048 inputs; keep the TS batch size to bound payloads.
-        DEFAULT_BATCH_SIZE
-    }
-
-    fn embed(&self, texts: &[String]) -> Result<Vec<Vec<f32>>, EmbedError> {
-        if texts.is_empty() {
-            return Ok(Vec::new());
-        }
-        let req = build_embeddings_request(
-            &self.base_url,
-            self.api_key.expose_secret(),
-            &self.model,
-            texts,
-        );
-        let resp = self.transport.send(&req).map_err(|e| match e {
-            LlmError::Transport(m) => EmbedError::Transient(m),
-            other => EmbedError::Permanent(other.to_string()),
-        })?;
-        if !resp.is_success() {
-            let snippet: String = resp.body.chars().take(200).collect();
-            let msg = format!("HTTP {}: {snippet}", resp.status);
-            return Err(if resp.status == 429 || resp.status >= 500 {
-                EmbedError::Transient(msg)
-            } else {
-                EmbedError::Permanent(msg)
-            });
-        }
-        parse_embeddings_response(&resp.body, texts.len())
-    }
-}
-
 // ---------------------------------------------------------------- pipeline
 
 /// What [`embed_texts`] did.
@@ -464,7 +273,6 @@ pub fn embed_texts(
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
-    use crate::ai::transport::FakeTransport;
 
     fn texts(v: &[&str]) -> Vec<String> {
         v.iter().map(|s| (*s).to_string()).collect()
@@ -563,45 +371,5 @@ mod tests {
         let (db, _) = store::testutil::db_with_team();
         let r = embed_texts(db.conn(), &Bad, &texts(&["a", "b"]), 10, &mut noop);
         assert!(matches!(r, Err(EmbedError::Permanent(_))));
-    }
-
-    #[test]
-    fn openai_request_and_response_shapes() {
-        let r = build_embeddings_request("https://x/v1/", "k", "m", &texts(&["a"]));
-        assert_eq!(r.url, "https://x/v1/embeddings");
-        assert_eq!(r.header("authorization"), Some("Bearer k"));
-        assert!(format!("{r:?}").contains("[REDACTED]"));
-        let body =
-            r#"{"data":[{"index":1,"embedding":[0.0,1.0]},{"index":0,"embedding":[1.0,0.0]}]}"#;
-        let v = parse_embeddings_response(body, 2).unwrap();
-        assert_eq!(v, vec![vec![1.0, 0.0], vec![0.0, 1.0]]);
-        assert!(parse_embeddings_response(body, 3).is_err());
-        assert!(parse_embeddings_response("nope", 1).is_err());
-        assert!(parse_embeddings_response(
-            r#"{"data":[{"embedding":[1.0]},{"embedding":[1.0,2.0]}]}"#,
-            2
-        )
-        .is_err());
-    }
-
-    #[test]
-    fn http_embedder_classifies_errors() {
-        let t = FakeTransport::new();
-        t.push(200, r#"{"data":[{"index":0,"embedding":[0.5,0.5]}]}"#);
-        t.push(429, "slow down");
-        t.push(401, "bad key");
-        t.push_error("connection reset");
-        let e = HttpEmbedder::new(
-            &t,
-            "https://x/v1",
-            SecretString::from("sk".to_string()),
-            "m",
-        );
-        assert_eq!(e.embed(&texts(&["a"])).unwrap(), vec![vec![0.5, 0.5]]);
-        assert!(e.embed(&texts(&["a"])).unwrap_err().is_transient());
-        assert!(!e.embed(&texts(&["a"])).unwrap_err().is_transient());
-        assert!(e.embed(&texts(&["a"])).unwrap_err().is_transient());
-        assert_eq!(e.embed(&[]).unwrap(), Vec::<Vec<f32>>::new());
-        assert_eq!(t.requests().len(), 4);
     }
 }

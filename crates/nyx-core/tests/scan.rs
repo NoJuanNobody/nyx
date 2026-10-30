@@ -98,6 +98,9 @@ struct FakeGit {
     files: Mutex<BTreeMap<String, String>>,
     head: Mutex<String>,
     tree_calls: Mutex<u32>,
+    reads: Mutex<Vec<String>>,
+    /// Hosts like Bitbucket report no blob sha in the tree listing.
+    hide_shas: Mutex<bool>,
     tree_failures: Mutex<Vec<GitError>>,
 }
 
@@ -113,6 +116,12 @@ impl FakeGit {
     }
     fn tree_calls(&self) -> u32 {
         *self.tree_calls.lock().unwrap()
+    }
+    fn reads(&self) -> Vec<String> {
+        self.reads.lock().unwrap().clone()
+    }
+    fn hide_shas(&self) {
+        *self.hide_shas.lock().unwrap() = true;
     }
 }
 
@@ -142,7 +151,9 @@ impl GitProvider for FakeGit {
             path: "src".into(),
             kind: TreeEntryKind::Tree,
             size: None,
+            sha: None,
         }];
+        let hide = *self.hide_shas.lock().unwrap();
         out.extend(
             self.files
                 .lock()
@@ -152,6 +163,8 @@ impl GitProvider for FakeGit {
                     path: p.clone(),
                     kind: TreeEntryKind::Blob,
                     size: Some(c.len() as u64),
+                    // stands in for git's sha1 blob id: any stable function of the content
+                    sha: (!hide).then(|| format!("blob{}", &content_token(c.as_bytes())[7..23])),
                 }),
         );
         Ok(out)
@@ -164,6 +177,7 @@ impl GitProvider for FakeGit {
         _g: Option<&str>,
     ) -> GitResult<GitFileContent> {
         use base64::Engine as _;
+        self.reads.lock().unwrap().push(path.to_string());
         let files = self.files.lock().unwrap();
         let c = files
             .get(path)
@@ -554,8 +568,8 @@ fn git_provider_source_scans_and_rescans_by_head() {
     assert!(r.up_to_date);
     assert_eq!(git.tree_calls(), 1);
 
-    // new commit changes one file; the provider tree has no blob shas, so unchanged files are
-    // re-read and compared by content hash but never re-embedded
+    // new commit changes one file; blob shas in the tree let the scan skip the unchanged file
+    // without fetching it
     git.put("src/lib.rs", &format!("{RUST_SRC}\npub fn two() {{}}\n"));
     git.set_head("c2");
     let sent = emb.texts_sent();
@@ -570,6 +584,13 @@ fn git_provider_source_scans_and_rescans_by_head() {
     .unwrap();
     assert_eq!(r.files_indexed, 1);
     assert_eq!(r.files_unchanged, 1);
+    let reads = git.reads();
+    assert_eq!(
+        reads.iter().filter(|p| *p == "web/login.ts").count(),
+        1,
+        "unchanged file fetched only by the first scan: {reads:?}"
+    );
+    assert_eq!(reads.iter().filter(|p| *p == "src/lib.rs").count(), 2);
     let delta = emb.texts_sent() - sent;
     assert!(
         delta >= 1 && delta <= 2,
@@ -578,6 +599,74 @@ fn git_provider_source_scans_and_rescans_by_head() {
     assert!(stored(&db, &team)["src/lib.rs"]
         .iter()
         .any(|c| c.contains("pub fn two")));
+}
+
+#[test]
+fn git_rescan_without_blob_shas_falls_back_to_content_hash() {
+    let (db, team) = db_with_team();
+    let git = FakeGit::default();
+    git.hide_shas();
+    git.set_head("c1");
+    git.put("src/lib.rs", RUST_SRC);
+    git.put("web/login.ts", TS_SRC);
+    let src = GitProviderSource::new(&git, "acme", "app", None);
+    let emb = FakeEmbedder::default();
+    let run = |db: &Db| {
+        index_repo(
+            db.conn(),
+            &src,
+            &emb,
+            &NoMeter,
+            &opts(&team),
+            &mut ScanHooks::none(),
+        )
+        .unwrap()
+    };
+    assert_eq!(run(&db).files_indexed, 2);
+    git.set_head("c2");
+    let sent = emb.texts_sent();
+    let r = run(&db);
+    assert_eq!((r.files_indexed, r.files_unchanged), (0, 2));
+    assert_eq!(emb.texts_sent(), sent, "nothing re-embedded");
+    assert_eq!(git.reads().len(), 4, "but every file was fetched again");
+}
+
+#[test]
+fn git_blob_shas_are_what_the_manifest_remembers() {
+    let (db, team) = db_with_team();
+    let git = FakeGit::default();
+    git.set_head("c1");
+    git.put("src/lib.rs", RUST_SRC);
+    let src = GitProviderSource::new(&git, "acme", "app", None);
+    let listed = src.list().unwrap();
+    assert!(listed[0]
+        .sha
+        .as_deref()
+        .unwrap()
+        .starts_with("git-blob:blob"));
+    let emb = FakeEmbedder::default();
+    index_repo(
+        db.conn(),
+        &src,
+        &emb,
+        &NoMeter,
+        &opts(&team),
+        &mut ScanHooks::none(),
+    )
+    .unwrap();
+    // a file whose content moves back to a known state keeps its sha: no fetch on re-list
+    git.set_head("c2");
+    let before = git.reads().len();
+    index_repo(
+        db.conn(),
+        &src,
+        &emb,
+        &NoMeter,
+        &opts(&team),
+        &mut ScanHooks::none(),
+    )
+    .unwrap();
+    assert_eq!(git.reads().len(), before);
 }
 
 // ---------------------------------------------------------------- failure / retry

@@ -28,7 +28,8 @@ fn open(conn: &Connection) -> AppResult<LedgerService<SqliteLedgerStore<'_>>> {
 
 /// Validate an agent identity (same rule as the ledger: no whitespace or `:`).
 pub fn check_agent(agent: &str) -> AppResult<()> {
-    if agent.is_empty() || agent.len() > 100 || agent.chars().any(|c| c == ':' || c.is_whitespace()) {
+    if agent.is_empty() || agent.len() > 100 || agent.chars().any(|c| c == ':' || c.is_whitespace())
+    {
         return Err(AppError::invalid(
             "agent_id must be 1-100 chars without whitespace or ':'",
         ));
@@ -42,7 +43,13 @@ pub fn sanitize_agent(raw: &str) -> String {
     let s: String = raw
         .trim()
         .chars()
-        .map(|c| if c == ':' || c.is_whitespace() || c.is_control() { '-' } else { c })
+        .map(|c| {
+            if c == ':' || c.is_whitespace() || c.is_control() {
+                '-'
+            } else {
+                c
+            }
+        })
         .take(100)
         .collect();
     if s.is_empty() {
@@ -70,7 +77,8 @@ pub fn ensure_init(conn: &Connection, initial_grant: Credits) -> AppResult<()> {
         return Ok(());
     }
     let mut svc = open(conn)?;
-    let meta = Meta::new("cfg:init", system_actor()).memo("initial local grant (owner config, not an entitlement)");
+    let meta = Meta::new("cfg:init", system_actor())
+        .memo("initial local grant (owner config, not an entitlement)");
     match svc.execute(
         meta,
         Command::Grant {
@@ -269,7 +277,15 @@ pub fn spend(
     task_type: Option<&str>,
     memo: Option<&str>,
 ) -> AppResult<Value> {
-    let reserved = reserve(conn, agent, &format!("{key}:reserve"), amount, task_type, Some(CALL_TTL_MS), memo)?;
+    let reserved = reserve(
+        conn,
+        agent,
+        &format!("{key}:reserve"),
+        amount,
+        task_type,
+        Some(CALL_TTL_MS),
+        memo,
+    )?;
     let rid = reserved["reservationId"]
         .as_str()
         .ok_or_else(|| AppError::new("internal", "reservation id missing"))?
@@ -285,7 +301,12 @@ pub fn spend(
 }
 
 /// Owner action: add credits to the pool.
-pub fn grant(conn: &Connection, key: &str, amount: Credits, memo: Option<&str>) -> AppResult<Value> {
+pub fn grant(
+    conn: &Connection,
+    key: &str,
+    amount: Credits,
+    memo: Option<&str>,
+) -> AppResult<Value> {
     let r = exec(
         conn,
         key,
@@ -300,7 +321,13 @@ pub fn grant(conn: &Connection, key: &str, amount: Credits, memo: Option<&str>) 
 }
 
 /// Owner action: pool to agent budget.
-pub fn allocate(conn: &Connection, key: &str, agent: &str, amount: Credits, memo: Option<&str>) -> AppResult<Value> {
+pub fn allocate(
+    conn: &Connection,
+    key: &str,
+    agent: &str,
+    amount: Credits,
+    memo: Option<&str>,
+) -> AppResult<Value> {
     check_agent(agent)?;
     let r = exec(
         conn,
@@ -317,7 +344,13 @@ pub fn allocate(conn: &Connection, key: &str, agent: &str, amount: Credits, memo
 }
 
 /// Owner action: agent budget back to the pool.
-pub fn deallocate(conn: &Connection, key: &str, agent: &str, amount: Credits, memo: Option<&str>) -> AppResult<Value> {
+pub fn deallocate(
+    conn: &Connection,
+    key: &str,
+    agent: &str,
+    amount: Credits,
+    memo: Option<&str>,
+) -> AppResult<Value> {
     check_agent(agent)?;
     let r = exec(
         conn,
@@ -352,7 +385,9 @@ pub fn history(conn: &Connection, agent: Option<&str>, limit: usize) -> AppResul
 pub fn verify(conn: &Connection) -> AppResult<Value> {
     let svc = open(conn)?;
     svc.ledger().verify().map_err(nyx_core::Error::from)?;
-    Ok(json!({"ok": true, "entries": svc.ledger().entries().len(), "headHash": svc.ledger().head_hash()}))
+    Ok(
+        json!({"ok": true, "entries": svc.ledger().entries().len(), "headHash": svc.ledger().head_hash()}),
+    )
 }
 
 /// Meter one tool call: reserve, run, commit on success or release on failure.
@@ -366,7 +401,10 @@ pub fn metered<T>(
     let id = uuid::Uuid::new_v4().to_string();
     let key = format!("call:{id}");
     let reserved = reserve(conn, agent, &key, cost, Some(tool), Some(CALL_TTL_MS), None)?;
-    let rid = reserved["reservationId"].as_str().unwrap_or_default().to_owned();
+    let rid = reserved["reservationId"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
     match f() {
         Ok(v) => {
             commit(conn, agent, &format!("{key}:commit"), &rid, cost, None)?;
@@ -374,7 +412,13 @@ pub fn metered<T>(
         }
         Err(e) => {
             // A failed release leaves the hold to expire by TTL; report the original error.
-            let _ = release(conn, agent, &format!("{key}:release"), &rid, Some("operation failed"));
+            let _ = release(
+                conn,
+                agent,
+                &format!("{key}:release"),
+                &rid,
+                Some("operation failed"),
+            );
             Err(e)
         }
     }

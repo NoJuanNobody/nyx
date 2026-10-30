@@ -114,10 +114,16 @@ impl From<nyx_core::Error> for AppError {
             }
             E::Ledger(l) => Self::new(&ledger_code(l.code), l.message),
             // Internal details (SQL text, file paths) stay out of agent-visible messages.
-            E::Db(err) => Self::new("database_error", nyx_core::security::validate::public_error_message(&err.to_string())),
+            E::Db(err) => Self::new(
+                "database_error",
+                nyx_core::security::validate::public_error_message(&err.to_string()),
+            ),
             E::Json(err) => Self::invalid(format!("json: {err}")),
             E::Migration(m) => Self::new("database_error", m),
-            E::Io(err) => Self::new("io_error", nyx_core::security::validate::public_error_message(&err.to_string())),
+            E::Io(err) => Self::new(
+                "io_error",
+                nyx_core::security::validate::public_error_message(&err.to_string()),
+            ),
         }
     }
 }

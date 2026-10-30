@@ -38,11 +38,15 @@ fn read_file(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
 fn list_files(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let j = jail(cx)?;
     let resolved = j.resolve(a.opt_str("path").unwrap_or("."))?;
-    let rd = std::fs::read_dir(&resolved)
-        .map_err(|e| AppError::from(nyx_core::Error::from(e)))?;
+    let rd = std::fs::read_dir(&resolved).map_err(|e| AppError::from(nyx_core::Error::from(e)))?;
     let mut entries: Vec<(String, bool)> = rd
         .filter_map(Result::ok)
-        .map(|e| (e.file_name().to_string_lossy().into_owned(), e.path().is_dir()))
+        .map(|e| {
+            (
+                e.file_name().to_string_lossy().into_owned(),
+                e.path().is_dir(),
+            )
+        })
         .collect();
     entries.sort();
     Ok(Value::Array(

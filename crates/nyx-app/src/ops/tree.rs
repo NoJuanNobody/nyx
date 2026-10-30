@@ -24,7 +24,9 @@ fn create_folder(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let team = cx.team(a);
     let parent = a.opt_str("parent_path").unwrap_or("/");
     let nm = name("name", a.str("name")?, 100)?;
-    let f = cx.db.transaction(|c| SqliteTree::new(c).create_folder(&team, parent, &nm))?;
+    let f = cx
+        .db
+        .transaction(|c| SqliteTree::new(c).create_folder(&team, parent, &nm))?;
     to_json(&f)
 }
 
@@ -32,14 +34,18 @@ fn rename_folder(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let team = cx.team(a);
     let nm = name("name", a.str("name")?, 100)?;
     let p = a.str("path")?;
-    let new = cx.db.transaction(|c| SqliteTree::new(c).rename_folder(&team, p, &nm))?;
+    let new = cx
+        .db
+        .transaction(|c| SqliteTree::new(c).rename_folder(&team, p, &nm))?;
     Ok(json!({"path": new}))
 }
 
 fn move_folder(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let team = cx.team(a);
     let (p, to) = (a.str("path")?, a.str("new_parent")?);
-    let new = cx.db.transaction(|c| SqliteTree::new(c).move_folder(&team, p, to))?;
+    let new = cx
+        .db
+        .transaction(|c| SqliteTree::new(c).move_folder(&team, p, to))?;
     Ok(json!({"path": new}))
 }
 
@@ -51,7 +57,9 @@ fn delete_folder(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     } else {
         DeletePolicy::RefuseIfNotEmpty
     };
-    let r = cx.db.transaction(|c| SqliteTree::new(c).delete_folder(&team, p, policy))?;
+    let r = cx
+        .db
+        .transaction(|c| SqliteTree::new(c).delete_folder(&team, p, policy))?;
     to_json(&r)
 }
 
@@ -59,13 +67,16 @@ fn move_doc(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let d = a.str("document_id")?;
     id("document_id", d)?;
     let to = a.str("new_parent")?;
-    let doc = cx.db.transaction(|c| SqliteTree::new(c).move_document(d, to))?;
+    let doc = cx
+        .db
+        .transaction(|c| SqliteTree::new(c).move_document(d, to))?;
     Ok(json!({"id": doc.id, "path": doc.path, "title": doc.title}))
 }
 
 /// Register tree tools.
 pub fn register(v: &mut Vec<ToolSpec>) {
-    let team = json!({"type": "string", "description": "Team UUID (defaults to the local workspace)"});
+    let team =
+        json!({"type": "string", "description": "Team UUID (defaults to the local workspace)"});
     v.push(ToolSpec::new(
         "nyx_get_tree",
         "tree",
@@ -88,7 +99,10 @@ pub fn register(v: &mut Vec<ToolSpec>) {
             "nyx_rename_folder",
             "tree",
             "Rename a folder; documents and subfolders move with it.",
-            strict(json!({"team_id": team, "path": {"type": "string"}, "name": {"type": "string"}}), &["path", "name"]),
+            strict(
+                json!({"team_id": team, "path": {"type": "string"}, "name": {"type": "string"}}),
+                &["path", "name"],
+            ),
             rename_folder,
         )
         .mutates(),
@@ -118,7 +132,10 @@ pub fn register(v: &mut Vec<ToolSpec>) {
             "nyx_move_doc",
             "tree",
             "Move a document into another folder.",
-            strict(json!({"document_id": {"type": "string"}, "new_parent": {"type": "string"}}), &["document_id", "new_parent"]),
+            strict(
+                json!({"document_id": {"type": "string"}, "new_parent": {"type": "string"}}),
+                &["document_id", "new_parent"],
+            ),
             move_doc,
         )
         .mutates(),

@@ -38,11 +38,9 @@ fn deliver(cx: &Cx<'_>, a: &Args<'_>, bytes: &[u8], text: bool, extra: Value) ->
     let mut out = extra;
     out["bytes"] = json!(bytes.len());
     if let Some(p) = a.opt_str("path") {
-        let jail = cx
-            .app
-            .jail
-            .as_ref()
-            .ok_or_else(|| AppError::not_configured("no workspace root available for file output"))?;
+        let jail = cx.app.jail.as_ref().ok_or_else(|| {
+            AppError::not_configured("no workspace root available for file output")
+        })?;
         let written = jail.write(p, bytes)?;
         out["path"] = json!(jail.display_relative(&written));
     } else if text {
@@ -86,16 +84,25 @@ fn export_bundle(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
         docs.push(ExportDoc::from(&repo.get(i)?));
     }
     let bytes = bundle_documents(&docs, &formats, &opts(a)?)?;
-    deliver(cx, a, &bytes, false, json!({"format": "zip", "mime": "application/zip", "documents": ids.len()}))
+    deliver(
+        cx,
+        a,
+        &bytes,
+        false,
+        json!({"format": "zip", "mime": "application/zip", "documents": ids.len()}),
+    )
 }
 
 fn deliverable(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let d = a.str("document_id")?;
     id("document_id", d)?;
     let stage = a.str("stage")?;
-    let kind = DeliverableType::from_str(a.str("type")?).map_err(|e| AppError::invalid(e.to_string()))?;
+    let kind =
+        DeliverableType::from_str(a.str("type")?).map_err(|e| AppError::invalid(e.to_string()))?;
     let o = opts(a)?;
-    let g = cx.db.transaction(|c| SqliteDeliverables::new(c).generate(d, stage, kind, &o))?;
+    let g = cx
+        .db
+        .transaction(|c| SqliteDeliverables::new(c).generate(d, stage, kind, &o))?;
     let text = is_text(kind.format());
     let r = &g.record;
     let rec = json!({"id": r.id, "documentId": r.document_id, "stage": r.stage, "kind": r.kind, "fileName": r.file_name, "fileUrl": r.file_url, "generatedAt": r.generated_at});

@@ -3,7 +3,9 @@
 //! `nyx_delete_doc`, `nyx_list_teams`, `nyx_get_team`, `nyx_create_team`.
 
 use nyx_core::model::{AuditEventType, NewAuditEvent, NewDocument, NewTeam, UserRole};
-use nyx_core::store::{AuditRepo, DocumentRepo, SqliteAudit, SqliteDocuments, SqliteTeams, TeamRepo};
+use nyx_core::store::{
+    AuditRepo, DocumentRepo, SqliteAudit, SqliteDocuments, SqliteTeams, TeamRepo,
+};
 use nyx_core::tree::path as tpath;
 use nyx_core::vcs::version as vers;
 use serde_json::{json, Value};
@@ -42,7 +44,10 @@ fn search_docs(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
 
 fn read_doc(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let d = live_doc(cx.conn(), a.str("document_id")?)?;
-    let v = SqliteDocuments::new(cx.conn()).latest_version(&d.id).ok().map(|v| v.version);
+    let v = SqliteDocuments::new(cx.conn())
+        .latest_version(&d.id)
+        .ok()
+        .map(|v| v.version);
     Ok(doc_full(&d, v))
 }
 
@@ -85,12 +90,21 @@ fn update_doc(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
             SqliteDocuments::new(c).update_meta(&d.id, title.as_deref(), None)?;
         }
         if let Some(body) = content {
-            vers::create(c, &d.id, Some(body), Some(&format!("Updated by {agent}")), &user)?;
+            vers::create(
+                c,
+                &d.id,
+                Some(body),
+                Some(&format!("Updated by {agent}")),
+                &user,
+            )?;
         }
         SqliteDocuments::new(c).get(&d.id)
     })?;
     audit_edit(cx, &d.team_id, &d.id, "update")?;
-    let v = SqliteDocuments::new(cx.conn()).latest_version(&d.id).ok().map(|v| v.version);
+    let v = SqliteDocuments::new(cx.conn())
+        .latest_version(&d.id)
+        .ok()
+        .map(|v| v.version);
     Ok(doc_full(&updated, v))
 }
 
@@ -143,9 +157,13 @@ fn create_team(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let slug = a.str("slug")?;
     let ok = !slug.is_empty()
         && slug.len() <= 60
-        && slug.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
+        && slug
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
     if !ok {
-        return Err(AppError::invalid("slug must be 1-60 chars of a-z, 0-9 and '-'"));
+        return Err(AppError::invalid(
+            "slug must be 1-60 chars of a-z, 0-9 and '-'",
+        ));
     }
     let user = cx.user_id().to_owned();
     let team = cx.db.transaction(|c| {
@@ -255,7 +273,10 @@ pub fn register(v: &mut Vec<ToolSpec>) {
             "nyx_get_team",
             "teams",
             "Get details for a specific team by ID.",
-            obj(json!({"team_id": {"type": "string", "description": "UUID of the team"}}), &["team_id"]),
+            obj(
+                json!({"team_id": {"type": "string", "description": "UUID of the team"}}),
+                &["team_id"],
+            ),
             get_team,
         )
         .parity(Parity::Exact),

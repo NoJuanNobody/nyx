@@ -8,8 +8,8 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::ai::transport::{HttpRequest, HttpTransport, Method};
 use crate::error::{Error, Result};
+use crate::net::{Headers, HttpMethod as Method, HttpRequest, HttpTransport};
 
 /// Tavily endpoint.
 pub const TAVILY_API_URL: &str = "https://api.tavily.com/search";
@@ -96,29 +96,30 @@ impl WebSearch for TavilySearch {
         let req = HttpRequest {
             method: Method::Post,
             url: TAVILY_API_URL.into(),
-            headers: vec![("Content-Type".into(), "application/json".into())],
+            headers: Headers::from_pairs([("Content-Type", "application/json")]),
             body: Some(
                 json!({"api_key": key, "query": query, "search_depth": "basic", "max_results": 10})
-                    .to_string(),
+                    .to_string()
+                    .into_bytes(),
             ),
-            timeout_secs: 30,
+            timeout_secs: Some(30),
         };
         let resp = self.transport.send(&req)?;
         if !resp.is_success() {
-            let msg: String = resp.body.chars().take(300).collect();
+            let msg: String = resp.text().chars().take(300).collect();
             return Err(Error::Invalid(format!(
                 "Tavily API error ({}): {msg}",
                 resp.status
             )));
         }
-        parse_tavily(&resp.body)
+        parse_tavily(&resp.text())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ai::transport::FakeTransport;
+    use crate::net::FakeTransport;
 
     #[test]
     fn stub_without_key_makes_no_request() {
@@ -135,7 +136,7 @@ mod tests {
     #[test]
     fn maps_results_and_sends_documented_body() {
         let t = Arc::new(FakeTransport::new());
-        t.push(
+        t.push_text(
             200,
             r#"{"results":[{"title":"A","content":"snip","url":"https://a"},{"title":"B"}]}"#,
         );
@@ -153,7 +154,7 @@ mod tests {
         assert_eq!(r[1].url, "");
         let req = &t.requests()[0];
         assert_eq!(req.url, TAVILY_API_URL);
-        let body: Value = serde_json::from_str(req.body.as_deref().unwrap()).unwrap();
+        let body: Value = serde_json::from_slice(req.body.as_deref().unwrap()).unwrap();
         assert_eq!(body["max_results"], 10);
         assert_eq!(body["search_depth"], "basic");
         assert_eq!(body["query"], "q");
@@ -162,14 +163,14 @@ mod tests {
     #[test]
     fn errors_surface_status_and_never_the_key() {
         let t = Arc::new(FakeTransport::new());
-        t.push(429, "slow down");
+        t.push_text(429, "slow down");
         let s = TavilySearch::new(Some("secret-key".into()), t.clone());
         let e = s.search("q").unwrap_err().to_string();
         assert!(e.contains("429") && e.contains("slow down") && !e.contains("secret-key"));
         assert!(!format!("{s:?}").contains("secret-key"));
-        t.push(200, "{}");
+        t.push_text(200, "{}");
         assert!(s.search("q").is_err());
-        t.push(200, "not json");
+        t.push_text(200, "not json");
         assert!(s.search("q").is_err());
     }
 }

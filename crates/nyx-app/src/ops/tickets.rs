@@ -45,7 +45,9 @@ fn destination(
         return Destination::from_identifier(provider, d).map_err(tracker_err);
     }
     let integrations = SqliteIntegrations::new(cx.conn()).list(team_id)?;
-    let hit = integrations.iter().find(|i| i.r#type.to_string() == provider);
+    let hit = integrations
+        .iter()
+        .find(|i| i.r#type.to_string() == provider);
     let cfg = hit.map(|i| &i.config);
     let get = |keys: &[&str]| -> Option<String> {
         keys.iter()
@@ -97,10 +99,7 @@ fn create_ticket(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
             },
         )
         .map_err(tracker_err)?;
-    let tp = dest
-        .kind()
-        .ticket_provider()
-        .ok_or_else(|| AppError::invalid("this tracker cannot be recorded locally"))?;
+    let tp = dest.kind().ticket_provider();
     let user = cx.user_id().to_owned();
     let row = cx.db.transaction(|c| {
         let t = SqliteTickets::new(c).create(&NewTicket {
@@ -141,7 +140,8 @@ fn list_tickets(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
 fn set_ticket_status(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let t = a.str("ticket_id")?;
     id("ticket_id", t)?;
-    let status = TicketStatus::from_str(a.str("status")?).map_err(|e| AppError::invalid(e.to_string()))?;
+    let status =
+        TicketStatus::from_str(a.str("status")?).map_err(|e| AppError::invalid(e.to_string()))?;
     to_json(&SqliteTickets::new(cx.conn()).set_status(t, status)?)
 }
 
@@ -150,7 +150,12 @@ fn stage_gate(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     id("document_id", d)?;
     let doc = SqliteDocuments::new(cx.conn()).get(d)?;
     let target = a.str("target_stage")?;
-    let r = evaluate_stage_gate(&doc.content, doc.stage.as_deref(), target, &DEFAULT_STAGE_ORDER);
+    let r = evaluate_stage_gate(
+        &doc.content,
+        doc.stage.as_deref(),
+        target,
+        &DEFAULT_STAGE_ORDER,
+    );
     to_json(&r)
 }
 
@@ -159,7 +164,11 @@ fn readiness(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let mut ids = a.str_list("document_ids");
     let docs_repo = SqliteDocuments::new(cx.conn());
     if ids.is_empty() {
-        ids = docs_repo.list_live(&team)?.into_iter().map(|d| d.id).collect();
+        ids = docs_repo
+            .list_live(&team)?
+            .into_iter()
+            .map(|d| d.id)
+            .collect();
     }
     let mut specs = Vec::new();
     let mut tickets = Vec::new();

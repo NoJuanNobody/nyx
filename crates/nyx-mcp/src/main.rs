@@ -7,10 +7,12 @@ const HELP: &str = "nyx-mcp: Nyx MCP server over stdio (JSON-RPC 2.0)
 USAGE: nyx-mcp [--db PATH] [--data-dir DIR] [--workspace DIR] [--agent ID]
 
 ENV: NYX_DB, NYX_DATA_DIR, NYX_WORKSPACE, NYX_AGENT_ID, NYX_INITIAL_GRANT,
-     NYX_AUTO_ALLOCATE, NYX_RATE_LIMIT, NYX_LOG (set for a redacted call log on stderr)";
+     NYX_AUTO_ALLOCATE, NYX_RATE_LIMIT, NYX_PROVIDER, NYX_SECRETS_PASSPHRASE (encrypted-file
+     secret store instead of the OS keychain), NYX_LOG (redacted call log on stderr)";
 
 fn main() {
     let mut opts = AppOptions::from_env();
+    opts.live = true;
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         let mut value = |name: &str| {

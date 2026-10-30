@@ -6,7 +6,11 @@
 //! Supported methods: `initialize`, `ping`, `tools/list`, `tools/call`, `resources/list`,
 //! `resources/templates/list`, `resources/read`, plus the `notifications/*` the client may send.
 //! Protocol versions: `2025-06-18`, `2025-03-26`, `2024-11-05` (the client's is echoed when known).
-#![allow(clippy::missing_errors_doc, clippy::must_use_candidate, clippy::needless_pass_by_value)]
+#![allow(
+    clippy::missing_errors_doc,
+    clippy::must_use_candidate,
+    clippy::needless_pass_by_value
+)]
 
 pub mod formatter;
 
@@ -69,14 +73,22 @@ impl McpServer {
                 return Some(rpc_error(&Value::Null, INVALID_REQUEST, "empty batch"));
             }
             let out: Vec<Value> = items.iter().filter_map(|m| self.handle_one(m)).collect();
-            return if out.is_empty() { None } else { Some(Value::Array(out)) };
+            return if out.is_empty() {
+                None
+            } else {
+                Some(Value::Array(out))
+            };
         }
         self.handle_one(msg)
     }
 
     fn handle_one(&mut self, msg: &Value) -> Option<Value> {
         let Some(obj) = msg.as_object() else {
-            return Some(rpc_error(&Value::Null, INVALID_REQUEST, "request must be an object"));
+            return Some(rpc_error(
+                &Value::Null,
+                INVALID_REQUEST,
+                "request must be an object",
+            ));
         };
         let id = obj.get("id").cloned();
         let Some(method) = obj.get("method").and_then(Value::as_str) else {
@@ -84,7 +96,11 @@ impl McpServer {
             return if obj.contains_key("result") || obj.contains_key("error") {
                 None
             } else {
-                Some(rpc_error(&id.unwrap_or(Value::Null), INVALID_REQUEST, "missing method"))
+                Some(rpc_error(
+                    &id.unwrap_or(Value::Null),
+                    INVALID_REQUEST,
+                    "missing method",
+                ))
             };
         };
         let params = obj.get("params").cloned().unwrap_or(Value::Null);
@@ -115,14 +131,19 @@ impl McpServer {
                 .list_resources()
                 .map(|r| json!({"resources": r}))
                 .map_err(|e| (-32603, e.message)),
-            "resources/templates/list" => Ok(json!({"resourceTemplates": nyx_app::resources::templates()})),
+            "resources/templates/list" => {
+                Ok(json!({"resourceTemplates": nyx_app::resources::templates()}))
+            }
             "resources/read" => self.resources_read(params),
             other => Err((METHOD_NOT_FOUND, format!("Method not found: {other}"))),
         }
     }
 
     fn initialize(&mut self, params: &Value) -> Value {
-        let wanted = params.get("protocolVersion").and_then(Value::as_str).unwrap_or("");
+        let wanted = params
+            .get("protocolVersion")
+            .and_then(Value::as_str)
+            .unwrap_or("");
         self.version = if SUPPORTED_VERSIONS.contains(&wanted) {
             wanted.to_owned()
         } else {
@@ -146,7 +167,8 @@ impl McpServer {
         let tools: Vec<Value> = registry::registry()
             .iter()
             .map(|t| {
-                let mut v = json!({"name": t.name, "description": t.description, "inputSchema": t.schema});
+                let mut v =
+                    json!({"name": t.name, "description": t.description, "inputSchema": t.schema});
                 if annotations {
                     v["annotations"] = json!({"readOnlyHint": !t.mutates, "openWorldHint": false});
                 }
@@ -157,28 +179,40 @@ impl McpServer {
     }
 
     fn tools_call(&self, params: &Value) -> Result<Value, (i64, String)> {
-        let name = params
-            .get("name")
-            .and_then(Value::as_str)
-            .ok_or((INVALID_PARAMS, "tools/call needs a string `name`".to_owned()))?;
-        let args = params.get("arguments").cloned().unwrap_or_else(|| json!({}));
+        let name = params.get("name").and_then(Value::as_str).ok_or((
+            INVALID_PARAMS,
+            "tools/call needs a string `name`".to_owned(),
+        ))?;
+        let args = params
+            .get("arguments")
+            .cloned()
+            .unwrap_or_else(|| json!({}));
         if !args.is_object() {
             return Err((INVALID_PARAMS, "`arguments` must be an object".into()));
         }
         Ok(match self.app.call_tool(name, &args, &self.caller) {
-            Ok(v) => json!({"content": [{"type": "text", "text": formatter::format_tool_result(name, &v)}]}),
-            Err(e) => json!({"content": [{"type": "text", "text": error_text(&e)}], "isError": true}),
+            Ok(v) => {
+                json!({"content": [{"type": "text", "text": formatter::format_tool_result(name, &v)}]})
+            }
+            Err(e) => {
+                json!({"content": [{"type": "text", "text": error_text(&e)}], "isError": true})
+            }
         })
     }
 
     fn resources_read(&self, params: &Value) -> Result<Value, (i64, String)> {
-        let uri = params
-            .get("uri")
-            .and_then(Value::as_str)
-            .ok_or((INVALID_PARAMS, "resources/read needs a string `uri`".to_owned()))?;
+        let uri = params.get("uri").and_then(Value::as_str).ok_or((
+            INVALID_PARAMS,
+            "resources/read needs a string `uri`".to_owned(),
+        ))?;
         match self.app.read_resource(uri, &self.caller) {
-            Ok(c) => Ok(json!({"contents": [{"uri": uri, "text": c.text, "mimeType": c.mime_type}]})),
-            Err(e) => Err((INVALID_PARAMS, format!("Failed to read resource {uri}: {}", e.message))),
+            Ok(c) => {
+                Ok(json!({"contents": [{"uri": uri, "text": c.text, "mimeType": c.mime_type}]}))
+            }
+            Err(e) => Err((
+                INVALID_PARAMS,
+                format!("Failed to read resource {uri}: {}", e.message),
+            )),
         }
     }
 
@@ -191,7 +225,11 @@ impl McpServer {
             }
             let reply = match serde_json::from_str::<Value>(&line) {
                 Ok(v) => self.handle_value(&v),
-                Err(e) => Some(rpc_error(&Value::Null, PARSE_ERROR, &format!("Parse error: {e}"))),
+                Err(e) => Some(rpc_error(
+                    &Value::Null,
+                    PARSE_ERROR,
+                    &format!("Parse error: {e}"),
+                )),
             };
             if let Some(r) = reply {
                 writeln!(output, "{r}")?;

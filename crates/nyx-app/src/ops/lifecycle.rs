@@ -62,8 +62,12 @@ fn set_stage(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     };
     let t = plan_transition(pipeline, doc.stage.as_deref(), to, policy)?;
     let lc = lifecycles.find_by_slug(&pipeline.slug)?.map(|l| l.id);
-    let updated = cx.db.transaction(|c| SqliteDocuments::new(c).set_stage(d, to, lc.as_deref()))?;
-    Ok(json!({"documentId": updated.id, "stage": updated.stage, "pipeline": pipeline.slug, "transition": t}))
+    let updated = cx
+        .db
+        .transaction(|c| SqliteDocuments::new(c).set_stage(d, to, lc.as_deref()))?;
+    Ok(
+        json!({"documentId": updated.id, "stage": updated.stage, "pipeline": pipeline.slug, "transition": t}),
+    )
 }
 
 fn list_templates(_cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
@@ -83,7 +87,9 @@ fn list_templates(_cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
 fn create_from_template(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let (pslug, stage, tname) = (a.str("pipeline")?, a.str("stage")?, a.str("template")?);
     let reg = Registry::builtin();
-    let p = reg.get(pslug).ok_or_else(|| AppError::not_found(format!("pipeline {pslug}")))?;
+    let p = reg
+        .get(pslug)
+        .ok_or_else(|| AppError::not_found(format!("pipeline {pslug}")))?;
     let t = p
         .template(stage, tname)
         .ok_or_else(|| AppError::not_found(format!("template {tname} in stage {stage}")))?;
@@ -100,7 +106,9 @@ fn create_from_template(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let title = name("title", a.opt_str("title").unwrap_or(&t.name), 300)?;
     let path = tpath::normalize_lenient(a.opt_str("path").unwrap_or("/"));
     let user = cx.user_id().to_owned();
-    let lc = SqliteLifecycles::new(cx.conn()).find_by_slug(&p.slug)?.map(|l| l.id);
+    let lc = SqliteLifecycles::new(cx.conn())
+        .find_by_slug(&p.slug)?
+        .map(|l| l.id);
     let doc = cx.db.transaction(|c| {
         SqliteDocuments::new(c).create(&NewDocument {
             title,
@@ -112,7 +120,9 @@ fn create_from_template(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
             lifecycle_id: lc,
         })
     })?;
-    Ok(json!({"id": doc.id, "title": doc.title, "path": doc.path, "stage": doc.stage, "unresolved": rendered.unresolved}))
+    Ok(
+        json!({"id": doc.id, "title": doc.title, "path": doc.path, "stage": doc.stage, "unresolved": rendered.unresolved}),
+    )
 }
 
 fn template_completeness(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
@@ -131,7 +141,8 @@ fn template_completeness(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
 
 /// Register lifecycle tools.
 pub fn register(v: &mut Vec<ToolSpec>) {
-    let team = json!({"type": "string", "description": "Team UUID (defaults to the local workspace)"});
+    let team =
+        json!({"type": "string", "description": "Team UUID (defaults to the local workspace)"});
     v.push(ToolSpec::new(
         "nyx_list_pipelines",
         "lifecycle",
@@ -168,7 +179,10 @@ pub fn register(v: &mut Vec<ToolSpec>) {
         "nyx_list_templates",
         "lifecycle",
         "List document templates, optionally for one pipeline or stage.",
-        strict(json!({"pipeline": {"type": "string"}, "stage": {"type": "string"}}), &[]),
+        strict(
+            json!({"pipeline": {"type": "string"}, "stage": {"type": "string"}}),
+            &[],
+        ),
         list_templates,
     ));
     v.push(

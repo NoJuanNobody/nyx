@@ -74,7 +74,11 @@ fn notifications(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let svc = NotificationService::new(cx.conn(), EventBus::new());
     let page = svc.inbox(&InboxQuery {
         user_id: cx.user_id().to_owned(),
-        read: if a.opt_bool("unread_only").unwrap_or(false) { Some(false) } else { None },
+        read: if a.opt_bool("unread_only").unwrap_or(false) {
+            Some(false)
+        } else {
+            None
+        },
         event: a.opt_str("event").map(nyx_core::notify::EventFilter::parse),
         limit: Some(a.opt_i64("limit").unwrap_or(20).clamp(1, 100) as u32),
         cursor: a.opt_str("cursor").map(str::to_owned),
@@ -151,9 +155,17 @@ fn looks_secret(v: &Value) -> Option<String> {
     match v {
         Value::Object(o) => o.iter().find_map(|(k, val)| {
             let kl = k.to_ascii_lowercase();
-            if ["token", "secret", "password", "apikey", "api_key", "privatekey", "credential"]
-                .iter()
-                .any(|w| kl.contains(w))
+            if [
+                "token",
+                "secret",
+                "password",
+                "apikey",
+                "api_key",
+                "privatekey",
+                "credential",
+            ]
+            .iter()
+            .any(|w| kl.contains(w))
                 && !val.is_null()
             {
                 Some(k.clone())
@@ -168,7 +180,8 @@ fn looks_secret(v: &Value) -> Option<String> {
 
 fn integration_set(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let team = cx.team(a);
-    let ty = IntegrationType::from_str(a.str("type")?).map_err(|e| AppError::invalid(e.to_string()))?;
+    let ty =
+        IntegrationType::from_str(a.str("type")?).map_err(|e| AppError::invalid(e.to_string()))?;
     let cfg = a.raw("config").cloned().unwrap_or_else(|| json!({}));
     if let Some(k) = looks_secret(&cfg) {
         return Err(AppError::invalid(format!(
@@ -183,7 +196,11 @@ fn integration_set(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
         let repo = SqliteIntegrations::new(c);
         match &existing {
             Some(e) => repo.update_config(&e.id, &cfg),
-            None => repo.create(&NewIntegration { team_id: team.clone(), r#type: ty, config: cfg.clone() }),
+            None => repo.create(&NewIntegration {
+                team_id: team.clone(),
+                r#type: ty,
+                config: cfg.clone(),
+            }),
         }
     })?;
     Ok(json!({"id": saved.id, "type": saved.r#type, "config": redact_json(&saved.config)}))
@@ -197,7 +214,8 @@ fn integration_remove(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
 
 /// Register governance tools.
 pub fn register(v: &mut Vec<ToolSpec>) {
-    let team = json!({"type": "string", "description": "Team UUID (defaults to the local workspace)"});
+    let team =
+        json!({"type": "string", "description": "Team UUID (defaults to the local workspace)"});
     let audit_props = json!({
         "team_id": team, "document_id": {"type": "string"},
         "event_types": {"type": "array", "items": {"type": "string", "enum": ["doc_edit", "snapshot_created", "ticket_created", "ticket_updated", "code_commit", "proposal_created", "proposal_approved", "proposal_pushed"]}},
@@ -243,7 +261,10 @@ pub fn register(v: &mut Vec<ToolSpec>) {
             "nyx_notifications_mark_read",
             "notifications",
             "Mark one notification (id) or all (all=true) as read.",
-            strict(json!({"id": {"type": "string"}, "all": {"type": "boolean"}}), &[]),
+            strict(
+                json!({"id": {"type": "string"}, "all": {"type": "boolean"}}),
+                &[],
+            ),
             mark_read,
         )
         .mutates(),

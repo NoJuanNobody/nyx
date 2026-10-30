@@ -4,7 +4,9 @@
 
 use serde_json::Value;
 
-const TYPES: [&str; 7] = ["string", "integer", "number", "boolean", "array", "object", "null"];
+const TYPES: [&str; 7] = [
+    "string", "integer", "number", "boolean", "array", "object", "null",
+];
 
 /// Check that a schema document is well formed (used by tests and by `tools/list` consumers).
 ///
@@ -15,9 +17,13 @@ pub fn check_schema(schema: &Value) -> Result<(), String> {
 }
 
 fn check_node(s: &Value, at: &str, root: bool) -> Result<(), String> {
-    let o = s.as_object().ok_or_else(|| format!("{at}: schema must be an object"))?;
+    let o = s
+        .as_object()
+        .ok_or_else(|| format!("{at}: schema must be an object"))?;
     if let Some(t) = o.get("type") {
-        let t = t.as_str().ok_or_else(|| format!("{at}: type must be a string"))?;
+        let t = t
+            .as_str()
+            .ok_or_else(|| format!("{at}: type must be a string"))?;
         if !TYPES.contains(&t) {
             return Err(format!("{at}: unknown type {t}"));
         }
@@ -29,16 +35,24 @@ fn check_node(s: &Value, at: &str, root: bool) -> Result<(), String> {
     }
     let props = o.get("properties");
     if let Some(p) = props {
-        let p = p.as_object().ok_or_else(|| format!("{at}: properties must be an object"))?;
+        let p = p
+            .as_object()
+            .ok_or_else(|| format!("{at}: properties must be an object"))?;
         for (k, v) in p {
             check_node(v, &format!("{at}.{k}"), false)?;
         }
     }
     if let Some(r) = o.get("required") {
-        let r = r.as_array().ok_or_else(|| format!("{at}: required must be an array"))?;
+        let r = r
+            .as_array()
+            .ok_or_else(|| format!("{at}: required must be an array"))?;
         for name in r {
-            let name = name.as_str().ok_or_else(|| format!("{at}: required entries must be strings"))?;
-            let known = props.and_then(Value::as_object).is_some_and(|p| p.contains_key(name));
+            let name = name
+                .as_str()
+                .ok_or_else(|| format!("{at}: required entries must be strings"))?;
+            let known = props
+                .and_then(Value::as_object)
+                .is_some_and(|p| p.contains_key(name));
             if !known {
                 return Err(format!("{at}: required property {name} is not declared"));
             }
@@ -73,7 +87,12 @@ pub fn validate(schema: &Value, value: &Value) -> Result<(), String> {
 fn type_ok(t: &str, v: &Value) -> bool {
     match t {
         "string" => v.is_string(),
-        "integer" => v.is_i64() || v.is_u64() || v.as_f64().is_some_and(|f| f.fract() == 0.0 && f.is_finite()),
+        "integer" => {
+            v.is_i64()
+                || v.is_u64()
+                || v.as_f64()
+                    .is_some_and(|f| f.fract() == 0.0 && f.is_finite())
+        }
         "number" => v.is_number(),
         "boolean" => v.is_boolean(),
         "array" => v.is_array(),

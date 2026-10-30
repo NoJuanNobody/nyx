@@ -59,6 +59,9 @@ struct RawTreeEntry {
     path: String,
     #[serde(rename = "type")]
     kind: String,
+    /// Blob id for `blob` entries (tree id for directories).
+    #[serde(default)]
+    id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -490,6 +493,11 @@ pub fn parse_tree(resp: &HttpResponse) -> GitResult<Vec<GitTreeEntry>> {
                 TreeEntryKind::Blob
             } else {
                 TreeEntryKind::Tree
+            },
+            sha: if e.kind == "blob" {
+                e.id.filter(|s| !s.is_empty())
+            } else {
+                None
             },
             path: e.path,
             size: None,
@@ -961,6 +969,8 @@ mod tests {
             (tree[0].kind, tree[1].kind),
             (TreeEntryKind::Tree, TreeEntryKind::Blob)
         );
+        assert_eq!(tree[0].sha, None, "directory ids are not blob ids");
+        assert_eq!(tree[1].sha.as_deref(), Some("2"));
         assert!(t.requests()[0].url.ends_with("ref=HEAD"));
     }
 

@@ -10,13 +10,16 @@ publish.workspace = true
 
 [dependencies]
 nyx-core.workspace = true
+nyx-net.workspace = true
 rusqlite.workspace = true
+secrecy = "0.10"
 serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
 base64 = "0.22"
 
 [dev-dependencies]
+secrecy = "0.10"
 tempfile = "3.27.0"
 rusqlite.workspace = true
 

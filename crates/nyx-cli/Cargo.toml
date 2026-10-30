@@ -18,6 +18,7 @@ nyx-core.workspace = true
 nyx-mcp.workspace = true
 clap.workspace = true
 clap_complete.workspace = true
+secrecy = "0.10"
 serde_json.workspace = true
 uuid.workspace = true
 

@@ -30,7 +30,8 @@ impl<'a> Args<'a> {
     /// Optional integer.
     #[must_use]
     pub fn opt_i64(&self, k: &str) -> Option<i64> {
-        self.raw(k).and_then(|v| v.as_i64().or_else(|| v.as_f64().map(|f| f as i64)))
+        self.raw(k)
+            .and_then(|v| v.as_i64().or_else(|| v.as_f64().map(|f| f as i64)))
     }
 
     /// Required integer.
@@ -50,7 +51,11 @@ impl<'a> Args<'a> {
     pub fn str_list(&self, k: &str) -> Vec<String> {
         self.raw(k)
             .and_then(Value::as_array)
-            .map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_owned)).collect())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str().map(str::to_owned))
+                    .collect()
+            })
             .unwrap_or_default()
     }
 }

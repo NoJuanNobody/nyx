@@ -32,7 +32,8 @@ fn date(ms: i64) -> String {
 }
 
 fn when(v: &Value) -> String {
-    v.as_i64().map_or_else(|| s(v).split('T').next().unwrap_or("").to_owned(), date)
+    v.as_i64()
+        .map_or_else(|| s(v).split('T').next().unwrap_or("").to_owned(), date)
 }
 
 fn plural(n: usize, word: &str) -> String {
@@ -69,29 +70,69 @@ fn fmt(tool: &str, r: &Value) -> Option<String> {
             let lines: Vec<String> = docs
                 .iter()
                 .map(|d| {
-                    let status = if truthy(&d["status"]) { format!(" [{}]", s(&d["status"])) } else { String::new() };
-                    let path = if truthy(&d["path"]) { format!("  {}", s(&d["path"])) } else { String::new() };
+                    let status = if truthy(&d["status"]) {
+                        format!(" [{}]", s(&d["status"]))
+                    } else {
+                        String::new()
+                    };
+                    let path = if truthy(&d["path"]) {
+                        format!("  {}", s(&d["path"]))
+                    } else {
+                        String::new()
+                    };
                     format!("• {}{status}{path}  ({})", s(&d["title"]), s(&d["id"]))
                 })
                 .collect();
             format!("{}:\n{}", plural(docs.len(), "document"), lines.join("\n"))
         }
         "nyx_read_doc" => {
-            let stage = if truthy(&r["status"]) { format!(" · {}", s(&r["status"])) } else { String::new() };
-            let path = if truthy(&r["path"]) { format!(" · {}", s(&r["path"])) } else { String::new() };
-            let body = if truthy(&r["content"]) { s(&r["content"]) } else { "(no content)".into() };
-            format!("# {}{stage}{path}  (id: {})\n\n{body}", s(&r["title"]), s(&r["id"]))
+            let stage = if truthy(&r["status"]) {
+                format!(" · {}", s(&r["status"]))
+            } else {
+                String::new()
+            };
+            let path = if truthy(&r["path"]) {
+                format!(" · {}", s(&r["path"]))
+            } else {
+                String::new()
+            };
+            let body = if truthy(&r["content"]) {
+                s(&r["content"])
+            } else {
+                "(no content)".into()
+            };
+            format!(
+                "# {}{stage}{path}  (id: {})\n\n{body}",
+                s(&r["title"]),
+                s(&r["id"])
+            )
         }
         "nyx_create_doc" => {
-            let path = if truthy(&r["path"]) { format!("\nPath: {}", s(&r["path"])) } else { String::new() };
-            format!("Document created: \"{}\"  (id: {}){path}", s(&r["title"]), s(&r["id"]))
+            let path = if truthy(&r["path"]) {
+                format!("\nPath: {}", s(&r["path"]))
+            } else {
+                String::new()
+            };
+            format!(
+                "Document created: \"{}\"  (id: {}){path}",
+                s(&r["title"]),
+                s(&r["id"])
+            )
         }
         "nyx_update_doc" => {
-            let title = if truthy(&r["title"]) { format!("\nTitle: {}", s(&r["title"])) } else { String::new() };
+            let title = if truthy(&r["title"]) {
+                format!("\nTitle: {}", s(&r["title"]))
+            } else {
+                String::new()
+            };
             format!("Document updated (id: {}).{title}", s(&r["id"]))
         }
         "nyx_delete_doc" => {
-            if r["success"] == true { "Document deleted.".into() } else { format!("Delete result: {r}") }
+            if r["success"] == true {
+                "Document deleted.".into()
+            } else {
+                format!("Delete result: {r}")
+            }
         }
         "nyx_list_versions" => {
             let vs = list(r, "versions");
@@ -101,8 +142,16 @@ fn fmt(tool: &str, r: &Value) -> Option<String> {
             let lines: Vec<String> = vs
                 .iter()
                 .map(|v| {
-                    let msg = if truthy(&v["message"]) { format!(" — {}", s(&v["message"])) } else { String::new() };
-                    let ts = if truthy(&v["createdAt"]) { format!(" ({})", when(&v["createdAt"])) } else { String::new() };
+                    let msg = if truthy(&v["message"]) {
+                        format!(" — {}", s(&v["message"]))
+                    } else {
+                        String::new()
+                    };
+                    let ts = if truthy(&v["createdAt"]) {
+                        format!(" ({})", when(&v["createdAt"]))
+                    } else {
+                        String::new()
+                    };
                     format!("• v{}{msg}{ts}  (id: {})", s(&v["version"]), s(&v["id"]))
                 })
                 .collect();
@@ -115,7 +164,14 @@ fn fmt(tool: &str, r: &Value) -> Option<String> {
             }
             let lines: Vec<String> = ev
                 .iter()
-                .map(|e| format!("• [{}] {}: {}", when(&e["createdAt"]), s(&e["type"]), s(&e["description"])))
+                .map(|e| {
+                    format!(
+                        "• [{}] {}: {}",
+                        when(&e["createdAt"]),
+                        s(&e["type"]),
+                        s(&e["description"])
+                    )
+                })
                 .collect();
             format!("{}:\n{}", plural(ev.len(), "event"), lines.join("\n"))
         }
@@ -127,23 +183,56 @@ fn fmt(tool: &str, r: &Value) -> Option<String> {
             let lines: Vec<String> = ts
                 .iter()
                 .map(|t| {
-                    let role = if truthy(&t["role"]) { format!(" ({})", s(&t["role"])) } else { String::new() };
-                    format!("• {}  /{}{role}  ({})", s(&t["name"]), s(&t["slug"]), s(&t["id"]))
+                    let role = if truthy(&t["role"]) {
+                        format!(" ({})", s(&t["role"]))
+                    } else {
+                        String::new()
+                    };
+                    format!(
+                        "• {}  /{}{role}  ({})",
+                        s(&t["name"]),
+                        s(&t["slug"]),
+                        s(&t["id"])
+                    )
                 })
                 .collect();
             format!("{}:\n{}", plural(ts.len(), "team"), lines.join("\n"))
         }
         "nyx_get_team" => {
-            let members = r["members"].as_array().map_or_else(String::new, |m| format!("\nMembers: {}", m.len()));
-            format!("Team: {}  (/{})  id: {}{members}", s(&r["name"]), s(&r["slug"]), s(&r["id"]))
+            let members = r["members"]
+                .as_array()
+                .map_or_else(String::new, |m| format!("\nMembers: {}", m.len()));
+            format!(
+                "Team: {}  (/{})  id: {}{members}",
+                s(&r["name"]),
+                s(&r["slug"]),
+                s(&r["id"])
+            )
         }
-        "nyx_create_team" => format!("Team created: \"{}\"  (/{})  id: {}", s(&r["name"]), s(&r["slug"]), s(&r["id"])),
+        "nyx_create_team" => format!(
+            "Team created: \"{}\"  (/{})  id: {}",
+            s(&r["name"]),
+            s(&r["slug"]),
+            s(&r["id"])
+        ),
         "nyx_create_ticket" => {
-            let url = if truthy(&r["url"]) { format!("\nURL: {}", s(&r["url"])) } else { String::new() };
-            format!("Ticket created: \"{}\"{url}  (id: {})", s(&r["title"]), s(&r["id"]))
+            let url = if truthy(&r["url"]) {
+                format!("\nURL: {}", s(&r["url"]))
+            } else {
+                String::new()
+            };
+            format!(
+                "Ticket created: \"{}\"{url}  (id: {})",
+                s(&r["title"]),
+                s(&r["id"])
+            )
         }
         "nyx_check_quality" => {
-            let head = if r.get("score").is_some() { format!("Quality score: {}/10", s(&r["score"])) } else { "Quality analysis:".into() };
+            let head = if r.get("score").is_some() {
+                format!("Quality score: {}/10", s(&r["score"]))
+            } else {
+                "Quality analysis:".into()
+            };
             let sug = list(&r["suggestions"], "");
             if sug.is_empty() {
                 return Some(format!("{head}\nNo suggestions."));
@@ -152,17 +241,39 @@ fn fmt(tool: &str, r: &Value) -> Option<String> {
             format!("{head}\n\nSuggestions:\n{}", b.join("\n"))
         }
         "nyx_detect_drift" => {
-            let score = if r.get("driftScore").is_some() { format!("Drift score: {}", s(&r["driftScore"])) } else { String::new() };
-            let has = if r.get("hasDrift").is_some() { format!("\nDrift detected: {}", s(&r["hasDrift"])) } else { String::new() };
-            let details = if truthy(&r["details"]) { format!("\n\nDetails:\n{}", s(&r["details"])) } else { String::new() };
+            let score = if r.get("driftScore").is_some() {
+                format!("Drift score: {}", s(&r["driftScore"]))
+            } else {
+                String::new()
+            };
+            let has = if r.get("hasDrift").is_some() {
+                format!("\nDrift detected: {}", s(&r["hasDrift"]))
+            } else {
+                String::new()
+            };
+            let details = if truthy(&r["details"]) {
+                format!("\n\nDetails:\n{}", s(&r["details"]))
+            } else {
+                String::new()
+            };
             let sug = list(&r["suggestions"], "");
             let sug = if sug.is_empty() {
                 String::new()
             } else {
-                format!("\n\nSuggestions:\n{}", sug.iter().map(|x| format!("• {}", s(x))).collect::<Vec<_>>().join("\n"))
+                format!(
+                    "\n\nSuggestions:\n{}",
+                    sug.iter()
+                        .map(|x| format!("• {}", s(x)))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                )
             };
             let out = format!("{score}{has}{details}{sug}");
-            if out.trim().is_empty() { serde_json::to_string_pretty(r).ok()? } else { out.trim().to_owned() }
+            if out.trim().is_empty() {
+                serde_json::to_string_pretty(r).ok()?
+            } else {
+                out.trim().to_owned()
+            }
         }
         "nyx_web_search" => {
             let results = list(&r["results"], "");
@@ -172,12 +283,26 @@ fn fmt(tool: &str, r: &Value) -> Option<String> {
             let lines: Vec<String> = results
                 .iter()
                 .enumerate()
-                .map(|(i, x)| format!("{}. **{}**\n   {}\n   {}", i + 1, s(&x["title"]), s(&x["url"]), s(&x["snippet"])))
+                .map(|(i, x)| {
+                    format!(
+                        "{}. **{}**\n   {}\n   {}",
+                        i + 1,
+                        s(&x["title"]),
+                        s(&x["url"]),
+                        s(&x["snippet"])
+                    )
+                })
                 .collect();
             format!("Search: {}\n\n{}", s(&r["query"]), lines.join("\n\n"))
         }
         "nyx_read_file" => {
-            format!("File: {}  ({})\n{}\n{}", s(&r["path"]), s(&r["extension"]), "─".repeat(40), s(&r["content"]))
+            format!(
+                "File: {}  ({})\n{}\n{}",
+                s(&r["path"]),
+                s(&r["extension"]),
+                "─".repeat(40),
+                s(&r["content"])
+            )
         }
         "nyx_list_files" => {
             let es = list(r, "");
@@ -185,7 +310,17 @@ fn fmt(tool: &str, r: &Value) -> Option<String> {
                 return Some("(empty directory)".into());
             }
             es.iter()
-                .map(|e| format!("{} {}", if e["type"] == "directory" { "[dir] " } else { "[file]" }, s(&e["name"])))
+                .map(|e| {
+                    format!(
+                        "{} {}",
+                        if e["type"] == "directory" {
+                            "[dir] "
+                        } else {
+                            "[file]"
+                        },
+                        s(&e["name"])
+                    )
+                })
                 .collect::<Vec<_>>()
                 .join("\n")
         }
@@ -207,10 +342,19 @@ mod tests {
 
     #[test]
     fn list_and_fallback() {
-        let out = format_tool_result("nyx_search_docs", &json!([{"id": "1", "title": "A", "status": "draft", "path": "/x"}]));
+        let out = format_tool_result(
+            "nyx_search_docs",
+            &json!([{"id": "1", "title": "A", "status": "draft", "path": "/x"}]),
+        );
         assert_eq!(out, "1 document:\n• A [draft]  /x  (1)");
-        assert_eq!(format_tool_result("nyx_search_docs", &json!([])), "No documents found.");
-        assert!(format_tool_result("nyx_credits_balance", &json!({"balance": 3})).contains("\"balance\": 3"));
+        assert_eq!(
+            format_tool_result("nyx_search_docs", &json!([])),
+            "No documents found."
+        );
+        assert!(
+            format_tool_result("nyx_credits_balance", &json!({"balance": 3}))
+                .contains("\"balance\": 3")
+        );
         assert_eq!(format_tool_result("x", &Value::Null), "(no result)");
     }
 }

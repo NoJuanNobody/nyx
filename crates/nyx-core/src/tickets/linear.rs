@@ -18,8 +18,8 @@ use super::tracker::{
     check_response, title_key, Destination, NewIssue, RemoteIssue, TicketTracker, TrackerError,
     TrackerKind,
 };
-use crate::git_provider::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 use crate::model::TicketStatus;
+use crate::net::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 
 /// Default GraphQL endpoint.
 pub const LINEAR_ENDPOINT: &str = "https://api.linear.app/graphql";

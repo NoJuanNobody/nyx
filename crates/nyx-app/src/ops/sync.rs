@@ -16,7 +16,12 @@ use crate::error::{AppError, AppResult};
 use crate::registry::{obj, strict, Cost, Needs, Parity, ToolSpec};
 use crate::Cx;
 
-fn advisor_llm(cx: &Cx<'_>) -> AppResult<(std::sync::Arc<dyn nyx_core::ai::LlmProvider>, nyx_core::ai::ModelPair)> {
+fn advisor_llm(
+    cx: &Cx<'_>,
+) -> AppResult<(
+    std::sync::Arc<dyn nyx_core::ai::LlmProvider>,
+    nyx_core::ai::ModelPair,
+)> {
     let llm = cx
         .services()
         .llm
@@ -54,12 +59,20 @@ fn index_team(cx: &mut Cx<'_>, team: &str, force: bool) -> AppResult<(usize, usi
     let docs = SqliteDocuments::new(cx.conn()).list_live(team)?;
     let (mut done, mut skipped) = (0, 0);
     for d in docs {
-        let v = SqliteDocuments::new(cx.conn()).latest_version(&d.id)?.version;
-        if !force && !SqliteChunks::new(cx.conn()).doc_chunks(&d.id, v)?.is_empty() {
+        let v = SqliteDocuments::new(cx.conn())
+            .latest_version(&d.id)?
+            .version;
+        if !force
+            && !SqliteChunks::new(cx.conn())
+                .doc_chunks(&d.id, v)?
+                .is_empty()
+        {
             skipped += 1;
             continue;
         }
-        cx.db.transaction(|c| index_document(c, embedder.as_ref(), &d, v, &ChunkOptions::default()))?;
+        cx.db.transaction(|c| {
+            index_document(c, embedder.as_ref(), &d, v, &ChunkOptions::default())
+        })?;
         done += 1;
     }
     Ok((done, skipped))
@@ -85,7 +98,12 @@ fn search(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let vec = if mode == Mode::Keyword {
         None
     } else {
-        cx.services().embedder.embed(&[q.to_owned()])?.into_iter().next()
+        cx.services()
+            .embedder
+            .embed(&[q.to_owned()])
+            .map_err(|e| AppError::new("embed_error", e.to_string()))?
+            .into_iter()
+            .next()
     };
     let hits = search_documents(cx.conn(), &team, q, vec.as_deref(), &opts)?;
     let repo = SqliteDocuments::new(cx.conn());
@@ -112,7 +130,9 @@ fn link_impact(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
         relation: a.opt_str("relation").unwrap_or("references").to_owned(),
         weight: a.raw("weight").and_then(Value::as_f64).unwrap_or(1.0) as f32,
     };
-    let created = cx.db.transaction(|c| SqliteImpact::new(c).link(&team, &edge))?;
+    let created = cx
+        .db
+        .transaction(|c| SqliteImpact::new(c).link(&team, &edge))?;
     Ok(json!({"created": created}))
 }
 
@@ -121,7 +141,9 @@ fn unlink_impact(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let src = parse_node(a.str("src_kind")?, a.str("src")?)?;
     let dst = parse_node(a.str("dst_kind")?, a.str("dst")?)?;
     let rel = a.opt_str("relation").unwrap_or("references");
-    let removed = cx.db.transaction(|c| SqliteImpact::new(c).unlink(&team, &src, &dst, rel))?;
+    let removed = cx
+        .db
+        .transaction(|c| SqliteImpact::new(c).unlink(&team, &src, &dst, rel))?;
     Ok(json!({"removed": removed}))
 }
 
@@ -193,7 +215,8 @@ fn set_drift_status(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
 
 /// Register sync and AI tools.
 pub fn register(v: &mut Vec<ToolSpec>) {
-    let team = json!({"type": "string", "description": "Team UUID (defaults to the local workspace)"});
+    let team =
+        json!({"type": "string", "description": "Team UUID (defaults to the local workspace)"});
     let kinds = json!({"type": "string", "enum": ["spec", "file", "ticket"]});
     v.push(
         ToolSpec::new(
@@ -241,7 +264,10 @@ pub fn register(v: &mut Vec<ToolSpec>) {
         "nyx_list_drift",
         "sync",
         "Stored drift findings: open ones for the team, or all for one document.",
-        strict(json!({"team_id": team, "document_id": {"type": "string"}}), &[]),
+        strict(
+            json!({"team_id": team, "document_id": {"type": "string"}}),
+            &[],
+        ),
         list_drift,
     ));
     v.push(

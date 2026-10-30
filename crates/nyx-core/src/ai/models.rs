@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::provider::LlmError;
-use super::transport::{HttpRequest, HttpTransport, Method};
+use super::transport::{Headers, HttpRequest, HttpTransport, Method};
 
 /// `OpenRouter` catalog endpoint.
 pub const OPENROUTER_MODELS_URL: &str = "https://openrouter.ai/api/v1/models";
@@ -199,16 +199,17 @@ impl ModelCatalog {
         let req = HttpRequest {
             method: Method::Get,
             url: OPENROUTER_MODELS_URL.into(),
-            headers,
+            headers: Headers::from_pairs(headers),
             body: None,
-            timeout_secs: 30,
+            timeout_secs: Some(30),
         };
         let fetched = self
             .transport
             .send(&req)
+            .map_err(LlmError::from)
             .and_then(|r| {
                 if r.is_success() {
-                    normalize_openrouter(&r.body)
+                    normalize_openrouter(&r.text())
                 } else {
                     Err(LlmError::Http {
                         status: r.status,
@@ -272,16 +273,19 @@ mod tests {
     #[test]
     fn caches_for_an_hour_and_refetches_after() {
         let t = Arc::new(FakeTransport::new());
-        t.push(200, BODY);
-        t.push(200, r#"{"data":[{"id":"x/y"}]}"#);
+        t.push_text(200, BODY);
+        t.push_text(200, r#"{"data":[{"id":"x/y"}]}"#);
         let cat = ModelCatalog::new(t.clone());
         assert_eq!(cat.list(None, 1_000).len(), 2);
         assert_eq!(cat.list(None, 1_000 + CACHE_TTL_MS - 1).len(), 2);
         assert_eq!(t.requests().len(), 1);
         assert_eq!(cat.list(Some("k"), 1_000 + CACHE_TTL_MS).len(), 1);
         assert_eq!(t.requests().len(), 2);
-        assert_eq!(t.requests()[0].header("authorization"), None);
-        assert_eq!(t.requests()[1].header("authorization"), Some("Bearer k"));
+        assert_eq!(t.requests()[0].header_value("authorization"), None);
+        assert_eq!(
+            t.requests()[1].header_value("authorization"),
+            Some("Bearer k")
+        );
     }
 
     #[test]
@@ -290,9 +294,9 @@ mod tests {
             let t = Arc::new(FakeTransport::new());
             match setup {
                 0 => t.push_error("offline"),
-                1 => t.push(500, "oops"),
-                2 => t.push(200, "not json"),
-                _ => t.push(200, r#"{"data":[]}"#),
+                1 => t.push_text(500, "oops"),
+                2 => t.push_text(200, "not json"),
+                _ => t.push_text(200, r#"{"data":[]}"#),
             }
             let cat = ModelCatalog::new(t.clone());
             assert_eq!(cat.list(None, 0), fallback_models());

@@ -46,8 +46,8 @@ fn whoami(cx: &mut Cx<'_>, _a: &Args<'_>) -> AppResult<Value> {
         "version": nyx_core::VERSION,
         "mode": "local",
         "services": {
-            "llm": cx.services().llm.as_ref().map(|l| l.name().to_owned()),
-            "webSearch": cx.services().web_search.is_some(),
+            "llm": cx.services().llm.as_ref().filter(|_| cx.services().llm_available()).map(|l| l.name().to_owned()),
+            "webSearch": cx.services().search_available(),
             "embedder": cx.services().embedder.model(),
         },
     }))

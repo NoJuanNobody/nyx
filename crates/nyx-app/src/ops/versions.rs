@@ -34,7 +34,9 @@ fn list_versions(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     id("document_id", d)?;
     SqliteDocuments::new(cx.conn()).get(d)?;
     let vs = version::list(cx.conn(), d)?;
-    Ok(Value::Array(vs.iter().map(|v| version_json(v, false)).collect()))
+    Ok(Value::Array(
+        vs.iter().map(|v| version_json(v, false)).collect(),
+    ))
 }
 
 fn get_timeline(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
@@ -70,7 +72,13 @@ fn create_version(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
         text("message", m, 1000)?;
     }
     let user = cx.user_id().to_owned();
-    let v = version::create(cx.conn(), d, a.opt_str("content"), a.opt_str("message"), &user)?;
+    let v = version::create(
+        cx.conn(),
+        d,
+        a.opt_str("content"),
+        a.opt_str("message"),
+        &user,
+    )?;
     Ok(version_json(&v, false))
 }
 
@@ -193,7 +201,10 @@ fn branch_review(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     };
     debug_assert!(matches!(
         out.status,
-        BranchStatus::Draft | BranchStatus::InReview | BranchStatus::Approved | BranchStatus::Rejected
+        BranchStatus::Draft
+            | BranchStatus::InReview
+            | BranchStatus::Approved
+            | BranchStatus::Rejected
     ));
     to_json(&out)
 }
@@ -231,7 +242,9 @@ fn merge_branch(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     let rs = resolutions(a)?;
     let user = cx.user_id().to_owned();
     match branch::merge(cx.conn(), b, &user, rs.as_deref())? {
-        MergeAttempt::Merged(r) => Ok(json!({"outcome": "merged", "kind": r.kind, "version": version_json(&r.version, false), "branch": r.branch})),
+        MergeAttempt::Merged(r) => Ok(
+            json!({"outcome": "merged", "kind": r.kind, "version": version_json(&r.version, false), "branch": r.branch}),
+        ),
         MergeAttempt::Conflicted(c) => Ok(json!({
             "outcome": "conflicted",
             "message": "overlapping edits; retry with one resolution per conflict (choose: ours|theirs|base|both|custom)",
@@ -270,7 +283,9 @@ fn create_snapshot(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
         id("document_ids", d)?;
     }
     let user = cx.user_id().to_owned();
-    let snaps = cx.db.transaction(|c| snapshot::create(c, &nm, &docs, Some(&user)))?;
+    let snaps = cx
+        .db
+        .transaction(|c| snapshot::create(c, &nm, &docs, Some(&user)))?;
     to_json(&snaps)
 }
 
@@ -294,7 +309,9 @@ fn restore_snapshot(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
     id("snapshot_id", s)?;
     let user = cx.user_id().to_owned();
     let r = snapshot::restore(cx.conn(), s, &user)?;
-    Ok(json!({"documentId": r.document_id, "restoredFrom": r.restored_from, "version": version_json(&r.version, false)}))
+    Ok(
+        json!({"documentId": r.document_id, "restoredFrom": r.restored_from, "version": version_json(&r.version, false)}),
+    )
 }
 
 fn diff_snapshot(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
@@ -437,7 +454,10 @@ pub fn register(v: &mut Vec<ToolSpec>) {
             "nyx_update_branch",
             "branches",
             "Replace the content of a branch (until it is merged or rejected).",
-            strict(json!({"branch_id": {"type": "string"}, "content": {"type": "string"}}), &["branch_id", "content"]),
+            strict(
+                json!({"branch_id": {"type": "string"}, "content": {"type": "string"}}),
+                &["branch_id", "content"],
+            ),
             update_branch,
         )
         .mutates(),
@@ -528,7 +548,10 @@ pub fn register(v: &mut Vec<ToolSpec>) {
         "nyx_list_snapshots",
         "snapshots",
         "List snapshots of a document, or of the team when no document_id is given.",
-        strict(json!({"document_id": doc, "team_id": {"type": "string"}}), &[]),
+        strict(
+            json!({"document_id": doc, "team_id": {"type": "string"}}),
+            &[],
+        ),
         list_snapshots,
     ));
     v.push(

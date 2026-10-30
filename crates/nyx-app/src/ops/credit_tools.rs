@@ -17,7 +17,9 @@ fn only(a: &Args<'_>, allowed: &[&str]) -> AppResult<()> {
     if let Some(o) = a.0.as_object() {
         for k in o.keys() {
             if !allowed.contains(&k.as_str()) {
-                return Err(AppError::invalid(format!("Invalid arguments: {k}: unknown property")));
+                return Err(AppError::invalid(format!(
+                    "Invalid arguments: {k}: unknown property"
+                )));
             }
         }
     }
@@ -25,7 +27,9 @@ fn only(a: &Args<'_>, allowed: &[&str]) -> AppResult<()> {
 }
 
 fn agent<'a>(cx: &'a Cx<'_>, a: &Args<'a>) -> AppResult<String> {
-    let id = a.opt_str("agent_id").map_or_else(|| cx.caller.agent_id.clone(), str::to_owned);
+    let id = a
+        .opt_str("agent_id")
+        .map_or_else(|| cx.caller.agent_id.clone(), str::to_owned);
     credits::check_agent(&id)?;
     credits::ensure_agent(cx.conn(), &id, cx.app.auto_allocate_amount())?;
     Ok(id)
@@ -34,7 +38,9 @@ fn agent<'a>(cx: &'a Cx<'_>, a: &Args<'a>) -> AppResult<String> {
 fn key<'a>(a: &Args<'a>) -> AppResult<&'a str> {
     let k = a.str("idempotency_key")?;
     if !(8..=200).contains(&k.chars().count()) {
-        return Err(AppError::invalid("idempotency_key must be 8-200 characters"));
+        return Err(AppError::invalid(
+            "idempotency_key must be 8-200 characters",
+        ));
     }
     Ok(k)
 }
@@ -58,7 +64,9 @@ fn task<'a>(a: &Args<'a>) -> AppResult<Option<&'a str>> {
 fn amount(a: &Args<'_>, k: &str, min: i64) -> AppResult<i64> {
     let n = a.i64(k)?;
     if n < min {
-        return Err(AppError::invalid(format!("{k} must be an integer >= {min}")));
+        return Err(AppError::invalid(format!(
+            "{k} must be an integer >= {min}"
+        )));
     }
     Ok(n)
 }
@@ -70,7 +78,17 @@ fn balance(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
 }
 
 fn reserve(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
-    only(a, &["idempotency_key", "agent_id", "amount", "task_type", "ttl_ms", "memo"])?;
+    only(
+        a,
+        &[
+            "idempotency_key",
+            "agent_id",
+            "amount",
+            "task_type",
+            "ttl_ms",
+            "memo",
+        ],
+    )?;
     let k = key(a)?;
     let amt = amount(a, "amount", 1)?;
     let ttl = a.opt_i64("ttl_ms");
@@ -82,11 +100,21 @@ fn reserve(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
 }
 
 fn commit(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
-    only(a, &["idempotency_key", "reservation_id", "actual_amount", "memo"])?;
+    only(
+        a,
+        &["idempotency_key", "reservation_id", "actual_amount", "memo"],
+    )?;
     let k = key(a)?;
     let rid = a.str("reservation_id")?;
     let actual = amount(a, "actual_amount", 0)?;
-    credits::commit(cx.conn(), &cx.caller.agent_id.clone(), k, rid, actual, memo(a)?)
+    credits::commit(
+        cx.conn(),
+        &cx.caller.agent_id.clone(),
+        k,
+        rid,
+        actual,
+        memo(a)?,
+    )
 }
 
 fn release(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
@@ -97,7 +125,10 @@ fn release(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
 }
 
 fn spend(cx: &mut Cx<'_>, a: &Args<'_>) -> AppResult<Value> {
-    only(a, &["idempotency_key", "agent_id", "amount", "task_type", "memo"])?;
+    only(
+        a,
+        &["idempotency_key", "agent_id", "amount", "task_type", "memo"],
+    )?;
     let k = key(a)?;
     let amt = amount(a, "amount", 1)?;
     let ag = agent(cx, a)?;

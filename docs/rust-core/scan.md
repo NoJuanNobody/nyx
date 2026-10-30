@@ -10,7 +10,7 @@ Rust port of the scan, onboarding, embedding and job services. Module: `crates/n
 | `chunker.rs` | `chunk_code_file`: declaration-aligned segments per language, packed to 1500 chars, oversize segments fall back to `intake::chunking::chunk_text` (150 overlap), `// File: <path>` prefix as in the TS |
 | `source.rs` | `RepoSource` trait; `GitProviderSource` (any `GitProvider`), `LocalFolderSource` (offline, jailed, never follows symlinks), `MemorySource` (tests) |
 | `plan.rs` | `plan_scan`: added / modified / unchanged / removed / skipped / over-limit against the stored manifest |
-| `embed.rs` | `Embedder` trait, deterministic `FakeEmbedder`, `HttpEmbedder` (OpenAI-compatible wire format over `ai::HttpTransport`), `embed_texts` (batching, dedupe by SHA-256, persistent `embedding_cache`) |
+| `embed.rs` | re-exports `ai::embedder::{Embedder, HttpEmbedder, EmbedError}`, deterministic `FakeEmbedder` (OpenAI-compatible wire format over `net::HttpTransport`), `embed_texts` (batching, dedupe by SHA-256, persistent `embedding_cache`) |
 | `meter.rs` | `ScanMeter`, `NoMeter`, `CountingMeter`, `LedgerMeter` (reserve + commit on the credit ledger) |
 | `indexer.rs` | `index_repo`: the pipeline, `ScanEvent` progress, cancellation hook, `IndexReport` |
 | `jobs.rs` | `background_jobs` store (enqueue/claim/progress/complete/fail/requeue/cancel/retry), `JobRunner`, `ScanJobHandler` |
@@ -33,7 +33,7 @@ Files rejected after reading are recorded in the manifest with `chunk_count = 0`
 
 ## Revision tokens and the incremental limit
 
-`SourceEntry::sha` is a token known from the listing. `MemorySource` and local sources derive it from content (`sha256:<hex>`, not git's sha1 blob id: only sha2 is a dependency). `GitProvider` tree entries carry no blob sha (AI-66 owns that type), so for git hosts an unchanged repo is detected by the commit sha (`list_commits(limit 1)`), and after a new commit every known file is re-fetched and compared by content hash: no re-chunking, re-embedding or credits for unchanged files, but still one fetch per file. TODO: carry the blob sha in `GitTreeEntry` (small AI-66 follow-up) to remove those fetches, and add a tarball download for first scans (#348).
+`SourceEntry::sha` is a token known from the listing. `MemorySource` and local sources derive it from content (`sha256:<hex>`, not git's sha1 blob id: only sha2 is a dependency). `GitTreeEntry::sha` now carries the git blob id (GitHub `sha`, GitLab `id`), and `GitProviderSource` exposes it as `git-blob:<sha>` (namespaced so it can never equal a `sha256:` content token). An unchanged repo is still detected by the commit sha (`list_commits(limit 1)`); after a new commit the tree is listed once and **only files whose blob sha differs are fetched**, chunked and embedded. Bitbucket Cloud's `src` listing has no blob id (`sha: None`), so Bitbucket repos keep the old behaviour: every known file is re-fetched and compared by content hash (no re-embedding or credits, but one fetch per file). A repo first scanned before this change has `sha256:` manifest fingerprints; the first re-scan after upgrading sees every file as modified, re-reads it once (embeddings come from the cache, so no credits) and stores `git-blob:` fingerprints from then on. TODO: tarball download for first scans (#348); GitHub's recursive tree can come back `truncated` for huge repos, which is not handled.
 
 ## Jobs
 
@@ -68,7 +68,7 @@ Steps and routes: `completed_steps` (`GET /progress`), `mark_step_complete` (`PO
 - No `.gitignore` handling in `LocalFolderSource` (only the built-in ignore list).
 - Model-call usage records are not passed through the threaded module-doc calls (`Advisor` is built per thread without a `UsageSink`).
 - Embedding dimension is whatever the embedder returns; the TS fixed 1536 (pgvector). Search skips chunks of another dimension (existing `ChunkRepo` behaviour), so switching models requires a forced re-index (the cache is keyed by model).
-- `HttpEmbedder` has no real transport: the same `ai::HttpTransport` TODO as the other providers (AI-74). Local embedding models are out of scope; implement `Embedder`.
+- `HttpEmbedder` runs over the live `nyx-net` transport (`LiveServices::with_http_embedder`); it has only fixture tests, not a live run. Local embedding models are out of scope; implement `Embedder`.
 - GitHub rate-limit and the `GitProvider` per-file fetch make first scans of large repos slow (#348 tarball download not done).
 - Git `commit_sha` is stored on chunks from `head_token` (the TS stored none).
 

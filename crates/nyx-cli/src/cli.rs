@@ -17,17 +17,17 @@ pub struct Cli {
     /// Print machine-readable JSON (results and errors) on stdout.
     #[arg(long, global = true)]
     pub json: bool,
-    /// SQLite database file (default: <data dir>/nyx.db).
-    #[arg(long, global = true, env = "NYX_DB", value_name = "PATH")]
+    /// SQLite database file (default: <data dir>/nyx.db; env NYX_DB).
+    #[arg(long, global = true, value_name = "PATH")]
     pub db: Option<PathBuf>,
-    /// App data directory (profile, default database).
-    #[arg(long, global = true, env = "NYX_DATA_DIR", value_name = "DIR")]
+    /// App data directory: profile, default database (env NYX_DATA_DIR).
+    #[arg(long, global = true, value_name = "DIR")]
     pub data_dir: Option<PathBuf>,
-    /// Workspace root every file path is confined to (default: current directory).
-    #[arg(long, global = true, env = "NYX_WORKSPACE", value_name = "DIR")]
+    /// Workspace root every file path is confined to (default: current directory; env NYX_WORKSPACE).
+    #[arg(long, global = true, value_name = "DIR")]
     pub workspace: Option<PathBuf>,
-    /// Agent identity credits are metered against (default: "default").
-    #[arg(long, global = true, env = "NYX_AGENT_ID", value_name = "ID")]
+    /// Agent identity credits are metered against (default: "default"; env NYX_AGENT_ID).
+    #[arg(long, global = true, value_name = "ID")]
     pub agent: Option<String>,
     /// Team id (default: the local workspace).
     #[arg(long, global = true, value_name = "ID")]

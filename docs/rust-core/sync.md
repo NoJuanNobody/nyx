@@ -34,6 +34,6 @@ Brute-force cosine over the newest chunk version of each live document, streamed
 - Specs are pre-filtered by path matching; the TS judged every team document. `MatchConfig::fallback_all_docs` restores that.
 - No `timeline_events` (table not ported): a drift finding is the `drift_records` row; `notify::DriftDetected` is not emitted here, the caller can map `DriftRunReport::drifted()` to it.
 - `code_commit` audit events are written for matched specs only (TS: every team doc).
-- No OS file-watch hook (poll API only), no real HTTP transport for Tavily, no provider-backed embedder, no `CodeSource` backed by the git provider contents API (a local checkout works via `DirCodeSource`). The `codebase-scanner` that fills code chunks from a repo is another ticket; `index_code_file` is the building block.
+- No OS file-watch hook (poll API only), Tavily and the OpenAI-compatible embedder run over the `nyx-net` transport (fixture-tested only), `Embedder` is now the single `ai::embedder::Embedder` trait, no `CodeSource` backed by the git provider contents API (a local checkout works via `DirCodeSource`). The `codebase-scanner` that fills code chunks from a repo is another ticket; `index_code_file` is the building block.
 - Generative drift panels / `ImpactMap.tsx` / `ContextMatches.tsx` are UI (web ticket); the data they need is exposed here as serde types (`camelCase` where the TS API was).
 - Route-level permission checks are not applicable (single-user desktop core).

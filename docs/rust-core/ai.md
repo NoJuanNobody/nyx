@@ -8,7 +8,8 @@ Ticket AI-75. Rust port of the non-chat AI surface. No agent loop, no chat, no N
 |---|---|---|
 | `provider.rs` | `lib/llm.ts` (client type), `generateComplete` in `ai.service.ts` | Shared `LlmProvider` trait (sync; `complete`, optional `complete_stream`), `FakeLlm`, `complete_full` (max_tokens continuation, 6 retries) |
 | `wire.rs` | OpenRouter adapter in `lib/llm.ts` | Pure Anthropic Messages + OpenAI-compatible builders/parsers (serde types). `length` maps to `MaxTokens` |
-| `transport.rs` | - | `HttpTransport` trait, `FakeTransport`, header-redacting `Debug` |
+| `transport.rs` | - | Re-export of the canonical `crate::net` seam (`HttpTransport`, `FakeTransport`, `HttpRequest`/`HttpResponse`; `Method` = `HttpMethod`). Live impl: `nyx-net` (see `net.md`) |
+| `embedder.rs` | `embedding.service.ts` | The one `Embedder` trait (+ `EmbedError`), `HashingEmbedder`, OpenAI-compatible `HttpEmbedder` with fixtures in `src/ai/fixtures/` |
 | `config.rs` | `routes/ai-keys.ts`, provider switch in `llm.ts` | `ProviderKind` (anthropic, openai, openrouter, ollama, openai-compatible), `ProviderConfig` (no secrets), `ByokKeys` add/rotate/remove/status over `profile::SecretStore`, `select_provider`, `normalize_model_slug` |
 | `client.rs` | - | `HttpLlm` = config + `SecretStore` + `HttpTransport`; key read per call so rotation is immediate (replaces `teamClientCache`/`invalidateTeamClient`) |
 | `models.rs` | `routes/models.ts` | OpenRouter catalog normalise, fallback list, 1h cache, `parse_params_b` |
@@ -37,7 +38,7 @@ let verdict = QualityGate::default().check(&q);
 
 ## Gaps vs the TS service (honest list)
 
-- **No real HTTP transport.** `HttpTransport` is the seam; the wiring wave (AI-74) must supply one (Tauri http plugin / reqwest / ureq). `reqwest` was deliberately not added: even as an optional feature it rewrites `Cargo.lock` with rustls + aws-lc-rs for all sibling branches.
+- **Real transport lives in `nyx-net`** (`ureq` + rustls, SSRF-guarded); `nyx-core` still links no HTTP stack. The strict guard refuses loopback, so a local Ollama (`http://localhost:11434`) does not work through it by design; that needs an owner decision (see `net.md`).
 - **Streaming**: trait method exists with a one-chunk default; no SSE implementation yet (TS only streamed for the RAG query path, which is out of scope).
 - **Not ported**: `generateSuggestions` (AI chat panel chips), `generateNewsArticle` (marketing toy), `routes/ai.ts` grounded retrieval (`codeEmbeddingService`; the Advisor takes `CodeFile`s, the caller retrieves), rate limits (`20/min`; local single user), `resolveTeamModels` (per-team model prefs; replaced by `ProviderConfig.model/fast_model`), platform key fallback and team keys.
 - **Not ported (GitHub half)**: `claudeInsightsService.refreshForTicket` / webhook handler fetch comments from GitHub; that needs `GitProvider` (AI-66). Feed comments to `insights::latest_insight` and store with `TicketRepo::update(.., insights)`.

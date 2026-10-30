@@ -37,7 +37,11 @@ impl NyxApp {
             json!({"uri": "nyx://teams", "name": "All Teams", "mimeType": "application/json"}),
         ];
         let g = self.lock();
-        for d in SqliteDocuments::new(g.conn()).list_live(&self.team_id)?.into_iter().take(200) {
+        for d in SqliteDocuments::new(g.conn())
+            .list_live(&self.team_id)?
+            .into_iter()
+            .take(200)
+        {
             out.push(json!({
                 "uri": format!("nyx://docs/{}", d.id), "name": d.title,
                 "description": d.path, "mimeType": "text/markdown",
@@ -57,7 +61,10 @@ impl NyxApp {
             return Ok(json_res(&tool("nyx_list_teams", json!({}))?));
         }
         if uri == "nyx://docs" {
-            return Ok(json_res(&tool("nyx_search_docs", json!({"team_id": self.team_id}))?));
+            return Ok(json_res(&tool(
+                "nyx_search_docs",
+                json!({"team_id": self.team_id}),
+            )?));
         }
         if let Some(rest) = uri.strip_prefix("nyx://teams/") {
             if !rest.contains('/') {
@@ -66,7 +73,10 @@ impl NyxApp {
         }
         if let Some(rest) = uri.strip_prefix("nyx://docs/") {
             if let Some(id) = rest.strip_suffix("/versions") {
-                return Ok(json_res(&tool("nyx_list_versions", json!({"document_id": id}))?));
+                return Ok(json_res(&tool(
+                    "nyx_list_versions",
+                    json!({"document_id": id}),
+                )?));
             }
             if !rest.contains('/') {
                 let d = tool("nyx_read_doc", json!({"document_id": rest}))?;

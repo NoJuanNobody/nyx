@@ -83,7 +83,9 @@ pub struct ToolSpec {
 
 impl std::fmt::Debug for ToolSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ToolSpec").field("name", &self.name).finish_non_exhaustive()
+        f.debug_struct("ToolSpec")
+            .field("name", &self.name)
+            .finish_non_exhaustive()
     }
 }
 

@@ -548,6 +548,8 @@ pub fn parse_tree(resp: &HttpResponse) -> GitResult<Vec<GitTreeEntry>> {
             },
             path: e.path,
             size: e.size,
+            // Bitbucket Cloud's `src` listing exposes no per-file blob id (only the commit).
+            sha: None,
         })
         .collect())
 }
@@ -1076,6 +1078,7 @@ mod tests {
             (tree[0].kind, tree[1].kind, tree[1].size),
             (TreeEntryKind::Tree, TreeEntryKind::Blob, Some(10))
         );
+        assert_eq!(tree[1].sha, None, "Bitbucket exposes no blob id");
         assert!(t.requests()[0]
             .url
             .ends_with("/repositories/ws/r/src/main/?pagelen=100&max_depth=20"));
