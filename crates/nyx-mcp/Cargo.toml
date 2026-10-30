@@ -1,0 +1,15 @@
+[package]
+name = "nyx-mcp"
+description = "Nyx MCP server (stub)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+nyx-core.workspace = true
+
+[lints]
+workspace = true

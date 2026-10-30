@@ -1,0 +1,37 @@
+[workspace]
+resolver = "2"
+members = ["crates/nyx-core", "crates/nyx-cli", "crates/nyx-mcp", "apps/desktop/src-tauri"]
+# Plain `cargo build/test` skips the Tauri shell (needs system webview libs on Linux).
+# Use `--workspace` or `-p nyx-desktop` to include it. See docs/rust-workspace.md.
+default-members = ["crates/nyx-core", "crates/nyx-cli", "crates/nyx-mcp"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+rust-version = "1.80"
+license = "LicenseRef-TBD"
+repository = "https://github.com/NoJuanNobody/nyx"
+publish = false
+
+[workspace.dependencies]
+nyx-core = { path = "crates/nyx-core" }
+clap = { version = "4", features = ["derive"] }
+thiserror = "2"
+tauri = "2"
+tauri-build = "2"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+unwrap_used = "deny"
+expect_used = "warn"
+
+[profile.release]
+lto = "thin"
+strip = true
+codegen-units = 1

@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Nyx</title></head>
+<body>
+<h1>Nyx</h1><p id="out">loading...</p>
+<script>
+  window.__TAURI__.core.invoke("core_hello").then(s => { document.getElementById("out").textContent = s; });
+</script>
+</body></html>

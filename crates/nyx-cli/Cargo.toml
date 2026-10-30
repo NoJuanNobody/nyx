@@ -1,0 +1,20 @@
+[package]
+name = "nyx-cli"
+description = "Nyx command-line interface"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "nyx"
+path = "src/main.rs"
+
+[dependencies]
+nyx-core.workspace = true
+clap.workspace = true
+
+[lints]
+workspace = true
