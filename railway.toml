@@ -1,0 +1,12 @@
+[build]
+dockerfilePath = "apps/api/Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+numReplicas = 1
+
+[deploy.proxy]
+requestTimeout = 120
