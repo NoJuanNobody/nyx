@@ -36,6 +36,7 @@ pub mod notify;
 pub mod profile;
 pub mod security;
 pub mod store;
+pub mod tickets;
 pub mod vcs;
 
 pub use error::{Error, Result};
