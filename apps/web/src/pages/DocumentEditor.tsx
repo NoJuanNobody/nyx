@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Document, DocumentVersion } from '@nyx/shared';
@@ -7,6 +7,10 @@ import { fetchDocument, updateDocument, createVersion, createDocument, seedNextS
 import { STAGE_MAP, STAGES, STAGE_ORDER, type DocumentStage } from '../lib/stages';
 import { getLifecycle, getNextStage as lifecycleGetNextStage, getStageInfo } from '../lib/lifecycles';
 import { useUIStore } from '../stores/ui.store';
+import { useEditorController } from '../hooks/useEditorController';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
+import { clearDraft, loadDraft, saveDraft } from '../lib/draftStore';
+import type { MentionCandidate } from '../lib/slashCommands';
 
 import { Modal } from '../components/Modal';
 import { AIEditReview } from '../components/AIEditReview';
@@ -35,6 +39,8 @@ export function DocumentEditor() {
   const [aiProposedContent, setAiProposedContent] = useState<string | null>(null);
   const [selectionInfo, setSelectionInfo] = useState<{ text: string; rect: DOMRect } | null>(null);
   const [selectionEditPending, setSelectionEditPending] = useState(false);
+  const [selectionEditError, setSelectionEditError] = useState<string | null>(null);
+  const online = useOnlineStatus();
   const [editorLayout, setEditorLayout] = useState<'split' | 'editor' | 'preview'>('split');
   const { seeding, setSeeding } = useUIStore();
   const [splitPercent, setSplitPercent] = useState(50);
@@ -47,7 +53,6 @@ export function DocumentEditor() {
   const [pdfExporting, setPdfExporting] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const splitContainerRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Scroll container for the rendered preview pane. The wrapper div is what
   // actually owns `overflow-y-auto`, so this ref points at the scrollable
   // element rather than the inner <MarkdownPreview> root. Used by the
@@ -64,6 +69,13 @@ export function DocumentEditor() {
   const isDraggingSplitRef = useRef(false);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The save that is waiting on the debounce timer (or on a retry after a
+  // failure). It always remembers WHICH document it belongs to, so navigating
+  // away flushes it to the right document instead of dropping the edit.
+  const pendingSaveRef = useRef<{ docId: string; updates: { title?: string; content?: string } } | null>(null);
+  // `updatedAt` of the server copy the local edits are based on; stored with
+  // local drafts so a stale draft is never restored over newer server content.
+  const baseUpdatedAtRef = useRef<string>('');
   // Tracks the latest `id` from the route at render time. Used by the
   // debounced save callback to detect navigation between when the timer was
   // armed and when it fires, regardless of stale closure capture.
@@ -89,6 +101,8 @@ export function DocumentEditor() {
       clearTimeout(debounceTimer.current);
       debounceTimer.current = null;
     }
+    // A pending save is flushed to ITS OWN document by the cleanup effect
+    // below; it is intentionally not touched here.
     seededIdRef.current = id;
   }
 
@@ -106,8 +120,22 @@ export function DocumentEditor() {
   useEffect(() => {
     if (!doc || doc.id !== id) return;
     if (title === '' && content === '') {
-      setTitle(doc.title);
-      setContent(doc.content);
+      baseUpdatedAtRef.current = String(doc.updatedAt ?? '');
+      // Restore unsaved local edits (offline, failed save, app closed mid-edit)
+      // when they were made against this exact server version.
+      const draft = loadDraft(doc.id);
+      if (
+        draft &&
+        draft.baseUpdatedAt === baseUpdatedAtRef.current &&
+        (draft.title !== doc.title || draft.content !== doc.content)
+      ) {
+        setTitle(draft.title);
+        setContent(draft.content);
+        scheduleSave({ title: draft.title, content: draft.content });
+      } else {
+        setTitle(doc.title);
+        setContent(doc.content);
+      }
     }
     // Intentionally excludes `title` and `content` from the dep array so user
     // edits don't re-trigger this effect and overwrite themselves. Only re-run
@@ -119,10 +147,29 @@ export function DocumentEditor() {
   // firing after navigation and writing the previous document's updates
   // into the new document's row.
   useEffect(() => {
+    const docId = id;
     return () => {
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
         debounceTimer.current = null;
+      }
+      // Flush (do not drop) a pending edit for the document we are leaving.
+      const pending = pendingSaveRef.current;
+      pendingSaveRef.current = null;
+      if (pending && pending.docId === docId) {
+        saveDraft(pending.docId, {
+          title: pending.updates.title ?? '',
+          content: pending.updates.content ?? '',
+          baseUpdatedAt: baseUpdatedAtRef.current,
+        });
+        void updateDocument(pending.docId, pending.updates)
+          .then((updated) => {
+            clearDraft(pending.docId);
+            queryClient.setQueryData(['document', updated.id], updated);
+          })
+          .catch(() => {
+            // Offline or server error: the local draft keeps the edit.
+          });
       }
     };
   }, [id]);
@@ -137,6 +184,8 @@ export function DocumentEditor() {
       if (latestIdRef.current === id) setSaveState('saving');
     },
     onSuccess: (updated) => {
+      clearDraft(updated.id);
+      baseUpdatedAtRef.current = String(updated.updatedAt ?? baseUpdatedAtRef.current);
       // Always write the server response into the cache for the document
       // it actually belongs to, not whatever id the closure happens to
       // have captured. This prevents updates for doc A from polluting
@@ -150,8 +199,17 @@ export function DocumentEditor() {
       // Only flip the save indicator if we are still viewing the same doc.
       if (latestIdRef.current === updated.id) setSaveState('saved');
     },
-    onError: () => {
-      if (latestIdRef.current === id) setSaveState('unsaved');
+    onError: (_err, variables) => {
+      if (latestIdRef.current === id) {
+        setSaveState('unsaved');
+        // Keep the edit locally and retry when connectivity returns.
+        pendingSaveRef.current = { docId: id!, updates: variables };
+        saveDraft(id!, {
+          title: variables.title ?? '',
+          content: variables.content ?? '',
+          baseUpdatedAt: baseUpdatedAtRef.current,
+        });
+      }
     },
   });
 
@@ -175,20 +233,65 @@ export function DocumentEditor() {
       const capturedId = id;
       if (!capturedId) return;
       setSaveState('unsaved');
+      pendingSaveRef.current = { docId: capturedId, updates };
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
       debounceTimer.current = setTimeout(() => {
         debounceTimer.current = null;
         if (latestIdRef.current !== capturedId) {
-          // The route changed under us — abort. The cleanup effect will
-          // also have fired; this is the second line of defence in case
-          // the timer somehow races ahead of the cleanup.
+          // The route changed under us. The cleanup effect has already
+          // flushed this edit to its own document; never run it here.
           return;
         }
-        saveMutation.mutate(updates);
+        const pending = pendingSaveRef.current;
+        pendingSaveRef.current = null;
+        if (pending && pending.docId === capturedId) saveMutation.mutate(pending.updates);
       }, 500);
     },
     [id, saveMutation],
   );
+
+  /** Save right now (Cmd/Ctrl+S, window blur/close) instead of waiting for the debounce. */
+  const flushSave = useCallback(() => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+      debounceTimer.current = null;
+    }
+    const pending = pendingSaveRef.current;
+    if (!pending || pending.docId !== latestIdRef.current) return;
+    pendingSaveRef.current = null;
+    saveDraft(pending.docId, {
+      title: pending.updates.title ?? '',
+      content: pending.updates.content ?? '',
+      baseUpdatedAt: baseUpdatedAtRef.current,
+    });
+    saveMutation.mutate(pending.updates);
+  }, [saveMutation]);
+
+  // Retry a failed/offline save when the connection comes back; keep a local
+  // draft up to date when the window is hidden or closed with unsaved edits.
+  useEffect(() => {
+    const onOnline = () => {
+      if (pendingSaveRef.current && !debounceTimer.current) flushSave();
+    };
+    const onHide = () => {
+      const pending = pendingSaveRef.current;
+      if (pending) {
+        saveDraft(pending.docId, {
+          title: pending.updates.title ?? '',
+          content: pending.updates.content ?? '',
+          baseUpdatedAt: baseUpdatedAtRef.current,
+        });
+      }
+    };
+    window.addEventListener('online', onOnline);
+    window.addEventListener('pagehide', onHide);
+    window.addEventListener('beforeunload', onHide);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('pagehide', onHide);
+      window.removeEventListener('beforeunload', onHide);
+    };
+  }, [flushSave]);
 
   const handleTitleChange = (newTitle: string) => {
     setTitle(newTitle);
@@ -199,6 +302,24 @@ export function DocumentEditor() {
     setContent(newContent);
     scheduleSave({ title, content: newContent });
   };
+
+  // All text-editing behaviour (shortcuts, undo/redo, formatting) lives in one
+  // controller shared by the toolbar, the editor and the selection toolbar.
+  const controller = useEditorController(content, handleContentChange, id);
+  const textareaRef = controller.textareaRef;
+
+  // Documents that can be linked with `@`: local data from the query cache, no request.
+  const mentionCandidates = useMemo<MentionCandidate[]>(() => {
+    const seen = new Map<string, MentionCandidate>();
+    for (const [, list] of queryClient.getQueriesData<Document[]>({ queryKey: ['documents'] })) {
+      if (!Array.isArray(list)) continue;
+      for (const d of list) {
+        if (d && d.id && d.id !== id && !seen.has(d.id)) seen.set(d.id, { id: d.id, title: d.title });
+      }
+    }
+    return [...seen.values()];
+    // Recompute when the open document changes; the cache is read at that moment.
+  }, [id, doc]);
 
   const handleApproveAIEdit = (editedContent?: string) => {
     const finalContent = editedContent ?? aiProposedContent;
@@ -216,6 +337,7 @@ export function DocumentEditor() {
   const handleSelectionAction = useCallback(async (instruction: string) => {
     if (!selectionInfo) return;
     setSelectionEditPending(true);
+    setSelectionEditError(null);
     try {
       const result = await editDocumentAI(content, instruction, undefined, undefined, {
         documentId: id,
@@ -223,12 +345,34 @@ export function DocumentEditor() {
       });
       setAiProposedContent(result.content);
       setSelectionInfo(null);
-    } catch {
-      // ignore — user can retry
+    } catch (err) {
+      // Surface the failure (offline, no provider key, quota) so the user can retry or keep editing.
+      setSelectionEditError(err instanceof Error && err.message ? err.message : 'AI edit failed');
     } finally {
       setSelectionEditPending(false);
     }
   }, [selectionInfo, content, id, doc?.teamId]);
+
+  // Window-level shortcuts: Cmd/Ctrl+S saves now, Cmd/Ctrl+\\ cycles Markdown / Split / Preview.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      if (e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        flushSave();
+      } else if (e.key === '\\') {
+        e.preventDefault();
+        setEditorLayout((l) => (l === 'editor' ? 'split' : l === 'split' ? 'preview' : 'editor'));
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [flushSave]);
+
+  const dismissSelection = useCallback(() => {
+    setSelectionInfo(null);
+    setSelectionEditError(null);
+  }, []);
 
   const docStage = (doc as Document & { stage?: DocumentStage | null })?.stage ?? null;
   const isMeetingSourced = content.trimStart().startsWith('# Meeting Notes:');
@@ -307,6 +451,16 @@ export function DocumentEditor() {
     document.body.style.userSelect = 'none';
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
+  }, []);
+
+  const handleSplitKeyDown = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setSplitPercent((p) => Math.max(20, p - 5));
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      setSplitPercent((p) => Math.min(80, p + 5));
+    }
   }, []);
 
   // ── Split-mode scroll sync ─────────────────────────────────────────
@@ -446,7 +600,15 @@ export function DocumentEditor() {
             </select>
           </div>
 
-          <span className={`hidden text-xs font-medium sm:inline ${saveColor}`}>{saveLabel}</span>
+          <span
+            role="status"
+            aria-live="polite"
+            data-testid="save-status"
+            className={`hidden text-xs font-medium sm:inline ${saveColor}`}
+          >
+            {saveLabel}
+            {!online && saveState !== 'saved' ? ' (offline, saved locally)' : ''}
+          </span>
         </div>
 
         {/* Toolbar — row 2: action buttons + drawer toggles (icon style) */}
@@ -688,10 +850,11 @@ export function DocumentEditor() {
           ) : (
             <div ref={splitContainerRef} className="flex flex-1 flex-col overflow-hidden">
               {/* Editor/Preview tab bar */}
-              <div className="flex flex-shrink-0 items-center border-b border-slate-200">
+              <div role="group" aria-label="Editor layout" className="flex flex-shrink-0 items-center border-b border-slate-200">
                 <button
                   type="button"
                   onClick={() => setEditorLayout('editor')}
+                  aria-pressed={editorLayout === 'editor'}
                   className={`px-4 py-2 text-xs font-medium transition-colors ${
                     editorLayout === 'editor'
                       ? 'border-b-2 border-blue-600 text-blue-600'
@@ -703,6 +866,7 @@ export function DocumentEditor() {
                 <button
                   type="button"
                   onClick={() => setEditorLayout('split')}
+                  aria-pressed={editorLayout === 'split'}
                   className={`px-4 py-2 text-xs font-medium transition-colors ${
                     editorLayout === 'split'
                       ? 'border-b-2 border-blue-600 text-blue-600'
@@ -714,6 +878,7 @@ export function DocumentEditor() {
                 <button
                   type="button"
                   onClick={() => setEditorLayout('preview')}
+                  aria-pressed={editorLayout === 'preview'}
                   className={`px-4 py-2 text-xs font-medium transition-colors ${
                     editorLayout === 'preview'
                       ? 'border-b-2 border-blue-600 text-blue-600'
@@ -726,11 +891,7 @@ export function DocumentEditor() {
 
               {/* Markdown formatting toolbar */}
               {editorLayout !== 'preview' && (
-                <MarkdownToolbar
-                  textareaRef={textareaRef as RefObject<HTMLTextAreaElement>}
-                  value={content}
-                  onChange={handleContentChange}
-                />
+                <MarkdownToolbar controller={controller} />
               )}
 
               {/* Content area
@@ -752,17 +913,27 @@ export function DocumentEditor() {
                   }}
                 >
                   <MarkdownEditor
-                    ref={textareaRef}
                     value={content}
-                    onChange={handleContentChange}
+                    controller={controller}
+                    teamId={doc.teamId}
+                    mentionCandidates={mentionCandidates}
                     placeholder="Start writing your document..."
                     onSelection={(text, rect) => setSelectionInfo({ text, rect })}
+                    onSelectionClear={() => setSelectionInfo((prev) => (prev ? null : prev))}
                   />
                 </div>
 
                 {/* Resizable drag handle — only renders in split mode. */}
                 {editorLayout === 'split' && (
                   <div
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-label="Resize editor and preview"
+                    aria-valuemin={20}
+                    aria-valuemax={80}
+                    aria-valuenow={Math.round(splitPercent)}
+                    tabIndex={0}
+                    onKeyDown={handleSplitKeyDown}
                     onPointerDown={handleSplitDragStart}
                     className="group relative z-10 flex w-3 flex-shrink-0 cursor-col-resize items-center justify-center border-x border-slate-100 bg-slate-50/80 transition-colors hover:bg-blue-50"
                   >
@@ -779,7 +950,10 @@ export function DocumentEditor() {
                   }}
                 >
                   <div ref={previewScrollRef} className="flex-1 overflow-y-auto p-4">
-                    <MarkdownPreview content={content} />
+                    <MarkdownPreview
+                      content={content}
+                      onMentionClick={(docId) => navigate(`/app/documents/${docId}`)}
+                    />
                   </div>
                 </div>
               </div>
@@ -806,10 +980,23 @@ export function DocumentEditor() {
           <SelectionToolbar
             anchorRect={selectionInfo.rect}
             selectedText={selectionInfo.text}
+            onFormat={(cmd) => {
+              controller.exec(cmd);
+              setSelectionInfo(null);
+            }}
             onAction={handleSelectionAction}
-            onDismiss={() => setSelectionInfo(null)}
+            onDismiss={dismissSelection}
             isPending={selectionEditPending}
+            aiDisabledReason={online ? undefined : 'AI quick-edit needs a network connection'}
           />
+        )}
+        {selectionEditError && (
+          <div role="alert" className="mb-1 flex-shrink-0 rounded-md bg-red-50 px-3 py-1.5 text-xs text-red-600">
+            {selectionEditError}
+            <button type="button" onClick={() => setSelectionEditError(null)} className="ml-2 underline">
+              Dismiss
+            </button>
+          </div>
         )}
 
         {/* AI Advisor — unified AI notification panel */}

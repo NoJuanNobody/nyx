@@ -1,315 +1,241 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import type { EditorController } from '../hooks/useEditorController';
+import { formatShortcut } from '../lib/editorShortcuts';
+import type { EditorCommandId } from '../lib/markdownEdits';
 
 interface MarkdownToolbarProps {
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
-  value: string;
-  onChange: (value: string) => void;
+  controller: EditorController;
+}
+
+interface ToolbarButton {
+  id: EditorCommandId;
+  /** Visible text. */
+  text: string;
+  /** Accessible name. */
+  label: string;
+  className?: string;
+}
+
+const GROUPS: ToolbarButton[][] = [
+  [
+    { id: 'bold', text: 'B', label: 'Bold', className: 'font-bold' },
+    { id: 'italic', text: 'I', label: 'Italic', className: 'italic' },
+    { id: 'strike', text: 'S', label: 'Strikethrough', className: 'line-through' },
+  ],
+  [
+    { id: 'code', text: '</>', label: 'Inline code', className: 'font-mono text-[10px]' },
+    { id: 'codeBlock', text: '{ }', label: 'Code block', className: 'font-mono text-[10px]' },
+    { id: 'link', text: 'Link', label: 'Link' },
+  ],
+  [
+    { id: 'ul', text: 'Bullets', label: 'Bullet list' },
+    { id: 'ol', text: 'Numbers', label: 'Numbered list' },
+    { id: 'task', text: 'Tasks', label: 'Task list' },
+    { id: 'quote', text: 'Quote', label: 'Blockquote' },
+  ],
+];
+
+const HEADINGS: Array<{ id: EditorCommandId; short: string; long: string }> = [
+  { id: 'h1', short: 'H1', long: 'Heading 1' },
+  { id: 'h2', short: 'H2', long: 'Heading 2' },
+  { id: 'h3', short: 'H3', long: 'Heading 3' },
+];
+
+const btnClass =
+  'rounded px-2 py-1 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent';
+
+function titleFor(label: string, id: EditorCommandId): string {
+  const sc = formatShortcut(id);
+  return sc ? `${label} (${sc})` : label;
 }
 
 /**
- * Wraps the current selection in a textarea with the given prefix/suffix.
- * After inserting, restores focus and places the cursor appropriately.
+ * Formatting toolbar. Buttons never take focus from the textarea on mouse
+ * down (so the selection survives) and are a single tab stop with arrow-key
+ * navigation, per the ARIA toolbar pattern. Every action runs through the
+ * shared controller, so it is undoable and works offline.
  */
-function wrapSelection(
-  textarea: HTMLTextAreaElement,
-  prefix: string,
-  suffix: string,
-  onChange: (value: string) => void,
-) {
-  const { selectionStart, selectionEnd, value } = textarea;
-  const selected = value.slice(selectionStart, selectionEnd);
-
-  const before = value.slice(0, selectionStart);
-  const after = value.slice(selectionEnd);
-  const newValue = before + prefix + selected + suffix + after;
-
-  onChange(newValue);
-
-  // Restore cursor position after React re-renders
-  requestAnimationFrame(() => {
-    textarea.focus();
-    if (selected.length > 0) {
-      // Keep the selection highlighted (inside the wrapping syntax)
-      textarea.selectionStart = selectionStart + prefix.length;
-      textarea.selectionEnd = selectionEnd + prefix.length;
-    } else {
-      // Place cursor between prefix and suffix
-      const cursorPos = selectionStart + prefix.length;
-      textarea.selectionStart = cursorPos;
-      textarea.selectionEnd = cursorPos;
-    }
-  });
-}
-
-/**
- * Inserts a prefix at the start of the current line.
- * If the line already has a heading/list prefix, it replaces it.
- */
-function insertLinePrefix(
-  textarea: HTMLTextAreaElement,
-  prefix: string,
-  onChange: (value: string) => void,
-) {
-  const { selectionStart, value } = textarea;
-
-  // Find the start of the current line
-  const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
-  const lineEnd = value.indexOf('\n', selectionStart);
-  const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
-  const currentLine = value.slice(lineStart, actualLineEnd);
-
-  // Strip existing line-level prefixes (headings, lists, blockquote)
-  const stripped = currentLine.replace(/^(#{1,6}\s|>\s?|- |\d+\.\s)/, '');
-  const newLine = prefix + stripped;
-
-  const before = value.slice(0, lineStart);
-  const after = value.slice(actualLineEnd);
-  const newValue = before + newLine + after;
-
-  onChange(newValue);
-
-  requestAnimationFrame(() => {
-    textarea.focus();
-    const cursorPos = lineStart + newLine.length;
-    textarea.selectionStart = cursorPos;
-    textarea.selectionEnd = cursorPos;
-  });
-}
-
-export function MarkdownToolbar({ textareaRef, value, onChange }: MarkdownToolbarProps) {
+export function MarkdownToolbar({ controller }: MarkdownToolbarProps) {
+  const { exec, canUndo, canRedo } = controller;
   const [headingOpen, setHeadingOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [roving, setRoving] = useState(0);
 
-  const handleWrap = useCallback(
-    (prefix: string, suffix: string) => {
-      const ta = textareaRef.current;
-      if (!ta) return;
-      wrapSelection(ta, prefix, suffix, onChange);
-    },
-    [textareaRef, onChange],
+  const items = useCallback(
+    () => Array.from(rootRef.current?.querySelectorAll<HTMLButtonElement>('[data-tb-item]:not(:disabled)') ?? []),
+    [],
   );
 
-  const handleLinePrefix = useCallback(
-    (prefix: string) => {
-      const ta = textareaRef.current;
-      if (!ta) return;
-      insertLinePrefix(ta, prefix, onChange);
-      setHeadingOpen(false);
-    },
-    [textareaRef, onChange],
-  );
-
-  // Close heading dropdown on outside click
   useEffect(() => {
     if (!headingOpen) return;
-    const close = () => setHeadingOpen(false);
-    document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
+    const close = (e: Event) => {
+      if (!(e.target instanceof Node) || !rootRef.current?.contains(e.target)) setHeadingOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
   }, [headingOpen]);
 
-  // Keyboard shortcuts on the textarea
-  useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape' && headingOpen) {
+      e.preventDefault();
+      setHeadingOpen(false);
+      controller.textareaRef.current?.focus();
+      return;
+    }
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
+    const list = items().filter((b) => b.getAttribute('role') !== 'menuitem');
+    const cur = list.indexOf(document.activeElement as HTMLButtonElement);
+    if (cur === -1) return;
+    e.preventDefault();
+    let next = cur;
+    if (e.key === 'ArrowRight') next = (cur + 1) % list.length;
+    else if (e.key === 'ArrowLeft') next = (cur - 1 + list.length) % list.length;
+    else if (e.key === 'Home') next = 0;
+    else next = list.length - 1;
+    list[next].focus();
+    setRoving(Number(list[next].dataset.tbIndex ?? 0));
+  };
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (!mod) return;
+  let index = 0;
+  // If the remembered tab stop is a disabled Undo/Redo, fall back to the first format button.
+  const rov = (roving === 0 && !canUndo) || (roving === 1 && !canRedo) ? 2 : roving;
+  const tab = (i: number) => (i === rov ? 0 : -1);
+  const run = (id: EditorCommandId) => {
+    setHeadingOpen(false);
+    exec(id);
+  };
+  const keepFocus = (e: React.MouseEvent) => e.preventDefault();
 
-      if (e.key === 'b') {
-        e.preventDefault();
-        wrapSelection(ta, '**', '**', onChange);
-      } else if (e.key === 'i') {
-        e.preventDefault();
-        wrapSelection(ta, '*', '*', onChange);
-      } else if (e.key === 'k') {
-        e.preventDefault();
-        const { selectionStart, selectionEnd, value: val } = ta;
-        const selected = val.slice(selectionStart, selectionEnd);
-        const before = val.slice(0, selectionStart);
-        const after = val.slice(selectionEnd);
-        const linkText = selected || 'text';
-        const newValue = before + '[' + linkText + '](url)' + after;
-        onChange(newValue);
-        requestAnimationFrame(() => {
-          ta.focus();
-          // Select "url" so user can type the URL
-          const urlStart = selectionStart + 1 + linkText.length + 2;
-          const urlEnd = urlStart + 3;
-          ta.selectionStart = urlStart;
-          ta.selectionEnd = urlEnd;
-        });
-      } else if (e.key === '`') {
-        e.preventDefault();
-        wrapSelection(ta, '`', '`', onChange);
-      }
-    };
+  const renderButton = (b: ToolbarButton) => {
+    const i = index++;
+    return (
+      <button
+        key={b.id}
+        type="button"
+        data-tb-item
+        data-tb-index={i}
+        data-testid={`toolbar-${b.id}`}
+        tabIndex={tab(i)}
+        aria-label={b.label}
+        title={titleFor(b.label, b.id)}
+        onMouseDown={keepFocus}
+        onClick={() => run(b.id)}
+        className={btnClass}
+      >
+        <span className={b.className}>{b.text}</span>
+      </button>
+    );
+  };
 
-    ta.addEventListener('keydown', handleKeyDown);
-    return () => ta.removeEventListener('keydown', handleKeyDown);
-  }, [textareaRef, onChange, value]);
-
-  const btnClass =
-    'px-2 py-1 text-xs font-medium rounded transition-colors text-slate-500 hover:text-slate-800 hover:bg-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-400';
+  const undoIndex = index++;
+  const redoIndex = index++;
 
   return (
-    <div className="flex flex-shrink-0 items-center gap-0.5 border-b border-slate-200 bg-slate-50/80 px-2 py-1">
-      {/* Bold */}
+    <div
+      ref={rootRef}
+      role="toolbar"
+      aria-label="Formatting"
+      aria-orientation="horizontal"
+      onKeyDown={onKeyDown}
+      className="flex flex-shrink-0 items-center gap-0.5 overflow-x-auto border-b border-slate-200 bg-slate-50/80 px-2 py-1"
+    >
       <button
         type="button"
-        title="Bold (Cmd+B)"
-        onClick={() => handleWrap('**', '**')}
+        data-tb-item
+        data-tb-index={undoIndex}
+        data-testid="toolbar-undo"
+        tabIndex={tab(undoIndex)}
+        aria-label="Undo"
+        title={titleFor('Undo', 'undo')}
+        disabled={!canUndo}
+        onMouseDown={keepFocus}
+        onClick={() => run('undo')}
         className={btnClass}
       >
-        <span className="font-bold">B</span>
+        Undo
       </button>
-
-      {/* Italic */}
       <button
         type="button"
-        title="Italic (Cmd+I)"
-        onClick={() => handleWrap('*', '*')}
+        data-tb-item
+        data-tb-index={redoIndex}
+        data-testid="toolbar-redo"
+        tabIndex={tab(redoIndex)}
+        aria-label="Redo"
+        title={titleFor('Redo', 'redo')}
+        disabled={!canRedo}
+        onMouseDown={keepFocus}
+        onClick={() => run('redo')}
         className={btnClass}
       >
-        <span className="italic">I</span>
+        Redo
       </button>
+      <Divider />
 
-      {/* Divider */}
-      <div className="mx-1 h-4 w-px bg-slate-200" />
+      {GROUPS[0].map(renderButton)}
+      <Divider />
 
-      {/* Heading dropdown */}
       <div className="relative">
-        <button
-          type="button"
-          title="Heading"
-          onClick={(e) => {
-            e.stopPropagation();
-            setHeadingOpen((prev) => !prev);
-          }}
-          className={btnClass}
-        >
-          H
-          <span className="ml-0.5 text-[9px]">&#9662;</span>
-        </button>
+        {(() => {
+          const i = index++;
+          return (
+            <button
+              type="button"
+              data-tb-item
+              data-tb-index={i}
+              data-testid="toolbar-heading"
+              tabIndex={tab(i)}
+              aria-label="Heading"
+              aria-haspopup="menu"
+              aria-expanded={headingOpen}
+              title="Heading"
+              onMouseDown={keepFocus}
+              onClick={() => setHeadingOpen((p) => !p)}
+              className={btnClass}
+            >
+              Heading
+              <span aria-hidden="true" className="ml-0.5 text-[9px]">&#9662;</span>
+            </button>
+          );
+        })()}
         {headingOpen && (
-          <div className="absolute left-0 top-full z-20 mt-1 rounded-md border border-slate-200 bg-white py-1 shadow-lg">
-            <button
-              type="button"
-              onClick={() => handleLinePrefix('# ')}
-              className="block w-full px-4 py-1 text-left text-sm text-slate-700 hover:bg-slate-50"
-            >
-              <span className="font-semibold">H1</span>
-              <span className="ml-2 text-xs text-slate-400">Heading 1</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleLinePrefix('## ')}
-              className="block w-full px-4 py-1 text-left text-sm text-slate-700 hover:bg-slate-50"
-            >
-              <span className="font-semibold">H2</span>
-              <span className="ml-2 text-xs text-slate-400">Heading 2</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleLinePrefix('### ')}
-              className="block w-full px-4 py-1 text-left text-sm text-slate-700 hover:bg-slate-50"
-            >
-              <span className="font-semibold">H3</span>
-              <span className="ml-2 text-xs text-slate-400">Heading 3</span>
-            </button>
+          <div
+            role="menu"
+            aria-label="Heading level"
+            className="absolute left-0 top-full z-20 mt-1 rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+          >
+            {HEADINGS.map((h) => (
+              <button
+                key={h.id}
+                type="button"
+                role="menuitem"
+                data-tb-item
+                data-testid={`toolbar-${h.id}`}
+                onMouseDown={keepFocus}
+                onClick={() => run(h.id)}
+                title={titleFor(h.long, h.id)}
+                className="block w-full px-4 py-1 text-left text-sm text-slate-700 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+              >
+                <span className="font-semibold">{h.short}</span>
+                <span className="ml-2 text-xs text-slate-400">{h.long}</span>
+              </button>
+            ))}
           </div>
         )}
       </div>
+      <Divider />
 
-      {/* Divider */}
-      <div className="mx-1 h-4 w-px bg-slate-200" />
+      {GROUPS[1].map(renderButton)}
+      <Divider />
+      {GROUPS[2].map(renderButton)}
 
-      {/* Code */}
-      <button
-        type="button"
-        title="Inline Code (Cmd+`)"
-        onClick={() => handleWrap('`', '`')}
-        className={btnClass}
-      >
-        <span className="font-mono text-[10px]">&lt;/&gt;</span>
-      </button>
-
-      {/* Code Block */}
-      <button
-        type="button"
-        title="Code Block"
-        onClick={() => handleWrap('```\n', '\n```')}
-        className={btnClass}
-      >
-        <span className="font-mono text-[10px]">&#123;&#125;</span>
-      </button>
-
-      {/* Divider */}
-      <div className="mx-1 h-4 w-px bg-slate-200" />
-
-      {/* Link */}
-      <button
-        type="button"
-        title="Link (Cmd+K)"
-        onClick={() => {
-          const ta = textareaRef.current;
-          if (!ta) return;
-          const { selectionStart, selectionEnd, value: val } = ta;
-          const selected = val.slice(selectionStart, selectionEnd);
-          const before = val.slice(0, selectionStart);
-          const after = val.slice(selectionEnd);
-          const linkText = selected || 'text';
-          const newValue = before + '[' + linkText + '](url)' + after;
-          onChange(newValue);
-          requestAnimationFrame(() => {
-            ta.focus();
-            const urlStart = selectionStart + 1 + linkText.length + 2;
-            const urlEnd = urlStart + 3;
-            ta.selectionStart = urlStart;
-            ta.selectionEnd = urlEnd;
-          });
-        }}
-        className={btnClass}
-      >
-        Link
-      </button>
-
-      {/* Divider */}
-      <div className="mx-1 h-4 w-px bg-slate-200" />
-
-      {/* Unordered List */}
-      <button
-        type="button"
-        title="Bullet List"
-        onClick={() => handleLinePrefix('- ')}
-        className={btnClass}
-      >
-        UL
-      </button>
-
-      {/* Ordered List */}
-      <button
-        type="button"
-        title="Numbered List"
-        onClick={() => handleLinePrefix('1. ')}
-        className={btnClass}
-      >
-        OL
-      </button>
-
-      {/* Blockquote */}
-      <button
-        type="button"
-        title="Blockquote"
-        onClick={() => handleLinePrefix('> ')}
-        className={btnClass}
-      >
-        &ldquo;&rdquo;
-      </button>
-
-      {/* Shortcuts hint */}
-      <div className="ml-auto text-[10px] text-slate-300">
-        <span className="hidden sm:inline">Cmd+B Bold &middot; Cmd+I Italic &middot; Cmd+K Link</span>
+      <div className="ml-auto hidden whitespace-nowrap pl-3 text-[10px] text-slate-400 lg:block" aria-hidden="true">
+        {formatShortcut('bold')} Bold &middot; {formatShortcut('italic')} Italic &middot; {formatShortcut('link')} Link
+        &middot; {formatShortcut('undo')} Undo
       </div>
     </div>
   );
+}
+
+function Divider() {
+  return <div aria-hidden="true" className="mx-1 h-4 w-px flex-shrink-0 bg-slate-200" />;
 }
