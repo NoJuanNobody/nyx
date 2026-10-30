@@ -7,8 +7,6 @@ import { FileTree } from './FileTree';
 import { FeedbackModal } from './FeedbackModal';
 import { getCreditsBalance } from '../lib/api';
 
-const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
 function ThemeToggle() {
   const { theme, setTheme } = useUIStore();
 
@@ -48,18 +46,8 @@ function UserSection({ collapsed }: { collapsed: boolean }) {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    if (CLERK_ENABLED) {
-      const { useClerk } = await import('@clerk/clerk-react');
-      // Access clerk instance from window since we can't use hooks outside render
-      try {
-        const clerkInstance = (window as unknown as { Clerk?: { signOut: () => Promise<void> } }).Clerk;
-        await clerkInstance?.signOut();
-      } catch {
-        // Clerk signout failed, continue with local cleanup
-      }
-    }
     clear();
-    navigate(CLERK_ENABLED ? '/sign-in' : '/');
+    navigate('/');
   };
 
   if (!user) return null;
