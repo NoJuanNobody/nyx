@@ -169,6 +169,13 @@
       "when": 1782638945000,
       "tag": "0023_add_starter_plan",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1783000000000,
+      "tag": "0025_remove_payments",
+      "breakpoints": true
     }
   ]
 }

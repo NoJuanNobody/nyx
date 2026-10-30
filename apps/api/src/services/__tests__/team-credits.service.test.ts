@@ -53,7 +53,7 @@ vi.doMock('../../db/schema.js', () => ({
     type: 'type',
     description: 'description',
     taskType: 'taskType',
-    stripeSessionId: 'stripeSessionId',
+    externalRef: 'externalRef',
     createdAt: 'createdAt',
   },
   teamCreditBalances: { teamId: 'teamId', balance: 'balance', updatedAt: 'updatedAt' },
@@ -101,7 +101,7 @@ describe('team credits — credits.service', () => {
     });
 
     it('upserts balance and writes a transaction', async () => {
-      // No stripeInvoiceId → no idempotency SELECT. Only call is getTeamBalance at the end.
+      // No externalRef → no idempotency SELECT. Only call is getTeamBalance at the end.
       selectResults = [[{ balance: 500 }]];
       const { addTeamCredits } = await import('../credits.service.js');
       const result = await addTeamCredits('team-1', 500, 'Monthly allotment — pro plan');

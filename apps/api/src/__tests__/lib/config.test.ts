@@ -18,7 +18,6 @@ const envSchema = z.object({
   CLERK_SECRET_KEY: z.string().optional(),
   CLERK_PUBLISHABLE_KEY: z.string().optional(),
   WEBHOOK_BASE_URL: z.string().url().optional(),
-  STRIPE_SECRET_KEY: z.string().optional(),
   ENCRYPTION_SECRET: z.string().optional(),
   BYOK_ENCRYPTION_SECRET: z.string().optional(),
 }).superRefine((data, ctx) => {
@@ -63,13 +62,6 @@ const envSchema = z.object({
         code: z.ZodIssueCode.custom,
         message: 'BYOK_ENCRYPTION_SECRET is required in production',
         path: ['BYOK_ENCRYPTION_SECRET'],
-      });
-    }
-    if (data.STRIPE_SECRET_KEY?.startsWith('sk_test_')) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'STRIPE_SECRET_KEY must be a live key (sk_live_*) in production — test keys are not accepted',
-        path: ['STRIPE_SECRET_KEY'],
       });
     }
   }
@@ -184,19 +176,6 @@ describe('Config Validation', () => {
     }
   });
 
-  it('production with Stripe test key fails', () => {
-    const result = envSchema.safeParse({
-      ...validProdBase,
-      STRIPE_SECRET_KEY: 'sk_test_stripe_key', // gitleaks:allow
-    });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.map((i) => i.message)).toContain(
-        'STRIPE_SECRET_KEY must be a live key (sk_live_*) in production — test keys are not accepted',
-      );
-    }
-  });
-
   it('production with DEV_AUTH_BYPASS=true fails', () => {
     const result = envSchema.safeParse({
       ...validProdBase,
@@ -214,7 +193,6 @@ describe('Config Validation', () => {
     const result = envSchema.safeParse({
       ...validProdBase,
       PORT: '8080',
-      STRIPE_SECRET_KEY: 'stripe-live-key-not-real',
     });
     expect(result.success).toBe(true);
     if (result.success) {
@@ -227,7 +205,6 @@ describe('Config Validation', () => {
       DATABASE_URL: DB,
       NODE_ENV: 'development',
       CLERK_SECRET_KEY: 'sk_test_dev_key', // gitleaks:allow
-      STRIPE_SECRET_KEY: 'sk_test_stripe_test', // gitleaks:allow
     });
     expect(result.success).toBe(true);
   });

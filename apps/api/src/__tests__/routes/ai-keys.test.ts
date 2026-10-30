@@ -39,37 +39,7 @@ describe('AI Key Routes', () => {
     vi.clearAllMocks();
   });
 
-  it('POST /api/teams/:id/ai-key returns 403 if plan is not eligible', async () => {
-    // Mock subscription lookup returning free plan
-    mockDb.select.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ plan: 'free' }]),
-        }),
-      }),
-    } as any);
-
-    const app = await buildApp();
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/teams/team-1/ai-key',
-      payload: { provider: 'anthropic', apiKey: 'sk-ant-test-1234' },
-    });
-
-    expect(res.statusCode).toBe(403);
-    expect(JSON.parse(res.payload).error).toContain('Team and Enterprise plans');
-  });
-
   it('POST /api/teams/:id/ai-key returns 409 if key already exists', async () => {
-    // Subscription: team plan
-    mockDb.select.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ plan: 'team' }]),
-        }),
-      }),
-    } as any);
-
     // Existing key found
     mockDb.select.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
@@ -89,16 +59,7 @@ describe('AI Key Routes', () => {
     expect(res.statusCode).toBe(409);
   });
 
-  it('POST /api/teams/:id/ai-key creates key on eligible plan', async () => {
-    // Subscription: team plan
-    mockDb.select.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ plan: 'team' }]),
-        }),
-      }),
-    } as any);
-
+  it('POST /api/teams/:id/ai-key creates key', async () => {
     // No existing key
     mockDb.select.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({

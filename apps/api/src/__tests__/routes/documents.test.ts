@@ -9,14 +9,6 @@ vi.mock('../../middleware/permissions.js', () => ({
   requireRole: () => async () => {},
 }));
 
-// Mock plan-limits service — default to allowed so existing tests are unaffected
-const mockCheckLimit = vi.hoisted(() =>
-  vi.fn().mockResolvedValue({ allowed: true, limit: -1, current: 0, plan: 'pro' }),
-);
-vi.mock('../../services/plan-limits.service.js', () => ({
-  checkLimit: mockCheckLimit,
-}));
-
 // Mock timeline + audit services
 vi.mock('../../services/timeline.service.js', () => ({
   timelineService: { create: vi.fn().mockResolvedValue({}) },
@@ -198,27 +190,8 @@ describe('Document Routes', () => {
     expect(res.statusCode).toBe(201);
   });
 
-  it('returns 403 when free tier document limit reached', async () => {
-    mockCheckLimit.mockResolvedValueOnce({ allowed: false, limit: 5, current: 5, plan: 'free' });
-
-    const app = await buildDocApp();
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/documents',
-      payload: { title: 'New Doc', content: '# Hello', teamId: 'team-1' },
-    });
-
-    expect(res.statusCode).toBe(403);
-    const body = JSON.parse(res.body);
-    expect(body.upgradeRequired).toBe(true);
-    expect(body.current).toBe(5);
-    expect(body.limit).toBe(5);
-    expect(body.plan).toBe('free');
-  });
-
   it('allows document creation when under limit', async () => {
     const doc = makeDocument();
-    mockCheckLimit.mockResolvedValueOnce({ allowed: true, limit: 5, current: 2, plan: 'free' });
 
     mockDb.insert.mockReturnValue({
       values: vi.fn().mockReturnValue({

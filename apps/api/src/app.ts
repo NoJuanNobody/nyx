@@ -5,7 +5,6 @@ import helmet from '@fastify/helmet';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
-import rawBody from 'fastify-raw-body';
 import { ZodError } from 'zod';
 import { healthRoutes } from './routes/health.js';
 import { mcpRoutes } from './routes/mcp.js';
@@ -41,7 +40,6 @@ import { slackRoutes } from './routes/slack.js';
 import { impactGraphRoutes } from './routes/impact-graph.js';
 import { invitationRoutes } from './routes/invitations.js';
 import { notificationRoutes } from './routes/notifications.js';
-import { subscriptionRoutes } from './routes/subscriptions.js';
 import { featureRequestRoutes } from './routes/feature-requests.js';
 import { projectShowcaseRoutes } from './routes/project-showcases.js';
 import { governanceRoutes } from './routes/governance.js';
@@ -58,8 +56,6 @@ import { voiceWebhookRoutes } from './routes/voice-webhooks.js';
 import { uploadRoutes } from './routes/upload.js';
 import { pcbRoutes } from './routes/pcb.js';
 import { socialRoutes } from './routes/social.js';
-import { billingRoutes } from './routes/billing.js';
-import { planRoutes } from './routes/plan.js';
 import { creditRoutes } from './routes/credits.js';
 import { pipelineRoutes } from './routes/pipelines.js';
 import { adminRoutes } from './routes/admin.js';
@@ -133,14 +129,6 @@ export function buildApp() {
   app.register(cookie);
   app.register(websocket);
 
-  // Raw body support — required for Stripe webhook signature verification
-  app.register(rawBody, {
-    field: 'rawBody',
-    global: false,
-    runFirst: true,
-    encoding: 'utf8',
-  });
-
   // Global rate limiting — 200 requests per minute per user (or IP for unauthenticated)
   app.register(rateLimit, {
     max: 200,
@@ -182,7 +170,6 @@ export function buildApp() {
     '/health',
     '/go/',
     '/api/webhooks/',
-    '/api/billing/webhooks/stripe',
     '/api/waitlist',
     '/api/slack/callback',
     '/api/slack/command',
@@ -245,7 +232,6 @@ export function buildApp() {
   app.register(impactGraphRoutes, { prefix: '/api' });
   app.register(invitationRoutes, { prefix: '/api/invitations' });
   app.register(notificationRoutes, { prefix: '/api/notifications' });
-  app.register(subscriptionRoutes, { prefix: '/api/subscriptions' });
   app.register(featureRequestRoutes, { prefix: '/api/feature-requests' });
   app.register(projectShowcaseRoutes, { prefix: '/api/project-showcases' });
   app.register(governanceRoutes, { prefix: '/api/governance' });
@@ -263,8 +249,6 @@ export function buildApp() {
   app.register(uploadRoutes, { prefix: '/api/documents' });
   app.register(pcbRoutes, { prefix: '/api/documents' });
   app.register(socialRoutes, { prefix: '/api/documents' });
-  app.register(billingRoutes, { prefix: '/api/billing' });
-  app.register(planRoutes, { prefix: '/api/plan' });
   app.register(creditRoutes, { prefix: '/api/credits' });
   app.register(pipelineRoutes, { prefix: '/api/pipelines' });
   app.register(adminRoutes, { prefix: '/api/admin' });

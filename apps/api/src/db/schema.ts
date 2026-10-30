@@ -438,39 +438,6 @@ export const feedbackSubmissions = pgTable('feedback_submissions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-// ── Subscriptions ─────────────────────────────────────
-
-export const subscriptionPlanEnum = pgEnum('subscription_plan', ['free', 'starter', 'pro', 'team', 'enterprise']);
-export const subscriptionStatusEnum = pgEnum('subscription_status', ['active', 'past_due', 'canceled', 'trialing', 'incomplete']);
-
-export const subscriptions = pgTable('subscriptions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  teamId: uuid('team_id').notNull().references(() => teams.id),
-  plan: subscriptionPlanEnum('plan').notNull().default('free'),
-  status: subscriptionStatusEnum('status').notNull().default('active'),
-  stripeCustomerId: text('stripe_customer_id'),
-  stripeSubscriptionId: text('stripe_subscription_id'),
-  stripePriceId: text('stripe_price_id'),
-  currentPeriodStart: timestamp('current_period_start', { withTimezone: true }),
-  currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
-  cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-// ── Stripe Customers ─────────────────────────────────
-
-export const stripeCustomers = pgTable('stripe_customers', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').notNull(),
-  stripeCustomerId: text('stripe_customer_id').notNull().unique(),
-  subscriptionId: text('subscription_id'),
-  plan: text('plan').notNull().default('free'),
-  planExpiresAt: timestamp('plan_expires_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
 // ── Deliverables ──────────────────────────────────────
 
 export const deliverableTypeEnum = pgEnum('deliverable_type', ['pdf', 'markdown', 'report', 'jupyter']);
@@ -612,7 +579,7 @@ export const creditTransactions = pgTable('credit_transactions', {
   type: creditTransactionTypeEnum('type').notNull(),
   description: text('description').notNull(),
   taskType: text('task_type'),
-  stripeSessionId: text('stripe_session_id').unique(),
+  externalRef: text('external_ref').unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
