@@ -67,7 +67,6 @@ const commands: Array<[string[], string, string[]]> = [
   [['audit', 'activity'], './commands/audit.js', ['registerAuditCommand', 'registerActivityCommand']],
   [['quality'], './commands/quality.js', ['registerQualityCommand']],
   [['sprint'], './commands/sprint.js', ['registerSprintCommand']],
-  [['agent'], './commands/agent.js', ['registerAgentCommand']],
   [['versions', 'diff'], './commands/versions.js', ['registerVersionsCommand', 'registerDiffCommand']],
   [['bulk'], './commands/bulk.js', ['registerBulkCommand']],
   [['proposals'], './commands/proposals.js', ['registerProposalsCommand']],
