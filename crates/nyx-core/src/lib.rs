@@ -25,9 +25,11 @@
 pub mod error;
 pub mod export;
 pub mod git_provider;
+pub mod governance;
 pub mod ledger;
 pub mod lifecycle;
 pub mod model;
+pub mod notify;
 pub mod profile;
 pub mod security;
 pub mod store;
