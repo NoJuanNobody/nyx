@@ -66,6 +66,11 @@ pub const CORE_MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0165_folders.sql"),
     },
     Migration {
+        version: 167,
+        name: "repo_scan",
+        sql: include_str!("../../migrations/0167_repo_scan.sql"),
+    },
+    Migration {
         version: 168,
         name: "sync",
         sql: include_str!("../../migrations/0168_sync.sql"),
