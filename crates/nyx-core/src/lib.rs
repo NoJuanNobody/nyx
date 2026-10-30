@@ -4,6 +4,7 @@
 //! - [`store`]: SQLite persistence, migrations, repositories, Postgres import.
 //! - [`ledger`]: append-only credit ledger (agent-native utility tokens).
 //! - [`lifecycle`]: lifecycle stages, domain pipelines, transitions, templates.
+//! - [`vcs`]: product version control (diff, three-way merge, branches, timeline, snapshots, approvals, change proposals).
 //! - [`error`]: shared error type.
 #![allow(
     clippy::missing_errors_doc,
@@ -24,6 +25,7 @@ pub mod lifecycle;
 pub mod model;
 pub mod profile;
 pub mod store;
+pub mod vcs;
 
 pub use error::{Error, Result};
 
