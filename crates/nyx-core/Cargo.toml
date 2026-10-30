@@ -16,6 +16,7 @@ directories = "5"
 getrandom = "0.2"
 hex.workspace = true
 keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "linux-native"] }
+pulldown-cmark.workspace = true
 rusqlite.workspace = true
 secrecy = "0.10"
 serde.workspace = true
@@ -25,6 +26,7 @@ thiserror.workspace = true
 time = { version = "0.3", features = ["formatting", "parsing", "serde"] }
 uuid.workspace = true
 zeroize = "1"
+zip.workspace = true
 
 [lints]
 workspace = true

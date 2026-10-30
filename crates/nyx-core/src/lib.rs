@@ -3,6 +3,7 @@
 //! - [`model`]: typed domain model ported from the Drizzle schema.
 //! - [`store`]: SQLite persistence, migrations, repositories, Postgres import.
 //! - [`ledger`]: append-only credit ledger (agent-native utility tokens).
+//! - [`export`]: document export (Markdown, TXT, PDF, DOCX, LaTeX, Jupyter) and deliverables.
 //! - [`error`]: shared error type.
 #![allow(
     clippy::missing_errors_doc,
@@ -18,6 +19,7 @@
 )]
 
 pub mod error;
+pub mod export;
 pub mod ledger;
 pub mod model;
 pub mod profile;

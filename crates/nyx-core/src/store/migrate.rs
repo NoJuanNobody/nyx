@@ -55,6 +55,11 @@ pub const CORE_MIGRATIONS: &[Migration] = &[
         name: "credit_ledger",
         sql: include_str!("../../migrations/0006_credit_ledger.sql"),
     },
+    Migration {
+        version: 172,
+        name: "deliverables",
+        sql: include_str!("../../migrations/0172_deliverables.sql"),
+    },
 ];
 
 fn checksum(sql: &str) -> String {
