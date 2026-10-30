@@ -6,6 +6,7 @@
 //! - [`lifecycle`]: lifecycle stages, domain pipelines, transitions, templates.
 //! - [`vcs`]: product version control (diff, three-way merge, branches, timeline, snapshots, approvals, change proposals).
 //! - [`security`]: input validation, path jail, SSRF guard, sanitizers, rate limiting, crypto, redaction.
+//! - [`git_provider`]: GitHub/GitLab/Bitbucket integration behind a `GitProvider` trait.
 //! - [`error`]: shared error type.
 #![allow(
     clippy::missing_errors_doc,
@@ -21,6 +22,7 @@
 )]
 
 pub mod error;
+pub mod git_provider;
 pub mod ledger;
 pub mod lifecycle;
 pub mod model;
