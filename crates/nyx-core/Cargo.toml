@@ -16,6 +16,9 @@ directories = "5"
 getrandom = "0.2"
 hex.workspace = true
 keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "linux-native"] }
+lopdf = { version = "0.45", default-features = false }
+quick-xml = "0.42"
+regex = "1"
 rusqlite.workspace = true
 secrecy = "0.10"
 serde.workspace = true
@@ -25,6 +28,7 @@ thiserror.workspace = true
 time = { version = "0.3", features = ["formatting", "parsing", "serde"] }
 uuid.workspace = true
 zeroize = "1"
+zip = { version = "9", default-features = false, features = ["deflate"] }
 
 [lints]
 workspace = true

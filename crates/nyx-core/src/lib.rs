@@ -18,6 +18,7 @@
 )]
 
 pub mod error;
+pub mod intake;
 pub mod ledger;
 pub mod model;
 pub mod profile;
