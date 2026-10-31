@@ -44,13 +44,6 @@ const envSchema = z.object({
         path: ['CLERK_SECRET_KEY'],
       });
     }
-    if (data.CLERK_SECRET_KEY?.startsWith('sk_test_')) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'CLERK_SECRET_KEY must be a live key (sk_live_*) in production — test keys are not accepted',
-        path: ['CLERK_SECRET_KEY'],
-      });
-    }
     if (!data.ENCRYPTION_SECRET) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -141,19 +134,6 @@ describe('Config Validation', () => {
     if (!result.success) {
       expect(result.error.issues.map((i) => i.message)).toContain(
         'CLERK_SECRET_KEY is required in production',
-      );
-    }
-  });
-
-  it('production with Clerk test key fails', () => {
-    const result = envSchema.safeParse({
-      ...validProdBase,
-      CLERK_SECRET_KEY: 'sk_test_compromised_key', // gitleaks:allow
-    });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.map((i) => i.message)).toContain(
-        'CLERK_SECRET_KEY must be a live key (sk_live_*) in production — test keys are not accepted',
       );
     }
   });

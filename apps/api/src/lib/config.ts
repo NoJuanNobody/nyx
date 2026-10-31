@@ -97,16 +97,6 @@ const envSchema = z.object({
         path: ['CLERK_SECRET_KEY'],
       });
     }
-    // Reject test-mode Clerk keys — Clerk live keys start with sk_live_.
-    // Test keys (sk_test_) cannot authenticate real users and may have been
-    // compromised in the 2026-04-19 security breach.
-    if (data.CLERK_SECRET_KEY?.startsWith('sk_test_')) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'CLERK_SECRET_KEY must be a live key (sk_live_*) in production — test keys are not accepted',
-        path: ['CLERK_SECRET_KEY'],
-      });
-    }
     // ENCRYPTION_SECRET is required to encrypt and decrypt stored OAuth tokens
     // (GitHub, Atlassian, Slack). Missing it causes silent failures in integrations.
     if (!data.ENCRYPTION_SECRET) {
