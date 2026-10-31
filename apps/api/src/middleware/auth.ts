@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { createClerkClient, verifyToken } from '@clerk/backend';
 import { createHash } from 'node:crypto';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ilike } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users, teams, teamMembers, apiKeys, teamInvitations } from '../db/schema.js';
 import { config } from '../lib/config.js';
@@ -137,7 +137,7 @@ async function acceptPendingInvitations(userId: string, email: string): Promise<
   const pendingInvites = await db
     .select()
     .from(teamInvitations)
-    .where(and(eq(teamInvitations.email, email), eq(teamInvitations.status, 'pending')));
+    .where(and(ilike(teamInvitations.email, email), eq(teamInvitations.status, 'pending')));
 
   for (const invite of pendingInvites) {
     if (invite.expiresAt < new Date()) {

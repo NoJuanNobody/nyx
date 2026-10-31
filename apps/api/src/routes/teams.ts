@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { randomUUID } from 'node:crypto';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ilike, ne } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { teams, teamMembers, users, teamInvitations } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
@@ -98,12 +98,13 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
     };
 
     const memberRole = role ?? 'viewer';
+    const normalizedEmail = email.trim().toLowerCase();
 
-    // Look up user by email
+    // Look up user by email (case-insensitive)
     const [existingUser] = await db
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(ilike(users.email, normalizedEmail))
       .limit(1);
 
     if (existingUser) {
@@ -133,7 +134,7 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
           teamId: id,
           eventType: NotificationEvents.TEAM_INVITE,
           title: `You've been added to ${teamForNotif.name}`,
-          metadata: { memberId: member.id, email },
+          metadata: { memberId: member.id, email: normalizedEmail },
           entityId: member.id,
         }).catch(() => {});
       }
@@ -152,7 +153,7 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
       .insert(teamInvitations)
       .values({
         teamId: id,
-        email,
+        email: normalizedEmail,
         role: memberRole,
         invitedById: request.user.id,
         token,
@@ -160,15 +161,43 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
       })
       .returning();
 
-    // Send invite email (fire-and-forget)
+    // Deduplicate any older pending invitations for the same (teamId, email)
+    if (invitation?.id) {
+      try {
+        await db
+          .delete(teamInvitations)
+          .where(
+            and(
+              eq(teamInvitations.teamId, id),
+              ilike(teamInvitations.email, normalizedEmail),
+              eq(teamInvitations.status, 'pending'),
+              ne(teamInvitations.id, invitation.id),
+            ),
+          );
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+
+    // Send invite email (Resend with automatic Clerk Invitations fallback)
     const [team] = await db.select().from(teams).where(eq(teams.id, id)).limit(1);
+    const { subject, html, acceptUrl } = buildInviteEmail(
+      team?.name || 'My Workspace',
+      request.user.name || request.user.email,
+      token,
+    );
+    let emailSent = false;
     if (team) {
-      const { subject, html } = buildInviteEmail(team.name, request.user.name, token);
-      sendEmail({ to: email, subject, html }).catch(() => {});
+      emailSent = await sendEmail({
+        to: normalizedEmail,
+        subject,
+        html,
+        inviteRedirectUrl: acceptUrl,
+      }).catch(() => false);
     }
 
     reply.code(201);
-    return { ...invitation, type: 'invited' };
+    return { ...invitation, type: 'invited', inviteUrl: acceptUrl, emailSent };
   });
 
   // GET /api/teams/:id/invitations — list pending invitations

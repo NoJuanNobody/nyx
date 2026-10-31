@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@clerk/clerk-react';
 import { getInvitation, acceptInvitation, setAuthTokenGetter } from '../lib/api';
+import { useAuthStore } from '../stores/auth.store';
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -208,8 +209,11 @@ function ClerkAcceptInvite() {
       setAuthTokenGetter(() => getToken());
       return acceptInvitation(token!);
     },
-    onSuccess: () => {
-      navigate('/app/getting-started', { replace: true });
+    onSuccess: (res) => {
+      if (res?.teamId) {
+        useAuthStore.getState().setCurrentTeamId(res.teamId);
+      }
+      navigate('/app/dashboard', { replace: true });
     },
     onError: (err: Error) => {
       setAcceptError(err.message);
@@ -252,8 +256,11 @@ function DevAcceptInvite() {
 
   const acceptMutation = useMutation({
     mutationFn: () => acceptInvitation(token!),
-    onSuccess: () => {
-      navigate('/app/getting-started', { replace: true });
+    onSuccess: (res) => {
+      if (res?.teamId) {
+        useAuthStore.getState().setCurrentTeamId(res.teamId);
+      }
+      navigate('/app/dashboard', { replace: true });
     },
     onError: (err: Error) => {
       setAcceptError(err.message);

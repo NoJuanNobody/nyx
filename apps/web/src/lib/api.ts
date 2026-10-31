@@ -692,11 +692,18 @@ export function removeTeamMember(teamId: string, userId: string): Promise<void> 
   });
 }
 
-export function inviteTeamMember(teamId: string, email: string, role: string): Promise<{ id: string; type?: string }> {
-  return request<{ id: string; type?: string }>(`/teams/${teamId}/members`, {
-    method: 'POST',
-    body: JSON.stringify({ email, role }),
-  });
+export function inviteTeamMember(
+  teamId: string,
+  email: string,
+  role: string,
+): Promise<{ id: string; type?: string; token?: string; inviteUrl?: string; emailSent?: boolean }> {
+  return request<{ id: string; type?: string; token?: string; inviteUrl?: string; emailSent?: boolean }>(
+    `/teams/${teamId}/members`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ email, role }),
+    },
+  );
 }
 
 // ── Team Invitations ────────────────────────────────────────────────
@@ -707,6 +714,7 @@ export interface TeamInvitation {
   email: string;
   role: string;
   invitedById: string;
+  token: string;
   status: 'pending' | 'accepted' | 'expired';
   createdAt: string;
   expiresAt: string;

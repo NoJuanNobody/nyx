@@ -231,22 +231,39 @@ function TeamPanel() {
   });
 
   const [inviteResultMsg, setInviteResultMsg] = useState('');
+  const [inviteErrorMsg, setInviteErrorMsg] = useState('');
+  const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
 
   const inviteMutation = useMutation({
     mutationFn: ({ email, role }: { email: string; role: string }) =>
       inviteTeamMember(currentTeamId!, email, role),
-    onSuccess: (data: { type?: string }) => {
+    onSuccess: (data: { type?: string; emailSent?: boolean; token?: string; inviteUrl?: string }) => {
       setInviteSent(true);
-      setInviteResultMsg(data.type === 'added' ? 'Added to team!' : 'Invitation created!');
-      setTimeout(() => { setInviteSent(false); setInviteResultMsg(''); }, 2500);
+      setInviteErrorMsg('');
+      const link = data.inviteUrl || (data.token ? `${window.location.origin}/invite/${data.token}` : '');
+      if (link && navigator.clipboard) {
+        navigator.clipboard.writeText(link).catch(() => {});
+      }
+      setInviteResultMsg(
+        data.type === 'added'
+          ? 'Added to team!'
+          : data.emailSent === false
+            ? 'Invitation created and invite link copied to clipboard!'
+            : 'Invitation email sent and invite link copied to clipboard!',
+      );
+      setTimeout(() => { setInviteSent(false); setInviteResultMsg(''); }, 5000);
       setInviteEmail('');
       queryClient.invalidateQueries({ queryKey: ['team-members', currentTeamId] });
       queryClient.invalidateQueries({ queryKey: ['team-invitations', currentTeamId] });
     },
+    onError: (err: Error) => {
+      setInviteErrorMsg(err.message || 'Failed to send invitation.');
+    },
   });
 
   const handleInvite = useCallback(async () => {
-    if (!inviteEmail.trim()) return;
+    if (!inviteEmail.trim() || inviteMutation.isPending) return;
+    setInviteErrorMsg('');
     
     // If no team exists, create one first
     if (!currentTeamId) {
@@ -315,15 +332,20 @@ function TeamPanel() {
           <button
             type="button"
             onClick={handleInvite}
-            disabled={!inviteEmail.trim() || creatingTeam}
+            disabled={!inviteEmail.trim() || creatingTeam || inviteMutation.isPending}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-40 transition-colors"
           >
-            {creatingTeam ? 'Creating workspace...' : 'Invite'}
+            {creatingTeam ? 'Creating workspace...' : inviteMutation.isPending ? 'Sending...' : 'Invite'}
           </button>
         </div>
         {inviteSent && (
           <p className="mt-2 text-xs font-medium text-green-600">
             {inviteResultMsg || 'Done!'}
+          </p>
+        )}
+        {inviteErrorMsg && (
+          <p className="mt-2 text-xs font-medium text-red-600">
+            {inviteErrorMsg}
           </p>
         )}
       </div>
@@ -356,6 +378,19 @@ function TeamPanel() {
                     Invited {new Date(inv.createdAt).toLocaleDateString()} &middot; Expires {new Date(inv.expiresAt).toLocaleDateString()}
                   </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = `${window.location.origin}/invite/${inv.token}`;
+                    navigator.clipboard?.writeText(url);
+                    setCopiedInviteId(inv.id);
+                    setTimeout(() => setCopiedInviteId(null), 2000);
+                  }}
+                  className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                  title="Copy direct invitation link"
+                >
+                  {copiedInviteId === inv.id ? 'Copied!' : 'Copy Link'}
+                </button>
                 <button
                   type="button"
                   onClick={() => cancelInviteMutation.mutate(inv.id)}

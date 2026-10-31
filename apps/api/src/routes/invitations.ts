@@ -71,8 +71,8 @@ export const invitationRoutes: FastifyPluginAsync = async (app) => {
       return { error: 'Authentication required to accept invitation' };
     }
 
-    // Check email matches
-    if (request.user.email !== invitation.email) {
+    // Check email matches (case-insensitive)
+    if (request.user.email.toLowerCase() !== invitation.email.toLowerCase()) {
       reply.code(403);
       return { error: 'This invitation was sent to a different email address' };
     }
