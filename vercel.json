@@ -1,6 +1,6 @@
 {
   "framework": "vite",
-  "buildCommand": "pnpm --filter @nyx/shared build && pnpm --filter @nyx/web build",
+  "buildCommand": "VITE_CLERK_PUBLISHABLE_KEY=pk_test_bm92ZWwta2lkLTU3LmNsZXJrLmFjY291bnRzLmRldiQ pnpm --filter @nyx/shared build && VITE_CLERK_PUBLISHABLE_KEY=pk_test_bm92ZWwta2lkLTU3LmNsZXJrLmFjY291bnRzLmRldiQ pnpm --filter @nyx/web build",
   "outputDirectory": "apps/web/dist",
   "installCommand": "pnpm install",
   "rewrites": [
