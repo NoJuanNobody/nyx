@@ -1,0 +1,24 @@
+[package]
+name = "nyx-desktop"
+description = "Nyx desktop shell (Tauri 2)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[dependencies]
+tauri.workspace = true
+nyx-core.workspace = true
+serde_json.workspace = true
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater.workspace = true
+tauri-plugin-process.workspace = true
+
+[lints]
+workspace = true

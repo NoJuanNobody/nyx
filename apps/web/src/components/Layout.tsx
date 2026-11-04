@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { NotificationBell } from './NotificationBell';
@@ -9,8 +9,15 @@ export function Layout() {
   const { toggleSidebar } = useUIStore();
   const [gettingStartedOpen, setGettingStartedOpen] = useState(false);
 
+  // The shell owns scrolling: lock the document so only inner panes scroll.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add('app-shell');
+    return () => root.classList.remove('app-shell');
+  }, []);
+
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-dvh overflow-hidden bg-slate-50">
       <Sidebar onOpenGettingStarted={() => setGettingStartedOpen(true)} />
       <GettingStartedModal isOpen={gettingStartedOpen} onClose={() => setGettingStartedOpen(false)} />
 
@@ -43,7 +50,7 @@ export function Layout() {
         </div>
 
         {/* Main content — capped width on ultrawide displays */}
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 sm:p-6 lg:p-8">
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3 sm:p-6 lg:p-8">
           <div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col">
             <Outlet />
           </div>

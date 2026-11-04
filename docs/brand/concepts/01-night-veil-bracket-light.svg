@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 220" width="640" height="220" role="img" aria-label="Nyx logo, concept Night Veil Bracket (light)">
+  <title>Nyx - Night Veil Bracket - light</title>
+  <rect width="640" height="220" fill="#FFFFFF"/>
+  <g transform="translate(30 20) scale(1.8)"><g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="7"><path d="M47 12 C28 12 38 42 22 50 C38 58 28 88 47 88" stroke="#0B1437"/><path d="M53 12 C72 12 62 42 78 50 C62 58 72 88 53 88" stroke="#7C3AED"/></g><path d="M50 41 L52.52 47.48 L59 50 L52.52 52.52 L50 59 L47.48 52.52 L41 50 L47.48 47.48 Z" fill="#0B1437"/><circle cx="50" cy="29" r="2.6" fill="#7C3AED"/><circle cx="50" cy="72" r="2.6" fill="#7C3AED"/></g>
+  <text x="240" y="138" font-family="'Space Grotesk','Inter','Helvetica Neue',Arial,sans-serif" font-size="96" font-weight="600" letter-spacing="2" fill="#0B1437">Nyx</text>
+</svg>

@@ -1,0 +1,273 @@
+{
+  "slug": "graphic_design",
+  "label": "Graphic Design",
+  "description": "Graphic design from brief to final deliverables",
+  "icon": "🎨",
+  "is_default": false,
+  "sort_order": 18,
+  "connectors": [
+    "Brief guides concept sketches",
+    "Sketches evolve through design iterations",
+    "Iterations go through client feedback",
+    "Feedback drives refinements",
+    "Refinements produce final deliverables"
+  ],
+  "stages": [
+    {
+      "slug": "brief_direction",
+      "sort_order": 0,
+      "label": "Brief & Creative Direction",
+      "abbreviation": "BD",
+      "subtitle": "Project Brief",
+      "color": "bg-blue-100",
+      "text_color": "text-blue-700",
+      "dot_color": "bg-blue-400",
+      "border_color": "border-blue-300",
+      "hex": "#3B82F6",
+      "who": "Client, Art Director",
+      "description": "Define the design brief and direction",
+      "icon": "🎯",
+      "ai": "Suggests visual styles, identifies constraints",
+      "output": "Approved creative brief",
+      "docs": [
+        "Creative Brief",
+        "Mood Board",
+        "Brand Guidelines",
+        "Scope",
+        "References"
+      ],
+      "suggestions": [
+        "Suggest visual styles",
+        "Create mood board",
+        "Identify constraints"
+      ]
+    },
+    {
+      "slug": "concept_sketches",
+      "sort_order": 1,
+      "label": "Concept Sketches",
+      "abbreviation": "CS",
+      "subtitle": "Initial Concepts",
+      "color": "bg-indigo-100",
+      "text_color": "text-indigo-700",
+      "dot_color": "bg-indigo-400",
+      "border_color": "border-indigo-300",
+      "hex": "#6366F1",
+      "who": "Designer",
+      "description": "Create initial concept sketches",
+      "icon": "✏️",
+      "ai": "Checks visual hierarchy, suggests compositions",
+      "output": "Multiple concept directions",
+      "docs": [
+        "Concepts",
+        "Design Explorations",
+        "Typography Study",
+        "Color Palettes"
+      ],
+      "suggestions": [
+        "Check visual hierarchy",
+        "Suggest compositions",
+        "Explore typography"
+      ]
+    },
+    {
+      "slug": "design_iterations",
+      "sort_order": 2,
+      "label": "Design Iterations",
+      "abbreviation": "DI",
+      "subtitle": "Refinement",
+      "color": "bg-violet-100",
+      "text_color": "text-violet-700",
+      "dot_color": "bg-violet-400",
+      "border_color": "border-violet-300",
+      "hex": "#8B5CF6",
+      "who": "Designer",
+      "description": "Develop selected concepts further",
+      "icon": "🔄",
+      "ai": "Checks accessibility, validates contrast",
+      "output": "Detailed design iterations",
+      "docs": [
+        "Iterations",
+        "Layout Variations",
+        "Color System",
+        "Components"
+      ],
+      "suggestions": [
+        "Check accessibility",
+        "Validate color contrast",
+        "Improve layout"
+      ]
+    },
+    {
+      "slug": "client_feedback",
+      "sort_order": 3,
+      "label": "Client Feedback",
+      "abbreviation": "CF",
+      "subtitle": "Client Review",
+      "color": "bg-purple-100",
+      "text_color": "text-purple-700",
+      "dot_color": "bg-purple-400",
+      "border_color": "border-purple-300",
+      "hex": "#A855F7",
+      "who": "Client",
+      "description": "Present designs and collect feedback",
+      "icon": "💬",
+      "ai": "Organizes feedback, suggests compromises",
+      "output": "Feedback with action items",
+      "docs": [
+        "Client Feedback",
+        "Presentation",
+        "Action Items",
+        "Priority Matrix"
+      ],
+      "suggestions": [
+        "Organize feedback",
+        "Identify conflicts",
+        "Suggest compromises"
+      ]
+    },
+    {
+      "slug": "refinements",
+      "sort_order": 4,
+      "label": "Refinements",
+      "abbreviation": "RF",
+      "subtitle": "Final Edits",
+      "color": "bg-pink-100",
+      "text_color": "text-pink-700",
+      "dot_color": "bg-pink-400",
+      "border_color": "border-pink-300",
+      "hex": "#EC4899",
+      "who": "Designer",
+      "description": "Apply feedback and refine",
+      "icon": "✨",
+      "ai": "Tracks changes, checks quality",
+      "output": "Refined designs",
+      "docs": [
+        "Refined Designs",
+        "Change Log",
+        "Quality Check",
+        "Spec Validation"
+      ],
+      "suggestions": [
+        "Track changes",
+        "Check quality",
+        "Validate specs"
+      ]
+    },
+    {
+      "slug": "final_deliverables",
+      "sort_order": 5,
+      "label": "Final Deliverables",
+      "abbreviation": "FD",
+      "subtitle": "Delivered",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Designer, Production",
+      "description": "Prepare final files in all formats",
+      "icon": "📦",
+      "ai": "Validates formats, checks print specs",
+      "output": "Complete deliverable package",
+      "docs": [
+        "Final Files",
+        "Asset Guide",
+        "Print-Ready",
+        "Digital Files",
+        "Style Guide"
+      ],
+      "suggestions": [
+        "Validate formats",
+        "Check print specs",
+        "Generate asset guide"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "brief_direction",
+      "name": "Design Brief",
+      "description": "Capture project requirements, brand guidelines, and creative direction",
+      "sort_order": 0,
+      "content": "# Design Brief\n\n## Project\n<!-- Project name -->\n\n## Client\n<!-- Client name -->\n\n## Objective\n<!-- What should this design accomplish? -->\n\n## Deliverables\n| Deliverable | Format | Size | Quantity |\n|------------|--------|------|----------|\n|            |        |      |          |\n\n## Brand Guidelines\n- Colors: \n- Fonts: \n- Logo usage: \n- Tone: \n\n## Target Audience\n- \n\n## Creative Direction\n- Style references: \n- Mood: \n- Must include: \n- Must avoid: \n\n## Timeline\n| Milestone | Date |\n|-----------|------|\n| Concepts  |      |\n| Revisions |      |\n| Final     |      |\n\n## Budget\n- \n"
+    },
+    {
+      "stage": "brief_direction",
+      "name": "Mood Board Plan",
+      "description": "Plan the mood board with visual references and style direction",
+      "sort_order": 1,
+      "content": "# Mood Board Plan\n\n## Project\n<!-- Project name -->\n\n## Visual Direction\n\n### Color Palette\n| Color | Hex | Usage |\n|-------|-----|-------|\n|       |     | Primary |\n|       |     | Secondary |\n|       |     | Accent |\n\n### Typography Direction\n- Headlines: \n- Body: \n- Accent: \n\n### Imagery Style\n- Photography: \n- Illustration: \n- Icons: \n\n### Texture & Pattern\n- \n\n### Layout Style\n- Grid: \n- White space: Generous / Tight\n- Alignment: \n\n## Reference Sources\n| Source | URL / Description | What to Reference |\n|--------|------------------|------------------|\n|        |                  |                  |\n\n## Client Preferences\n- Likes: \n- Dislikes: \n"
+    },
+    {
+      "stage": "concept_sketches",
+      "name": "Concept Exploration",
+      "description": "Present multiple design concepts with rationale for each",
+      "sort_order": 0,
+      "content": "# Concept Exploration\n\n## Project\n<!-- Project name -->\n\n## Concept A: [Name]\n- **Approach:** \n- **Visual Style:** \n- **Rationale:** \n- **Pros:** \n- **Cons:** \n\n## Concept B: [Name]\n- **Approach:** \n- **Visual Style:** \n- **Rationale:** \n- **Pros:** \n- **Cons:** \n\n## Concept C: [Name]\n- **Approach:** \n- **Visual Style:** \n- **Rationale:** \n- **Pros:** \n- **Cons:** \n\n## Comparison\n| Criteria | Concept A | Concept B | Concept C |\n|----------|----------|----------|----------|\n| Brand fit |         |          |          |\n| Originality |      |          |          |\n| Versatility |      |          |          |\n\n## Recommended Direction\n- \n"
+    },
+    {
+      "stage": "concept_sketches",
+      "name": "Sketch Annotations",
+      "description": "Annotate design sketches with notes on intent and details",
+      "sort_order": 1,
+      "content": "# Sketch Annotations\n\n## Project\n<!-- Project name -->\n\n## Sketch / Concept\n<!-- Which concept this annotates -->\n\n## Layout Notes\n- Grid structure: \n- Visual hierarchy: \n- Flow direction: \n\n## Element Annotations\n| Element | Purpose | Notes |\n|---------|---------|-------|\n| Header area | | |\n| Hero image | | |\n| CTA section | | |\n| Footer | | |\n\n## Typography Notes\n- Headline treatment: \n- Body text approach: \n\n## Color Application\n- Primary color used for: \n- Accent color used for: \n\n## Responsive Considerations\n- Desktop: \n- Tablet: \n- Mobile: \n\n## Open Questions\n- \n"
+    },
+    {
+      "stage": "design_iterations",
+      "name": "Design Version Log",
+      "description": "Track design iterations with changes and rationale",
+      "sort_order": 0,
+      "content": "# Design Version Log\n\n## Project\n<!-- Project name -->\n\n## Versions\n| Version | Date | Changes | Trigger |\n|---------|------|---------|--------|\n| v1.0 | | Initial concept | Brief |\n| v1.1 | | | Client feedback |\n| v2.0 | | Major revision | Direction change |\n| v2.1 | | | |\n\n## Current Version: v__\n\n### Changes from Previous\n| Element | Before | After | Reason |\n|---------|--------|-------|--------|\n|         |        |       |        |\n\n### Design Decisions\n- \n\n### Deferred to Next Version\n- \n\n## File Naming Convention\n- [project]_[deliverable]_v[major].[minor].[format]\n"
+    },
+    {
+      "stage": "design_iterations",
+      "name": "Component Design System",
+      "description": "Define reusable design components and patterns",
+      "sort_order": 1,
+      "content": "# Component Design System\n\n## Project\n<!-- Project name -->\n\n## Color System\n| Token | Value | Usage |\n|-------|-------|-------|\n| primary | | Buttons, links |\n| secondary | | Backgrounds |\n| accent | | Highlights |\n| text-primary | | Body text |\n| text-secondary | | Captions |\n\n## Typography Scale\n| Level | Font | Size | Weight | Line Height |\n|-------|------|------|--------|------------|\n| H1 | | | | |\n| H2 | | | | |\n| Body | | | | |\n| Caption | | | | |\n\n## Components\n| Component | Variants | Usage |\n|-----------|---------|-------|\n| Button | Primary, Secondary, Ghost | |\n| Card | | |\n| Input | | |\n\n## Spacing\n- Base unit: __px\n- Scale: \n\n## Icons\n- Style: \n- Size: \n"
+    },
+    {
+      "stage": "client_feedback",
+      "name": "Client Feedback Log",
+      "description": "Record and organize client feedback on design presentations",
+      "sort_order": 0,
+      "content": "# Client Feedback Log\n\n## Project\n<!-- Project name -->\n\n## Presentation Date\n<!-- Date -->\n\n## Version Presented\n<!-- Version number -->\n\n## Attendees\n- \n\n## Feedback\n| # | Element | Feedback | Action | Priority |\n|---|---------|----------|--------|----------|\n| 1 |         |          |        |          |\n| 2 |         |          |        |          |\n\n## What Client Liked\n- \n\n## What Client Wants Changed\n- \n\n## Unclear / Needs Clarification\n- \n\n## Next Steps\n- [ ] Implement changes by [date]\n- [ ] Follow up on unclear items\n- [ ] Schedule next review\n"
+    },
+    {
+      "stage": "client_feedback",
+      "name": "Design Presentation Prep",
+      "description": "Prepare for a design presentation with talking points and rationale",
+      "sort_order": 1,
+      "content": "# Design Presentation Prep\n\n## Project\n<!-- Project name -->\n\n## Date / Audience\n- Date: \n- Client contacts: \n\n## Agenda\n1. Recap brief and objectives\n2. Present concept(s)\n3. Walk through details\n4. Gather feedback\n5. Discuss next steps\n\n## Talking Points per Design\n| Design Element | Rationale | Anticipated Question | Answer |\n|---------------|-----------|---------------------|--------|\n|               |           |                     |        |\n\n## Decision Needed\n- [ ] Concept direction approval\n- [ ] Color / typography sign-off\n- [ ] Layout approval\n\n## Materials to Share\n- [ ] Mockups\n- [ ] Style guide excerpt\n- [ ] Comparison views\n\n## Backup Options\n- If client dislikes [X]: Propose [Y]\n"
+    },
+    {
+      "stage": "refinements",
+      "name": "Design Refinement Tracker",
+      "description": "Track specific refinements and pixel-level adjustments",
+      "sort_order": 0,
+      "content": "# Design Refinement Tracker\n\n## Project\n<!-- Project name -->\n\n## Version\n<!-- Current version -->\n\n## Refinements\n| # | Element | Refinement | Status |\n|---|---------|-----------|--------|\n| 1 |         |           | [ ]    |\n| 2 |         |           | [ ]    |\n| 3 |         |           | [ ]    |\n\n## Pixel-Level Checks\n- [ ] Alignment verified\n- [ ] Spacing consistent\n- [ ] Typography kerning reviewed\n- [ ] Color values exact (not approximated)\n- [ ] Image resolution sufficient\n\n## Cross-Platform Checks\n| Platform | Verified | Issues |\n|----------|----------|--------|\n| Desktop  | [ ]      |        |\n| Tablet   | [ ]      |        |\n| Mobile   | [ ]      |        |\n| Print    | [ ]      |        |\n\n## Final Polish\n- [ ] Shadows consistent\n- [ ] Border radius consistent\n- [ ] Hover states defined\n"
+    },
+    {
+      "stage": "refinements",
+      "name": "Print-Ready Preflight",
+      "description": "Preflight checklist for print production files",
+      "sort_order": 1,
+      "content": "# Print-Ready Preflight\n\n## Project\n<!-- Project name -->\n\n## Document Setup\n- [ ] Correct trim size\n- [ ] Bleed: 0.125\" / 3mm\n- [ ] Safe zone: 0.25\" / 6mm from trim\n- [ ] Color mode: CMYK\n\n## Images\n- [ ] All images 300 dpi minimum\n- [ ] No RGB images\n- [ ] No upscaled images\n- [ ] Linked files collected\n\n## Typography\n- [ ] All fonts outlined or embedded\n- [ ] No missing fonts\n- [ ] Minimum text size: 6pt\n- [ ] Rich black for large text: C40 M30 Y30 K100\n\n## Colors\n- [ ] Spot colors specified correctly\n- [ ] No unintended spot colors\n- [ ] Total ink coverage < 300%\n\n## Export\n- [ ] PDF/X-1a or PDF/X-4\n- [ ] Crop marks and bleed marks\n- [ ] Color bars included\n\n## Printer Specs\n| Spec | Value |\n|------|-------|\n| Paper | |\n| Finish | |\n| Binding | |\n| Quantity | |\n"
+    },
+    {
+      "stage": "final_deliverables",
+      "name": "File Delivery Package",
+      "description": "Organize and deliver all final design files to the client",
+      "sort_order": 0,
+      "content": "# File Delivery Package\n\n## Project\n<!-- Project name -->\n\n## Deliverables\n| File | Format | Purpose | Size | Included |\n|------|--------|---------|------|----------|\n| Logo | AI, SVG, PNG, EPS | | | [ ] |\n| Print files | PDF/X | | | [ ] |\n| Web assets | PNG, SVG, WebP | | | [ ] |\n| Social media | JPG, PNG | | | [ ] |\n| Source files | PSD, AI, INDD, Figma | | | [ ] |\n\n## Folder Structure\n```\n/Final_Deliverables\n  /Print\n  /Web\n  /Social\n  /Source_Files\n  /Fonts (if licensed)\n  README.txt\n```\n\n## Delivery Method\n- [ ] Cloud link (Google Drive / Dropbox)\n- [ ] File transfer (WeTransfer)\n- [ ] Direct upload\n\n## Client Confirmation\n- [ ] Files received\n- [ ] Files opened successfully\n"
+    },
+    {
+      "stage": "final_deliverables",
+      "name": "Brand Asset Guide",
+      "description": "Create a mini brand guide for the delivered design assets",
+      "sort_order": 1,
+      "content": "# Brand Asset Guide\n\n## Project\n<!-- Project name -->\n\n## Logo Usage\n- Minimum size: \n- Clear space: \n- Approved backgrounds: \n- Do not: \n\n## Color Palette\n| Color | Hex | RGB | CMYK | Pantone |\n|-------|-----|-----|------|--------|\n| Primary | | | | |\n| Secondary | | | | |\n| Accent | | | | |\n\n## Typography\n| Usage | Font | Weight | Size Range |\n|-------|------|--------|----------|\n| Headlines | | | |\n| Body | | | |\n\n## File Formats & Usage\n| Format | Use For |\n|--------|--------|\n| .ai / .eps | Print production |\n| .svg | Web, responsive |\n| .png | Digital, presentations |\n| .jpg | Photography, social |\n\n## Contact for Questions\n- Designer: \n- Email: \n"
+    }
+  ]
+}

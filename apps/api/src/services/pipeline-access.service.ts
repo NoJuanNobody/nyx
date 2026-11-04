@@ -1,7 +1,6 @@
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { userPipelineAccess } from '../db/schema.js';
-import { deductCredits } from './credits.service.js';
 
 // ── Service functions ─────────────────────────────────
 
@@ -27,49 +26,29 @@ export async function hasPipelineAccess(
 }
 
 /**
- * Activate a pipeline for a user. If the user already owns it, return
- * the existing record without charging. Otherwise deduct credits and
- * record the access grant.
+ * Activate a pipeline for a user. Activation is free (AI-58: no re-pay logic);
+ * it only records the access grant, idempotently.
  */
 export async function activatePipeline(
   userId: string,
   pipelineId: string,
-  pipelineLabel: string,
-  creditCost: number,
+  _pipelineLabel: string,
   teamId?: string,
-): Promise<{ alreadyOwned: boolean; creditsPaid: number; balance: number }> {
-  // Check existing ownership first
-  const owned = await hasPipelineAccess(userId, pipelineId);
-  if (owned) {
-    // No charge — user already paid
-    return { alreadyOwned: true, creditsPaid: 0, balance: -1 };
+): Promise<{ alreadyOwned: boolean; creditsPaid: number }> {
+  if (await hasPipelineAccess(userId, pipelineId)) {
+    return { alreadyOwned: true, creditsPaid: 0 };
   }
 
-  // Deduct credits only for first-time activation
-  let balance = 0;
-  if (creditCost > 0) {
-    const result = await deductCredits(
-      userId,
-      creditCost,
-      'pipeline_activation',
-      `Activated pipeline: ${pipelineLabel}`,
-    );
-    balance = result.balance;
-  }
+  await db
+    .insert(userPipelineAccess)
+    .values({ userId, pipelineId, teamId: teamId ?? null, creditsPaid: 0 })
+    .onConflictDoNothing();
 
-  // Record the access
-  await db.insert(userPipelineAccess).values({
-    userId,
-    pipelineId,
-    teamId: teamId ?? null,
-    creditsPaid: creditCost,
-  });
-
-  return { alreadyOwned: false, creditsPaid: creditCost, balance };
+  return { alreadyOwned: false, creditsPaid: 0 };
 }
 
 /**
- * List all pipelines a user has already purchased/activated.
+ * List all pipelines a user has already activated.
  */
 export async function listOwnedPipelines(
   userId: string,

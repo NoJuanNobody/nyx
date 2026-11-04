@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 220" width="640" height="220" role="img" aria-label="Nyx logo, concept Constellation N">
+  <title>Nyx - Constellation N - dark</title>
+  <rect width="640" height="220" fill="#0B1437"/>
+  <g transform="translate(30 20) scale(1.8)"><path d="M22 80 L22 20 L50 50 L78 80 L78 20" fill="none" stroke="#F4F2FF" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="22" cy="80" r="8" fill="#F4F2FF"/><circle cx="22" cy="20" r="8" fill="#F4F2FF"/><circle cx="50" cy="50" r="8" fill="#8B5CF6"/><circle cx="78" cy="80" r="8" fill="#F4F2FF"/><circle cx="78" cy="20" r="8" fill="#F4F2FF"/></g>
+  <text x="240" y="138" font-family="'Space Grotesk','Inter','Helvetica Neue',Arial,sans-serif" font-size="96" font-weight="600" letter-spacing="2" fill="#F4F2FF">Nyx</text>
+</svg>

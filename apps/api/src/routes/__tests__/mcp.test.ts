@@ -24,19 +24,19 @@ vi.doMock('../../middleware/auth.js', () => ({
   resolveClerkUser: mockResolveClerkUser,
 }));
 
-// ── Credits ───────────────────────────────────────────────────────────────
-const mockCheckCredits = vi.fn();
-const mockDeductCredits = vi.fn();
-vi.doMock('../../services/credits.service.js', () => ({
-  checkCredits: mockCheckCredits,
-  deductCredits: mockDeductCredits,
-  CREDIT_COSTS: {
-    document_generation: 3,
-    spec_analysis: 1,
-    drift_detection: 2,
-    ticket_generation: 2,
-  },
-}));
+// ── Credits (real pure logic, mocked service accessor) ───────────────────
+const credits = {
+  reserve: vi.fn(),
+  commit: vi.fn(),
+  release: vi.fn(),
+  getBalance: vi.fn(),
+};
+vi.doMock('../../services/credits.service.js', async () => {
+  const actual = await vi.importActual<typeof import('../../services/credits.service.js')>(
+    '../../services/credits.service.js',
+  );
+  return { ...actual, getCreditsService: async () => credits };
+});
 
 vi.doMock('@clerk/mcp-tools/server', () => ({
   generateClerkProtectedResourceMetadata: vi.fn(() => ({
@@ -53,6 +53,7 @@ const MockServer = vi.fn().mockImplementation(() => ({
   setRequestHandler: mockServerSetRequestHandler,
   connect: mockServerConnect,
   close: mockServerClose,
+  getClientVersion: () => ({ name: 'Claude Code', version: '1' }),
 }));
 
 vi.doMock('@modelcontextprotocol/sdk/server/index.js', () => ({
@@ -215,9 +216,18 @@ describe('mcpRoutes', () => {
     });
   });
 
-  describe('credit gating', () => {
-    it('blocks a credit-costing tool when the balance is insufficient (no execute, no deduct)', async () => {
-      mockCheckCredits.mockResolvedValue({ allowed: false, balance: 0, required: 3 });
+  describe('credit metering', () => {
+    beforeEach(() => {
+      credits.reserve.mockReset();
+      credits.commit.mockReset();
+      credits.release.mockReset();
+      credits.getBalance.mockReset();
+    });
+
+    it('returns a structured insufficient_credits error and does not run the tool', async () => {
+      const { LedgerError } = await import('../../services/credit-ledger.service.js');
+      credits.reserve.mockRejectedValue(new LedgerError('INSUFFICIENT_CREDITS', 'nope'));
+      credits.getBalance.mockResolvedValue({ agents: [{ agentId: 'claude-code', available: 1 }] });
       const handlers = await connectAuthenticated();
 
       const result = (await handlers['call_tool']({
@@ -225,15 +235,19 @@ describe('mcpRoutes', () => {
       })) as { isError?: boolean; content: Array<{ text: string }> };
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('Insufficient credits');
-      expect(mockCheckCredits).toHaveBeenCalledWith('user-id', 3);
+      expect(JSON.parse(result.content[0].text)).toMatchObject({
+        error: 'insufficient_credits',
+        available: 1,
+        required: 3,
+        agentId: 'claude-code',
+      });
       expect(mockExecuteTool).not.toHaveBeenCalled();
-      expect(mockDeductCredits).not.toHaveBeenCalled();
+      expect(credits.commit).not.toHaveBeenCalled();
     });
 
-    it('executes then deducts for a credit-costing tool when the balance is sufficient', async () => {
-      mockCheckCredits.mockResolvedValue({ allowed: true, balance: 100, required: 3 });
-      mockDeductCredits.mockResolvedValue({ balance: 97 });
+    it('reserves for the client-named agent, runs the tool, then commits', async () => {
+      credits.reserve.mockResolvedValue({ entry: { id: 'le_000000000001' }, replayed: false });
+      credits.commit.mockResolvedValue({ entry: { id: 'le_000000000002' }, replayed: false });
       const handlers = await connectAuthenticated();
 
       const result = (await handlers['call_tool']({
@@ -241,8 +255,31 @@ describe('mcpRoutes', () => {
       })) as { isError?: boolean };
 
       expect(result.isError).toBeUndefined();
+      expect(credits.reserve).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'user_user-id' }),
+        expect.objectContaining({ agentId: 'claude-code', amount: 3, taskType: 'document_generation' }),
+      );
       expect(mockExecuteTool).toHaveBeenCalledOnce();
-      expect(mockDeductCredits).toHaveBeenCalledWith('user-id', 3, 'document_generation', expect.any(String));
+      expect(credits.commit).toHaveBeenCalledWith(
+        'claude-code',
+        expect.objectContaining({ reservationId: 'le_000000000001', actualAmount: 3 }),
+      );
+      expect(credits.release).not.toHaveBeenCalled();
+    });
+
+    it('releases the hold when the tool fails (no charge)', async () => {
+      credits.reserve.mockResolvedValue({ entry: { id: 'le_000000000001' }, replayed: false });
+      credits.release.mockResolvedValue({ entry: { id: 'le_000000000002' }, replayed: false });
+      mockExecuteTool.mockRejectedValueOnce(new Error('boom'));
+      const handlers = await connectAuthenticated();
+
+      const result = (await handlers['call_tool']({
+        params: { name: 'nyx_create_doc', arguments: {} },
+      })) as { isError?: boolean };
+
+      expect(result.isError).toBe(true);
+      expect(credits.release).toHaveBeenCalledOnce();
+      expect(credits.commit).not.toHaveBeenCalled();
     });
 
     it('does not touch the credit system for a free (read) tool', async () => {
@@ -251,8 +288,7 @@ describe('mcpRoutes', () => {
       await handlers['call_tool']({ params: { name: 'nyx_list_teams', arguments: {} } });
 
       expect(mockExecuteTool).toHaveBeenCalledOnce();
-      expect(mockCheckCredits).not.toHaveBeenCalled();
-      expect(mockDeductCredits).not.toHaveBeenCalled();
+      expect(credits.reserve).not.toHaveBeenCalled();
     });
   });
 });

@@ -9,7 +9,14 @@ import { generateClerkProtectedResourceMetadata } from '@clerk/mcp-tools/server'
 import { TOOL_DEFINITIONS, executeTool, NyxClient } from '@nyx/harness-core';
 import { verifyClerkOAuthToken } from '../lib/clerk.js';
 import { resolveClerkUser } from '../middleware/auth.js';
-import { checkCredits, deductCredits, CREDIT_COSTS } from '../services/credits.service.js';
+import { randomUUID } from 'node:crypto';
+import {
+  CREDIT_COSTS,
+  LedgerError,
+  getCreditsService,
+  normalizeAgentId,
+  userWorkspace,
+} from '../services/credits.service.js';
 import { config } from '../lib/config.js';
 
 // These tools depend on the local filesystem or a local search provider; they
@@ -55,8 +62,8 @@ function getApiBase(request: FastifyRequest): string {
 /**
  * Build a stateless MCP server bound to one authenticated user. Tools execute
  * by self-calling the Nyx REST API with the caller's OAuth token (the global
- * auth middleware accepts it), and AI/generation tools are gated on the user's
- * credit balance.
+ * auth middleware accepts it), and AI/generation tools are metered against the
+ * calling agent's credit budget (reserve, then commit or release).
  */
 function buildMcpServer(bearerToken: string, userId: string): Server {
   // Self-call: the MCP tools call the Nyx REST API, which is this same process.
@@ -92,21 +99,46 @@ function buildMcpServer(bearerToken: string, userId: string): Server {
       };
     }
 
-    // ── Credit gate (before doing any work) ──────────────
+    // ── Credit metering: reserve before, commit/release after ──────────
+    // The calling agent is identified by its MCP client name (e.g. claude-code).
     const taskType = TOOL_TASK_TYPE[name];
     const cost = taskType ? CREDIT_COSTS[taskType] ?? 0 : 0;
-    if (cost > 0) {
-      const { allowed, balance } = await checkCredits(userId, cost);
-      if (!allowed) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Insufficient credits: '${name}' costs ${cost} credit(s) but your balance is ${balance}. Add credits at ${config.APP_URL ?? 'https://nyx-creative.com'}/settings/billing.`,
-            },
-          ],
-          isError: true,
-        };
+    const agentId = normalizeAgentId(server.getClientVersion()?.name);
+    const callKey = `mcp:${userId}:${randomUUID()}`;
+    const ws = userWorkspace(userId);
+    let reservationId: string | null = null;
+    const credits = cost > 0 ? await getCreditsService() : null;
+    if (credits) {
+      try {
+        const r = await credits.reserve(ws, {
+          agentId,
+          amount: cost,
+          idempotencyKey: `${callKey}:reserve`,
+          taskType,
+          memo: `MCP tool ${name}`,
+        });
+        reservationId = r.entry.id;
+      } catch (err) {
+        if (err instanceof LedgerError && err.code === 'INSUFFICIENT_CREDITS') {
+          const bal = await credits.getBalance(ws, agentId);
+          const available = bal.agents.find((a) => a.agentId === agentId)?.available ?? 0;
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: JSON.stringify({
+                  error: 'insufficient_credits',
+                  message: `'${name}' costs ${cost} credit(s) but agent '${agentId}' has ${available}. Ask the workspace owner to allocate more credits to this agent.`,
+                  available,
+                  required: cost,
+                  agentId,
+                }),
+              },
+            ],
+            isError: true,
+          };
+        }
+        throw err;
       }
     }
 
@@ -117,10 +149,13 @@ function buildMcpServer(bearerToken: string, userId: string): Server {
         client,
       );
 
-      // Deduct only after the tool succeeded. A failed deduction (e.g. a race
-      // that drained the balance) must not undo delivered work, so we swallow it.
-      if (cost > 0) {
-        await deductCredits(userId, cost, taskType, `MCP tool ${name}`).catch(() => {});
+      if (credits && reservationId) {
+        await credits.commit(agentId, {
+          reservationId,
+          actualAmount: cost,
+          idempotencyKey: `${callKey}:commit`,
+          memo: `MCP tool ${name}`,
+        });
       }
 
       return {
@@ -129,6 +164,12 @@ function buildMcpServer(bearerToken: string, userId: string): Server {
         ],
       };
     } catch (err) {
+      // Failed work is not charged: hand the hold back to the agent.
+      if (credits && reservationId) {
+        await credits
+          .release(agentId, { reservationId, idempotencyKey: `${callKey}:release`, memo: 'tool failed' })
+          .catch(() => {}); // an expired/closed hold is already settled by the ledger
+      }
       const message = err instanceof Error ? err.message : String(err);
       return {
         content: [{ type: 'text' as const, text: `Error: ${message}` }],

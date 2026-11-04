@@ -101,7 +101,7 @@ export function Landing() {
           Sync<span style={{ color: stage.color, transition: 'color 0.5s' }}>Docs</span>
         </div>
         <div style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
-          {['Product', 'Pricing', 'Docs'].map((l) => (
+          {['Product', 'Docs'].map((l) => (
             <span key={l} style={{ fontSize: 13, color: '#475569', cursor: 'pointer', fontFamily: "'JetBrains Mono', monospace" }}>{l}</span>
           ))}
           <a href="/sign-in" style={{

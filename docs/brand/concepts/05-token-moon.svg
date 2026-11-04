@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 220" width="640" height="220" role="img" aria-label="Nyx logo, concept Token Moon">
+  <title>Nyx - Token Moon - dark</title>
+  <rect width="640" height="220" fill="#0B1437"/>
+  <g transform="translate(30 20) scale(1.8)"><circle cx="50" cy="50" r="40" fill="none" stroke="#F4F2FF" stroke-width="6"/><circle cx="50" cy="50" r="31" fill="none" stroke="#F4F2FF" stroke-width="2" stroke-dasharray="3 4"/><path d="M48 26 A24 24 0 1 0 74 52 A19 19 0 1 1 48 26 Z" fill="#8B5CF6"/><path d="M70 26 L71.68 30.32 L76 32 L71.68 33.68 L70 38 L68.32 33.68 L64 32 L68.32 30.32 Z" fill="#F4F2FF"/></g>
+  <text x="240" y="138" font-family="'Space Grotesk','Inter','Helvetica Neue',Arial,sans-serif" font-size="96" font-weight="600" letter-spacing="2" fill="#F4F2FF">Nyx</text>
+</svg>

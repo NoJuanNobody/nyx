@@ -1,0 +1,380 @@
+{
+  "slug": "unscripted_video_production",
+  "label": "Unscripted Video Production",
+  "description": "Unscripted video workflow from pre-production through distribution",
+  "icon": "🎬",
+  "is_default": false,
+  "sort_order": 19,
+  "connectors": [],
+  "stages": [
+    {
+      "slug": "pre_production_planning",
+      "sort_order": 0,
+      "label": "Pre-production Planning",
+      "abbreviation": "PP",
+      "subtitle": "Planning & Logistics",
+      "color": "bg-amber-100",
+      "text_color": "text-amber-700",
+      "dot_color": "bg-amber-400",
+      "border_color": "border-amber-300",
+      "hex": "#F59E0B",
+      "who": "Producer, Director",
+      "description": "Define concept, locations, schedule, and budget for unscripted shoot",
+      "icon": "📋",
+      "ai": "Suggests shoot locations, identifies scheduling conflicts",
+      "output": "Approved pre-production plan",
+      "docs": [
+        "Concept Brief",
+        "Location List",
+        "Schedule",
+        "Budget",
+        "Equipment List"
+      ],
+      "suggestions": []
+    },
+    {
+      "slug": "talent_crew_coordination",
+      "sort_order": 1,
+      "label": "Talent & Crew Coordination",
+      "abbreviation": "TC",
+      "subtitle": "Team Assembly",
+      "color": "bg-orange-100",
+      "text_color": "text-orange-700",
+      "dot_color": "bg-orange-400",
+      "border_color": "border-orange-300",
+      "hex": "#F97316",
+      "who": "Producer, Talent Coordinator",
+      "description": "Recruit and coordinate talent, crew, and on-camera participants",
+      "icon": "👥",
+      "ai": "Tracks availability, generates call sheets",
+      "output": "Confirmed talent and crew roster",
+      "docs": [
+        "Talent Roster",
+        "Crew List",
+        "Call Sheets",
+        "Contracts",
+        "Contact Sheet"
+      ],
+      "suggestions": []
+    },
+    {
+      "slug": "recording_sessions",
+      "sort_order": 2,
+      "label": "Recording Sessions",
+      "abbreviation": "RS",
+      "subtitle": "Capture",
+      "color": "bg-yellow-100",
+      "text_color": "text-yellow-700",
+      "dot_color": "bg-yellow-400",
+      "border_color": "border-yellow-300",
+      "hex": "#EAB308",
+      "who": "Director, Camera Operator",
+      "description": "Capture unscripted footage across planned sessions",
+      "icon": "🎥",
+      "ai": "Monitors coverage, flags missing angles or segments",
+      "output": "Raw footage from all sessions",
+      "docs": [
+        "Session Log",
+        "Camera Notes",
+        "Audio Log",
+        "Daily Report",
+        "Metadata"
+      ],
+      "suggestions": []
+    },
+    {
+      "slug": "raw_footage_review",
+      "sort_order": 3,
+      "label": "Raw Footage Review",
+      "abbreviation": "RF",
+      "subtitle": "Selects & Logging",
+      "color": "bg-lime-100",
+      "text_color": "text-lime-700",
+      "dot_color": "bg-lime-400",
+      "border_color": "border-lime-300",
+      "hex": "#A3E635",
+      "who": "Editor, Director",
+      "description": "Review, log, and select the best raw footage for editing",
+      "icon": "🔍",
+      "ai": "Analyzes footage quality, suggests best takes and moments",
+      "output": "Selects and logged footage catalog",
+      "docs": [
+        "Footage Log",
+        "Selects List",
+        "Highlight Reel",
+        "Notes",
+        "Timecodes"
+      ],
+      "suggestions": []
+    },
+    {
+      "slug": "editing_assembly",
+      "sort_order": 4,
+      "label": "Editing & Assembly",
+      "abbreviation": "EA",
+      "subtitle": "Edit & Build",
+      "color": "bg-teal-100",
+      "text_color": "text-teal-700",
+      "dot_color": "bg-teal-400",
+      "border_color": "border-teal-300",
+      "hex": "#2DD4BF",
+      "who": "Editor, Director",
+      "description": "Assemble selected footage into rough and fine cuts",
+      "icon": "🎬",
+      "ai": "Suggests pacing improvements, checks narrative flow",
+      "output": "Fine cut ready for review",
+      "docs": [
+        "Rough Cut",
+        "Fine Cut",
+        "Edit Decision List",
+        "Music Cues",
+        "Graphics List"
+      ],
+      "suggestions": []
+    },
+    {
+      "slug": "stakeholder_approval",
+      "sort_order": 5,
+      "label": "Stakeholder Approval",
+      "abbreviation": "SA",
+      "subtitle": "Review & Sign-off",
+      "color": "bg-blue-100",
+      "text_color": "text-blue-700",
+      "dot_color": "bg-blue-400",
+      "border_color": "border-blue-300",
+      "hex": "#3B82F6",
+      "who": "Stakeholder, Producer",
+      "description": "Present cut to stakeholders for feedback and final approval",
+      "icon": "✅",
+      "ai": "Tracks feedback rounds, consolidates revision requests",
+      "output": "Approved cut with sign-off",
+      "docs": [
+        "Review Notes",
+        "Feedback Summary",
+        "Approval Record",
+        "Revision Log"
+      ],
+      "suggestions": []
+    },
+    {
+      "slug": "final_delivery",
+      "sort_order": 6,
+      "label": "Final Delivery",
+      "abbreviation": "FD",
+      "subtitle": "Deliverables",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Post Supervisor, Editor",
+      "description": "Render final deliverables in all required formats and specs",
+      "icon": "📦",
+      "ai": "Validates delivery specs, generates QC report",
+      "output": "Complete delivery package",
+      "docs": [
+        "Final Master",
+        "Delivery Manifest",
+        "QC Report",
+        "Captions",
+        "Thumbnails"
+      ],
+      "suggestions": []
+    },
+    {
+      "slug": "distribution_planning",
+      "sort_order": 7,
+      "label": "Distribution Planning",
+      "abbreviation": "DP",
+      "subtitle": "Release & Distribute",
+      "color": "bg-violet-100",
+      "text_color": "text-violet-700",
+      "dot_color": "bg-violet-400",
+      "border_color": "border-violet-300",
+      "hex": "#8B5CF6",
+      "who": "Marketing, Producer",
+      "description": "Plan distribution channels, release schedule, and promotional strategy",
+      "icon": "📡",
+      "ai": "Suggests optimal release timing, analyzes platform requirements",
+      "output": "Distribution plan with channel assignments",
+      "docs": [
+        "Distribution Plan",
+        "Release Schedule",
+        "Platform Specs",
+        "Promo Strategy",
+        "Analytics Setup"
+      ],
+      "suggestions": []
+    }
+  ],
+  "templates": [
+    {
+      "stage": "pre_production_planning",
+      "name": "Show Concept Brief",
+      "description": "Define the concept, format, and creative vision for an unscripted production",
+      "sort_order": 0,
+      "content": "# Show Concept Brief\n\n## Working Title\n<!-- Show or project name -->\n\n## Format\n<!-- e.g., Docuseries, Reality Competition, Talk Show, Vlog Series -->\n\n## Logline\n<!-- One-sentence pitch -->\n\n## Concept Overview\n<!-- 2-3 paragraph description of the show concept -->\n\n## Target Audience\n- Demographics: \n- Platform: \n- Comparable shows: \n\n## Tone & Style\n- Visual style: \n- Pacing: \n- Music direction: \n\n## Episode Structure\n| Segment | Duration | Description |\n|---------|----------|-------------|\n|         |          |             |\n\n## Season Arc\n- Episode count: \n- Overarching narrative: \n- Key milestones: \n\n## Budget Tier\n- Estimated range: \n- Key cost drivers: \n"
+    },
+    {
+      "stage": "pre_production_planning",
+      "name": "Location Scouting Plan",
+      "description": "Identify and evaluate potential filming locations for unscripted content",
+      "sort_order": 1,
+      "content": "# Location Scouting Plan\n\n## Production\n<!-- Show or project name -->\n\n## Location Requirements\n- Setting type: \n- Aesthetic needs: \n- Acoustic requirements: \n- Power/connectivity needs: \n\n## Candidate Locations\n| Location | Address | Pros | Cons | Permit Required | Cost |\n|----------|---------|------|------|----------------|------|\n|          |         |      |      |                |      |\n\n## Logistics Assessment\n| Location | Parking | Load-In Access | Nearest Hospital | Cell Coverage |\n|----------|---------|---------------|-----------------|---------------|\n|          |         |               |                 |               |\n\n## Permits & Clearances\n- [ ] Location release signed\n- [ ] Noise ordinance reviewed\n- [ ] Insurance requirements confirmed\n- [ ] Backup location identified\n\n## Scout Visit Schedule\n| Date | Location | Attendees | Notes |\n|------|----------|-----------|-------|\n|      |          |           |       |\n"
+    },
+    {
+      "stage": "pre_production_planning",
+      "name": "Pre-production Planning Checklist",
+      "description": "Comprehensive checklist to scope requirements, timelines, crew, locations, equipment, budget, and references for an unscripted video production",
+      "sort_order": 2,
+      "content": "# Pre-production Planning Checklist\n\n## Production\n<!-- Show or project name -->\n\n## Project Scope & Concept\n\n### Concept Summary\n<!-- 2-3 sentences describing the project vision -->\n\n### Format & Deliverables\n- Format: <!-- e.g., Docuseries, Reality, Talk Show, Vlog -->\n- Episode count: \n- Target runtime per episode: \n- Delivery platform: \n\n### Goals & Success Criteria\n| Goal | Metric | Target |\n|------|--------|--------|\n|      |        |        |\n\n### Audience\n- Primary demographic: \n- Platform behavior: \n- Comparable content: \n\n## Timeline & Milestones\n\n| Phase | Start Date | End Date | Owner | Status |\n|-------|-----------|----------|-------|--------|\n| Pre-production planning | | | | Not Started |\n| Location scouting & permits | | | | Not Started |\n| Talent & crew booking | | | | Not Started |\n| Equipment procurement | | | | Not Started |\n| Rehearsals / dry runs | | | | Not Started |\n| Principal photography | | | | Not Started |\n| Post-production | | | | Not Started |\n| Final delivery | | | | Not Started |\n\n### Key Dates\n- First shoot day: \n- Rough cut due: \n- Final delivery deadline: \n\n## Crew Roles & Responsibilities\n\n| Role | Name | Contact | Rate | Confirmed |\n|------|------|---------|------|----------|\n| Executive Producer | | | | [ ] |\n| Showrunner / Director | | | | [ ] |\n| Line Producer | | | | [ ] |\n| Director of Photography | | | | [ ] |\n| Camera Operator(s) | | | | [ ] |\n| Sound Mixer | | | | [ ] |\n| Boom Operator | | | | [ ] |\n| Gaffer / Lighting | | | | [ ] |\n| Production Assistant(s) | | | | [ ] |\n| Editor | | | | [ ] |\n| Colorist | | | | [ ] |\n| Graphics / Motion Design | | | | [ ] |\n\n### Crew Notes\n- Hiring priorities: \n- Union / non-union considerations: \n- Travel requirements: \n\n## Location Scouting Summary\n\n| Location | Purpose | Confirmed | Permit Status | Backup |\n|----------|---------|-----------|--------------|--------|\n|          |         | [ ]       |              |        |\n\n### Location Checklist\n- [ ] All locations scouted in person or via video\n- [ ] Permits applied for and timeline confirmed\n- [ ] Location releases drafted\n- [ ] Power and connectivity verified\n- [ ] Parking and load-in logistics confirmed\n- [ ] Noise and environmental risks assessed\n- [ ] Backup locations identified for each primary\n\n## Equipment & Technical Requirements\n\n### Camera Package\n| Item | Quantity | Own / Rent | Vendor | Cost |\n|------|----------|-----------|--------|------|\n|      |          |           |        |      |\n\n### Audio Package\n| Item | Quantity | Own / Rent | Vendor | Cost |\n|------|----------|-----------|--------|------|\n| Wireless lav kits | | | | |\n| Shotgun / boom | | | | |\n| Field recorder | | | | |\n\n### Lighting & Grip\n| Item | Quantity | Own / Rent | Vendor | Cost |\n|------|----------|-----------|--------|------|\n|      |          |           |        |      |\n\n### Media & Storage\n- Recording format: \n- Estimated data per shoot day: \n- On-set backup plan: \n- Total storage needed: \n\n## Budget Overview\n\n| Category | Estimated Cost | Actual Cost | Notes |\n|----------|---------------|-------------|-------|\n| Talent / cast fees | | | |\n| Crew labor | | | |\n| Equipment rental | | | |\n| Locations & permits | | | |\n| Travel & accommodation | | | |\n| Catering / craft services | | | |\n| Insurance | | | |\n| Post-production | | | |\n| Music licensing | | | |\n| Contingency (10-15%) | | | |\n| **Total** | | | |\n\n### Budget Notes\n- Funding source: \n- Payment schedule: \n- Contingency policy: \n\n## Reference Materials\n\n### Visual References\n| Reference | Source | What to Emulate | Link |\n|-----------|--------|-----------------|------|\n|           |        |                 |      |\n\n### Tone & Style References\n- Comparable shows / videos: \n- Mood boards: \n- Music / sound references: \n\n### Brand & Compliance References\n- Brand guidelines document: \n- Platform content policies: \n- Legal requirements: \n\n## Risk Assessment\n\n| Risk | Likelihood | Impact | Mitigation |\n|------|-----------|--------|------------|\n| Weather disruption | | | Backup indoor location |\n| Talent no-show | | | Backup talent identified |\n| Equipment failure | | | Redundant gear on set |\n| Permit denial | | | Early application, alternatives |\n| Budget overrun | | | Contingency fund, scope cuts |\n\n## Final Pre-production Checklist\n\n- [ ] Concept and scope locked\n- [ ] Timeline approved by all stakeholders\n- [ ] All crew roles filled and confirmed\n- [ ] Locations scouted and permits secured\n- [ ] Equipment list finalized and booked\n- [ ] Budget approved\n- [ ] Talent agreements signed\n- [ ] Insurance coverage confirmed\n- [ ] Reference materials shared with team\n- [ ] Risk mitigation plan reviewed\n- [ ] Communication plan established (group chat, call sheets, etc.)\n- [ ] First shoot day logistics confirmed\n"
+    },
+    {
+      "stage": "talent_crew_coordination",
+      "name": "Talent Profile & Availability",
+      "description": "Track cast members, on-screen talent, and their availability for unscripted shoots",
+      "sort_order": 0,
+      "content": "# Talent Profile & Availability\n\n## Production\n<!-- Show or project name -->\n\n## Cast / Talent Roster\n| Name | Role | Contact | Agent | Contract Status |\n|------|------|---------|-------|----------------|\n|      |      |         |       |                |\n\n## Talent Profiles\n### [Talent Name]\n- **Background:** \n- **On-Camera Experience:** \n- **Key Story Angles:** \n- **Availability Windows:** \n- **Special Requirements:** \n- **Release Forms:** Signed / Pending\n\n## Availability Matrix\n| Talent | Week 1 | Week 2 | Week 3 | Week 4 | Notes |\n|--------|--------|--------|--------|--------|-------|\n|        |        |        |        |        |       |\n\n## Contingency\n- Backup talent: \n- Scheduling conflicts: \n"
+    },
+    {
+      "stage": "talent_crew_coordination",
+      "name": "Crew Call Sheet Template",
+      "description": "Standardized call sheet for coordinating crew across unscripted shoot days",
+      "sort_order": 1,
+      "content": "# Crew Call Sheet\n\n## Production\n<!-- Show or project name -->\n\n## Shoot Date\n<!-- Date -->\n\n## Location\n- Address: \n- Parking: \n- Load-in time: \n\n## General Call Time\n<!-- e.g., 7:00 AM -->\n\n## Key Contacts\n| Role | Name | Phone | Email |\n|------|------|-------|-------|\n| Producer | | | |\n| Director | | | |\n| Production Manager | | | |\n\n## Crew Schedule\n| Department | Name | Call Time | Wrap (Est.) |\n|-----------|------|-----------|-------------|\n| Camera | | | |\n| Sound | | | |\n| Lighting | | | |\n| PA | | | |\n\n## Equipment Checklist\n- [ ] Cameras and lenses\n- [ ] Audio kits (lavs, boom)\n- [ ] Lighting package\n- [ ] Batteries and media\n- [ ] Release forms\n\n## Catering / Meals\n- Breakfast: \n- Lunch: \n\n## Safety Notes\n- \n\n## Weather Backup Plan\n- \n"
+    },
+    {
+      "stage": "talent_crew_coordination",
+      "name": "Talent & Crew Coordination Sheet",
+      "description": "Comprehensive coordination sheet for scheduling talent and crew, managing contracts, confirming availability, and finalizing logistics for unscripted productions",
+      "sort_order": 2,
+      "content": "# Talent & Crew Coordination Sheet\n\n## Production\n<!-- Show or project name -->\n\n## Production Dates\n- Pre-production: \n- Principal shooting: \n- Wrap date: \n\n---\n\n## Team Roster\n\n### On-Screen Talent\n| Name | Role | Agent / Rep | Phone | Email | Rate | Status |\n|------|------|------------|-------|-------|------|--------|\n|      |      |            |       |       |      | Confirmed / Pending |\n\n### Key Crew\n| Name | Position | Department | Phone | Email | Rate | Status |\n|------|----------|-----------|-------|-------|------|--------|\n|      | Director |           |       |       |      | Confirmed |\n|      | DP       | Camera    |       |       |      |           |\n|      | Sound Mixer | Audio |       |       |      |           |\n|      | Gaffer   | Lighting  |       |       |      |           |\n|      | PA       | Production|       |       |      |           |\n\n### Additional Crew\n| Name | Position | Dates Needed | Rate | Status |\n|------|----------|-------------|------|--------|\n|      |          |             |      |        |\n\n---\n\n## Availability Matrix\n\n### Talent Availability\n| Name | Mon | Tue | Wed | Thu | Fri | Sat | Sun | Notes |\n|------|-----|-----|-----|-----|-----|-----|-----|-------|\n|      |     |     |     |     |     |     |     |       |\n\n### Crew Availability\n| Name | Mon | Tue | Wed | Thu | Fri | Sat | Sun | Notes |\n|------|-----|-----|-----|-----|-----|-----|-----|-------|\n|      |     |     |     |     |     |     |     |       |\n\n### Availability Key\n- A = Available\n- U = Unavailable\n- T = Tentative / Hold\n- B = Booked (confirmed for this production)\n\n---\n\n## Contracts & Agreements\n\n### Talent Contracts\n| Name | Contract Type | Rate / Terms | Sent Date | Signed Date | Expiry | Notes |\n|------|--------------|-------------|-----------|-------------|--------|-------|\n|      | Performer Agreement |     |           |             |        |       |\n\n### Crew Deal Memos\n| Name | Position | Day Rate | OT Rate | Kit Fee | Sent | Signed | Notes |\n|------|----------|---------|---------|---------|------|--------|-------|\n|      |          |         |         |         |      |        |       |\n\n### Release Forms Tracker\n| Name | Type | Status | Date Signed | Filed |\n|------|------|--------|-------------|-------|\n|      | Talent Release | Pending / Signed |  | [ ] |\n|      | Likeness Release | | | [ ] |\n|      | NDA | | | [ ] |\n\n### Outstanding Contract Items\n- [ ] \n\n---\n\n## Logistics\n\n### Travel Arrangements\n| Name | Origin | Arrival Date | Departure Date | Flight / Transport | Hotel | Status |\n|------|--------|-------------|---------------|-------------------|-------|--------|\n|      |        |             |               |                   |       | Booked / Pending |\n\n### Accommodation\n| Name | Hotel / Housing | Check-In | Check-Out | Confirmation # | Notes |\n|------|----------------|----------|-----------|---------------|-------|\n|      |                |          |           |               |       |\n\n### Ground Transportation\n| Date | Pickup Time | From | To | Vehicle | Driver | Passengers |\n|------|------------|------|-----|---------|--------|------------|\n|      |            |      |     |         |        |            |\n\n### Per Diem & Expenses\n| Name | Role | Daily Rate | Meals Provided | Receipts Required | Notes |\n|------|------|-----------|---------------|------------------|-------|\n|      |      |           | Y / N         |                  |       |\n\n---\n\n## Assignment Finalization Checklist\n- [ ] All talent confirmed and contracted\n- [ ] All key crew positions filled\n- [ ] Availability conflicts resolved\n- [ ] Travel and accommodation booked\n- [ ] Deal memos and contracts fully executed\n- [ ] Release forms collected\n- [ ] Emergency contact list compiled\n- [ ] Call sheets distributed\n- [ ] Crew parking and load-in confirmed\n- [ ] Catering and craft services arranged\n\n---\n\n## Emergency Contacts\n| Name | Role | Phone | Relationship |\n|------|------|-------|-------------|\n|      |      |       |             |\n\n## Notes\n<!-- Additional coordination notes, special requirements, or reminders -->\n- \n"
+    },
+    {
+      "stage": "recording_sessions",
+      "name": "Shoot Day Run Sheet",
+      "description": "Plan the flow of an unscripted shoot day with segments, setups, and timing",
+      "sort_order": 0,
+      "content": "# Shoot Day Run Sheet\n\n## Production\n<!-- Show or project name -->\n\n## Date\n<!-- Shoot date -->\n\n## Location\n<!-- Filming location -->\n\n## Day Overview\n| Time | Activity | Location/Setup | Talent Needed | Notes |\n|------|----------|---------------|--------------|-------|\n| 07:00 | Crew call / load-in | | | |\n| 08:00 | Camera setup | | | |\n| 09:00 | | | | |\n| 10:00 | | | | |\n| 12:00 | Lunch | | | |\n| 13:00 | | | | |\n| 15:00 | | | | |\n| 17:00 | Wrap / strike | | | |\n\n## Key Moments to Capture\n- \n\n## Interview Questions (if applicable)\n1. \n2. \n3. \n\n## B-Roll Shot List\n- \n\n## Contingency Scenes\n<!-- Backup content if primary scenes fall through -->\n- \n"
+    },
+    {
+      "stage": "recording_sessions",
+      "name": "Field Audio & Media Log",
+      "description": "Track all media captured during an unscripted recording session",
+      "sort_order": 1,
+      "content": "# Field Audio & Media Log\n\n## Production\n<!-- Show or project name -->\n\n## Date\n<!-- Shoot date -->\n\n## Camera Operator(s)\n- \n\n## Sound Recordist\n- \n\n## Media Cards\n| Card # | Camera | Start TC | End TC | Capacity | Backed Up |\n|--------|--------|----------|--------|----------|----------|\n|        |        |          |        |          | [ ]      |\n\n## Audio Log\n| Track | Source | Talent/Scene | Notes |\n|-------|--------|-------------|-------|\n| 1     | Lav    |             |       |\n| 2     | Boom   |             |       |\n| 3     | Ambient |            |       |\n\n## Scene Log\n| Clip # | Timecode | Description | Usable | Notes |\n|--------|----------|-------------|--------|-------|\n|        |          |             | Y/N    |       |\n\n## Data Backup Confirmation\n- [ ] Primary backup completed\n- [ ] Secondary backup completed\n- [ ] Cards reformatted after verification\n"
+    },
+    {
+      "stage": "recording_sessions",
+      "name": "Recording Session Log",
+      "description": "Document filming sessions with technical setup, capture notes, and backup storage tracking",
+      "sort_order": 2,
+      "content": "# Recording Session Log\n\n## Production\n<!-- Show or project name -->\n\n## Session Details\n| Field | Value |\n|-------|-------|\n| Session Date | YYYY-MM-DD |\n| Session # | |\n| Location | |\n| Director / Lead | |\n| Start Time | |\n| End Time | |\n\n## Session Schedule\n| Time | Segment / Scene | Description | Talent | Status |\n|------|----------------|-------------|--------|--------|\n|      |                |             |        | Planned |\n|      |                |             |        | Planned |\n|      |                |             |        | Planned |\n|      |                |             |        | Planned |\n\n## Technical Setup\n\n### Camera Configuration\n| Camera | Model | Lens | Resolution | Frame Rate | Position / Angle |\n|--------|-------|------|-----------|-----------|------------------|\n| A      |       |      |           |           |                  |\n| B      |       |      |           |           |                  |\n| C      |       |      |           |           |                  |\n\n### Audio Configuration\n| Channel | Source | Equipment | Talent / Area | Levels Checked |\n|---------|--------|-----------|--------------|----------------|\n| 1       | Lav    |           |              | [ ]            |\n| 2       | Boom   |           |              | [ ]            |\n| 3       | Ambient |          |              | [ ]            |\n\n### Lighting Setup\n- Key light: \n- Fill light: \n- Backlight: \n- Practicals / naturals: \n- Color temperature: \n\n## Pre-Recording Checklist\n- [ ] All cameras white balanced and synced\n- [ ] Audio levels tested with talent\n- [ ] Lighting consistent across setups\n- [ ] Release forms signed by all on-screen participants\n- [ ] Media cards formatted and labeled\n- [ ] Backup batteries and media on hand\n- [ ] Monitors and playback verified\n- [ ] Timecode synced across all devices\n- [ ] Communication radios tested\n\n## Session Log\n| Take / Clip | Timecode In | Timecode Out | Description | Usable | Notes |\n|-------------|------------|-------------|-------------|--------|-------|\n|             |            |             |             | Y/N    |       |\n|             |            |             |             | Y/N    |       |\n|             |            |             |             | Y/N    |       |\n|             |            |             |             | Y/N    |       |\n\n## Session Notes\n### What Went Well\n- \n\n### Issues Encountered\n| Issue | Impact | Resolution | Follow-Up Needed |\n|-------|--------|-----------|------------------|\n|       |        |           | Y/N              |\n\n### Unplanned Moments Captured\n<!-- Spontaneous moments worth flagging for the edit -->\n- \n\n## Storage & Backup Tracking\n| Media Card / Drive | Capacity | Used | Camera / Source | Primary Backup | Secondary Backup | Verified |\n|-------------------|----------|------|----------------|---------------|-----------------|----------|\n|                   |          |      |                | [ ]           | [ ]             | [ ]      |\n|                   |          |      |                | [ ]           | [ ]             | [ ]      |\n\n### Backup Protocol\n- Primary backup location: \n- Secondary backup location: \n- Backup completed by: \n- Backup verified by: \n- Cards cleared after verification: [ ]\n\n## End-of-Session Summary\n- Total clips recorded: \n- Total usable footage (est.): \n- Storage used: \n- All backups confirmed: [ ]\n- Equipment returned / secured: [ ]\n- Next session date: \n"
+    },
+    {
+      "stage": "raw_footage_review",
+      "name": "Footage Selects Log",
+      "description": "Review raw footage and tag selects, highlights, and unusable clips",
+      "sort_order": 0,
+      "content": "# Footage Selects Log\n\n## Production\n<!-- Show or project name -->\n\n## Episode / Segment\n<!-- Episode number or segment title -->\n\n## Reviewer\n<!-- Name and date -->\n\n## Footage Overview\n| Source File | Duration | Description | Rating | Select |\n|-------------|----------|-------------|--------|--------|\n|             |          |             | 1-5    | Y/N    |\n\n## Top Selects\n| # | Timecode In | Timecode Out | Description | Why Selected |\n|---|------------|-------------|-------------|-------------|\n| 1 |            |             |             |              |\n| 2 |            |             |             |              |\n| 3 |            |             |             |              |\n\n## Unusable Footage\n| Source File | Reason | Timecode |\n|-------------|--------|----------|\n|             | Audio issue / Out of focus / etc. |  |\n\n## Key Moments & Story Beats\n- \n\n## Missing Coverage\n<!-- Gaps that may require reshoots or creative workarounds -->\n- \n"
+    },
+    {
+      "stage": "raw_footage_review",
+      "name": "Transcription & Soundbite Sheet",
+      "description": "Transcribe interviews and flag compelling soundbites for the edit",
+      "sort_order": 1,
+      "content": "# Transcription & Soundbite Sheet\n\n## Production\n<!-- Show or project name -->\n\n## Interview / Segment\n<!-- Talent name or segment title -->\n\n## Date Recorded\n<!-- Date -->\n\n## Full Transcription\n| Timecode | Speaker | Dialogue |\n|----------|---------|----------|\n|          |         |          |\n\n## Key Soundbites\n| # | Timecode | Quote | Topic | Priority |\n|---|----------|-------|-------|----------|\n| 1 |          |       |       | Must-use |\n| 2 |          |       |       | Strong   |\n| 3 |          |       |       | Optional |\n\n## Emotional Moments\n- \n\n## Story Threads Identified\n| Thread | Supporting Soundbites | Notes |\n|--------|----------------------|-------|\n|        |                      |       |\n\n## Notes for Editor\n- \n"
+    },
+    {
+      "stage": "raw_footage_review",
+      "name": "Footage Review & Media Inventory",
+      "description": "Ingest and organize raw footage, assess quality, flag unusable takes, and build a complete media inventory",
+      "sort_order": 2,
+      "content": "# Footage Review & Media Inventory\n\n## Production\n<!-- Show or project name -->\n\n## Episode / Shoot Day\n<!-- Episode number, segment, or shoot date -->\n\n## Reviewer\n<!-- Name -->\n\n## Review Date\nYYYY-MM-DD\n\n---\n\n## Media Inventory\n\n| Card / Reel | Camera | Format | Resolution | Frame Rate | Duration | File Count | Storage Location | Backed Up |\n|-------------|--------|--------|------------|------------|----------|-----------|-----------------|----------|\n|             |        |        |            |            |          |           |                 | [ ]      |\n\n## Ingest Checklist\n\n- [ ] All media cards accounted for against shoot log\n- [ ] Files copied to primary storage\n- [ ] Files copied to backup storage\n- [ ] Checksums verified (MD5 / XXHash)\n- [ ] Folder structure matches naming convention\n- [ ] Proxy files generated for offline editing\n- [ ] Original cards secured until backup confirmed\n- [ ] Media database / asset management updated\n\n---\n\n## Footage Assessment\n\n### Camera A\n| Clip # | Timecode In | Timecode Out | Scene / Setup | Usable | Rating (1-5) | Notes |\n|--------|------------|-------------|--------------|--------|-------------|-------|\n|        |            |             |              | Y/N    |             |       |\n\n### Camera B\n| Clip # | Timecode In | Timecode Out | Scene / Setup | Usable | Rating (1-5) | Notes |\n|--------|------------|-------------|--------------|--------|-------------|-------|\n|        |            |             |              | Y/N    |             |       |\n\n### Additional Sources (Drone / GoPro / Phone)\n| Source | Clip # | Duration | Usable | Notes |\n|--------|--------|----------|--------|-------|\n|        |        |          | Y/N    |       |\n\n---\n\n## Quality Issues Log\n\n| Clip / Timecode | Issue Type | Severity | Description | Workaround |\n|----------------|-----------|----------|-------------|------------|\n|                | Focus     | Critical / Minor |     |            |\n|                | Exposure  | Critical / Minor |     |            |\n|                | Framing   | Critical / Minor |     |            |\n|                | Camera shake | Critical / Minor | |            |\n|                | Lens flare | Critical / Minor |   |            |\n|                | Obstruction | Critical / Minor |  |            |\n|                | Other     | Critical / Minor |     |            |\n\n---\n\n## Selects & Highlights\n\n| # | Source | Timecode In | Timecode Out | Description | Category | Priority |\n|---|--------|------------|-------------|-------------|----------|----------|\n| 1 |        |            |             |             | Hero moment / Reaction / B-roll | Must-use |\n| 2 |        |            |             |             |          | Strong   |\n| 3 |        |            |             |             |          | Optional |\n\n### Story Beats Captured\n- \n\n### Unexpected / Unplanned Moments\n- \n\n---\n\n## Audio Assessment\n\n| Clip / Timecode | Audio Source | Issue | Severity | Notes |\n|----------------|-------------|-------|----------|-------|\n|                | Lav / Boom / Camera mic |  | Critical / Minor | |\n\n### Audio Quality Summary\n- [ ] Dialogue is clean and intelligible\n- [ ] No persistent background noise issues\n- [ ] Room tone / wild sound captured\n- [ ] Audio sync verified across sources\n- [ ] Backup audio tracks available for key scenes\n\n---\n\n## Summary\n\n### Total Footage\n- Total duration captured: \n- Total clips: \n- Usable footage: __% \n- Selects identified: \n\n### Coverage Gaps\n<!-- Scenes or angles that are missing or insufficient -->\n- \n\n### Reshoot Recommendations\n| Scene / Setup | Reason | Priority | Notes |\n|--------------|--------|----------|-------|\n|              |        | High / Medium / Low | |\n\n### Storage Summary\n| Location | Capacity Used | Remaining | Status |\n|----------|--------------|-----------|--------|\n| Primary  |              |           | Online |\n| Backup   |              |           | Online |\n| Archive  |              |           |        |\n\n### Notes for Edit Team\n- \n"
+    },
+    {
+      "stage": "editing_assembly",
+      "name": "Episode Assembly Outline",
+      "description": "Structure the narrative flow for an unscripted episode assembly edit",
+      "sort_order": 0,
+      "content": "# Episode Assembly Outline\n\n## Production\n<!-- Show or project name -->\n\n## Episode\n<!-- Episode number and working title -->\n\n## Target Runtime\n<!-- e.g., 22 min, 44 min, 60 min -->\n\n## Narrative Structure\n| Act | Duration | Story Beat | Key Footage | Soundbites |\n|-----|----------|-----------|-------------|------------|\n| Cold Open | 1-2 min | Hook the viewer | | |\n| Act 1 | | Setup / Introduction | | |\n| Act 2 | | Rising tension | | |\n| Act 3 | | Climax / Resolution | | |\n| Tag / Outro | | Wrap-up | | |\n\n## B-Roll Needs\n| Segment | B-Roll Description | Source |\n|---------|-------------------|--------|\n|         |                   |        |\n\n## Music Cues\n| Segment | Mood | Temp Track | Licensed Track |\n|---------|------|-----------|----------------|\n|         |      |           |                |\n\n## Graphics & Lower Thirds\n| Timecode | Type | Text |\n|----------|------|------|\n|          | Name super | |\n|          | Location | |\n\n## Editor Notes\n- \n"
+    },
+    {
+      "stage": "editing_assembly",
+      "name": "Edit Revision Tracker",
+      "description": "Track revision rounds and feedback during the editing process",
+      "sort_order": 1,
+      "content": "# Edit Revision Tracker\n\n## Production\n<!-- Show or project name -->\n\n## Episode\n<!-- Episode number -->\n\n## Editor\n<!-- Name -->\n\n## Cut Versions\n| Version | Date | Runtime | Reviewer | Status |\n|---------|------|---------|----------|--------|\n| Assembly | | | | |\n| Rough Cut | | | | |\n| Fine Cut | | | | |\n| Picture Lock | | | | |\n\n## Revision Notes\n\n### Round 1 (Assembly → Rough Cut)\n| # | Timecode | Note | Action Taken | Status |\n|---|----------|------|-------------|--------|\n| 1 |          |      |             | Done   |\n| 2 |          |      |             | Pending |\n\n### Round 2 (Rough Cut → Fine Cut)\n| # | Timecode | Note | Action Taken | Status |\n|---|----------|------|-------------|--------|\n| 1 |          |      |             |        |\n\n## Outstanding Issues\n- \n\n## Technical Specs\n- Resolution: \n- Frame rate: \n- Codec: \n- Color space: \n"
+    },
+    {
+      "stage": "editing_assembly",
+      "name": "Edit Assembly & Post-Production",
+      "description": "Comprehensive guide for rough cuts, pacing refinement, audio/graphics integration, and final edit delivery",
+      "sort_order": 2,
+      "content": "# Edit Assembly & Post-Production\n\n## Production\n<!-- Show or project name -->\n\n## Episode\n<!-- Episode number and title -->\n\n## Editor\n<!-- Lead editor name -->\n\n## Edit Specifications\n| Parameter | Value |\n|-----------|-------|\n| Target Runtime | |\n| Frame Rate | |\n| Resolution | |\n| Codec | |\n| Color Space | |\n| Aspect Ratio | |\n| Delivery Format | |\n\n## Episode Structure\n| Segment | Start TC | End TC | Duration | Description | Status |\n|---------|----------|--------|----------|-------------|--------|\n| Cold Open | | | | | |\n| Act 1 | | | | | |\n| Act 2 | | | | | |\n| Act 3 | | | | | |\n| Tag / Outro | | | | | |\n\n---\n\n## Rough Cut Checklist\n- [ ] All selects placed in timeline\n- [ ] Narrative arc established (setup → conflict → resolution)\n- [ ] Interview soundbites placed in story order\n- [ ] B-roll laid over interview audio where needed\n- [ ] Cold open / hook assembled\n- [ ] Act breaks identified and marked\n- [ ] Rough runtime within 10%% of target\n- [ ] Temp music placed for pacing reference\n- [ ] Gaps and missing footage flagged\n\n## Pacing & Rhythm\n| Section | Current Duration | Target Duration | Pacing Notes | Action |\n|---------|-----------------|----------------|-------------|--------|\n| Cold Open | | | | |\n| Act 1 | | | | |\n| Act 2 | | | | |\n| Act 3 | | | | |\n| Tag | | | | |\n\n### Pacing Review Notes\n- Energy flow: \n- Moments that drag: \n- Moments that feel rushed: \n- Transition quality: \n\n---\n\n## Audio Post-Production\n\n### Dialogue & Interview\n- [ ] Dialogue levels normalized (-12 to -6 dB)\n- [ ] Background noise reduced\n- [ ] Room tone filled in edit gaps\n- [ ] Lav mic rustle removed\n- [ ] Cross-fades applied at audio edits\n- [ ] Interview audio cleaned and EQ'd\n\n### Sound Effects & Ambience\n| Timecode | SFX / Ambience | Source | Status |\n|----------|---------------|--------|--------|\n|          |               |        | [ ]    |\n\n### Music & Score\n| Segment | Track Title | Artist | License Type | Cleared | Timecode In | Timecode Out |\n|---------|------------|--------|-------------|---------|------------|-------------|\n|         |            |        | Sync / Royalty-free / Original | Y/N | | |\n\n### Audio Mix Targets\n| Element | Target Level | Notes |\n|---------|-------------|-------|\n| Dialogue | -12 dB | Primary focus |\n| Music (under dialogue) | -20 to -18 dB | Duck under speech |\n| Music (featured) | -14 dB | Montage, transitions |\n| SFX | -16 dB | Complement, not overpower |\n| Ambience | -24 dB | Subtle bed |\n| Overall Loudness | -16 LUFS | Broadcast standard |\n\n---\n\n## Visual Post-Production\n\n### Graphics & Lower Thirds\n| Timecode | Type | Text Content | Font / Style | Duration | Status |\n|----------|------|-------------|-------------|----------|--------|\n|          | Name super | | | 4s | [ ] |\n|          | Location | | | 3s | [ ] |\n|          | Title card | | | 5s | [ ] |\n|          | End credits | | | | [ ] |\n\n### Color Grading\n- [ ] Shot matching across scenes\n- [ ] Skin tone consistency\n- [ ] Look / LUT applied per creative direction\n- [ ] Day-for-night or stylized grades applied\n- [ ] Exposure corrections on problem clips\n\n### Visual Effects & Cleanup\n| Timecode | Issue | Fix Required | Status |\n|----------|-------|-------------|--------|\n|          | Logo blur | Brand removal | [ ] |\n|          | Stabilization | Shaky handheld | [ ] |\n|          | Speed ramp | Transition effect | [ ] |\n\n---\n\n## Version History\n| Version | Date | Runtime | Key Changes | Reviewed By | Status |\n|---------|------|---------|------------|------------|--------|\n| Assembly Cut | | | Initial assembly | | |\n| Rough Cut v1 | | | Pacing pass, temp music | | |\n| Rough Cut v2 | | | Feedback incorporated | | |\n| Fine Cut | | | Audio/graphics integrated | | |\n| Picture Lock | | | Final approved edit | | |\n| Final Master | | | Color, audio mix, QC | | |\n\n---\n\n## Music & Asset Licensing\n| Asset | Type | Source / Library | License # | Expiry | Cost | Cleared |\n|-------|------|-----------------|-----------|--------|------|---------|\n|       | Music |                |           |        |      | [ ]     |\n|       | SFX |                  |           |        |      | [ ]     |\n|       | Stock footage |       |           |        |      | [ ]     |\n|       | Font |                 |           |        |      | [ ]     |\n\n## Export Settings\n| Deliverable | Resolution | Codec | Bitrate | Audio | File Naming |\n|-------------|-----------|-------|---------|-------|-------------|\n| Master | 4K / 1080p | ProRes 422 HQ | | 48kHz 24-bit | |\n| Streaming | 1080p | H.264 | 15-25 Mbps | AAC 320kbps | |\n| Social (short) | 1080x1920 | H.264 | 8-12 Mbps | AAC 256kbps | |\n| Review screener | 720p | H.264 | 5 Mbps | AAC 192kbps | |\n| Archive | Original | ProRes 4444 | | Uncompressed | |\n\n## Final Delivery Checklist\n- [ ] Picture lock confirmed\n- [ ] Audio mix approved\n- [ ] Color grade approved\n- [ ] All graphics rendered and placed\n- [ ] Music licenses confirmed\n- [ ] Captions / subtitles synced\n- [ ] QC pass completed (no glitches, sync issues, or artifacts)\n- [ ] Export files meet platform specs\n- [ ] Project files archived with assets\n"
+    },
+    {
+      "stage": "stakeholder_approval",
+      "name": "Stakeholder Review Package",
+      "description": "Prepare a review package for stakeholders to approve an unscripted episode cut",
+      "sort_order": 0,
+      "content": "# Stakeholder Review Package\n\n## Production\n<!-- Show or project name -->\n\n## Episode\n<!-- Episode number and title -->\n\n## Cut Version\n<!-- e.g., Fine Cut v2 -->\n\n## Review Link\n<!-- Screening link with password -->\n- URL: \n- Password: \n- Expires: \n\n## Episode Summary\n<!-- 2-3 sentence synopsis -->\n\n## Runtime\n<!-- Current runtime -->\n\n## Key Creative Decisions\n| Decision | Rationale | Alternative Considered |\n|----------|-----------|----------------------|\n|          |           |                      |\n\n## Known Issues\n<!-- Items still being worked on -->\n- \n\n## Feedback Requested On\n- [ ] Overall narrative flow\n- [ ] Pacing and runtime\n- [ ] Talent portrayal\n- [ ] Music and tone\n- [ ] Graphics and titles\n\n## Feedback Deadline\n<!-- Date -->\n\n## Approval Status\n| Stakeholder | Role | Status | Date |\n|-------------|------|--------|------|\n|             |      | Pending |      |\n"
+    },
+    {
+      "stage": "stakeholder_approval",
+      "name": "Legal & Compliance Review",
+      "description": "Track legal clearances, releases, and compliance checks before final delivery",
+      "sort_order": 1,
+      "content": "# Legal & Compliance Review\n\n## Production\n<!-- Show or project name -->\n\n## Episode\n<!-- Episode number -->\n\n## Talent Releases\n| Talent / Participant | Release Signed | Date | Notes |\n|---------------------|---------------|------|-------|\n|                     | Y/N           |      |       |\n\n## Location Releases\n| Location | Release Signed | Restrictions |\n|----------|---------------|-------------|\n|          | Y/N           |             |\n\n## Music Clearances\n| Track | Artist | License Type | Cleared | Cost |\n|-------|--------|-------------|---------|------|\n|       |        | Sync / Royalty-free |   |      |\n\n## Brand / Logo Clearances\n| Item | Visible At | Action | Status |\n|------|-----------|--------|--------|\n|      |           | Blur / Remove / Cleared |  |\n\n## Content Compliance\n- [ ] Language review (broadcast standards)\n- [ ] Sensitive content flagged\n- [ ] Minor appearances reviewed\n- [ ] Privacy concerns addressed\n\n## Legal Sign-Off\n| Reviewer | Status | Date | Notes |\n|----------|--------|------|-------|\n|          | Pending |      |       |\n"
+    },
+    {
+      "stage": "stakeholder_approval",
+      "name": "Stakeholder Review & Approval",
+      "description": "Submit edits for review, collect feedback, incorporate revisions, and obtain final sign-off from all stakeholders",
+      "sort_order": 2,
+      "content": "# Stakeholder Review & Approval\n\n## Production\n<!-- Show or project name -->\n\n## Episode\n<!-- Episode number and title -->\n\n## Cut Version\n<!-- e.g., Fine Cut v3 -->\n\n## Submitted By\n- Name: \n- Role: \n- Date submitted: \n\n---\n\n## Review Details\n\n### Deliverable Under Review\n<!-- Describe what is being submitted for approval -->\n\n### Review Objective\n<!-- What decisions need to be made? -->\n\n### Screening Access\n- URL: \n- Password: \n- Expires: \n\n### Supporting Materials\n- [ ] Episode synopsis attached\n- [ ] Previous revision notes addressed\n- [ ] Music cue sheet included\n- [ ] Legal clearance status included\n\n---\n\n## Reviewers\n\n| Reviewer | Role | Department | Review Due | Status | Date Reviewed |\n|----------|------|-----------|-----------|--------|---------------|\n|          | Executive Producer | Production | | Pending | |\n|          | Showrunner | Creative | | Pending | |\n|          | Network Executive | Distribution | | Pending | |\n|          | Legal Counsel | Legal | | Pending | |\n|          | Marketing Lead | Marketing | | Pending | |\n\n---\n\n## Review Checklist\n\n### Narrative & Content\n- [ ] Story arc is clear and compelling\n- [ ] Pacing is appropriate for target runtime\n- [ ] Character/talent portrayal is accurate and fair\n- [ ] Cold open hooks the viewer effectively\n- [ ] Cliffhangers or episode endings are satisfying\n\n### Technical Quality\n- [ ] Audio levels are consistent and dialogue is clear\n- [ ] Color grading matches the approved look\n- [ ] Graphics and lower thirds are accurate\n- [ ] Transitions are smooth and intentional\n- [ ] No technical glitches or artifacts\n\n### Compliance & Standards\n- [ ] Content rating is appropriate\n- [ ] All talent releases are signed\n- [ ] Music is cleared for intended use\n- [ ] Brand/logo clearances resolved\n- [ ] Sensitive content has been flagged and addressed\n\n### Brand & Tone\n- [ ] Tone aligns with the show concept and brand\n- [ ] On-screen text and titles follow style guide\n- [ ] Promotional hooks are present for marketing use\n\n---\n\n## Feedback Log\n\n### Round 1\n| # | Reviewer | Timecode | Category | Feedback | Priority | Status |\n|---|----------|----------|----------|----------|----------|--------|\n| 1 |          |          | Narrative / Technical / Compliance | | High / Medium / Low | Open |\n| 2 |          |          |          |          |          | Open   |\n| 3 |          |          |          |          |          | Open   |\n\n### Round 2\n| # | Reviewer | Timecode | Category | Feedback | Priority | Status |\n|---|----------|----------|----------|----------|----------|--------|\n| 1 |          |          |          |          |          | Open   |\n\n### Conflicting Feedback\n<!-- Note any contradictory feedback from different reviewers and the resolution -->\n| Conflict | Reviewer A | Reviewer B | Resolution |\n|----------|-----------|-----------|------------|\n|          |           |           |            |\n\n---\n\n## Revision Summary\n\n### Changes Made (Round 1)\n| # | Feedback Ref | Change Description | Section/Timecode | Editor |\n|---|-------------|-------------------|-----------------|--------|\n| 1 |             |                   |                 |        |\n| 2 |             |                   |                 |        |\n\n### Changes Made (Round 2)\n| # | Feedback Ref | Change Description | Section/Timecode | Editor |\n|---|-------------|-------------------|-----------------|--------|\n| 1 |             |                   |                 |        |\n\n### Deferred Items\n<!-- Feedback acknowledged but deferred to a future cut or episode -->\n| # | Feedback | Reason Deferred | Planned Resolution |\n|---|----------|----------------|--------------------|\n|   |          |                |                    |\n\n---\n\n## Final Sign-Off\n\n| Stakeholder | Role | Decision | Signature / Initials | Date |\n|-------------|------|----------|---------------------|------|\n|             | Executive Producer | Approved / Approved with Notes / Rejected | | |\n|             | Showrunner | Approved / Approved with Notes / Rejected | | |\n|             | Network Executive | Approved / Approved with Notes / Rejected | | |\n|             | Legal Counsel | Approved / Approved with Notes / Rejected | | |\n|             | Marketing Lead | Approved / Approved with Notes / Rejected | | |\n\n### Approval Conditions\n<!-- Any conditions attached to approvals -->\n- \n\n### Final Status\n- [ ] All required sign-offs obtained\n- [ ] Revision notes fully addressed\n- [ ] Episode cleared for picture lock\n- [ ] Approved cut archived with version label\n\n### Next Steps\n<!-- What happens after approval is granted -->\n- \n\n### Approved Cut Details\n- Final version label: \n- Runtime: \n- Date locked: \n- Archive location: \n"
+    },
+    {
+      "stage": "final_delivery",
+      "name": "Final Master Delivery Spec",
+      "description": "Define technical delivery specifications for the final mastered episode",
+      "sort_order": 0,
+      "content": "# Final Master Delivery Spec\n\n## Production\n<!-- Show or project name -->\n\n## Episode\n<!-- Episode number and title -->\n\n## Delivery Platform\n<!-- e.g., Netflix, YouTube, Broadcast, Web -->\n\n## Video Specifications\n| Parameter | Requirement |\n|-----------|------------|\n| Resolution | |\n| Frame Rate | |\n| Codec | |\n| Bitrate | |\n| Color Space | |\n| HDR | Y/N |\n| Aspect Ratio | |\n\n## Audio Specifications\n| Parameter | Requirement |\n|-----------|------------|\n| Format | |\n| Sample Rate | |\n| Bit Depth | |\n| Channels | |\n| Loudness Target | |\n| Mix Types Required | Stereo / 5.1 / Atmos |\n\n## Deliverables Checklist\n- [ ] Final master video file\n- [ ] Audio stems (dialogue, music, effects)\n- [ ] Closed captions / subtitles\n- [ ] Textless elements\n- [ ] Key art / thumbnail\n- [ ] Episode metadata (title, synopsis, credits)\n\n## Quality Control\n- [ ] QC pass completed\n- [ ] No technical errors flagged\n- [ ] Audio sync verified\n- [ ] Color grading approved\n"
+    },
+    {
+      "stage": "final_delivery",
+      "name": "Closed Captions & Subtitles Checklist",
+      "description": "Track captioning and subtitle deliverables for final episode delivery",
+      "sort_order": 1,
+      "content": "# Closed Captions & Subtitles Checklist\n\n## Production\n<!-- Show or project name -->\n\n## Episode\n<!-- Episode number -->\n\n## Caption Requirements\n| Language | Type | Format | Status |\n|----------|------|--------|--------|\n| English | CC | SRT / SCC | |\n| Spanish | Subtitle | SRT | |\n|         |      |        |        |\n\n## Caption Quality Checks\n- [ ] Timing synced to dialogue\n- [ ] Speaker identification accurate\n- [ ] Sound effects described (e.g., [applause], [music])\n- [ ] Reading speed appropriate (max 3 lines / 2 sec per line)\n- [ ] No spelling or grammar errors\n- [ ] Profanity handled per platform guidelines\n\n## Accessibility Compliance\n- [ ] FCC requirements met (if broadcast)\n- [ ] Platform-specific guidelines followed\n- [ ] Audio description track (if required)\n\n## Subtitle Localization\n| Language | Translator | Review Status | Final File |\n|----------|-----------|--------------|------------|\n|          |           | Pending      |            |\n\n## Delivery\n- [ ] Caption files named per spec\n- [ ] Files tested on target platform\n"
+    },
+    {
+      "stage": "final_delivery",
+      "name": "Final Delivery & Distribution Prep",
+      "description": "Comprehensive checklist for optimizing formats, preparing metadata and captions, and coordinating release across platforms",
+      "sort_order": 2,
+      "content": "# Final Delivery & Distribution Prep\n\n## Production\n<!-- Show or project name -->\n\n## Episode\n<!-- Episode number and title -->\n\n## Delivery Date\n<!-- Target delivery date -->\n\n---\n\n## Master File Details\n\n### Master Export Settings\n| Setting | Value |\n|---------|-------|\n| Resolution | |\n| Frame Rate | |\n| Codec / Container | |\n| Bitrate (video) | |\n| Color Space / Gamut | |\n| HDR Format | N/A / HDR10 / Dolby Vision / HLG |\n| Aspect Ratio | |\n| Duration (final) | |\n| File Size | |\n\n### Audio Master\n| Parameter | Value |\n|-----------|-------|\n| Format | |\n| Sample Rate | |\n| Bit Depth | |\n| Channels | Stereo / 5.1 / 7.1 / Atmos |\n| Loudness (LUFS) | |\n| True Peak (dBTP) | |\n| Dialogue normalization | |\n\n### Stems Delivered\n- [ ] Dialogue stem\n- [ ] Music stem\n- [ ] Sound effects stem\n- [ ] Ambient / room tone stem\n- [ ] Full mix\n\n---\n\n## Platform Exports\n\n| Platform | Resolution | Codec | Bitrate | Frame Rate | Aspect Ratio | Audio Format | Status |\n|----------|-----------|-------|---------|-----------|-------------|-------------|--------|\n| YouTube | 3840x2160 | H.264 | 40 Mbps | 23.976 | 16:9 | AAC 320kbps | [ ] |\n| Netflix | Per spec | ProRes 422 HQ | N/A | 23.976 | 16:9 | 5.1 PCM | [ ] |\n| Broadcast (TV) | 1920x1080 | XDCAM HD | 50 Mbps | 29.97 | 16:9 | PCM Stereo | [ ] |\n| Social (vertical) | 1080x1920 | H.264 | 10 Mbps | 23.976 | 9:16 | AAC 256kbps | [ ] |\n| Social (square) | 1080x1080 | H.264 | 10 Mbps | 23.976 | 1:1 | AAC 256kbps | [ ] |\n| Podcast / Audio-only | N/A | N/A | N/A | N/A | N/A | MP3 / WAV | [ ] |\n| Archive master | Full res | ProRes 4444 | N/A | Native | Native | Uncompressed | [ ] |\n\n---\n\n## Captions & Subtitles\n\n### Caption Files\n| Language | Type | Format | Reviewed | File Name | Status |\n|----------|------|--------|----------|-----------|--------|\n| English | Closed Captions | SRT | [ ] | | Pending |\n| English | Closed Captions | SCC | [ ] | | Pending |\n| Spanish | Subtitles | SRT | [ ] | | Pending |\n| | | | | | |\n\n### Caption QC\n- [ ] Timing synced within 1 frame of dialogue\n- [ ] Speaker IDs accurate for multi-person scenes\n- [ ] Non-speech sounds described (e.g., [laughter], [music playing])\n- [ ] Reading speed validated (max 200 wpm / 3 lines)\n- [ ] Spelling, grammar, and punctuation reviewed\n- [ ] Profanity handling matches platform guidelines\n- [ ] Burned-in text does not overlap caption placement\n- [ ] Tested on target player/platform\n\n### Accessibility\n- [ ] Audio description track prepared (if required)\n- [ ] SDH captions provided (if required)\n- [ ] Platform accessibility guidelines met\n\n---\n\n## Metadata\n\n### Episode Metadata\n| Field | Value |\n|-------|-------|\n| Series Title | |\n| Season Number | |\n| Episode Number | |\n| Episode Title | |\n| Short Synopsis (100 chars) | |\n| Medium Synopsis (250 chars) | |\n| Long Synopsis (500+ chars) | |\n| Genre | |\n| Sub-genre | |\n| Content Rating | |\n| Rating Descriptors | |\n| Original Language | |\n| Country of Origin | |\n| Original Air/Release Date | |\n| Runtime | |\n| Tags / Keywords | |\n\n### Credits\n| Role | Name |\n|------|------|\n| Director | |\n| Producer | |\n| Executive Producer | |\n| Editor | |\n| Director of Photography | |\n| Sound Mixer | |\n| Music By | |\n| Featuring / Cast | |\n\n### Rights & Licensing\n| Territory | Rights Holder | Window Start | Window End | Exclusive |\n|-----------|--------------|-------------|-----------|----------|\n|           |              |             |           | Y/N      |\n\n---\n\n## Thumbnails & Promotional Assets\n\n| Asset | Dimensions | Format | Platform | File Name | Approved |\n|-------|-----------|--------|----------|-----------|----------|\n| Primary thumbnail | 1920x1080 | JPG/PNG | YouTube/Streaming | | [ ] |\n| Square thumbnail | 1080x1080 | JPG | Social media | | [ ] |\n| Vertical poster | 1080x1920 | JPG/PNG | Mobile / Stories | | [ ] |\n| Banner / hero | 2560x720 | JPG/PNG | Platform feature | | [ ] |\n| Textless key art | 1920x1080 | PNG | International | | [ ] |\n\n### Promotional Clips\n| Clip Type | Duration | Dimensions | Platform | Status |\n|-----------|----------|-----------|----------|--------|\n| Teaser | 15s | 1920x1080 | Social | [ ] |\n| Trailer | 30-60s | 1920x1080 | All | [ ] |\n| Highlight reel | 60-90s | 1920x1080 | All | [ ] |\n| Vertical teaser | 15-30s | 1080x1920 | TikTok/Reels | [ ] |\n\n---\n\n## Quality Assurance Checklist\n\n### Video QC\n- [ ] Full playback reviewed start to finish\n- [ ] No dropped frames or encoding artifacts\n- [ ] Color grading matches approved grade\n- [ ] Graphics, lower thirds, and titles render correctly\n- [ ] Textless elements provided where required\n- [ ] Slate / bars / tone included (if broadcast)\n- [ ] Safe area compliance checked (if broadcast)\n\n### Audio QC\n- [ ] Audio sync verified across all deliverables\n- [ ] Loudness measured and within spec\n- [ ] No clipping, distortion, or dropout\n- [ ] Music cue sheet accurate and complete\n- [ ] All licensed music cleared and documented\n- [ ] Dialogue intelligible throughout\n\n### File QC\n- [ ] File naming convention followed\n- [ ] File sizes within platform limits\n- [ ] Checksum / hash generated for master files\n- [ ] Test upload successful on target platform(s)\n\n---\n\n## Archive & Backup\n\n### Archive Package Contents\n- [ ] Master video file (highest quality)\n- [ ] Audio stems\n- [ ] Project files (NLE project, effects projects)\n- [ ] Raw footage catalog / reference\n- [ ] Caption and subtitle files (all languages)\n- [ ] Thumbnail and key art source files\n- [ ] Music cue sheet and licenses\n- [ ] Signed releases (talent, location)\n- [ ] Metadata spreadsheet\n\n### Storage\n| Location | Type | Verified | Date |\n|----------|------|----------|------|\n| Primary archive | | [ ] | |\n| Cloud backup | | [ ] | |\n| Off-site backup | | [ ] | |\n\n---\n\n## Final Delivery Checklist\n\n- [ ] Master file exported and verified\n- [ ] All platform exports rendered and QC'd\n- [ ] Captions / subtitles attached and tested\n- [ ] Metadata entered on all platforms\n- [ ] Thumbnails and promo assets uploaded\n- [ ] Legal clearances confirmed (talent, music, locations)\n- [ ] Credits finalized and accurate\n- [ ] Archive package completed and backed up\n- [ ] Stakeholder sign-off received\n- [ ] Publish date / delivery date confirmed\n- [ ] Distribution team notified and coordinated\n- [ ] Marketing / social assets delivered to comms team\n\n## Notes\n<!-- Additional delivery notes, special instructions, or platform-specific requirements -->\n\n"
+    },
+    {
+      "stage": "distribution_planning",
+      "name": "Distribution Strategy",
+      "description": "Plan the release strategy and platform distribution for unscripted content",
+      "sort_order": 0,
+      "content": "# Distribution Strategy\n\n## Production\n<!-- Show or project name -->\n\n## Release Model\n<!-- e.g., Weekly drop, Binge release, Premiere + weekly -->\n\n## Platform Strategy\n| Platform | Priority | Format | Exclusivity | Window |\n|----------|----------|--------|-------------|--------|\n|          | Primary  |        |             |        |\n|          | Secondary |       |             |        |\n\n## Release Schedule\n| Episode | Title | Release Date | Platform | Status |\n|---------|-------|-------------|----------|--------|\n| 1       |       |             |          | Ready  |\n| 2       |       |             |          |        |\n\n## Marketing Tie-Ins\n| Date | Activity | Platform | Assets Needed |\n|------|----------|----------|---------------|\n|      | Trailer drop |    |               |\n|      | Social clips |    |               |\n|      | Press release |   |               |\n\n## Audience Engagement\n- Live watch parties: \n- Social media hashtag: \n- Behind-the-scenes content: \n\n## Success Metrics\n| Metric | Target | Measurement |\n|--------|--------|------------|\n| Views / Streams | | |\n| Completion rate | | |\n| Social engagement | | |\n"
+    },
+    {
+      "stage": "distribution_planning",
+      "name": "Platform Metadata & Assets",
+      "description": "Prepare metadata, thumbnails, and promotional assets for each distribution platform",
+      "sort_order": 1,
+      "content": "# Platform Metadata & Assets\n\n## Production\n<!-- Show or project name -->\n\n## Episode\n<!-- Episode number and title -->\n\n## Metadata\n| Field | Value |\n|-------|-------|\n| Title | |\n| Synopsis (short) | |\n| Synopsis (long) | |\n| Genre | |\n| Tags / Keywords | |\n| Content Rating | |\n| Runtime | |\n| Original Air Date | |\n| Credits | |\n\n## Thumbnail / Key Art\n| Platform | Dimensions | Format | File | Status |\n|----------|-----------|--------|------|--------|\n| YouTube | 1280x720 | JPG | | [ ] |\n| Streaming | 1920x1080 | PNG | | [ ] |\n| Social | 1080x1080 | JPG | | [ ] |\n| Mobile | 720x720 | JPG | | [ ] |\n\n## Promotional Clips\n| Clip | Duration | Platform | Description | Status |\n|------|----------|----------|-------------|--------|\n| Teaser | 15s | Social | | [ ] |\n| Trailer | 60s | All | | [ ] |\n| Highlight | 30s | Social | | [ ] |\n\n## Platform-Specific Requirements\n| Platform | Requirement | Completed |\n|----------|------------|----------|\n|          |            | [ ]      |\n\n## Upload Checklist\n- [ ] Video file uploaded\n- [ ] Metadata entered\n- [ ] Thumbnail set\n- [ ] Captions attached\n- [ ] Publish date scheduled\n"
+    },
+    {
+      "stage": "distribution_planning",
+      "name": "Distribution & Launch Strategy",
+      "description": "Plan launch strategy, coordinate marketing, schedule posting, monitor metrics, and manage engagement",
+      "sort_order": 2,
+      "content": "# Distribution & Launch Strategy\n\n## Production\n<!-- Show or project name -->\n\n## Launch Overview\n<!-- 2-3 sentence summary of the launch approach and goals -->\n\n---\n\n## Launch Strategy\n\n### Launch Type\n<!-- e.g., Soft launch, Hard launch, Phased rollout, Premiere event -->\n\n### Launch Date\n<!-- Target date -->\n\n### Pre-Launch Timeline\n| Date | Milestone | Owner | Status |\n|------|-----------|-------|--------|\n|      | Announce release date |  | [ ] |\n|      | Release teaser trailer |  | [ ] |\n|      | Press outreach begins |  | [ ] |\n|      | Full trailer drop |  | [ ] |\n|      | Launch day |  | [ ] |\n\n### Launch Day Checklist\n- [ ] All episodes / content uploaded and scheduled\n- [ ] Metadata and thumbnails finalized\n- [ ] Captions and subtitles attached\n- [ ] Social media posts queued\n- [ ] Email / newsletter blast prepared\n- [ ] Press embargo lifted\n- [ ] Team on standby for issues\n\n---\n\n## Distribution Schedule\n\n### Release Cadence\n<!-- e.g., Weekly on Thursdays, Daily for 5 days, Full binge drop -->\n\n### Episode Release Plan\n| Episode | Title | Release Date | Time | Platform(s) | Status |\n|---------|-------|-------------|------|-------------|--------|\n| 1       |       |             |      |             | [ ]    |\n| 2       |       |             |      |             | [ ]    |\n| 3       |       |             |      |             | [ ]    |\n\n### Platform-Specific Timing\n| Platform | Optimal Post Time | Time Zone | Notes |\n|----------|-------------------|-----------|-------|\n| YouTube  |                   |           |       |\n| TikTok   |                   |           |       |\n| Instagram |                  |           |       |\n| Podcast  |                   |           |       |\n\n---\n\n## Promotional Content Plan\n\n### Pre-Launch Content\n| Asset | Format | Platform | Publish Date | Status |\n|-------|--------|----------|-------------|--------|\n| Teaser clip | 15s video | Instagram Reels, TikTok | | [ ] |\n| Behind-the-scenes | Photo carousel | Instagram | | [ ] |\n| Countdown graphic | Image | All social | | [ ] |\n| Cast announcement | Video | YouTube, Twitter | | [ ] |\n\n### Launch Week Content\n| Day | Content | Platform | Description | Status |\n|-----|---------|----------|-------------|--------|\n| D-1 |         |          |             | [ ]    |\n| Launch |      |          |             | [ ]    |\n| D+1 |         |          |             | [ ]    |\n| D+3 |         |          |             | [ ]    |\n| D+7 |         |          |             | [ ]    |\n\n### Ongoing Promotional Cadence\n| Frequency | Content Type | Platform | Purpose |\n|-----------|-------------|----------|---------|\n| Daily     |             |          |         |\n| Weekly    |             |          |         |\n| Per episode |           |          |         |\n\n---\n\n## SEO & Discoverability\n\n### Keywords & Tags\n| Primary Keywords | Secondary Keywords | Long-Tail Keywords |\n|-----------------|--------------------|--------------------|\n|                 |                    |                    |\n\n### Platform SEO Checklist\n- [ ] YouTube: Title, description, and tags optimized\n- [ ] YouTube: End screens and cards configured\n- [ ] YouTube: Playlist created for series\n- [ ] Podcast: Show notes with keywords\n- [ ] Website: Blog post or landing page published\n- [ ] Website: Schema markup for video content\n\n### Hashtag Strategy\n| Platform | Primary Hashtag | Supporting Hashtags |\n|----------|----------------|--------------------|\n| Instagram |               |                    |\n| TikTok   |               |                    |\n| Twitter  |               |                    |\n\n---\n\n## Marketing Coordination\n\n### Internal Team Roles\n| Role | Person | Responsibilities |\n|------|--------|------------------|\n| Marketing Lead | | Overall strategy, approvals |\n| Social Media Manager | | Content scheduling, community |\n| PR / Communications | | Press outreach, interviews |\n| Paid Media | | Ad campaigns, boosted posts |\n| Producer | | Content assets, approvals |\n\n### External Partners\n| Partner | Type | Deliverable | Timeline | Status |\n|---------|------|-------------|----------|--------|\n|         | Influencer |       |          | [ ]    |\n|         | Press outlet |     |          | [ ]    |\n|         | Cross-promo partner | | | [ ] |\n\n### Paid Promotion Budget\n| Platform | Budget | Objective | Duration | Status |\n|----------|--------|-----------|----------|--------|\n|          |        | Awareness / Views |  | [ ]    |\n|          |        | Engagement |      |  | [ ]    |\n\n### Press & Media Outreach\n| Outlet / Contact | Pitch Sent | Response | Coverage Date | Link |\n|-----------------|-----------|----------|--------------|------|\n|                 | [ ]       |          |              |      |\n\n---\n\n## Performance Tracking\n\n### Key Performance Indicators (KPIs)\n| Metric | Target | Actual | Tracking Tool |\n|--------|--------|--------|---------------|\n| Total views / streams (week 1) | | | |\n| Average watch time | | | |\n| Completion rate | | | |\n| Subscriber / follower growth | | | |\n| Social media impressions | | | |\n| Social media engagement rate | | | |\n| Click-through rate (CTR) | | | |\n| Website traffic from launch | | | |\n\n### Reporting Cadence\n| Report | Frequency | Owner | Distribution |\n|--------|-----------|-------|-------------|\n| Daily dashboard | Daily (launch week) | | |\n| Weekly summary | Weekly | | |\n| Monthly review | Monthly | | |\n\n### Tracking Tools & Dashboards\n- Analytics platform: \n- Social monitoring tool: \n- Dashboard link: \n\n---\n\n## Engagement Plan\n\n### Community Management\n- Response time target: \n- Tone guidelines: \n- Escalation process: \n\n### Engagement Tactics\n| Tactic | Platform | Timing | Owner | Status |\n|--------|----------|--------|-------|--------|\n| Reply to comments | All | Ongoing | | [ ] |\n| Q&A / AMA with talent | | | | [ ] |\n| Polls and quizzes | Stories | Weekly | | [ ] |\n| User-generated content prompt | | | | [ ] |\n| Live watch party | | Episode premieres | | [ ] |\n\n### Audience Feedback Loop\n| Source | How Collected | Review Cadence | Action Owner |\n|--------|--------------|---------------|-------------|\n| Comments | Manual / Tool | Daily | |\n| DMs | Manual | Daily | |\n| Surveys | Post-episode link | Per episode | |\n| Reviews / Ratings | Platform | Weekly | |\n\n---\n\n## Content Repurposing Plan\n\n### Repurposed Assets\n| Original Content | Repurposed Format | Platform | Status |\n|-----------------|--------------------|----------|--------|\n| Full episode | Highlight clips (60s) | TikTok, Reels | [ ] |\n| Full episode | Quote cards | Instagram, Twitter | [ ] |\n| Interview segments | Audiogram | Podcast, Twitter | [ ] |\n| Behind-the-scenes | BTS reel | YouTube Shorts | [ ] |\n| Key moments | GIFs / Memes | Social | [ ] |\n| Full episode | Blog recap | Website | [ ] |\n\n### Evergreen Content Ideas\n- \n- \n- \n\n---\n\n## Post-Launch Review\n\n### What Went Well\n- \n\n### What Could Improve\n- \n\n### Audience Insights\n- Top-performing content: \n- Most engaged demographic: \n- Unexpected trends: \n\n### Metric Summary vs. Targets\n| KPI | Target | Actual | Delta | Notes |\n|-----|--------|--------|-------|-------|\n|     |        |        |       |       |\n\n### Recommendations for Next Release\n- \n- \n\n### Stakeholder Feedback\n| Stakeholder | Feedback | Action Item |\n|-------------|----------|------------|\n|             |          |            |\n"
+    }
+  ]
+}

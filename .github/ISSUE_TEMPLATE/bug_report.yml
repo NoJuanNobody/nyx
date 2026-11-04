@@ -1,0 +1,70 @@
+name: Bug report
+description: Something in Nyx is broken or behaves unexpectedly
+title: "bug: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Do not include secrets, API keys or tokens. For security issues, use private reporting (see SECURITY.md) instead of this form.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Core crate (nyx-core)
+        - CLI (nyx)
+        - MCP server
+        - Desktop app
+        - Credits / ledger
+        - API
+        - Web UI
+        - Docs
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Nyx version or commit
+      placeholder: "e.g. 0.0.1 or abc1234"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "e.g. macOS 15, Ubuntu 24.04, Windows 11"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or output
+      description: Paste relevant output. Redact anything sensitive.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I removed secrets and personal data from this report.
+          required: true

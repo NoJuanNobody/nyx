@@ -1,258 +1,94 @@
 # Nyx
 
-**The product versioning platform — unified documentation, code, and team workflow, always in sync.**
+**Open-source, agent-native knowledge workspace: specs, code and tickets kept in sync, driven by your own coding agents.**
 
-Nyx keeps technical specs in sync with code as it evolves and lets non-technical stakeholders initiate changes that flow automatically through to the codebase.
+Nyx keeps technical documentation aligned with the code it describes. Instead of embedding its own AI assistant, Nyx exposes its operations to the agents you already use (Claude Code, Cursor, scripts) through the Model Context Protocol (MCP) and a CLI. Heavy operations are metered with local utility-token credits that you grant and budget per agent.
 
----
-
-## What is Nyx?
-
-In AI-assisted development, the spec is the starting point — developers write documents and AI tools generate code from them. But as code evolves, the original spec becomes stale almost immediately. There is no feedback loop.
-
-Nyx solves this by providing a two-way bridge between intent (documentation) and implementation (code), with a collaboration layer that connects technical and non-technical team members.
+> **Status: pre-release, in transition.** Nyx started as a hosted SaaS (React + Fastify + Postgres). It is being rebuilt as a local-first desktop app with a pure-Rust core (Tauri 2). The Rust workspace is a compiling skeleton (core types, ledger, store, CLI and MCP stubs, desktop shell). The TypeScript apps are the legacy implementation and remain runnable while features are ported. The in-app agent, the AI chat sidebar and Stripe billing have been removed and will not be ported. Expect breaking changes.
 
 ---
 
-## Core Features
+## What changed
 
-| Feature | Description |
+| Before (SaaS) | Now (open source) |
 | --- | --- |
-| **AI-Ready Spec Editor** | Structured markdown editor with AI assistance for writing technical specs optimized for code generation. Supports branch-based collaboration and approval flows. |
-| **Live Sync Engine** | Monitors your codebase via GitHub integration and surfaces drift between documentation and code. |
-| **Non-Dev Change Flow** | Non-technical users edit documentation; AI groups changes into tickets; tickets are pushed to GitHub Issues or Jira with full traceability. |
-| **Product Version Control** | Git-like history across docs, tickets, and code — diff view, unified timeline, named snapshots, full rollback, and blame/attribution. |
-| **Coding Agent Integrations** | MCP server for Claude Code so specs flow directly into your AI coding workflow. Cursor and Copilot integrations planned. |
-| **Onboarding Flow** | Scans an existing codebase to bootstrap documentation for teams already in flight. |
-| **Documentation Export** | Export documentation as Markdown or PDF — no vendor lock-in. |
+| Paid hosted service, Stripe plans | Self-hosted / local-first, no billing code |
+| In-app agent and AI chat sidebar | Removed. Bring your own agent over MCP or CLI |
+| Credits sold in packs and plans | Credits are agent-native utility tokens, never sold (see below) |
+| Node/Fastify backend | Rust core crate shared by desktop app, CLI and MCP server |
 
----
-
-## Tech Stack
-
-| Layer | Technology |
-| --- | --- |
-| Frontend | React 19 + TypeScript, Vite, Tailwind CSS |
-| Backend | Node.js + Fastify, TypeScript |
-| Database | PostgreSQL via Drizzle ORM |
-| AI | Anthropic Claude API |
-| Auth | Clerk |
-| Integrations | GitHub API + Webhooks, Jira REST API, Confluence REST API |
-| Agent Integration | MCP server (`@nyx/mcp-server`) |
-| Monorepo | pnpm workspaces + Turborepo |
-
----
-
-## Project Structure
+## Architecture
 
 ```
 nyx/
+├── Cargo.toml              # Rust workspace root
+├── crates/
+│   ├── nyx-core/           # Pure-Rust core: model, store, credit ledger, errors. No UI.
+│   ├── nyx-cli/            # `nyx` command-line interface (clap)
+│   └── nyx-mcp/            # MCP server (stub; transport not implemented yet)
 ├── apps/
-│   ├── web/          # React frontend (Vite)
-│   └── api/          # Fastify backend
+│   ├── desktop/            # Tauri 2 desktop shell (src-tauri) + placeholder UI
+│   ├── web/                # Legacy React 19 frontend (Vite), source for the UI port
+│   └── api/                # Legacy Fastify + Drizzle + PostgreSQL backend
 ├── packages/
-│   ├── shared/       # Shared types and utilities
-│   └── mcp-server/   # MCP server for Claude Code integration
-└── package.json      # Root workspace config
+│   ├── shared/             # Legacy shared TS types
+│   ├── harness-core/       # Legacy TS harness
+│   ├── mcp-server/         # Legacy TS MCP server (talks to the legacy API)
+│   └── cli/                # Legacy TS CLI (`@nyx/cli`)
+└── docs/                   # ADRs, credit spec, Rust workspace notes, OSS audit
 ```
 
----
+The design goal is one core crate (`nyx-core`) that the desktop app, the CLI and the MCP server all call, so behaviour is identical across the three surfaces. Decision record: [ADR 0001](./docs/adr/0001-tauri-2-rust-core.md). Workspace details: [docs/rust-workspace.md](./docs/rust-workspace.md).
 
-## Prerequisites
+## Quick start: Rust workspace
 
-- [Node.js](https://nodejs.org/) v20+
-- [pnpm](https://pnpm.io/) v9.15.4+ (`npm install -g pnpm`)
-- [PostgreSQL](https://www.postgresql.org/) v15+ running locally (or a connection URL)
-
----
-
-## Getting Started
-
-### 1. Clone the repository
+Requirements: Rust (the pinned toolchain in `rust-toolchain.toml` is picked up automatically).
 
 ```bash
 git clone https://github.com/NoJuanNobody/nyx.git
 cd nyx
+
+cargo fmt --check
+cargo clippy --workspace -- -D warnings
+cargo test --workspace
+cargo run -p nyx-cli -- --version
 ```
 
-### 2. Install dependencies
+Plain `cargo build` / `cargo test` cover `nyx-core`, `nyx-cli` and `nyx-mcp` only. The desktop crate needs system webview libraries on Linux (`libwebkit2gtk-4.1-dev`, `libgtk-3-dev`, ...); include it with `--workspace` or `-p nyx-desktop`. To run the desktop shell:
+
+```bash
+cargo install tauri-cli --version "^2"
+cd apps/desktop/src-tauri && cargo tauri dev
+```
+
+## Quick start: legacy TypeScript apps
+
+Requirements: Node.js 20+, pnpm 9.15+, PostgreSQL 15+ (or `docker compose up` using the bundled `docker-compose.yml`).
 
 ```bash
 pnpm install
-```
-
-### 3. Configure environment variables
-
-Create a `.env` file in the repository root:
-
-```bash
-cp .env.example .env   # if .env.example exists, otherwise create manually
-```
-
-Edit `.env` with your values:
-
-```env
-# Database (required)
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/nyx
-
-# Server
-PORT=3001
-HOST=0.0.0.0
-NODE_ENV=development
-
-# Anthropic (required for AI features)
-ANTHROPIC_API_KEY=sk-ant-...
-
-# Clerk Auth (required for authentication)
-CLERK_SECRET_KEY=sk_test_...
-CLERK_PUBLISHABLE_KEY=pk_test_...
-
-# GitHub Integration (optional for local dev)
-GITHUB_CLIENT_ID=
-GITHUB_CLIENT_SECRET=
-GITHUB_WEBHOOK_SECRET=
-
-# Webhook base URL (optional — used to register GitHub webhooks)
-WEBHOOK_BASE_URL=https://your-tunnel-url.ngrok.io
-```
-
-> **Note:** `DATABASE_URL` defaults to `postgresql://postgres:postgres@localhost:5432/nyx` in development if not set.
-
-### 4. Set up the database
-
-```bash
-# Run migrations
+cp .env.example .env     # then edit; see the notes below
 pnpm db:migrate
-
-# (Optional) Seed with sample data
-pnpm db:seed
+pnpm dev                 # web on http://localhost:5173, API on http://localhost:3001
 ```
 
-### 5. Start the development servers
+Notes:
+
+- `DATABASE_URL` defaults to `postgresql://postgres:postgres@localhost:5432/nyx` in development.
+- `.env.example` still lists variables for integrations that are being cleaned up (auth provider, LLM providers, third-party OAuth). Only `DATABASE_URL` and the server settings are needed for most local work; the rest is optional and slated for removal or env-driven config.
+- Useful commands: `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm test:e2e`, `pnpm --filter web dev`, `pnpm --filter api dev`, `pnpm db:generate`, `pnpm db:studio`.
+
+## Agent-native usage (MCP and CLI)
+
+Nyx is meant to be operated by external agents, not by an assistant embedded in the app.
+
+**CLI.** The Rust `nyx` binary (`crates/nyx-cli`) is the target surface and currently only prints a version/hello line. The legacy TypeScript CLI (`packages/cli`, `@nyx/cli`) wraps the legacy API.
+
+**MCP.** The Rust MCP server (`crates/nyx-mcp`) is a stub: the stdio transport and tools backed by `nyx-core` are not implemented yet. Until then you can run the legacy TypeScript MCP server against a local API:
 
 ```bash
-pnpm dev
-```
-
-This starts both the frontend and backend concurrently via Turborepo:
-
-| Service | URL |
-| --- | --- |
-| Frontend (Vite) | http://localhost:5173 |
-| Backend (Fastify) | http://localhost:3001 |
-
-To run only one app:
-
-```bash
-# Frontend only
-pnpm --filter web dev
-
-# Backend only
-pnpm --filter api dev
-```
-
----
-
-## Running Tests
-
-### All tests (unit + integration)
-
-```bash
-pnpm test
-```
-
-### Per app
-
-```bash
-# Frontend tests
-pnpm --filter web test
-
-# Backend tests
-pnpm --filter api test
-```
-
-### End-to-end tests (Playwright)
-
-```bash
-pnpm test:e2e
-```
-
-### With coverage
-
-```bash
-pnpm --filter api test -- --coverage
-pnpm --filter web test -- --coverage
-```
-
----
-
-## Database Management
-
-```bash
-# Generate a new migration after schema changes
-pnpm db:generate
-
-# Apply pending migrations
-pnpm db:migrate
-
-# Open Drizzle Studio (database UI)
-pnpm db:studio
-
-# Seed the database with sample data
-pnpm db:seed
-```
-
----
-
-## Other Commands
-
-```bash
-# Type-check all packages
-pnpm typecheck
-
-# Lint all packages
-pnpm lint
-
-# Check formatting
-pnpm format:check
-
-# Build for production
-pnpm build
-```
-
----
-
-## MCP Server (Claude Code Integration)
-
-Nyx exposes your documents and AI features directly into Claude Code, Cursor, and Claude Desktop via the **Model Context Protocol (MCP)**.
-
-### Connect via URL (recommended)
-
-The hosted MCP endpoint uses a browser login — no API key to copy, no local build, no path configuration. Tool usage draws on your account credits.
-
-1. Copy your MCP endpoint URL (**Settings → API Keys**): `https://<your-api-host>/api/mcp`
-2. Connect in one command:
-
-```bash
-claude mcp add --transport http nyx https://<your-api-host>/api/mcp
-```
-
-3. Run `/mcp` in Claude Code and complete the browser login when prompted.
-
-The same URL works in Cursor (Settings → MCP → Add server URL) and Claude Desktop.
-
-> **OAuth login:** The endpoint authenticates via Clerk (OAuth 2.1). Your MCP client discovers the flow from `GET /.well-known/oauth-protected-resource` and signs you in through the browser — no token to paste. AI/generation tools consume account credits per call.
-
-### Local development (stdio)
-
-For offline use or local dev, run the MCP server as a local process.
-
-```bash
-# Build the local MCP server
 pnpm --filter @nyx/mcp-server build
 ```
-
-Then add it to your client config:
 
 ```json
 {
@@ -260,41 +96,47 @@ Then add it to your client config:
     "nyx": {
       "command": "node",
       "args": ["/absolute/path/to/nyx/packages/mcp-server/dist/index.js"],
-      "env": {
-        "NYX_API_KEY": "sd_...",
-        "NYX_API_URL": "http://localhost:3001"
-      }
+      "env": { "NYX_API_KEY": "<your key>", "NYX_API_URL": "http://localhost:3001" }
     }
   }
 }
 ```
 
-Config files: Claude Code → `.mcp.json`; Claude Desktop → `claude_desktop_config.json`; Cursor → Settings → MCP.
+Config files: Claude Code `.mcp.json`; Claude Desktop `claude_desktop_config.json`; Cursor Settings, MCP. The hosted `nyx-creative.com` endpoint is not part of the open-source project; point clients at your own instance.
 
----
+## Credits are utility tokens
 
-## Deployment
+Credits are a local metering and budgeting unit for agents:
 
-| Service | Platform |
-| --- | --- |
-| Frontend | [Vercel](https://vercel.com) — deploy `apps/web` |
-| Backend | [Railway](https://railway.app) or [Render](https://render.com) — deploy `apps/api` |
-| Database | Managed PostgreSQL (Railway, Render, Supabase, Neon) |
+- Never sold. No checkout, packs, prices or plans, and no fiat value.
+- Non-transferable and non-expiring; they only come from an explicit grant by the workspace owner.
+- The owner allocates a budget to each agent identity (`claude-code`, `cursor`, ...). Agents `reserve` credits before a compute-heavy operation (scan, generation, drift check, ticket generation) and `commit` or `release` afterwards. Exhausted budgets return a structured `insufficient_credits` error.
+- The ledger is append-only, idempotent and hash-chained for auditability.
 
-Set the same environment variables from the [setup section](#3-configure-environment-variables) in your deployment platform.
+Full specification: [docs/credits/utility-tokens-spec.md](./docs/credits/utility-tokens-spec.md). The Rust implementation lives in `crates/nyx-core` (`ledger.rs`); a reference TypeScript implementation is in `apps/api/src/services/credit-ledger.service.ts`.
 
----
+## Documentation
 
-## Feature Guides
-
-- [In-App Feedback](./docs/feedback-feature.md) — setup and usage for the user feedback submission feature
-
----
+- [Rust workspace](./docs/rust-workspace.md)
+- [ADR 0001: Tauri 2 and a Rust core](./docs/adr/0001-tauri-2-rust-core.md)
+- [Credits as utility tokens](./docs/credits/utility-tokens-spec.md)
+- [Repository audit before open-sourcing](./docs/oss/repo-audit.md)
+- [Dependency license inventory](./docs/oss/dependency-license-inventory.md)
+- [License decision memo](./docs/oss/license-decision.md)
+- [License apply checklist](./docs/oss/license-apply-checklist.md)
+- [Feature notes](./docs/features) and [in-app feedback](./docs/feedback-feature.md) (legacy)
 
 ## Contributing
 
-This project is in active development. See the [product brief](./Nyx_ProductBrief.md) for the full vision and roadmap.
+The project is pre-release and the architecture is still moving. Open an issue before large changes. Run the gates before sending a patch: `cargo fmt --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`, and for TypeScript `pnpm typecheck && pnpm test`. A DCO sign-off (`git commit -s`) is the proposed contribution mechanism, pending the license decision.
+
+## License
+
+**Pending.** The license has not been chosen yet; see [docs/oss/license-decision.md](./docs/oss/license-decision.md). Until a `LICENSE` file is added to this repository, no license is granted and all rights are reserved.
+
+<!-- LICENSE-PLACEHOLDER: once Alejandro decides, replace this section with
+     "Licensed under <SPDX-ID>. See LICENSE." and follow docs/oss/license-apply-checklist.md. -->
 
 ---
 
-*Built by [Alejandro Londono](https://github.com/NoJuanNobody)*
+*Created by [Alejandro Londono](https://github.com/NoJuanNobody)*

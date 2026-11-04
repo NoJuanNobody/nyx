@@ -1,0 +1,267 @@
+{
+  "slug": "creative_writing",
+  "label": "Creative Writing",
+  "description": "Fiction and non-fiction writing from outline to publication",
+  "icon": "✒️",
+  "is_default": false,
+  "sort_order": 3,
+  "connectors": [
+    "Outline guides the first draft",
+    "First draft goes through revisions",
+    "Revisions incorporate feedback",
+    "Feedback drives final polish",
+    "Polish produces publication-ready work"
+  ],
+  "stages": [
+    {
+      "slug": "outline",
+      "sort_order": 0,
+      "label": "Outline",
+      "abbreviation": "OL",
+      "subtitle": "Story Structure",
+      "color": "bg-amber-100",
+      "text_color": "text-amber-700",
+      "dot_color": "bg-amber-400",
+      "border_color": "border-amber-300",
+      "hex": "#F59E0B",
+      "who": "Author",
+      "description": "Create story outline and character profiles",
+      "icon": "📋",
+      "ai": "Suggests plot structures, identifies pacing issues",
+      "output": "Detailed outline with character sheets",
+      "docs": [
+        "Story Outline",
+        "Character Profiles",
+        "Plot Structure",
+        "World-Building Notes"
+      ],
+      "suggestions": [
+        "Strengthen plot structure",
+        "Develop character arcs",
+        "Check pacing"
+      ]
+    },
+    {
+      "slug": "first_draft",
+      "sort_order": 1,
+      "label": "First Draft",
+      "abbreviation": "FD",
+      "subtitle": "Raw Writing",
+      "color": "bg-yellow-100",
+      "text_color": "text-yellow-700",
+      "dot_color": "bg-yellow-400",
+      "border_color": "border-yellow-300",
+      "hex": "#EAB308",
+      "who": "Author",
+      "description": "Write the complete first draft",
+      "icon": "✍️",
+      "ai": "Maintains voice consistency, flags plot holes",
+      "output": "Complete first draft manuscript",
+      "docs": [
+        "Manuscript Draft",
+        "Chapter Notes",
+        "Continuity Tracker"
+      ],
+      "suggestions": [
+        "Maintain voice",
+        "Flag plot holes",
+        "Track continuity"
+      ]
+    },
+    {
+      "slug": "revision_passes",
+      "sort_order": 2,
+      "label": "Revision Passes",
+      "abbreviation": "RP",
+      "subtitle": "Self-Editing",
+      "color": "bg-orange-100",
+      "text_color": "text-orange-700",
+      "dot_color": "bg-orange-400",
+      "border_color": "border-orange-300",
+      "hex": "#F97316",
+      "who": "Author",
+      "description": "Perform structural and line-level revisions",
+      "icon": "🔄",
+      "ai": "Identifies weak passages, checks pacing and tension",
+      "output": "Revised manuscript",
+      "docs": [
+        "Revision Notes",
+        "Structural Changes",
+        "Line Edit Log"
+      ],
+      "suggestions": [
+        "Identify weak passages",
+        "Tighten prose",
+        "Check tension"
+      ]
+    },
+    {
+      "slug": "feedback_integration",
+      "sort_order": 3,
+      "label": "Feedback Integration",
+      "abbreviation": "FI",
+      "subtitle": "Beta Readers",
+      "color": "bg-rose-100",
+      "text_color": "text-rose-700",
+      "dot_color": "bg-rose-400",
+      "border_color": "border-rose-300",
+      "hex": "#FB7185",
+      "who": "Author, Beta Readers, Editor",
+      "description": "Incorporate feedback from beta readers and editors",
+      "icon": "💬",
+      "ai": "Synthesizes feedback themes, prioritizes changes",
+      "output": "Manuscript incorporating external feedback",
+      "docs": [
+        "Beta Reader Feedback",
+        "Editor Notes",
+        "Change Priority List"
+      ],
+      "suggestions": [
+        "Synthesize feedback",
+        "Prioritize changes",
+        "Resolve conflicts"
+      ]
+    },
+    {
+      "slug": "final_polish",
+      "sort_order": 4,
+      "label": "Final Polish",
+      "abbreviation": "FP",
+      "subtitle": "Copyediting",
+      "color": "bg-pink-100",
+      "text_color": "text-pink-700",
+      "dot_color": "bg-pink-400",
+      "border_color": "border-pink-300",
+      "hex": "#EC4899",
+      "who": "Author, Copyeditor",
+      "description": "Final copyediting, proofreading, and formatting",
+      "icon": "✨",
+      "ai": "Catches typos, ensures style consistency",
+      "output": "Clean, polished manuscript",
+      "docs": [
+        "Copyedit Pass",
+        "Style Guide Compliance",
+        "Final Proofread"
+      ],
+      "suggestions": [
+        "Check grammar",
+        "Ensure consistency",
+        "Final proofread"
+      ]
+    },
+    {
+      "slug": "publication_ready",
+      "sort_order": 5,
+      "label": "Publication Ready",
+      "abbreviation": "PB",
+      "subtitle": "Ship It",
+      "color": "bg-fuchsia-100",
+      "text_color": "text-fuchsia-700",
+      "dot_color": "bg-fuchsia-400",
+      "border_color": "border-fuchsia-300",
+      "hex": "#D946EF",
+      "who": "Author, Publisher",
+      "description": "Final manuscript ready for publication",
+      "icon": "📚",
+      "ai": "Generates query letter, checks submission requirements",
+      "output": "Submission-ready package",
+      "docs": [
+        "Final Manuscript",
+        "Query Letter",
+        "Synopsis",
+        "Author Bio"
+      ],
+      "suggestions": [
+        "Generate synopsis",
+        "Check submission requirements",
+        "Review query letter"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "outline",
+      "name": "Story Outline",
+      "description": "Map the narrative arc with key plot points and character goals",
+      "sort_order": 0,
+      "content": "# Story Outline\n\n## Working Title\n<!-- Title -->\n\n## Genre / Tone\n<!-- e.g., Literary fiction, dark humor -->\n\n## Premise\n<!-- One-sentence logline -->\n\n## Characters\n| Name | Role | Want | Flaw |\n|------|------|------|------|\n|      |      |      |      |\n\n## Narrative Arc\n1. **Hook:** \n2. **Inciting Incident:** \n3. **Rising Action:** \n4. **Midpoint:** \n5. **Crisis:** \n6. **Climax:** \n7. **Resolution:** \n\n## Setting\n- \n\n## Themes\n- \n"
+    },
+    {
+      "stage": "outline",
+      "name": "Character Bible",
+      "description": "Detailed character profiles with backstory, motivations, and voice",
+      "sort_order": 1,
+      "content": "# Character Bible\n\n## Character Name\n<!-- Full name -->\n\n## Basics\n- **Age:** \n- **Occupation:** \n- **Location:** \n\n## Psychology\n- **Want (external goal):** \n- **Need (internal goal):** \n- **Flaw:** \n- **Fear:** \n\n## Backstory\n<!-- Key events that shaped this character -->\n\n## Voice & Mannerisms\n- Speech patterns: \n- Habits: \n- Distinguishing traits: \n\n## Arc\n- **Starts as:** \n- **Ends as:** \n\n## Relationships\n| Character | Relationship | Tension |\n|-----------|-------------|--------|\n|           |             |        |\n"
+    },
+    {
+      "stage": "first_draft",
+      "name": "Chapter Draft",
+      "description": "Template for drafting an individual chapter or section",
+      "sort_order": 0,
+      "content": "# Chapter [Number]: [Title]\n\n## POV Character\n<!-- Whose perspective? -->\n\n## Scene Goal\n<!-- What must this chapter accomplish? -->\n\n## Opening\n<!-- First lines / hook -->\n\n---\n\n<!-- Draft body goes here -->\n\n---\n\n## End State\n<!-- Where does the reader land at chapter end? -->\n\n## Notes to Self\n- [ ] Check pacing\n- [ ] Verify timeline consistency\n- [ ] Sensory details needed in: \n"
+    },
+    {
+      "stage": "first_draft",
+      "name": "Scene Card",
+      "description": "Plan and draft a single scene with conflict and outcome",
+      "sort_order": 1,
+      "content": "# Scene Card\n\n## Scene Title\n<!-- Working title -->\n\n## Chapter\n<!-- Which chapter does this belong to? -->\n\n## Characters Present\n- \n\n## Location / Time\n- \n\n## Conflict\n<!-- What is the scene's central tension? -->\n\n## Goal → Obstacle → Outcome\n- **Goal:** \n- **Obstacle:** \n- **Outcome (disaster or success):** \n\n## Emotional Beat\n<!-- How should the reader feel? -->\n\n## Draft\n<!-- Write the scene here -->\n\n"
+    },
+    {
+      "stage": "revision_passes",
+      "name": "Structural Edit Notes",
+      "description": "Track big-picture revisions to plot, pacing, and structure",
+      "sort_order": 0,
+      "content": "# Structural Edit Notes\n\n## Manuscript\n<!-- Title and draft number -->\n\n## Pacing Analysis\n| Chapter | Pace | Tension | Notes |\n|---------|------|---------|-------|\n| 1       |      |         |       |\n| 2       |      |         |       |\n\n## Plot Issues\n- [ ] \n\n## Character Arc Issues\n- [ ] \n\n## Scenes to Cut\n- \n\n## Scenes to Add\n- \n\n## Timeline Inconsistencies\n- \n"
+    },
+    {
+      "stage": "revision_passes",
+      "name": "Line Edit Tracker",
+      "description": "Focus on prose quality, dialogue, and sentence-level improvements",
+      "sort_order": 1,
+      "content": "# Line Edit Tracker\n\n## Pass Focus\n<!-- e.g., Dialogue, Prose rhythm, Show vs. tell -->\n\n## Patterns to Fix\n- [ ] Overused words: \n- [ ] Passive voice instances\n- [ ] Adverb reduction\n- [ ] Cliché removal\n\n## Chapter-by-Chapter Notes\n| Chapter | Issues Found | Status |\n|---------|-------------|--------|\n|         |             |        |\n\n## Dialogue Check\n- [ ] Each character has distinct voice\n- [ ] Tags are minimal and varied\n- [ ] Subtext present in key scenes\n"
+    },
+    {
+      "stage": "feedback_integration",
+      "name": "Beta Reader Feedback Log",
+      "description": "Collect and organize feedback from beta readers",
+      "sort_order": 0,
+      "content": "# Beta Reader Feedback Log\n\n## Manuscript\n<!-- Title -->\n\n## Beta Readers\n| Reader | Genre Expertise | Date Sent | Date Returned |\n|--------|----------------|-----------|---------------|\n|        |                |           |               |\n\n## Common Feedback Themes\n- \n\n## Specific Comments\n| Reader | Chapter | Comment | Action |\n|--------|---------|---------|--------|\n|        |         |         |        |\n\n## Contradictory Feedback\n<!-- Where readers disagreed -->\n- \n\n## Priority Changes\n1. \n2. \n3. \n"
+    },
+    {
+      "stage": "feedback_integration",
+      "name": "Editor Notes Response",
+      "description": "Track editorial feedback and your planned responses",
+      "sort_order": 1,
+      "content": "# Editor Notes Response\n\n## Editor\n<!-- Name -->\n\n## Edit Type\nDevelopmental | Structural | Copy Edit\n\n## Feedback Summary\n<!-- High-level themes from the editor -->\n\n## Response Plan\n| # | Editor Note | Agree? | Planned Change | Status |\n|---|------------|--------|---------------|--------|\n| 1 |            |        |               | Pending |\n| 2 |            |        |               | Pending |\n\n## Pushback Items\n<!-- Notes you disagree with and why -->\n- \n\n## Deadline\n- Revisions due: \n"
+    },
+    {
+      "stage": "final_polish",
+      "name": "Proofreading Checklist",
+      "description": "Final proofreading pass for typos, formatting, and consistency",
+      "sort_order": 0,
+      "content": "# Proofreading Checklist\n\n## Manuscript\n<!-- Title and final draft number -->\n\n## Spelling & Grammar\n- [ ] Spell check run\n- [ ] Grammar check run\n- [ ] Character name spelling consistent\n- [ ] Place name spelling consistent\n\n## Formatting\n- [ ] Chapter headings consistent\n- [ ] Scene breaks formatted correctly\n- [ ] Paragraph indentation uniform\n- [ ] Quotation marks consistent (curly vs. straight)\n\n## Consistency\n- [ ] Timeline verified\n- [ ] Character eye/hair color consistent\n- [ ] Distances and travel times logical\n\n## Final Read-Through\n- [ ] Read aloud for rhythm\n- [ ] Check opening and closing lines\n"
+    },
+    {
+      "stage": "final_polish",
+      "name": "Style Sheet",
+      "description": "Document style choices for names, terms, and formatting conventions",
+      "sort_order": 1,
+      "content": "# Style Sheet\n\n## Manuscript\n<!-- Title -->\n\n## Character Names\n| Full Name | Nickname | Notes |\n|-----------|----------|-------|\n|           |          |       |\n\n## Place Names\n| Name | Description | First Appearance |\n|------|-------------|------------------|\n|      |             |                  |\n\n## Terminology\n| Term | Usage | Notes |\n|------|-------|-------|\n|      |       |       |\n\n## Style Choices\n- Numbers: spelled out / numerals below __\n- Dates: format\n- Em dashes: with/without spaces\n- Oxford comma: yes / no\n"
+    },
+    {
+      "stage": "publication_ready",
+      "name": "Query Letter",
+      "description": "Draft a query letter for literary agents or publishers",
+      "sort_order": 0,
+      "content": "# Query Letter\n\n## Agent / Publisher\n<!-- Name and agency -->\n\n## Personalization\n<!-- Why this specific agent? -->\n\n## Hook\n<!-- One-sentence hook -->\n\n## Synopsis (250 words)\n<!-- Paragraph 1: Setup and protagonist -->\n\n<!-- Paragraph 2: Conflict and stakes -->\n\n<!-- Paragraph 3: Climax hint (no spoiler) -->\n\n## Metadata\n- **Title:** \n- **Genre:** \n- **Word Count:** \n- **Comp Titles:** \n\n## Bio\n<!-- Relevant credentials -->\n"
+    },
+    {
+      "stage": "publication_ready",
+      "name": "Manuscript Submission Checklist",
+      "description": "Final checklist for manuscript submission to agents or publishers",
+      "sort_order": 1,
+      "content": "# Manuscript Submission Checklist\n\n## Target\n<!-- Agent or publisher name -->\n\n## Submission Requirements\n- [ ] Query letter tailored\n- [ ] Synopsis (1-page and 3-page versions)\n- [ ] First __ pages / chapters formatted\n- [ ] Full manuscript formatted per guidelines\n\n## Formatting\n- [ ] Font: Times New Roman 12pt\n- [ ] Double-spaced\n- [ ] 1-inch margins\n- [ ] Header: Author / Title / Page #\n- [ ] File format: .docx or .pdf as required\n\n## Tracking\n| Submission | Date Sent | Response | Date |\n|-----------|-----------|----------|------|\n|           |           |          |      |\n"
+    }
+  ]
+}

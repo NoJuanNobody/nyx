@@ -7,7 +7,6 @@
  *   VITE_GA_MEASUREMENT_ID       GA4 measurement id, e.g. "G-XXXXXXX"
  *   VITE_GOOGLE_ADS_ID           Google Ads id, e.g. "AW-XXXXXXXXX"
  *   VITE_GOOGLE_ADS_SIGNUP_LABEL Google Ads conversion label for signups
- *   VITE_GOOGLE_ADS_PURCHASE_LABEL Google Ads conversion label for upgrades
  *
  * Two conversions matter for the ad funnel: `sign_up` and `purchase` (the money
  * event). Both carry first-touch UTM attribution so channels are comparable.
@@ -19,7 +18,6 @@
 const GA_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined) ?? 'G-KV3XWB2WSQ';
 const ADS_ID = import.meta.env.VITE_GOOGLE_ADS_ID as string | undefined;
 const ADS_SIGNUP_LABEL = import.meta.env.VITE_GOOGLE_ADS_SIGNUP_LABEL as string | undefined;
-const ADS_PURCHASE_LABEL = import.meta.env.VITE_GOOGLE_ADS_PURCHASE_LABEL as string | undefined;
 
 const ATTRIBUTION_KEY = 'nyx_attribution';
 const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid'] as const;
@@ -118,13 +116,3 @@ export function trackSignUp(userId: string) {
   trackAdsConversion(ADS_SIGNUP_LABEL, getAttribution());
 }
 
-/** Track a completed upgrade/checkout — the money conversion. */
-export function trackPurchase(opts: { plan?: string; value?: number; currency?: string }) {
-  const { plan, value, currency = 'USD' } = opts;
-  trackEvent('purchase', {
-    currency,
-    value: value ?? 0,
-    items: plan ? [{ item_id: plan, item_name: `Nyx ${plan}` }] : undefined,
-  });
-  trackAdsConversion(ADS_PURCHASE_LABEL, { value: value ?? 0, currency });
-}

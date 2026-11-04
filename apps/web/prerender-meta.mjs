@@ -16,23 +16,6 @@ export const ROUTES = [
     out: 'dist/index.html',
     meta: null,
   },
-  {
-    url: '/pricing',
-    out: 'dist/pricing/index.html',
-    meta: {
-      title: 'Pricing — Nyx',
-      description:
-        'Free, Starter ($24/mo), Pro ($59/mo), Team ($129/mo). Compare plans and start free. 14-day free trial on all paid plans. AI-assisted docs that stay in sync with your code.',
-      canonical: 'https://nyx-creative.com/pricing',
-      ogUrl: 'https://nyx-creative.com/pricing',
-      ogTitle: 'Nyx Pricing — Simple, transparent plans',
-      ogDescription:
-        'Free to $129/mo. AI-assisted product specs that stay in sync with your codebase. Start free, upgrade as your team grows.',
-      twitterTitle: 'Nyx Pricing — Simple, transparent plans',
-      twitterDescription:
-        'Free to $129/mo. AI-powered product docs that stay in sync with your code. Start free, upgrade as your team grows.',
-    },
-  },
 ];
 
 /**

@@ -44,14 +44,6 @@ vi.mock('../../services/code-embedding.service.js', () => ({
 }));
 vi.mock('../../middleware/permissions.js', () => ({ requireRole: () => async () => {} }));
 
-// Mock plan-limits service — default to allowed so existing tests are unaffected
-const mockCheckLimit = vi.hoisted(() =>
-  vi.fn().mockResolvedValue({ allowed: true, limit: 1, current: 0, plan: 'pro' }),
-);
-vi.mock('../../services/plan-limits.service.js', () => ({
-  checkLimit: mockCheckLimit,
-}));
-
 async function buildApp() {
   const app = Fastify({ logger: false });
   app.setErrorHandler((error: Error, _request, reply) => {
@@ -76,18 +68,7 @@ async function buildApp() {
 describe('AI Routes', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  it('returns 403 when AI not available for plan', async () => {
-    mockCheckLimit.mockResolvedValueOnce({ allowed: false, limit: 0, current: 0, plan: 'free' });
-    const app = await buildApp();
-    const res = await app.inject({ method: 'POST', url: '/api/ai/analyze', payload: { content: '# Spec' } });
-    expect(res.statusCode).toBe(403);
-    const body = JSON.parse(res.body);
-    expect(body.upgradeRequired).toBe(true);
-    expect(body.error).toContain('not available');
-  });
-
   it('allows AI call for ai-enabled plan', async () => {
-    mockCheckLimit.mockResolvedValueOnce({ allowed: true, limit: 1, current: 0, plan: 'pro' });
     mockAiService.analyzeSpecQuality.mockResolvedValueOnce({ score: 9, suggestions: [] });
     const app = await buildApp();
     const res = await app.inject({ method: 'POST', url: '/api/ai/analyze', payload: { content: '# Spec' } });

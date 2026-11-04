@@ -38,11 +38,21 @@ vi.mock('../../components/MarkdownPreview', () => ({
 }));
 
 vi.mock('../../components/MarkdownEditor', () => ({
-  MarkdownEditor: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+  MarkdownEditor: ({
+    value,
+    controller,
+  }: {
+    value: string;
+    controller: {
+      textareaRef: React.RefObject<HTMLTextAreaElement>;
+      handleChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+    };
+  }) => (
     <textarea
       data-testid="markdown-editor"
+      ref={controller.textareaRef}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={controller.handleChange}
     />
   ),
 }));
@@ -150,6 +160,105 @@ function renderEditor(initialPath: string, onNavReady: (nav: (to: string) => voi
 }
 
 // ── Tests ────────────────────────────────────────────────────────────
+
+import { loadDraft, saveDraft } from '../../lib/draftStore';
+
+describe('DocumentEditor — autosave, offline drafts and shortcuts (AI-63)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    mocks.fetchDocument.mockImplementation(async (id: string) => makeDocResponse(id === DOC_B.id ? DOC_B : DOC_A));
+    mocks.updateDocument.mockImplementation(async (id: string, data: { title?: string; content?: string }) =>
+      makeDocResponse({ ...(id === DOC_B.id ? DOC_B : DOC_A), ...data }),
+    );
+  });
+
+  it('flushes a pending edit to its own document when navigating away (no lost edits)', async () => {
+    let nav: (to: string) => void = () => {};
+    renderEditor('/app/documents/doc-a', (n) => {
+      nav = n;
+    });
+    const titleInput = (await screen.findByDisplayValue(DOC_A.title)) as HTMLInputElement;
+    fireEvent.change(titleInput, { target: { value: 'Edited A title' } });
+    await act(async () => {
+      nav('/app/documents/doc-b');
+    });
+    await waitFor(() => expect(mocks.updateDocument).toHaveBeenCalled());
+    const calls = mocks.updateDocument.mock.calls;
+    expect(calls).toHaveLength(1);
+    expect(calls[0][0]).toBe('doc-a');
+    expect(calls[0][1].title).toBe('Edited A title');
+    await waitFor(() => expect(screen.getByDisplayValue(DOC_B.title)).toBeInTheDocument());
+  });
+
+  it('Ctrl+S saves immediately instead of waiting for the debounce', async () => {
+    renderEditor('/app/documents/doc-a', () => {});
+    const titleInput = (await screen.findByDisplayValue(DOC_A.title)) as HTMLInputElement;
+    fireEvent.change(titleInput, { target: { value: 'Quick save' } });
+    expect(mocks.updateDocument).not.toHaveBeenCalled();
+    const ev = new KeyboardEvent('keydown', { key: 's', ctrlKey: true, cancelable: true, bubbles: true });
+    act(() => {
+      window.dispatchEvent(ev);
+    });
+    expect(ev.defaultPrevented).toBe(true);
+    await waitFor(() => expect(mocks.updateDocument).toHaveBeenCalledWith('doc-a', expect.objectContaining({ title: 'Quick save' })));
+  });
+
+  it('keeps a failed save as a local draft and retries when the connection returns', async () => {
+    mocks.updateDocument.mockRejectedValueOnce(new Error('offline'));
+    renderEditor('/app/documents/doc-a', () => {});
+    const titleInput = (await screen.findByDisplayValue(DOC_A.title)) as HTMLInputElement;
+    fireEvent.change(titleInput, { target: { value: 'Offline edit' } });
+    await waitFor(() => expect(mocks.updateDocument).toHaveBeenCalledTimes(1), { timeout: 2000 });
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveTextContent('Unsaved changes'));
+    expect(loadDraft('doc-a')?.title).toBe('Offline edit');
+
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+    });
+    await waitFor(() => expect(mocks.updateDocument).toHaveBeenCalledTimes(2));
+    expect(mocks.updateDocument.mock.calls[1][1].title).toBe('Offline edit');
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveTextContent('Saved'));
+    expect(loadDraft('doc-a')).toBeNull();
+  });
+
+  it('restores an unsaved local draft made against the same server version and re-saves it', async () => {
+    saveDraft('doc-a', { title: 'Draft title', content: 'Draft body', baseUpdatedAt: '2025-01-01T00:00:00Z' });
+    renderEditor('/app/documents/doc-a', () => {});
+    expect(await screen.findByDisplayValue('Draft title')).toBeInTheDocument();
+    expect((screen.getByTestId('markdown-editor') as HTMLTextAreaElement).value).toBe('Draft body');
+    await waitFor(() => expect(mocks.updateDocument).toHaveBeenCalledWith('doc-a', { title: 'Draft title', content: 'Draft body' }), {
+      timeout: 2000,
+    });
+  });
+
+  it('ignores a draft made against an older server version', async () => {
+    saveDraft('doc-a', { title: 'Old draft', content: 'Old body', baseUpdatedAt: '2024-01-01T00:00:00Z' });
+    renderEditor('/app/documents/doc-a', () => {});
+    expect(await screen.findByDisplayValue(DOC_A.title)).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Old draft')).toBeNull();
+  });
+
+  it('typing in the editor autosaves the content for the open document only', async () => {
+    renderEditor('/app/documents/doc-a', () => {});
+    await screen.findByDisplayValue(DOC_A.title);
+    const editor = screen.getByTestId('markdown-editor') as HTMLTextAreaElement;
+    fireEvent.change(editor, { target: { value: 'New body' } });
+    await waitFor(() => expect(mocks.updateDocument).toHaveBeenCalledWith('doc-a', { title: DOC_A.title, content: 'New body' }), {
+      timeout: 2000,
+    });
+  });
+
+  it('Ctrl+\\ cycles the layout and exposes pressed state on the mode buttons', async () => {
+    renderEditor('/app/documents/doc-a', () => {});
+    await screen.findByDisplayValue(DOC_A.title);
+    expect(screen.getByRole('button', { name: 'Split' })).toHaveAttribute('aria-pressed', 'true');
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '\\', ctrlKey: true, bubbles: true }));
+    });
+    expect(screen.getByRole('button', { name: 'Preview' })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
 
 describe('DocumentEditor — stale debounced save across documents (issue #344)', () => {
   beforeEach(() => {

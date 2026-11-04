@@ -1,0 +1,271 @@
+{
+  "slug": "financial_reports",
+  "label": "Financial Reports",
+  "description": "Financial reporting from data collection to regulatory filing",
+  "icon": "💰",
+  "is_default": false,
+  "sort_order": 7,
+  "connectors": [
+    "Data collection feeds the analysis framework",
+    "Framework structures the draft report",
+    "Draft goes through audit review",
+    "Audit findings drive revisions",
+    "Revisions produce the final filing"
+  ],
+  "stages": [
+    {
+      "slug": "data_collection",
+      "sort_order": 0,
+      "label": "Data Collection",
+      "abbreviation": "DC",
+      "subtitle": "Raw Financial Data",
+      "color": "bg-slate-100",
+      "text_color": "text-slate-700",
+      "dot_color": "bg-slate-400",
+      "border_color": "border-slate-300",
+      "hex": "#64748B",
+      "who": "Accountants, Analysts",
+      "description": "Collect and reconcile financial data",
+      "icon": "📊",
+      "ai": "Identifies anomalies, flags reconciliation issues",
+      "output": "Reconciled dataset",
+      "docs": [
+        "Data Sources",
+        "Reconciliation Report",
+        "Anomaly Log",
+        "Data Quality Assessment"
+      ],
+      "suggestions": [
+        "Identify anomalies",
+        "Check reconciliation",
+        "Validate sources"
+      ]
+    },
+    {
+      "slug": "analysis_framework",
+      "sort_order": 1,
+      "label": "Analysis Framework",
+      "abbreviation": "AF",
+      "subtitle": "Analytical Structure",
+      "color": "bg-zinc-100",
+      "text_color": "text-zinc-700",
+      "dot_color": "bg-zinc-400",
+      "border_color": "border-zinc-300",
+      "hex": "#71717A",
+      "who": "Financial Analysts",
+      "description": "Define KPIs and comparison frameworks",
+      "icon": "📐",
+      "ai": "Suggests relevant KPIs, identifies trends",
+      "output": "Analysis framework",
+      "docs": [
+        "KPI Definitions",
+        "Analysis Plan",
+        "Comparison Framework",
+        "Benchmark Data"
+      ],
+      "suggestions": [
+        "Suggest KPIs",
+        "Identify trends",
+        "Set benchmarks"
+      ]
+    },
+    {
+      "slug": "draft_report",
+      "sort_order": 2,
+      "label": "Draft Report",
+      "abbreviation": "DR",
+      "subtitle": "Initial Report",
+      "color": "bg-neutral-100",
+      "text_color": "text-neutral-700",
+      "dot_color": "bg-neutral-400",
+      "border_color": "border-neutral-300",
+      "hex": "#A3A3A3",
+      "who": "Report Writers",
+      "description": "Draft the financial report",
+      "icon": "📝",
+      "ai": "Generates narrative, checks calculations",
+      "output": "Draft report with charts",
+      "docs": [
+        "Draft Report",
+        "Financial Statements",
+        "Charts",
+        "Management Commentary"
+      ],
+      "suggestions": [
+        "Generate narrative",
+        "Suggest visualizations",
+        "Check calculations"
+      ]
+    },
+    {
+      "slug": "audit_review",
+      "sort_order": 3,
+      "label": "Audit Review",
+      "abbreviation": "AR",
+      "subtitle": "Verification",
+      "color": "bg-stone-100",
+      "text_color": "text-stone-700",
+      "dot_color": "bg-stone-400",
+      "border_color": "border-stone-300",
+      "hex": "#A8A29E",
+      "who": "Auditors",
+      "description": "Internal and external audit review",
+      "icon": "🔍",
+      "ai": "Cross-references figures, checks GAAP/IFRS",
+      "output": "Audit report",
+      "docs": [
+        "Audit Findings",
+        "Compliance Check",
+        "Adjustments",
+        "Auditor Notes"
+      ],
+      "suggestions": [
+        "Cross-reference figures",
+        "Check compliance",
+        "Flag issues"
+      ]
+    },
+    {
+      "slug": "revisions",
+      "sort_order": 4,
+      "label": "Revisions",
+      "abbreviation": "RV",
+      "subtitle": "Corrections",
+      "color": "bg-gray-100",
+      "text_color": "text-gray-700",
+      "dot_color": "bg-gray-400",
+      "border_color": "border-gray-300",
+      "hex": "#9CA3AF",
+      "who": "Financial Analysts",
+      "description": "Address audit findings",
+      "icon": "🔄",
+      "ai": "Tracks adjustments, recalculates affected figures",
+      "output": "Corrected report",
+      "docs": [
+        "Adjustment Log",
+        "Revised Statements",
+        "Response to Audit",
+        "Recalculation Notes"
+      ],
+      "suggestions": [
+        "Track adjustments",
+        "Verify corrections",
+        "Recalculate totals"
+      ]
+    },
+    {
+      "slug": "final_filing",
+      "sort_order": 5,
+      "label": "Final Filing",
+      "abbreviation": "FF",
+      "subtitle": "Submitted",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "CFO, Compliance",
+      "description": "Final approval and regulatory filing",
+      "icon": "📋",
+      "ai": "Checks filing requirements, validates formatting",
+      "output": "Filed financial report",
+      "docs": [
+        "Final Report",
+        "Filing Confirmation",
+        "Board Approval",
+        "Compliance Certificate"
+      ],
+      "suggestions": [
+        "Check filing requirements",
+        "Validate format",
+        "Generate checklist"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "data_collection",
+      "name": "Data Sources Inventory",
+      "description": "Catalog all data sources needed for the financial report",
+      "sort_order": 0,
+      "content": "# Data Sources Inventory\n\n## Report\n<!-- Report name and period -->\n\n## Data Sources\n| Source | Type | Owner | Frequency | Format | Access |\n|--------|------|-------|-----------|--------|--------|\n|        |      |       |           |        |        |\n\n## Data Quality Checks\n- [ ] Completeness verified\n- [ ] Duplicates removed\n- [ ] Date ranges confirmed\n- [ ] Currency conversions applied\n\n## Missing Data\n| Item | Expected Source | Status | Workaround |\n|------|----------------|--------|------------|\n|      |                |        |            |\n\n## Collection Deadline\n- \n"
+    },
+    {
+      "stage": "data_collection",
+      "name": "Data Reconciliation Log",
+      "description": "Track reconciliation between data sources and resolve discrepancies",
+      "sort_order": 1,
+      "content": "# Data Reconciliation Log\n\n## Report Period\n<!-- e.g., Q1 2026 -->\n\n## Reconciliation Items\n| Account / Item | Source A | Source B | Difference | Resolution |\n|---------------|----------|----------|-----------|------------|\n|               |          |          |           |            |\n\n## Adjustments Made\n| # | Description | Amount | Reason | Approved By |\n|---|------------|--------|--------|------------|\n| 1 |            |        |        |            |\n\n## Unresolved Items\n- \n\n## Sign-Off\n- Prepared by: \n- Reviewed by: \n- Date: \n"
+    },
+    {
+      "stage": "analysis_framework",
+      "name": "Financial Analysis Framework",
+      "description": "Define the analytical approach, KPIs, and benchmarks",
+      "sort_order": 0,
+      "content": "# Financial Analysis Framework\n\n## Report\n<!-- Report name -->\n\n## Key Performance Indicators\n| KPI | Definition | Target | Period |\n|-----|-----------|--------|--------|\n|     |           |        |        |\n\n## Analysis Methods\n- Trend analysis: \n- Variance analysis: \n- Ratio analysis: \n\n## Benchmarks\n| Metric | Internal Target | Industry Avg | Best in Class |\n|--------|----------------|-------------|---------------|\n|        |                |             |               |\n\n## Assumptions\n- \n\n## Limitations\n- \n"
+    },
+    {
+      "stage": "analysis_framework",
+      "name": "Variance Analysis Template",
+      "description": "Compare actual vs. budget performance with explanations",
+      "sort_order": 1,
+      "content": "# Variance Analysis\n\n## Period\n<!-- e.g., Q1 2026 -->\n\n## Summary\n| Line Item | Budget | Actual | Variance | Var % | Favorable |\n|-----------|--------|--------|----------|-------|-----------|\n| Revenue   |        |        |          |       |           |\n| COGS      |        |        |          |       |           |\n| OpEx      |        |        |          |       |           |\n| Net Income|        |        |          |       |           |\n\n## Significant Variances (>5%)\n| Item | Variance | Root Cause | Action Required |\n|------|----------|-----------|----------------|\n|      |          |           |                |\n\n## Forecast Impact\n<!-- How do these variances affect full-year forecast? -->\n"
+    },
+    {
+      "stage": "draft_report",
+      "name": "Financial Report Draft",
+      "description": "Draft the financial report with executive summary and detail sections",
+      "sort_order": 0,
+      "content": "# Financial Report — [Period]\n\n## Executive Summary\n<!-- 3-5 sentences covering key results -->\n\n## Revenue\n| Category | Prior Period | Current | Change |\n|----------|-------------|---------|--------|\n|          |             |         |        |\n\n## Expenses\n| Category | Budget | Actual | Variance |\n|----------|--------|--------|----------|\n|          |        |        |          |\n\n## Profitability\n- Gross margin: \n- Operating margin: \n- Net margin: \n\n## Cash Flow Highlights\n- \n\n## Risks & Outlook\n- \n\n## Appendix\n<!-- Supporting tables and notes -->\n"
+    },
+    {
+      "stage": "draft_report",
+      "name": "Management Discussion & Analysis",
+      "description": "Draft the MD&A section with narrative financial commentary",
+      "sort_order": 1,
+      "content": "# Management Discussion & Analysis\n\n## Period\n<!-- Reporting period -->\n\n## Business Overview\n<!-- Current state of the business -->\n\n## Results of Operations\n### Revenue\n<!-- Discussion of revenue drivers -->\n\n### Cost of Revenue\n<!-- Key cost changes -->\n\n### Operating Expenses\n<!-- Notable expense trends -->\n\n## Liquidity & Capital Resources\n- Cash position: \n- Working capital: \n- Debt: \n\n## Known Trends & Uncertainties\n- \n\n## Forward-Looking Statements\n<!-- Projections and caveats -->\n"
+    },
+    {
+      "stage": "audit_review",
+      "name": "Audit Preparation Checklist",
+      "description": "Prepare documentation and schedules for audit review",
+      "sort_order": 0,
+      "content": "# Audit Preparation Checklist\n\n## Audit Period\n<!-- Period under audit -->\n\n## Auditor\n<!-- Firm name -->\n\n## Documents Prepared\n- [ ] Trial balance\n- [ ] General ledger detail\n- [ ] Bank reconciliations\n- [ ] Accounts receivable aging\n- [ ] Accounts payable aging\n- [ ] Fixed asset register\n- [ ] Inventory count records\n- [ ] Revenue recognition schedules\n\n## Schedules\n| Schedule | Preparer | Status | Due Date |\n|----------|---------|--------|----------|\n|          |         |        |          |\n\n## Open Items from Prior Audit\n- [ ] \n"
+    },
+    {
+      "stage": "audit_review",
+      "name": "Audit Findings Response",
+      "description": "Track and respond to audit findings and recommendations",
+      "sort_order": 1,
+      "content": "# Audit Findings Response\n\n## Audit\n<!-- Audit firm, period -->\n\n## Findings\n| # | Finding | Severity | Management Response | Remediation Date |\n|---|---------|----------|-------------------|------------------|\n| 1 |         | Material / Significant / Minor | | |\n| 2 |         |          |                   |                  |\n\n## Adjusting Journal Entries\n| # | Description | Debit | Credit | Accepted |\n|---|------------|-------|--------|----------|\n| 1 |            |       |        | [ ]      |\n\n## Process Improvements\n- \n\n## Follow-Up Timeline\n- \n"
+    },
+    {
+      "stage": "revisions",
+      "name": "Report Revision Log",
+      "description": "Track revisions made to the financial report after review",
+      "sort_order": 0,
+      "content": "# Report Revision Log\n\n## Report\n<!-- Report name and version -->\n\n## Revisions\n| # | Section | Change | Requested By | Status |\n|---|---------|--------|-------------|--------|\n| 1 |         |        |             | [ ]    |\n| 2 |         |        |             | [ ]    |\n\n## Numbers Changed\n| Line Item | Previous | Updated | Reason |\n|-----------|----------|---------|--------|\n|           |          |         |        |\n\n## Narrative Updates\n- \n\n## Approvals After Revision\n| Approver | Date | Approved |\n|----------|------|----------|\n|          |      | [ ]      |\n"
+    },
+    {
+      "stage": "revisions",
+      "name": "Disclosure Checklist",
+      "description": "Ensure all required disclosures are included in the report",
+      "sort_order": 1,
+      "content": "# Disclosure Checklist\n\n## Report\n<!-- Report name -->\n\n## Required Disclosures\n- [ ] Accounting policies\n- [ ] Related party transactions\n- [ ] Contingent liabilities\n- [ ] Subsequent events\n- [ ] Segment reporting\n- [ ] Fair value measurements\n- [ ] Lease commitments\n- [ ] Stock compensation\n\n## Regulatory Requirements\n| Regulation | Requirement | Included | Notes |\n|-----------|-------------|----------|-------|\n|           |             | [ ]      |       |\n\n## Missing Disclosures\n- \n"
+    },
+    {
+      "stage": "final_filing",
+      "name": "Filing Checklist",
+      "description": "Final checklist before filing the financial report",
+      "sort_order": 0,
+      "content": "# Filing Checklist\n\n## Report\n<!-- Report name -->\n\n## Filing Details\n- Filing deadline: \n- Filing body: \n- Filing method: \n\n## Pre-Filing Checks\n- [ ] All numbers tie to source documents\n- [ ] Footnotes complete and accurate\n- [ ] Management signatures obtained\n- [ ] Board approval documented\n- [ ] Auditor opinion letter received\n- [ ] XBRL tagging complete (if required)\n\n## Distribution\n- [ ] Regulatory filing\n- [ ] Board of directors\n- [ ] Investors / shareholders\n- [ ] Internal stakeholders\n- [ ] Public posting (website)\n\n## Archive\n- [ ] Final version archived\n- [ ] Working papers filed\n"
+    },
+    {
+      "stage": "final_filing",
+      "name": "Earnings Summary",
+      "description": "Concise earnings summary for stakeholder communications",
+      "sort_order": 1,
+      "content": "# Earnings Summary — [Period]\n\n## Key Figures\n| Metric | Current | Prior Period | YoY Change |\n|--------|---------|-------------|------------|\n| Revenue |       |             |            |\n| Net Income |    |             |            |\n| EPS    |        |             |            |\n| EBITDA |        |             |            |\n\n## Highlights\n- \n\n## Guidance\n| Metric | Low | High |\n|--------|-----|------|\n|        |     |      |\n\n## Prepared Remarks\n<!-- Key talking points for earnings call -->\n1. \n2. \n3. \n\n## Q&A Prep\n| Likely Question | Prepared Answer |\n|----------------|----------------|\n|                |                |\n"
+    }
+  ]
+}

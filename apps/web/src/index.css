@@ -1,6 +1,12 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
+/* Inter is self-hosted via @fontsource-variable/inter (imported in main.tsx);
+   no external font CDN is used (desktop CSP allows font-src 'self' only). */
+@theme {
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ── Brand accent: blue → purple (both modes) ───────────
@@ -20,23 +26,42 @@
    Same hue (287°) in both modes for brand coherence.
 
    Light-mode contrast (verified):
-   - bg-blue-600 (oklch 53% 0.23 287, ≈ #6c2cd9) + text-white
+   - bg-blue-600 (oklch 49% 0.23 <hue>) + text-white
      → contrast ≈ 5.6:1 on #fff (passes WCAG AA).
    - text-blue-600 on bg-white → same ≈ 5.6:1 (passes AA).
    - text-blue-700 on bg-white → contrast ≈ 7.4:1 (passes AAA).
    ─────────────────────────────────────────────────────── */
 :root {
-  --color-blue-50:  oklch(97% 0.018 287);
-  --color-blue-100: oklch(94% 0.04 287);
-  --color-blue-200: oklch(88% 0.07 287);
-  --color-blue-300: oklch(80% 0.12 287);
-  --color-blue-400: oklch(70% 0.18 287);
-  --color-blue-500: oklch(60% 0.22 287);
-  --color-blue-600: oklch(53% 0.23 287);
-  --color-blue-700: oklch(46% 0.22 287);
-  --color-blue-800: oklch(38% 0.19 287);
-  --color-blue-900: oklch(30% 0.15 288);
-  --color-blue-950: oklch(20% 0.10 290);
+  /* Accent hue (OKLCH degrees). Set at runtime by the accent picker
+     (see src/lib/theme.ts) via document.documentElement.style. */
+  --accent-hue: 287;
+
+  --color-blue-50:  oklch(97% 0.018 var(--accent-hue));
+  --color-blue-100: oklch(94% 0.04 var(--accent-hue));
+  --color-blue-200: oklch(88% 0.07 var(--accent-hue));
+  --color-blue-300: oklch(80% 0.12 var(--accent-hue));
+  --color-blue-400: oklch(70% 0.18 var(--accent-hue));
+  --color-blue-500: oklch(60% 0.22 var(--accent-hue));
+  --color-blue-600: oklch(49% 0.23 var(--accent-hue));
+  --color-blue-700: oklch(46% 0.22 var(--accent-hue));
+  --color-blue-800: oklch(38% 0.19 var(--accent-hue));
+  --color-blue-900: oklch(30% 0.15 var(--accent-hue));
+  --color-blue-950: oklch(20% 0.10 var(--accent-hue));
+
+  /* Semantic design tokens (light). Contrast of these pairs is verified
+     by src/__tests__/lib/contrast.test.ts, which parses this file. */
+  --nyx-bg: oklch(98.4% 0.003 248);
+  --nyx-surface: #ffffff;
+  --nyx-text: oklch(20.8% 0.042 266);
+  --nyx-text-muted: oklch(50% 0.046 257);
+  --nyx-border: oklch(92.9% 0.013 255);
+  --nyx-accent: var(--color-blue-600);
+  --nyx-accent-fg: #ffffff;
+  --nyx-accent-text: var(--color-blue-700);
+  --nyx-scrollbar: oklch(75% 0.02 260);
+  --nyx-scrollbar-hover: oklch(62% 0.03 260);
+
+  --font-heading: var(--font-sans);
 }
 
 /* ── Dark Mode: CSS variable swap ─────────────────────
@@ -71,20 +96,31 @@
   --color-slate-900: oklch(97.5% 0.004 268);
   --color-slate-950: #ffffff;
 
-  /* Remap blue → purple accent in dark mode
-     All blue-* utilities (bg-blue-600, text-blue-500, border-blue-400, etc.)
-     automatically become purple/violet without touching component files. */
-  --color-blue-50:    oklch(22% 0.06 290);
-  --color-blue-100:   oklch(30% 0.1 290);
-  --color-blue-200:   oklch(40% 0.14 289);
-  --color-blue-300:   oklch(55% 0.18 288);
-  --color-blue-400:   oklch(65% 0.2 287);
-  --color-blue-500:   oklch(72% 0.19 286);
-  --color-blue-600:   oklch(68% 0.21 287);
-  --color-blue-700:   oklch(60% 0.2 288);
-  --color-blue-800:   oklch(50% 0.17 289);
-  --color-blue-900:   oklch(35% 0.12 290);
-  --color-blue-950:   oklch(25% 0.08 291);
+  /* Accent in dark mode. 500-800 stay dark enough for white text
+     (bg-blue-600 + text-white >= 4.5:1, fixes dark-mode button contrast);
+     light accent TEXT is handled by --nyx-accent-text below. */
+  --color-blue-50:    oklch(22% 0.06 var(--accent-hue));
+  --color-blue-100:   oklch(30% 0.1 var(--accent-hue));
+  --color-blue-200:   oklch(40% 0.14 var(--accent-hue));
+  --color-blue-300:   oklch(52% 0.18 var(--accent-hue));
+  --color-blue-400:   oklch(62% 0.2 var(--accent-hue));
+  --color-blue-500:   oklch(56% 0.22 var(--accent-hue));
+  --color-blue-600:   oklch(49% 0.23 var(--accent-hue));
+  --color-blue-700:   oklch(46% 0.22 var(--accent-hue));
+  --color-blue-800:   oklch(40% 0.19 var(--accent-hue));
+  --color-blue-900:   oklch(35% 0.12 var(--accent-hue));
+  --color-blue-950:   oklch(25% 0.08 var(--accent-hue));
+
+  --nyx-bg: oklch(12% 0.02 285);
+  --nyx-surface: oklch(24% 0.03 285);
+  --nyx-text: oklch(97.5% 0.004 268);
+  --nyx-text-muted: oklch(72% 0.03 275);
+  --nyx-border: oklch(30% 0.035 283);
+  --nyx-accent: var(--color-blue-600);
+  --nyx-accent-fg: #ffffff;
+  --nyx-accent-text: oklch(78% 0.17 var(--accent-hue));
+  --nyx-scrollbar: oklch(40% 0.04 280);
+  --nyx-scrollbar-hover: oklch(52% 0.05 280);
 
   /* Darken light accent backgrounds */
   --color-green-50:   oklch(26.6% 0.065 152.934);
@@ -137,9 +173,10 @@
 .dark .bg-zinc-100   { background-color: oklch(22% 0.03 285); }
 
 /* Lighten accent text on darkened accent backgrounds */
-.dark .text-blue-600    { color: oklch(75% 0.18 287); }
-.dark .text-blue-700    { color: oklch(82% 0.12 286); }
-.dark .text-blue-800    { color: oklch(82% 0.12 286); }
+.dark .text-blue-500,
+.dark .text-blue-600,
+.dark .text-blue-700,
+.dark .text-blue-800    { color: var(--nyx-accent-text); }
 .dark .text-green-600   { color: oklch(79.2% 0.209 151.711); }
 .dark .text-green-700   { color: oklch(87.1% 0.15 154.449); }
 .dark .text-green-800   { color: oklch(79.2% 0.209 151.711); }
@@ -152,9 +189,6 @@
 .dark .text-violet-700  { color: oklch(81.1% 0.111 293.571); }
 .dark .text-rose-600    { color: oklch(74.4% 0.177 18.067); }
 
-:root {
-  --font-heading: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-}
 h1, h2, h3 {
   font-family: var(--font-heading);
 }
@@ -166,14 +200,14 @@ h1, h2, h3 {
    to the same purple as text-blue-700 so rendered markdown
    links match the rest of the accent system. */
 .prose {
-  --tw-prose-links: oklch(46% 0.22 287);
+  --tw-prose-links: var(--nyx-accent-text);
 }
 
 /* Prose dark mode — purple-tinted typography */
 .dark .prose {
   --tw-prose-body: oklch(82% 0.02 272);
   --tw-prose-headings: oklch(97.5% 0.004 268);
-  --tw-prose-links: oklch(75% 0.18 287);
+  --tw-prose-links: var(--nyx-accent-text);
   --tw-prose-bold: oklch(95% 0.007 268);
   --tw-prose-code: oklch(95% 0.007 268);
   --tw-prose-quotes: oklch(65% 0.03 275);
@@ -183,4 +217,71 @@ h1, h2, h3 {
   --tw-prose-hr: oklch(23.5% 0.03 283);
   --tw-prose-th-borders: oklch(33% 0.035 280);
   --tw-prose-td-borders: oklch(23.5% 0.03 283);
+}
+
+/* ── Base, scrolling, focus, motion ─────────────────────── */
+html {
+  font-family: var(--font-sans);
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+html.dark { color-scheme: dark; }
+
+body {
+  margin: 0;
+  background: var(--nyx-bg);
+  color: var(--nyx-text);
+  /* Stop rubber-band / scroll-chaining jank at the document level. */
+  overscroll-behavior: none;
+}
+
+/* App shell (Layout) owns scrolling: the document itself never scrolls,
+   so there is no double scrollbar or body jank behind nested panes.
+   Public pages (landing, sign-in) don't set this class and scroll normally. */
+html.app-shell,
+html.app-shell body,
+html.app-shell #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Every scroll container keeps its scroll to itself. */
+.overflow-y-auto,
+.overflow-auto,
+.overflow-x-auto,
+.scroll-contain {
+  overscroll-behavior: contain;
+}
+
+/* Slim themed scrollbars (Firefox + WebKit/Blink/WebView). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--nyx-scrollbar) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background-color: var(--nyx-scrollbar);
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background-color: var(--nyx-scrollbar-hover); }
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--nyx-accent-text);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

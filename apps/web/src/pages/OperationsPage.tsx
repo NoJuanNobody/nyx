@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { VoicePage } from './VoicePage';
-import { AgentMapPage } from './AgentMapPage';
 import { ObservabilityPage } from './ObservabilityPage';
 
 const TABS = [
   { id: 'voice', label: 'Voice' },
-  { id: 'agents', label: 'Agents' },
   { id: 'observability', label: 'Observability' },
 ] as const;
 
@@ -53,7 +51,6 @@ export function OperationsPage() {
       {/* Tab content */}
       <div className="flex-1 overflow-auto">
         {activeTab === 'voice' && <VoicePage />}
-        {activeTab === 'agents' && <AgentMapPage />}
         {activeTab === 'observability' && <ObservabilityPage />}
       </div>
     </div>

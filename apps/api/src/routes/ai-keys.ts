@@ -1,22 +1,11 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { eq, and, sql, gte } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { teamAiKeys, aiUsageLog, subscriptions, teams } from '../db/schema.js';
+import { teamAiKeys, aiUsageLog, teams } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
 import { encrypt, decrypt } from '../services/encryption.service.js';
 import { config } from '../lib/config.js';
 import { invalidateTeamClient } from '../services/ai.service.js';
-
-const BYOK_ELIGIBLE_PLANS = ['team', 'enterprise'];
-
-async function getTeamPlan(teamId: string): Promise<string> {
-  const [sub] = await db
-    .select({ plan: subscriptions.plan })
-    .from(subscriptions)
-    .where(eq(subscriptions.teamId, teamId))
-    .limit(1);
-  return sub?.plan ?? 'free';
-}
 
 function getEncryptionSecret(): string {
   const secret = config.BYOK_ENCRYPTION_SECRET;
@@ -36,14 +25,6 @@ export const aiKeyRoutes: FastifyPluginAsync = async (app) => {
 
     if (!provider || !apiKey) {
       return reply.code(400).send({ error: 'provider and apiKey are required' });
-    }
-
-    // Tier gate
-    const plan = await getTeamPlan(teamId);
-    if (!BYOK_ELIGIBLE_PLANS.includes(plan)) {
-      return reply.code(403).send({
-        error: 'BYOK is available on Team and Enterprise plans.',
-      });
     }
 
     // Check for existing key

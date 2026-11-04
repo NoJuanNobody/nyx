@@ -26,5 +26,5 @@ export const ReadinessResponseSchema = z.object({
 });
 export type ReadinessResponse = z.infer<typeof ReadinessResponseSchema>;
 
-export const DependencyName = z.enum(['database', 'clerk', 'github', 'stripe']);
+export const DependencyName = z.enum(['database', 'clerk', 'github']);
 export type DependencyName = z.infer<typeof DependencyName>;

@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { useLongPress } from '../hooks/useLongPress';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Document, DocumentTemplate } from '@nyx/shared';
 import {
@@ -11,8 +10,8 @@ import {
   fetchTeams,
   fetchTemplates,
 } from '../lib/api';
-import { STAGE_MAP, STAGES, type DocumentStage } from '../lib/stages';
-import { getLifecycle, getStageInfo, type StageInfo } from '../lib/lifecycles';
+import { STAGE_MAP, type DocumentStage } from '../lib/stages';
+import { getLifecycle, getStageInfo } from '../lib/lifecycles';
 import { useUIStore } from '../stores/ui.store';
 import { TemplatePicker } from './TemplatePicker';
 import {
@@ -23,6 +22,20 @@ import {
   type ContextMenuSeparator,
 } from './ContextMenu';
 import { BulkTicketReview } from './BulkTicketReview';
+import { ExplorerTree, type DragPayload } from './ExplorerTree';
+import {
+  NO_STAGE,
+  buildFolderTree,
+  buildStageTree,
+  computeMovedFolderPath,
+  docId as docNodeId,
+  folderId,
+  getDescendantFolders,
+  rewriteDescendantPaths,
+  stageId as stageNodeId,
+  wouldCreateCycle,
+  type ExplorerNode,
+} from '../lib/explorerTree';
 
 // ── Folder persistence (localStorage) ─────────────────
 
@@ -41,624 +54,23 @@ function saveFolders(folders: string[]) {
   localStorage.setItem(FOLDERS_KEY, JSON.stringify(folders));
 }
 
-// ── Tree data structures ──────────────────────────────
+const VIEW_KEY = 'nyx:explorer-view';
 
-interface FolderNode {
-  type: 'folder';
-  name: string;
-  path: string;
-  children: TreeNode[];
-}
-
-interface DocNode {
-  type: 'doc';
-  doc: Document;
-}
-
-type TreeNode = FolderNode | DocNode;
-
-function ensureFolder(root: FolderNode, folderPath: string) {
-  const segments = folderPath.split('/').filter(Boolean);
-  let current = root;
-  let builtPath = '';
-  for (const seg of segments) {
-    builtPath += `/${seg}`;
-    let child = current.children.find(
-      (c): c is FolderNode => c.type === 'folder' && c.name === seg,
-    );
-    if (!child) {
-      child = { type: 'folder', name: seg, path: builtPath, children: [] };
-      current.children.push(child);
-    }
-    current = child;
+function loadViewMode(): 'folders' | 'stages' {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'stages' ? 'stages' : 'folders';
+  } catch {
+    return 'folders';
   }
-  return current;
 }
 
-function buildTree(docs: Document[], emptyFolders: string[]): TreeNode[] {
-  const root: FolderNode = { type: 'folder', name: '', path: '/', children: [] };
+// ── Tree helpers (pure; shared with tests via lib/explorerTree) ──────
 
-  for (const folderPath of emptyFolders) {
-    ensureFolder(root, folderPath);
-  }
-
-  for (const doc of docs) {
-    const docPath = doc.path || '/';
-    const parent = ensureFolder(root, docPath);
-    parent.children.push({ type: 'doc', doc });
-  }
-
-  function sortChildren(nodes: TreeNode[]): TreeNode[] {
-    return nodes
-      .sort((a, b) => {
-        if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
-        const nameA = a.type === 'folder' ? a.name : a.doc.title;
-        const nameB = b.type === 'folder' ? b.name : b.doc.title;
-        return nameA.localeCompare(nameB);
-      })
-      .map((n) => {
-        if (n.type === 'folder') return { ...n, children: sortChildren(n.children) };
-        return n;
-      });
-  }
-
-  return sortChildren(root.children);
-}
-
-/** Collect all folder paths that are descendants of the given path */
-function getDescendantFolders(folders: string[], parentPath: string): string[] {
-  const prefix = parentPath === '/' ? '/' : `${parentPath}/`;
-  return folders.filter((f) => f === parentPath || f.startsWith(prefix));
-}
-
-/**
- * Rewrite descendant paths (folders or document paths) when a folder is renamed
- * or moved. Any path equal to `oldPrefix` becomes `newPrefix`, and any path that
- * starts with `oldPrefix + '/'` has that prefix replaced with `newPrefix`.
- *
- * Used by both `handleFolderRenameSubmit` and `handleDropFolder` so the
- * rewrite logic lives in exactly one place.
- *
- * Exported for unit tests.
- */
-export function rewriteDescendantPaths(
-  items: string[],
-  oldPrefix: string,
-  newPrefix: string,
-): string[] {
-  return items.map((p) => {
-    if (p === oldPrefix) return newPrefix;
-    if (p.startsWith(`${oldPrefix}/`)) return newPrefix + p.substring(oldPrefix.length);
-    return p;
-  });
-}
-
-/**
- * Returns true if moving `sourcePath` into `targetParentPath` would create a
- * cycle (i.e. the target is the source itself, or a descendant of the source).
- *
- * Exported for unit tests.
- */
-export function wouldCreateCycle(sourcePath: string, targetParentPath: string): boolean {
-  if (targetParentPath === sourcePath) return true;
-  if (targetParentPath.startsWith(`${sourcePath}/`)) return true;
-  return false;
-}
-
-/**
- * Compute the new path for a folder being moved into a target parent. Strips
- * the leaf segment off `sourcePath` and re-parents it under `targetParentPath`
- * (which may be `'/'` for the root).
- */
-export function computeMovedFolderPath(sourcePath: string, targetParentPath: string): string {
-  const leaf = sourcePath.substring(sourcePath.lastIndexOf('/') + 1);
-  return targetParentPath === '/' ? `/${leaf}` : `${targetParentPath}/${leaf}`;
-}
-
-// MIME types for drag and drop payloads
-const DRAG_MIME_DOC = 'application/nyx-doc-id';
-const DRAG_MIME_FOLDER = 'application/nyx-folder-path';
-
-// Module-scoped source tracker. The HTML5 drag-and-drop API does not allow
-// reading dataTransfer payload values during `dragover` (only during `drop`),
-// so we stash the in-flight folder source path here to support live cycle/self
-// detection in the highlight logic.
-let activeFolderDragSource: string | null = null;
-
-// ── Inline input ──────────────────────────────────────
-
-function InlineInput({
-  initial,
-  onSubmit,
-  onCancel,
-}: {
-  initial: string;
-  onSubmit: (value: string) => void;
-  onCancel: () => void;
-}) {
-  const [value, setValue] = useState(initial);
-  const ref = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    ref.current?.focus();
-    ref.current?.select();
-  }, []);
-
-  return (
-    <input
-      ref={ref}
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' && value.trim()) onSubmit(value.trim());
-        if (e.key === 'Escape') onCancel();
-      }}
-      onBlur={() => {
-        if (value.trim()) onSubmit(value.trim());
-        else onCancel();
-      }}
-      className="w-full bg-transparent text-xs text-slate-800 outline-none border-b border-blue-400 py-0.5"
-      spellCheck={false}
-    />
-  );
-}
-
-// ── Folder inline input row ───────────────────────────
-
-function NewFolderRow({
-  depth,
-  onSubmit,
-  onCancel,
-}: {
-  depth: number;
-  onSubmit: (name: string) => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div
-      className="flex items-center gap-1 px-2 py-1"
-      style={{ paddingLeft: `${depth * 12 + 8}px` }}
-    >
-      <span className="h-3 w-3 flex-shrink-0" />
-      <svg
-        className="h-4 w-4 flex-shrink-0 text-blue-500"
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth={1.5}
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
-        />
-      </svg>
-      <InlineInput initial="" onSubmit={onSubmit} onCancel={onCancel} />
-    </div>
-  );
-}
-
-// ── Folder component ──────────────────────────────────
-
-function Folder({
-  node,
-  depth,
-  onCreateDoc,
-  onCreateFolder,
-  creatingFolderAt,
-  onFolderNameSubmit,
-  onFolderNameCancel,
-  expandedFolders,
-  toggleFolder,
-  onContextMenu,
-  onRenameDoc,
-  renamingDocId,
-  onDocRenameSubmit,
-  onDocRenameCancel,
-  renamingFolderPath,
-  onFolderRenameSubmit,
-  onFolderRenameCancel,
-  onDeleteFolder,
-  onDropDoc,
-  onDropFolder,
-}: {
-  node: FolderNode;
-  depth: number;
-  onCreateDoc: (path: string) => void;
-  onCreateFolder: (parentPath: string) => void;
-  creatingFolderAt: string | null;
-  onFolderNameSubmit: (parentPath: string, name: string) => void;
-  onFolderNameCancel: () => void;
-  expandedFolders: Set<string>;
-  toggleFolder: (path: string) => void;
-  onContextMenu: (
-    e: React.MouseEvent,
-    targetPath: string,
-    targetType: 'folder' | 'doc' | 'root',
-    doc?: Document,
-  ) => void;
-  onRenameDoc: (docId: string) => void;
-  renamingDocId: string | null;
-  onDocRenameSubmit: (docId: string, newTitle: string) => void;
-  onDocRenameCancel: () => void;
-  renamingFolderPath: string | null;
-  onFolderRenameSubmit: (oldPath: string, newName: string) => void;
-  onFolderRenameCancel: () => void;
-  onDeleteFolder: (path: string) => void;
-  onDropDoc: (docId: string, targetPath: string) => void;
-  onDropFolder: (sourcePath: string, targetParentPath: string) => void;
-}) {
-  const isOpen = expandedFolders.has(node.path);
-  const [showActions, setShowActions] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
-  const isRenaming = renamingFolderPath === node.path;
-
-  const folderLongPressProps = useLongPress((e) => {
-    const touch = e.changedTouches[0];
-    const syntheticEvent = {
-      clientX: touch.clientX,
-      clientY: touch.clientY,
-      preventDefault: () => {},
-    } as unknown as React.MouseEvent;
-    onContextMenu(syntheticEvent, node.path, 'folder');
-  });
-
-  const handleDragStart = (e: React.DragEvent) => {
-    if (isRenaming) {
-      e.preventDefault();
-      return;
-    }
-    e.stopPropagation();
-    e.dataTransfer.setData(DRAG_MIME_FOLDER, node.path);
-    e.dataTransfer.effectAllowed = 'move';
-    activeFolderDragSource = node.path;
-  };
-
-  const handleDragEnd = () => {
-    activeFolderDragSource = null;
-    setDragOver(false);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    const types = e.dataTransfer.types;
-    if (types.includes(DRAG_MIME_DOC)) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      setDragOver(true);
-      return;
-    }
-    if (types.includes(DRAG_MIME_FOLDER)) {
-      // Reject drop-on-self and drop-into-descendant (cycle).
-      const source = activeFolderDragSource;
-      if (source && wouldCreateCycle(source, node.path)) {
-        e.dataTransfer.dropEffect = 'none';
-        setDragOver(false);
-        return;
-      }
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      setDragOver(true);
-      return;
-    }
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    // Only clear if leaving the folder element itself, not entering a child
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setDragOver(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragOver(false);
-    const docId = e.dataTransfer.getData(DRAG_MIME_DOC);
-    if (docId) {
-      onDropDoc(docId, node.path);
-      return;
-    }
-    const folderPath = e.dataTransfer.getData(DRAG_MIME_FOLDER);
-    if (folderPath) {
-      onDropFolder(folderPath, node.path);
-      activeFolderDragSource = null;
-    }
-  };
-
-  return (
-    <div>
-      <div
-        className={`group flex items-center gap-1 px-2 py-1 cursor-pointer rounded-md transition-colors ${
-          dragOver
-            ? 'bg-blue-100 ring-1 ring-blue-300'
-            : 'hover:bg-slate-100/60'
-        }`}
-        style={{ paddingLeft: `${depth * 12 + 8}px` }}
-        draggable={!isRenaming}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onClick={() => !isRenaming && toggleFolder(node.path)}
-        onMouseEnter={() => setShowActions(true)}
-        onMouseLeave={() => setShowActions(false)}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          onContextMenu(e, node.path, 'folder');
-        }}
-        {...folderLongPressProps}
-      >
-        {/* Chevron */}
-        <svg
-          className={`h-3 w-3 flex-shrink-0 text-slate-400 transition-transform duration-150 ${isOpen ? 'rotate-90' : ''}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={2}
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-        </svg>
-
-        {/* Folder icon */}
-        <svg
-          className={`h-4 w-4 flex-shrink-0 ${isOpen ? 'text-blue-500' : 'text-slate-400'}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-        >
-          {isOpen ? (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776"
-            />
-          ) : (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
-            />
-          )}
-        </svg>
-
-        {isRenaming ? (
-          <InlineInput
-            initial={node.name}
-            onSubmit={(name) => onFolderRenameSubmit(node.path, name)}
-            onCancel={onFolderRenameCancel}
-          />
-        ) : (
-          <span className="flex-1 truncate text-xs font-medium text-slate-700">
-            {node.name}
-          </span>
-        )}
-
-        {/* Quick actions */}
-        {showActions && !isRenaming && (
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              type="button"
-              title="New document"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCreateDoc(node.path);
-              }}
-              className="rounded p-0.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
-            >
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              title="New subfolder"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCreateFolder(node.path);
-              }}
-              className="rounded p-0.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
-            >
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {isOpen && (
-        <div>
-          {node.children.map((child) =>
-            child.type === 'folder' ? (
-              <Folder
-                key={child.path}
-                node={child}
-                depth={depth + 1}
-                onCreateDoc={onCreateDoc}
-                onCreateFolder={onCreateFolder}
-                creatingFolderAt={creatingFolderAt}
-                onFolderNameSubmit={onFolderNameSubmit}
-                onFolderNameCancel={onFolderNameCancel}
-                expandedFolders={expandedFolders}
-                toggleFolder={toggleFolder}
-                onContextMenu={onContextMenu}
-                onRenameDoc={onRenameDoc}
-                renamingDocId={renamingDocId}
-                onDocRenameSubmit={onDocRenameSubmit}
-                onDocRenameCancel={onDocRenameCancel}
-                renamingFolderPath={renamingFolderPath}
-                onFolderRenameSubmit={onFolderRenameSubmit}
-                onFolderRenameCancel={onFolderRenameCancel}
-                onDeleteFolder={onDeleteFolder}
-                onDropDoc={onDropDoc}
-                onDropFolder={onDropFolder}
-              />
-            ) : (
-              <DocItem
-                key={child.doc.id}
-                doc={child.doc}
-                depth={depth + 1}
-                onContextMenu={onContextMenu}
-                onRenameDoc={onRenameDoc}
-                isRenaming={renamingDocId === child.doc.id}
-                onRenameSubmit={onDocRenameSubmit}
-                onRenameCancel={onDocRenameCancel}
-              />
-            ),
-          )}
-
-          {creatingFolderAt === node.path && (
-            <NewFolderRow
-              depth={depth + 1}
-              onSubmit={(name) => onFolderNameSubmit(node.path, name)}
-              onCancel={onFolderNameCancel}
-            />
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Document item ─────────────────────────────────────
-
-function DocItem({
-  doc,
-  depth,
-  onContextMenu,
-  onRenameDoc,
-  isRenaming,
-  onRenameSubmit,
-  onRenameCancel,
-}: {
-  doc: Document;
-  depth: number;
-  onContextMenu: (
-    e: React.MouseEvent,
-    targetPath: string,
-    targetType: 'folder' | 'doc' | 'root',
-    doc?: Document,
-  ) => void;
-  onRenameDoc: (docId: string) => void;
-  isRenaming: boolean;
-  onRenameSubmit: (docId: string, newTitle: string) => void;
-  onRenameCancel: () => void;
-}) {
-  const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('application/nyx-doc-id', doc.id);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const activeLifecycleSlug = useUIStore((s) => s.activeLifecycleSlug);
-  const [showActions, setShowActions] = useState(false);
-
-  const docLongPressProps = useLongPress((e) => {
-    const touch = e.changedTouches[0];
-    const syntheticEvent = {
-      clientX: touch.clientX,
-      clientY: touch.clientY,
-      preventDefault: () => {},
-    } as unknown as React.MouseEvent;
-    onContextMenu(syntheticEvent, doc.id, 'doc', doc);
-  });
-
-  return (
-    <>
-    <div
-      className="relative"
-      draggable={!isRenaming}
-      onDragStart={handleDragStart}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <NavLink
-        to={`/app/documents/${doc.id}`}
-        className={({ isActive }) =>
-          `group flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors ${
-            isActive
-              ? 'bg-blue-50 text-blue-700'
-              : 'text-slate-600 hover:bg-slate-100/60 hover:text-slate-900'
-          }`
-        }
-        style={{ paddingLeft: `${(depth + 1) * 12 + 8}px` }}
-        onDoubleClick={(e) => {
-          e.preventDefault();
-          onRenameDoc(doc.id);
-        }}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          onContextMenu(e, doc.id, 'doc', doc);
-        }}
-        {...docLongPressProps}
-      >
-        <svg className="h-3.5 w-3.5 flex-shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-        </svg>
-        {isRenaming ? (
-          <div className="flex-1" onClick={(e) => e.preventDefault()}>
-            <InlineInput
-              initial={doc.title || 'Untitled'}
-              onSubmit={(name) => onRenameSubmit(doc.id, name)}
-              onCancel={onRenameCancel}
-            />
-          </div>
-        ) : (
-          <span className="flex-1 truncate text-xs">{doc.title || 'Untitled'}</span>
-        )}
-        {(() => {
-          const stageId = (doc as Document & { stage?: string | null }).stage;
-          const info = stageId ? (STAGE_MAP[stageId] ?? getStageInfo(stageId, activeLifecycleSlug)) : undefined;
-          return info ? (
-            <span
-              className={`flex-shrink-0 rounded px-1 py-0.5 text-[9px] font-bold leading-none ${info.color} ${info.textColor}`}
-            >
-              {info.abbreviation}
-            </span>
-          ) : null;
-        })()}
-      </NavLink>
-
-      {/* Hover action buttons */}
-      {showActions && !isRenaming && (
-        <div
-          className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5"
-        >
-          <button
-            type="button"
-            title="Rename"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              onRenameDoc(doc.id);
-            }}
-            className="rounded p-0.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
-          >
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            title="Delete"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              onRenameSubmit(doc.id, '__DELETE__');
-            }}
-            className="rounded p-0.5 text-slate-400 hover:text-red-600 hover:bg-red-50"
-          >
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-            </svg>
-          </button>
-        </div>
-      )}
-    </div>
-    </>
-  );
-}
+export {
+  rewriteDescendantPaths,
+  wouldCreateCycle,
+  computeMovedFolderPath,
+} from '../lib/explorerTree';
 
 // ── Main FileTree component ───────────────────────────
 
@@ -673,6 +85,8 @@ export function FileTree() {
   const [renamingDocId, setRenamingDocId] = useState<string | null>(null);
   const [renamingFolderPath, setRenamingFolderPath] = useState<string | null>(null);
   const [stageFilter, setStageFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'folders' | 'stages'>(loadViewMode);
+  const [collapsedStages, setCollapsedStages] = useState<Set<string>>(new Set());
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [bulkTicketFolderPath, setBulkTicketFolderPath] = useState<string | null>(null);
   const seeding = useUIStore((s) => s.seeding);
@@ -1147,16 +561,134 @@ export function FileTree() {
   };
 
   // Apply client-side stage filter
+  const docStageOf = (doc: Document) => (doc as Document & { stage?: string | null }).stage ?? null;
   const filteredDocs = (documents ?? []).filter((doc) => {
     if (stageFilter === 'all') return true;
-    if (stageFilter === 'none') return !(doc as Document & { stage?: string | null }).stage;
-    return (doc as Document & { stage?: string | null }).stage === stageFilter;
+    if (stageFilter === 'none') return !docStageOf(doc);
+    return docStageOf(doc) === stageFilter;
   });
 
-  const tree = buildTree(filteredDocs, folders);
+  const nodes: ExplorerNode<unknown>[] = useMemo(
+    () =>
+      viewMode === 'stages'
+        ? buildStageTree(
+            filteredDocs.map((d) => ({ id: d.id, title: d.title, path: d.path, stage: docStageOf(d), doc: d })),
+            activeStages.map((st) => ({ id: st.id, label: st.label })),
+          )
+        : buildFolderTree(
+            filteredDocs.map((d) => ({ id: d.id, title: d.title, path: d.path, stage: docStageOf(d), doc: d })),
+            // While filtering, only folders that still contain a match are shown.
+            stageFilter === 'all' ? folders : [],
+          ),
+    [viewMode, documents, stageFilter, folders, activeStages],
+  );
 
-  const rootDocs = tree.filter((n): n is DocNode => n.type === 'doc');
-  const rootFolders = tree.filter((n): n is FolderNode => n.type === 'folder');
+  const docOf = (node: ExplorerNode<unknown>): Document | undefined =>
+    node.kind === 'doc' ? (node.data as { doc?: Document } | undefined)?.doc : undefined;
+
+  const expandedIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const p of expandedFolders) ids.add(folderId(p));
+    if (viewMode === 'stages') {
+      for (const st of activeStages) if (!collapsedStages.has(st.id)) ids.add(stageNodeId(st.id));
+      if (!collapsedStages.has(NO_STAGE)) ids.add(stageNodeId(NO_STAGE));
+    }
+    return ids;
+  }, [expandedFolders, collapsedStages, viewMode, activeStages]);
+
+  const handleToggleNode = (id: string) => {
+    if (id.startsWith('folder:')) toggleFolder(id.slice('folder:'.length));
+    else if (id.startsWith('stage:')) {
+      const sid = id.slice('stage:'.length);
+      setCollapsedStages((prev) => {
+        const next = new Set(prev);
+        if (next.has(sid)) next.delete(sid);
+        else next.add(sid);
+        return next;
+      });
+    }
+  };
+
+  const handleMove = (source: DragPayload, target: ExplorerNode<unknown> | null) => {
+    if (target?.kind === 'group') {
+      if (source.kind !== 'doc') return;
+      const sid = target.id.slice('stage:'.length);
+      updateStageMutation.mutate({ id: source.id, stage: sid === NO_STAGE ? null : sid });
+      return;
+    }
+    if (viewMode === 'stages') return; // folder moves are only meaningful in the folder view
+    const targetPath = target ? target.path : '/';
+    if (source.kind === 'doc') handleDropDoc(source.id, targetPath);
+    else handleDropFolder(source.path, targetPath);
+  };
+
+  const handleDeleteNode = (node: ExplorerNode<unknown>) => {
+    const doc = docOf(node);
+    if (doc) {
+      handleDocRenameSubmit(doc.id, '__DELETE__');
+      return;
+    }
+    if (node.kind !== 'folder') return;
+    const contained = (documents ?? []).filter((d) => {
+      const p = d.path || '/';
+      return p === node.path || p.startsWith(`${node.path}/`);
+    }).length;
+    if (
+      contained > 0 &&
+      typeof window.confirm === 'function' &&
+      !window.confirm(`Delete "${node.label}" and its ${contained} document${contained === 1 ? '' : 's'}?`)
+    ) {
+      return;
+    }
+    handleDeleteFolder(node.path);
+  };
+
+  const handleTreeContextMenu = (pos: { x: number; y: number }, node: ExplorerNode<unknown> | null) => {
+    const fake = { clientX: pos.x, clientY: pos.y } as React.MouseEvent;
+    if (!node) {
+      if (viewMode === 'folders') handleContextMenu(fake, '/', 'root');
+      return;
+    }
+    const doc = docOf(node);
+    if (doc) handleContextMenu(fake, doc.id, 'doc', doc);
+    else if (node.kind === 'folder') handleContextMenu(fake, node.path, 'folder');
+  };
+
+  const selectedNodeId = (() => {
+    const m = /^\/app\/documents\/([^/]+)/.exec(location.pathname);
+    return m ? docNodeId(m[1]) : null;
+  })();
+
+  const hasContent = (documents?.length ?? 0) > 0 || folders.length > 0 || !!creatingFolderAt;
+  const emptyState = isLoading ? (
+    <p className="px-4 py-3 text-xs text-slate-400">Loading...</p>
+  ) : !hasContent ? (
+    <div className="px-4 py-6 text-center">
+      <p className="text-xs text-slate-400 mb-3">No documents yet</p>
+      <button
+        type="button"
+        onClick={() => handleCreateDoc('/')}
+        disabled={createMutation.isPending}
+        className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+      >
+        <svg className="h-3 w-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        New Document
+      </button>
+    </div>
+  ) : (
+    <div className="px-4 py-6 text-center">
+      <p className="text-xs text-slate-400 mb-3">No documents in this stage</p>
+      <button
+        type="button"
+        onClick={() => setStageFilter('all')}
+        className="text-xs font-medium text-blue-600 hover:underline"
+      >
+        Show all stages
+      </button>
+    </div>
+  );
 
   return (
     <div className="relative flex h-full flex-col">
@@ -1200,6 +732,7 @@ export function FileTree() {
           <button
             type="button"
             title="New from template"
+            aria-label="New from template"
             onClick={() => setShowTemplatePicker(true)}
             className="rounded p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
           >
@@ -1210,6 +743,7 @@ export function FileTree() {
           <button
             type="button"
             title="New document"
+            aria-label="New document"
             onClick={() => handleCreateDoc('/')}
             className="rounded p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
           >
@@ -1220,8 +754,10 @@ export function FileTree() {
           <button
             type="button"
             title="New folder"
+            aria-label="New folder"
+            disabled={viewMode === 'stages'}
             onClick={() => handleCreateFolder('/')}
-            className="rounded p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            className="rounded p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-40"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 10.5v6m3-3H9m4.06-7.19-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
@@ -1231,129 +767,147 @@ export function FileTree() {
       </div>
 
       {createError && (
-        <div className="mx-4 mb-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <div role="alert" className="mx-4 mb-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           {createError}
         </div>
       )}
 
-      {/* Stage filter */}
+      {/* View mode: by folder or grouped by lifecycle stage */}
+      <div className="px-4 pb-2" role="group" aria-label="Explorer view">
+        <div className="flex rounded-md border border-slate-200 p-0.5 text-[11px]">
+          {(['folders', 'stages'] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              aria-pressed={viewMode === mode}
+              onClick={() => {
+                setViewMode(mode);
+                try {
+                  localStorage.setItem(VIEW_KEY, mode);
+                } catch {
+                  /* storage unavailable */
+                }
+              }}
+              className={`flex-1 rounded px-2 py-0.5 ${
+                viewMode === mode ? 'bg-blue-50 font-medium text-blue-700' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              {mode === 'folders' ? 'Folders' : 'Stages'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Stage filter (stages of the active pipeline) */}
       <div className="px-4 pb-2">
         <select
+          aria-label="Filter by stage"
           value={stageFilter}
           onChange={(e) => setStageFilter(e.target.value)}
           className="w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-600 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-100"
         >
           <option value="all">All stages</option>
-          <option value="conception">Conception</option>
-          <option value="definition">Definition</option>
-          <option value="architecture">Architecture</option>
-          <option value="implementation">Implementation</option>
-          <option value="execution">Execution</option>
+          {activeStages.map((st) => (
+            <option key={st.id} value={st.id}>
+              {st.label}
+            </option>
+          ))}
           <option value="none">No stage</option>
         </select>
       </div>
 
-      {/* Tree */}
-      <div
-        className="flex-1 overflow-y-auto px-1 pb-4"
-        onContextMenu={(e) => {
-          // Only trigger on the root scroll area itself, not on child elements
-          if (e.target === e.currentTarget) {
-            e.preventDefault();
-            handleContextMenu(e, '/', 'root');
-          }
+      <ExplorerTree
+        nodes={nodes}
+        expanded={expandedIds}
+        onToggle={handleToggleNode}
+        ariaLabel={viewMode === 'stages' ? 'Documents by stage' : 'Documents and folders'}
+        selectedId={selectedNodeId}
+        onActivate={(node) => {
+          const doc = docOf(node);
+          if (doc) navigate(`/app/documents/${doc.id}`);
         }}
-        onDragOver={(e) => {
-          const types = e.dataTransfer.types;
-          if (types.includes(DRAG_MIME_DOC) || types.includes(DRAG_MIME_FOLDER)) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-          }
+        onRename={(node) => {
+          const doc = docOf(node);
+          if (doc) setRenamingDocId(doc.id);
+          else if (node.kind === 'folder') setRenamingFolderPath(node.path);
         }}
-        onDrop={(e) => {
-          e.preventDefault();
-          const docId = e.dataTransfer.getData(DRAG_MIME_DOC);
-          if (docId) {
-            handleDropDoc(docId, '/');
-            return;
-          }
-          const folderPath = e.dataTransfer.getData(DRAG_MIME_FOLDER);
-          if (folderPath) {
-            handleDropFolder(folderPath, '/');
-          }
+        onDelete={handleDeleteNode}
+        onContextMenu={handleTreeContextMenu}
+        onMove={handleMove}
+        canDrop={(source, target) => {
+          // Folders only move in the folder view; stage groups only take documents.
+          if (viewMode === 'stages') return source.kind === 'doc' && target?.kind === 'group';
+          return target?.kind !== 'group';
         }}
-      >
-        {isLoading && (
-          <p className="px-4 py-3 text-xs text-slate-400">Loading...</p>
-        )}
-
-        {!isLoading && (!documents || documents.length === 0) && folders.length === 0 && !creatingFolderAt && (
-          <div className="px-4 py-6 text-center">
-            <p className="text-xs text-slate-400 mb-3">No documents yet</p>
-            <button
-              type="button"
-              onClick={() => handleCreateDoc('/')}
-              disabled={createMutation.isPending}
-              className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        renamingId={
+          renamingDocId ? docNodeId(renamingDocId) : renamingFolderPath ? folderId(renamingFolderPath) : null
+        }
+        onRenameSubmit={(node, value) => {
+          const doc = docOf(node);
+          if (doc) handleDocRenameSubmit(doc.id, value);
+          else handleFolderRenameSubmit(node.path, value);
+        }}
+        onRenameCancel={() => {
+          setRenamingDocId(null);
+          setRenamingFolderPath(null);
+        }}
+        creating={
+          creatingFolderAt !== null && viewMode === 'folders'
+            ? {
+                parentId: creatingFolderAt === '/' ? null : folderId(creatingFolderAt),
+                onSubmit: (name) => handleFolderNameSubmit(creatingFolderAt, name),
+                onCancel: handleFolderNameCancel,
+              }
+            : null
+        }
+        renderBadge={(node) => {
+          const doc = docOf(node);
+          const sid = doc ? docStageOf(doc) : null;
+          const info = sid ? (STAGE_MAP[sid] ?? getStageInfo(sid, activeLifecycleSlug)) : undefined;
+          return info ? (
+            <span
+              className={`flex-shrink-0 rounded px-1 py-0.5 text-[9px] font-bold leading-none ${info.color} ${info.textColor}`}
             >
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              New Document
-            </button>
-          </div>
-        )}
-
-        {/* Folders */}
-        {rootFolders.map((folder) => (
-          <Folder
-            key={folder.path}
-            node={folder}
-            depth={0}
-            onCreateDoc={handleCreateDoc}
-            onCreateFolder={handleCreateFolder}
-            creatingFolderAt={creatingFolderAt}
-            onFolderNameSubmit={handleFolderNameSubmit}
-            onFolderNameCancel={handleFolderNameCancel}
-            expandedFolders={expandedFolders}
-            toggleFolder={toggleFolder}
-            onContextMenu={handleContextMenu}
-            onRenameDoc={(docId) => setRenamingDocId(docId)}
-            renamingDocId={renamingDocId}
-            onDocRenameSubmit={handleDocRenameSubmit}
-            onDocRenameCancel={() => setRenamingDocId(null)}
-            renamingFolderPath={renamingFolderPath}
-            onFolderRenameSubmit={handleFolderRenameSubmit}
-            onFolderRenameCancel={() => setRenamingFolderPath(null)}
-            onDeleteFolder={handleDeleteFolder}
-            onDropDoc={handleDropDoc}
-            onDropFolder={handleDropFolder}
-          />
-        ))}
-
-        {/* Inline input for new folder at root level */}
-        {creatingFolderAt === '/' && (
-          <NewFolderRow
-            depth={0}
-            onSubmit={(name) => handleFolderNameSubmit('/', name)}
-            onCancel={handleFolderNameCancel}
-          />
-        )}
-
-        {/* Root-level documents */}
-        {rootDocs.map((node) => (
-          <DocItem
-            key={node.doc.id}
-            doc={node.doc}
-            depth={0}
-            onContextMenu={handleContextMenu}
-            onRenameDoc={(docId) => setRenamingDocId(docId)}
-            isRenaming={renamingDocId === node.doc.id}
-            onRenameSubmit={handleDocRenameSubmit}
-            onRenameCancel={() => setRenamingDocId(null)}
-          />
-        ))}
-      </div>
+              {info.abbreviation}
+            </span>
+          ) : null;
+        }}
+        renderActions={(node) =>
+          node.kind === 'folder' ? (
+            <>
+              <button
+                type="button"
+                tabIndex={-1}
+                title="New document"
+                aria-label={`New document in ${node.label}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCreateDoc(node.path);
+                }}
+                className="rounded px-1 text-xs text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+              >
+                <svg className="h-3.5 w-3.5" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>              </button>
+              <button
+                type="button"
+                tabIndex={-1}
+                title="New subfolder"
+                aria-label={`New subfolder in ${node.label}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCreateFolder(node.path);
+                }}
+                className="rounded px-1 text-xs text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+              >
+                <svg className="h-3.5 w-3.5" aria-hidden="true" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>              </button>
+            </>
+          ) : null
+        }
+        emptyState={emptyState}
+      />
 
       {/* Context menu */}
       {contextMenu && (

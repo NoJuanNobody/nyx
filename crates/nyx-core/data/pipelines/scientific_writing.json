@@ -1,0 +1,270 @@
+{
+  "slug": "scientific_writing",
+  "label": "Scientific Writing",
+  "description": "Research-to-publication pipeline for academic and scientific papers",
+  "icon": "🔬",
+  "is_default": false,
+  "sort_order": 1,
+  "connectors": [
+    "Research findings inform the literature review",
+    "Literature review frames the draft",
+    "Draft goes through peer review",
+    "Review feedback drives revisions",
+    "Revisions produce the final paper"
+  ],
+  "stages": [
+    {
+      "slug": "research_notes",
+      "sort_order": 0,
+      "label": "Research Notes",
+      "abbreviation": "RN",
+      "subtitle": "Data & Observations",
+      "color": "bg-sky-100",
+      "text_color": "text-sky-700",
+      "dot_color": "bg-sky-400",
+      "border_color": "border-sky-300",
+      "hex": "#38BDF8",
+      "who": "Researchers, Lab Teams",
+      "description": "Collect raw data, observations, and preliminary findings",
+      "icon": "📝",
+      "ai": "Identifies patterns in raw data, suggests hypotheses, flags missing controls",
+      "output": "Organized research notes with tagged observations",
+      "docs": [
+        "Lab Notebook",
+        "Data Logs",
+        "Observation Notes",
+        "Hypothesis Draft"
+      ],
+      "suggestions": [
+        "Organize observations",
+        "Identify patterns",
+        "Suggest controls"
+      ]
+    },
+    {
+      "slug": "literature_review",
+      "sort_order": 1,
+      "label": "Literature Review",
+      "abbreviation": "LR",
+      "subtitle": "Prior Work",
+      "color": "bg-cyan-100",
+      "text_color": "text-cyan-700",
+      "dot_color": "bg-cyan-400",
+      "border_color": "border-cyan-300",
+      "hex": "#22D3EE",
+      "who": "Researchers, Academics",
+      "description": "Survey existing literature and establish theoretical framework",
+      "icon": "📚",
+      "ai": "Identifies citation gaps, suggests related papers, checks for conflicting findings",
+      "output": "Comprehensive literature review with citation map",
+      "docs": [
+        "Literature Survey",
+        "Citation Matrix",
+        "Gap Analysis",
+        "Theoretical Framework"
+      ],
+      "suggestions": [
+        "Find related papers",
+        "Identify gaps",
+        "Build citation map"
+      ]
+    },
+    {
+      "slug": "draft_sections",
+      "sort_order": 2,
+      "label": "Draft Sections",
+      "abbreviation": "DS",
+      "subtitle": "First Draft",
+      "color": "bg-blue-100",
+      "text_color": "text-blue-700",
+      "dot_color": "bg-blue-400",
+      "border_color": "border-blue-300",
+      "hex": "#60A5FA",
+      "who": "Lead Author, Co-authors",
+      "description": "Write initial manuscript sections",
+      "icon": "✍️",
+      "ai": "Checks logical flow, suggests clearer phrasing, flags unsupported claims",
+      "output": "Complete first draft of all manuscript sections",
+      "docs": [
+        "Introduction",
+        "Methods",
+        "Results",
+        "Discussion",
+        "Abstract"
+      ],
+      "suggestions": [
+        "Check logical flow",
+        "Strengthen arguments",
+        "Clarify methods"
+      ]
+    },
+    {
+      "slug": "peer_review",
+      "sort_order": 3,
+      "label": "Peer Review",
+      "abbreviation": "PR",
+      "subtitle": "External Feedback",
+      "color": "bg-purple-100",
+      "text_color": "text-purple-700",
+      "dot_color": "bg-purple-400",
+      "border_color": "border-purple-300",
+      "hex": "#A78BFA",
+      "who": "Peer Reviewers, Advisors",
+      "description": "Submit for internal or external peer review",
+      "icon": "👥",
+      "ai": "Simulates reviewer concerns, identifies weak arguments, suggests clarifications",
+      "output": "Annotated feedback from peer reviewers",
+      "docs": [
+        "Reviewer Comments",
+        "Response Plan",
+        "Strength/Weakness Analysis"
+      ],
+      "suggestions": [
+        "Anticipate reviewer concerns",
+        "Identify weak points",
+        "Suggest preemptive edits"
+      ]
+    },
+    {
+      "slug": "revisions",
+      "sort_order": 4,
+      "label": "Revisions",
+      "abbreviation": "RV",
+      "subtitle": "Refinement",
+      "color": "bg-orange-100",
+      "text_color": "text-orange-700",
+      "dot_color": "bg-orange-400",
+      "border_color": "border-orange-300",
+      "hex": "#FB923C",
+      "who": "Lead Author",
+      "description": "Address reviewer feedback and refine the manuscript",
+      "icon": "🔄",
+      "ai": "Tracks changes against reviewer comments, ensures all feedback addressed",
+      "output": "Revised manuscript with point-by-point response",
+      "docs": [
+        "Revision Tracker",
+        "Response to Reviewers",
+        "Change Log"
+      ],
+      "suggestions": [
+        "Track changes",
+        "Verify all feedback addressed",
+        "Strengthen weak sections"
+      ]
+    },
+    {
+      "slug": "final_paper",
+      "sort_order": 5,
+      "label": "Final Paper",
+      "abbreviation": "FP",
+      "subtitle": "Publication Ready",
+      "color": "bg-green-100",
+      "text_color": "text-green-700",
+      "dot_color": "bg-green-400",
+      "border_color": "border-green-300",
+      "hex": "#4ADE80",
+      "who": "Lead Author, Journal Editor",
+      "description": "Finalize formatting, references, and submit",
+      "icon": "📄",
+      "ai": "Checks journal formatting, validates references, generates submission checklist",
+      "output": "Publication-ready manuscript",
+      "docs": [
+        "Final Manuscript",
+        "Supplementary Materials",
+        "Cover Letter",
+        "Submission Checklist"
+      ],
+      "suggestions": [
+        "Check formatting",
+        "Validate references",
+        "Generate submission checklist"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "research_notes",
+      "name": "Experiment Log",
+      "description": "Record experimental observations, methods, and preliminary results",
+      "sort_order": 0,
+      "content": "# Experiment Log\n\n## Experiment ID\n<!-- Unique identifier -->\n\n## Date\nYYYY-MM-DD\n\n## Hypothesis\n<!-- What are you testing? -->\n\n## Methods\n1. \n2. \n3. \n\n## Observations\n- \n\n## Preliminary Results\n| Variable | Value | Notes |\n|----------|-------|-------|\n|          |       |       |\n\n## Next Steps\n- \n"
+    },
+    {
+      "stage": "research_notes",
+      "name": "Data Collection Plan",
+      "description": "Define data sources, collection methods, and storage protocols",
+      "sort_order": 1,
+      "content": "# Data Collection Plan\n\n## Research Question\n<!-- What question does this data address? -->\n\n## Data Sources\n| Source | Type | Format | Access |\n|--------|------|--------|--------|\n|        |      |        |        |\n\n## Collection Protocol\n1. \n2. \n3. \n\n## Storage & Backup\n- Location: \n- Backup frequency: \n- Retention period: \n\n## Ethical Considerations\n- \n"
+    },
+    {
+      "stage": "literature_review",
+      "name": "Literature Summary Table",
+      "description": "Organize and compare key papers in a structured table",
+      "sort_order": 0,
+      "content": "# Literature Review Summary\n\n## Research Topic\n<!-- Broad topic or question -->\n\n## Key Papers\n| Author(s) | Year | Title | Key Findings | Methodology | Relevance |\n|-----------|------|-------|-------------|-------------|----------|\n|           |      |       |             |             |          |\n\n## Themes & Gaps\n### Common Themes\n- \n\n### Gaps in the Literature\n- \n\n### Contradictions\n- \n"
+    },
+    {
+      "stage": "literature_review",
+      "name": "Annotated Bibliography",
+      "description": "Maintain annotated references with critical assessments",
+      "sort_order": 1,
+      "content": "# Annotated Bibliography\n\n## Topic\n<!-- Research area -->\n\n## References\n\n### [Author, Year]\n- **Full Citation:** \n- **Summary:** \n- **Methodology:** \n- **Strengths:** \n- **Limitations:** \n- **Relevance to Our Work:** \n\n---\n\n### [Author, Year]\n- **Full Citation:** \n- **Summary:** \n- **Methodology:** \n- **Strengths:** \n- **Limitations:** \n- **Relevance to Our Work:** \n"
+    },
+    {
+      "stage": "draft_sections",
+      "name": "Methods Section Draft",
+      "description": "Draft the methodology section with reproducible detail",
+      "sort_order": 0,
+      "content": "# Methods\n\n## Study Design\n<!-- Describe the overall design (e.g., randomized, observational) -->\n\n## Participants / Samples\n- Sample size: \n- Selection criteria: \n- Exclusions: \n\n## Procedures\n1. \n2. \n3. \n\n## Instruments & Materials\n- \n\n## Data Analysis\n<!-- Statistical methods, software used -->\n\n## Ethical Approval\n- IRB/Ethics board: \n- Approval number: \n"
+    },
+    {
+      "stage": "draft_sections",
+      "name": "Results Section Draft",
+      "description": "Present findings with tables and statistical summaries",
+      "sort_order": 1,
+      "content": "# Results\n\n## Overview\n<!-- Brief summary of what was found -->\n\n## Primary Outcomes\n| Measure | Group A | Group B | p-value |\n|---------|---------|---------|--------|\n|         |         |         |        |\n\n## Secondary Outcomes\n- \n\n## Figures\n<!-- Reference figures/charts here -->\n- Figure 1: \n- Figure 2: \n\n## Unexpected Findings\n- \n"
+    },
+    {
+      "stage": "peer_review",
+      "name": "Peer Review Checklist",
+      "description": "Structured checklist for evaluating a manuscript before submission",
+      "sort_order": 0,
+      "content": "# Peer Review Checklist\n\n## Manuscript Title\n<!-- Title -->\n\n## Reviewer\n<!-- Name / Date -->\n\n## Evaluation\n- [ ] Abstract accurately summarizes the paper\n- [ ] Introduction provides adequate background\n- [ ] Methods are reproducible\n- [ ] Results are clearly presented\n- [ ] Discussion addresses limitations\n- [ ] References are complete and current\n- [ ] Figures and tables are clear\n- [ ] Statistical analysis is appropriate\n\n## Major Concerns\n- \n\n## Minor Concerns\n- \n\n## Recommendation\nAccept | Minor Revisions | Major Revisions | Reject\n"
+    },
+    {
+      "stage": "peer_review",
+      "name": "Reviewer Response Matrix",
+      "description": "Track reviewer comments and planned responses",
+      "sort_order": 1,
+      "content": "# Reviewer Response Matrix\n\n## Manuscript\n<!-- Title and submission ID -->\n\n## Reviewer Comments & Responses\n\n### Reviewer 1\n| # | Comment | Severity | Response | Status |\n|---|---------|----------|----------|--------|\n| 1 |         | Major/Minor |       | Pending |\n| 2 |         |          |          | Pending |\n\n### Reviewer 2\n| # | Comment | Severity | Response | Status |\n|---|---------|----------|----------|--------|\n| 1 |         |          |          | Pending |\n\n## Summary of Changes\n- \n"
+    },
+    {
+      "stage": "revisions",
+      "name": "Revision Tracker",
+      "description": "Track all revisions made in response to feedback",
+      "sort_order": 0,
+      "content": "# Revision Tracker\n\n## Manuscript Version\n<!-- e.g., R1, R2 -->\n\n## Changes Made\n| Section | Change Description | Reason | Reviewer # |\n|---------|-------------------|--------|------------|\n|         |                   |        |            |\n\n## Sections Rewritten\n- \n\n## New Data/Analysis Added\n- \n\n## Cover Letter Notes\n<!-- Key points for the response to reviewers -->\n- \n"
+    },
+    {
+      "stage": "revisions",
+      "name": "Statistical Re-analysis Plan",
+      "description": "Document additional analyses requested during revision",
+      "sort_order": 1,
+      "content": "# Statistical Re-analysis Plan\n\n## Triggered By\n<!-- Which reviewer comment prompted this? -->\n\n## Original Analysis\n- Method: \n- Result: \n\n## Requested Changes\n- \n\n## New Analysis Plan\n| Analysis | Software | Variables | Expected Output |\n|----------|----------|-----------|----------------|\n|          |          |           |                |\n\n## Impact on Conclusions\n<!-- Will the new analysis change the paper's conclusions? -->\n\n## Timeline\n- \n"
+    },
+    {
+      "stage": "final_paper",
+      "name": "Submission Checklist",
+      "description": "Pre-submission checklist for journal requirements",
+      "sort_order": 0,
+      "content": "# Submission Checklist\n\n## Journal\n<!-- Target journal name -->\n\n## Formatting\n- [ ] Word count within limit\n- [ ] Title page complete\n- [ ] Abstract within word limit\n- [ ] Keywords selected (3-5)\n- [ ] References formatted per journal style\n- [ ] Figures meet resolution requirements\n- [ ] Supplementary materials prepared\n\n## Required Documents\n- [ ] Cover letter\n- [ ] Conflict of interest statement\n- [ ] Author contributions\n- [ ] Data availability statement\n- [ ] Ethics approval documentation\n\n## Final Checks\n- [ ] All co-authors approved final version\n- [ ] ORCID IDs included\n"
+    },
+    {
+      "stage": "final_paper",
+      "name": "Abstract & Keywords",
+      "description": "Finalize the structured abstract and keyword list",
+      "sort_order": 1,
+      "content": "# Abstract & Keywords\n\n## Structured Abstract\n\n### Background\n<!-- 1-2 sentences -->\n\n### Objective\n<!-- 1 sentence -->\n\n### Methods\n<!-- 2-3 sentences -->\n\n### Results\n<!-- 2-3 sentences with key numbers -->\n\n### Conclusion\n<!-- 1-2 sentences -->\n\n## Keywords\n1. \n2. \n3. \n4. \n5. \n\n## Word Count\n- Abstract: __ / __ limit\n- Full paper: __ / __ limit\n"
+    }
+  ]
+}

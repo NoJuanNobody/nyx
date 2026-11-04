@@ -1,0 +1,27 @@
+[package]
+name = "nyx-app"
+description = "Nyx service facade: JSON-in/JSON-out operations shared by the MCP server, CLI and desktop shell"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+nyx-core.workspace = true
+nyx-net.workspace = true
+rusqlite.workspace = true
+secrecy = "0.10"
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+base64 = "0.22"
+
+[dev-dependencies]
+secrecy = "0.10"
+tempfile = "3.27.0"
+rusqlite.workspace = true
+
+[lints]
+workspace = true

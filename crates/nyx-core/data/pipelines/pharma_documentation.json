@@ -1,0 +1,271 @@
+{
+  "slug": "pharma_documentation",
+  "label": "Pharma Documentation",
+  "description": "Pharmaceutical regulatory documentation from protocol to submission",
+  "icon": "💊",
+  "is_default": false,
+  "sort_order": 9,
+  "connectors": [
+    "Protocol design structures safety data collection",
+    "Safety data complements efficacy results",
+    "Results feed the regulatory draft",
+    "Draft undergoes compliance review",
+    "Review produces submission-ready package"
+  ],
+  "stages": [
+    {
+      "slug": "protocol_design",
+      "sort_order": 0,
+      "label": "Protocol Design",
+      "abbreviation": "PD",
+      "subtitle": "Study Protocol",
+      "color": "bg-blue-100",
+      "text_color": "text-blue-700",
+      "dot_color": "bg-blue-400",
+      "border_color": "border-blue-300",
+      "hex": "#3B82F6",
+      "who": "Clinical Scientists",
+      "description": "Design clinical study protocol",
+      "icon": "🔬",
+      "ai": "Reviews protocol, suggests endpoints",
+      "output": "Complete study protocol",
+      "docs": [
+        "Study Protocol",
+        "Statistical Analysis Plan",
+        "Endpoint Definitions",
+        "Criteria"
+      ],
+      "suggestions": [
+        "Review endpoints",
+        "Check regulatory requirements",
+        "Validate methodology"
+      ]
+    },
+    {
+      "slug": "safety_data",
+      "sort_order": 1,
+      "label": "Safety Data",
+      "abbreviation": "SD",
+      "subtitle": "Safety Profile",
+      "color": "bg-red-100",
+      "text_color": "text-red-700",
+      "dot_color": "bg-red-400",
+      "border_color": "border-red-300",
+      "hex": "#EF4444",
+      "who": "Pharmacovigilance",
+      "description": "Compile and analyze safety data",
+      "icon": "🛡️",
+      "ai": "Identifies safety signals, categorizes events",
+      "output": "Safety data package",
+      "docs": [
+        "Safety Summary",
+        "Adverse Events",
+        "Signal Detection",
+        "Preclinical Safety"
+      ],
+      "suggestions": [
+        "Identify safety signals",
+        "Categorize adverse events",
+        "Generate narratives"
+      ]
+    },
+    {
+      "slug": "efficacy_results",
+      "sort_order": 2,
+      "label": "Efficacy Results",
+      "abbreviation": "ER",
+      "subtitle": "Clinical Results",
+      "color": "bg-green-100",
+      "text_color": "text-green-700",
+      "dot_color": "bg-green-400",
+      "border_color": "border-green-300",
+      "hex": "#22C55E",
+      "who": "Biostatisticians",
+      "description": "Analyze and present efficacy results",
+      "icon": "📈",
+      "ai": "Validates statistics, generates summaries",
+      "output": "Complete efficacy results",
+      "docs": [
+        "Efficacy Summary",
+        "Statistical Tables",
+        "Figures",
+        "Subgroup Analyses"
+      ],
+      "suggestions": [
+        "Validate statistics",
+        "Generate summaries",
+        "Check data integrity"
+      ]
+    },
+    {
+      "slug": "regulatory_draft",
+      "sort_order": 3,
+      "label": "Regulatory Draft",
+      "abbreviation": "RD",
+      "subtitle": "Submission Docs",
+      "color": "bg-indigo-100",
+      "text_color": "text-indigo-700",
+      "dot_color": "bg-indigo-400",
+      "border_color": "border-indigo-300",
+      "hex": "#6366F1",
+      "who": "Regulatory Writers",
+      "description": "Draft regulatory submission documents",
+      "icon": "📋",
+      "ai": "Checks CTD structure, validates terminology",
+      "output": "Complete regulatory draft",
+      "docs": [
+        "Module 2 Summary",
+        "Clinical Overview",
+        "Nonclinical Overview",
+        "Quality Summary"
+      ],
+      "suggestions": [
+        "Check CTD structure",
+        "Validate cross-references",
+        "Review terminology"
+      ]
+    },
+    {
+      "slug": "compliance_review",
+      "sort_order": 4,
+      "label": "Compliance Review",
+      "abbreviation": "CR",
+      "subtitle": "QC & Review",
+      "color": "bg-purple-100",
+      "text_color": "text-purple-700",
+      "dot_color": "bg-purple-400",
+      "border_color": "border-purple-300",
+      "hex": "#A855F7",
+      "who": "Quality Assurance",
+      "description": "Quality control and compliance review",
+      "icon": "🔍",
+      "ai": "Cross-checks data consistency, validates GCP",
+      "output": "QC-approved documents",
+      "docs": [
+        "QC Report",
+        "Compliance Checklist",
+        "Discrepancy Log",
+        "Sign-off Matrix"
+      ],
+      "suggestions": [
+        "Cross-check data",
+        "Validate GCP compliance",
+        "Flag discrepancies"
+      ]
+    },
+    {
+      "slug": "submission_ready",
+      "sort_order": 5,
+      "label": "Submission Ready",
+      "abbreviation": "SR",
+      "subtitle": "Filed",
+      "color": "bg-emerald-100",
+      "text_color": "text-emerald-700",
+      "dot_color": "bg-emerald-400",
+      "border_color": "border-emerald-300",
+      "hex": "#10B981",
+      "who": "Regulatory Affairs Lead",
+      "description": "Final submission package assembly",
+      "icon": "📤",
+      "ai": "Validates completeness, checks eCTD requirements",
+      "output": "Submission-ready package",
+      "docs": [
+        "Submission Package",
+        "Cover Letter",
+        "eCTD Validation",
+        "Filing Confirmation"
+      ],
+      "suggestions": [
+        "Check completeness",
+        "Generate cover letter",
+        "Validate eCTD"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "stage": "protocol_design",
+      "name": "Clinical Trial Protocol Synopsis",
+      "description": "High-level synopsis of the clinical trial protocol",
+      "sort_order": 0,
+      "content": "# Protocol Synopsis\n\n## Study Title\n<!-- Full title -->\n\n## Protocol Number\n<!-- ID -->\n\n## Phase\nI | II | III | IV\n\n## Objectives\n- **Primary:** \n- **Secondary:** \n\n## Study Design\n<!-- e.g., Randomized, double-blind, placebo-controlled -->\n\n## Population\n- Target N: \n- Inclusion criteria: \n- Exclusion criteria: \n\n## Endpoints\n| Type | Endpoint | Measurement | Timepoint |\n|------|---------|------------|----------|\n| Primary | | | |\n| Secondary | | | |\n\n## Duration\n- Screening: \n- Treatment: \n- Follow-up: \n"
+    },
+    {
+      "stage": "protocol_design",
+      "name": "Study Design Rationale",
+      "description": "Document the scientific rationale for the trial design choices",
+      "sort_order": 1,
+      "content": "# Study Design Rationale\n\n## Study\n<!-- Protocol number and title -->\n\n## Therapeutic Area\n<!-- Disease / condition -->\n\n## Scientific Background\n<!-- Key evidence supporting this trial -->\n\n## Design Choices\n| Decision | Choice | Rationale |\n|----------|--------|----------|\n| Control arm | | |\n| Blinding | | |\n| Randomization | | |\n| Sample size | | |\n| Duration | | |\n\n## Dose Selection\n- Selected dose: \n- Justification: \n\n## Statistical Approach\n- Analysis type: \n- Power calculation: \n\n## Ethical Considerations\n- \n"
+    },
+    {
+      "stage": "safety_data",
+      "name": "Safety Data Summary",
+      "description": "Summarize adverse events and safety signals from the trial",
+      "sort_order": 0,
+      "content": "# Safety Data Summary\n\n## Study\n<!-- Protocol number -->\n\n## Data Cut-Off Date\n<!-- Date -->\n\n## Overview\n- Subjects enrolled: \n- Subjects completed: \n- Subjects discontinued: \n\n## Adverse Events\n| Event | Treatment (n/%) | Placebo (n/%) | Severity | Related |\n|-------|----------------|--------------|----------|--------|\n|       |                |              |          |        |\n\n## Serious Adverse Events\n| SAE | Subject | Outcome | Relatedness |\n|-----|---------|---------|------------|\n|     |         |         |            |\n\n## Safety Signals\n- \n\n## DSMB Recommendations\n- \n"
+    },
+    {
+      "stage": "safety_data",
+      "name": "Pharmacovigilance Report",
+      "description": "Document pharmacovigilance activities and risk assessments",
+      "sort_order": 1,
+      "content": "# Pharmacovigilance Report\n\n## Product\n<!-- Drug name and protocol -->\n\n## Reporting Period\n<!-- Date range -->\n\n## Individual Case Safety Reports (ICSRs)\n| Case # | Event | Seriousness | Expectedness | Causality |\n|--------|-------|------------|-------------|----------|\n|        |       |            |             |          |\n\n## Aggregate Safety Assessment\n- Benefit-risk balance: Favorable / Unfavorable / Unchanged\n- New safety signals: Yes / No\n\n## Risk Management\n| Risk | Mitigation | Status |\n|------|-----------|--------|\n|      |           |        |\n\n## Regulatory Reporting\n- [ ] Expedited reports filed\n- [ ] DSUR updated\n- [ ] PBRER / PSUR current\n"
+    },
+    {
+      "stage": "efficacy_results",
+      "name": "Efficacy Results Summary",
+      "description": "Present primary and secondary efficacy endpoints",
+      "sort_order": 0,
+      "content": "# Efficacy Results Summary\n\n## Study\n<!-- Protocol number -->\n\n## Primary Endpoint\n- **Endpoint:** \n- **Treatment:** \n- **Control:** \n- **Difference:** \n- **p-value:** \n- **95% CI:** \n\n## Secondary Endpoints\n| Endpoint | Treatment | Control | p-value | Significance |\n|----------|----------|---------|---------|-------------|\n|          |          |         |         |             |\n\n## Subgroup Analyses\n| Subgroup | Treatment Effect | Interaction p |\n|----------|-----------------|---------------|\n|          |                 |               |\n\n## Conclusions\n<!-- Summary of efficacy findings -->\n"
+    },
+    {
+      "stage": "efficacy_results",
+      "name": "Statistical Analysis Report",
+      "description": "Document the statistical methods and detailed analysis results",
+      "sort_order": 1,
+      "content": "# Statistical Analysis Report\n\n## Study\n<!-- Protocol number -->\n\n## Analysis Populations\n| Population | Definition | N |\n|-----------|-----------|---|\n| ITT       |           |   |\n| mITT      |           |   |\n| PP        |           |   |\n| Safety    |           |   |\n\n## Primary Analysis\n- Method: \n- Model: \n- Covariates: \n- Result: \n\n## Sensitivity Analyses\n| Analysis | Method | Result | Consistent |\n|----------|--------|--------|------------|\n|          |        |        | Yes / No   |\n\n## Missing Data Handling\n- Method: \n- Impact: \n\n## Tables & Figures\n- \n"
+    },
+    {
+      "stage": "regulatory_draft",
+      "name": "Clinical Study Report Outline",
+      "description": "Structure the CSR per ICH E3 guidelines",
+      "sort_order": 0,
+      "content": "# Clinical Study Report Outline\n\n## Study\n<!-- Protocol number and title -->\n\n## CSR Sections (ICH E3)\n- [ ] Title Page\n- [ ] Synopsis\n- [ ] Table of Contents\n- [ ] Ethics\n- [ ] Investigators and Study Sites\n- [ ] Introduction\n- [ ] Study Objectives\n- [ ] Study Design\n- [ ] Study Population\n- [ ] Study Drug\n- [ ] Efficacy Evaluation\n- [ ] Safety Evaluation\n- [ ] Discussion and Conclusions\n- [ ] Appendices\n\n## Writing Assignments\n| Section | Writer | Reviewer | Due Date | Status |\n|---------|--------|----------|----------|--------|\n|         |        |          |          |        |\n\n## Timeline\n- First draft: \n- Internal review: \n- Final: \n"
+    },
+    {
+      "stage": "regulatory_draft",
+      "name": "Regulatory Submission Plan",
+      "description": "Plan the regulatory submission strategy and timeline",
+      "sort_order": 1,
+      "content": "# Regulatory Submission Plan\n\n## Product\n<!-- Drug name -->\n\n## Submission Type\nNDA | BLA | sNDA | MAA | Other\n\n## Target Agencies\n| Agency | Submission Type | Target Date |\n|--------|----------------|------------|\n| FDA    |                |            |\n| EMA    |                |            |\n\n## CTD Modules\n| Module | Content | Status | Owner |\n|--------|---------|--------|-------|\n| 1 | Administrative | | |\n| 2 | Summaries | | |\n| 3 | Quality | | |\n| 4 | Nonclinical | | |\n| 5 | Clinical | | |\n\n## Pre-Submission Meetings\n- [ ] Pre-NDA meeting\n- [ ] Scientific advice\n\n## Key Milestones\n| Milestone | Date |\n|-----------|------|\n|           |      |\n"
+    },
+    {
+      "stage": "compliance_review",
+      "name": "QC Review Checklist",
+      "description": "Quality control checklist for regulatory document review",
+      "sort_order": 0,
+      "content": "# QC Review Checklist\n\n## Document\n<!-- Document name and version -->\n\n## Formatting\n- [ ] Consistent headers and footers\n- [ ] Page numbers correct\n- [ ] Table of contents matches sections\n- [ ] Cross-references accurate\n- [ ] Track changes removed\n\n## Content\n- [ ] Data matches source tables\n- [ ] Statistical results verified against SAR\n- [ ] Adverse event coding consistent\n- [ ] Study drug name used consistently\n- [ ] Dates and timelines accurate\n\n## Regulatory\n- [ ] Meets ICH guidelines\n- [ ] Agency-specific requirements met\n- [ ] Required appendices included\n\n## Issues Found\n| # | Section | Issue | Severity | Status |\n|---|---------|-------|----------|--------|\n|   |         |       |          |        |\n"
+    },
+    {
+      "stage": "compliance_review",
+      "name": "Regulatory Compliance Matrix",
+      "description": "Map submission documents against regulatory requirements",
+      "sort_order": 1,
+      "content": "# Regulatory Compliance Matrix\n\n## Submission\n<!-- Submission ID -->\n\n## Requirements Mapping\n| Requirement | Regulation | Document | Section | Status |\n|------------|-----------|----------|---------|--------|\n|            |           |          |         | [ ]    |\n\n## Agency-Specific Requirements\n### FDA\n- [ ] \n\n### EMA\n- [ ] \n\n## Outstanding Items\n| Item | Owner | Due Date | Status |\n|------|-------|----------|--------|\n|      |       |          |        |\n\n## Sign-Off\n| Reviewer | Role | Date | Approved |\n|----------|------|------|----------|\n|          |      |      | [ ]      |\n"
+    },
+    {
+      "stage": "submission_ready",
+      "name": "Submission Assembly Checklist",
+      "description": "Final checklist for assembling and publishing the regulatory submission",
+      "sort_order": 0,
+      "content": "# Submission Assembly Checklist\n\n## Submission\n<!-- ID and type -->\n\n## eCTD Assembly\n- [ ] All modules finalized\n- [ ] PDFs bookmarked and hyperlinked\n- [ ] File naming convention followed\n- [ ] XML backbone validated\n- [ ] Digital signatures applied\n\n## Content Verification\n- [ ] All referenced documents included\n- [ ] Cross-document links working\n- [ ] Version numbers correct\n- [ ] Redactions applied where needed\n\n## Technical Validation\n- [ ] eCTD validation tool passed\n- [ ] File size within limits\n- [ ] No corrupt files\n\n## Final Approval\n| Role | Name | Approved | Date |\n|------|------|----------|------|\n| Regulatory Lead | | [ ] | |\n| Medical Director | | [ ] | |\n| Quality | | [ ] | |\n"
+    },
+    {
+      "stage": "submission_ready",
+      "name": "Cover Letter",
+      "description": "Draft the regulatory submission cover letter",
+      "sort_order": 1,
+      "content": "# Submission Cover Letter\n\n## To\n<!-- Agency and division -->\n\n## From\n<!-- Sponsor company -->\n\n## Re\n<!-- Application type and product name -->\n\n## Purpose\n<!-- 1-2 sentences stating what is being submitted -->\n\n## Contents of Submission\n| Module | Description | New / Replaced |\n|--------|-------------|---------------|\n|        |             |               |\n\n## Key Points for Reviewer\n1. \n2. \n3. \n\n## Contact Information\n- Regulatory contact: \n- Medical contact: \n- Phone: \n- Email: \n\n## Requested Actions\n<!-- e.g., Priority review, accelerated approval -->\n"
+    }
+  ]
+}

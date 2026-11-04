@@ -108,9 +108,6 @@ importers:
       fastify:
         specifier: ^5
         version: 5.7.4
-      fastify-raw-body:
-        specifier: ^5.0.0
-        version: 5.0.0
       openai:
         specifier: ^6.32.0
         version: 6.32.0(ws@8.19.0)(zod@3.25.76)
@@ -120,9 +117,6 @@ importers:
       postgres:
         specifier: ^3
         version: 3.4.8
-      stripe:
-        specifier: ^20.4.1
-        version: 20.4.1(@types/node@22.19.11)
       tar-stream:
         specifier: ^3.1.8
         version: 3.1.8
@@ -172,12 +166,9 @@ importers:
       '@clerk/clerk-react':
         specifier: ^5.61.3
         version: 5.61.3(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@hashbrownai/core':
-        specifier: 0.7.0
-        version: 0.7.0(zod@3.25.76)
-      '@hashbrownai/react':
-        specifier: 0.7.0
-        version: 0.7.0(@hashbrownai/core@0.7.0(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@fontsource-variable/inter':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@nyx/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -297,10 +288,13 @@ importers:
     dependencies:
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
-        version: 1.27.1(zod@4.3.6)
+        version: 1.27.1(zod@3.25.76)
       '@nyx/harness-core':
         specifier: workspace:*
         version: link:../harness-core
+      zod:
+        specifier: ^3
+        version: 3.25.76
     devDependencies:
       tsx:
         specifier: ^4.19.2
@@ -326,9 +320,6 @@ packages:
   '@adobe/css-tools@4.4.4':
     resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
 
-  '@ag-ui/client@1.0.2':
-    resolution: {integrity: sha512-BPxcQBPxJZi7XiQI8eBpiE6KBcySjD6hV7XWQhezYbLeK9WJkcUZ6RhX5dngWw+VgfapxPdJdEDTV/JxF21Duw==}
-
   '@ag-ui/core@1.0.2':
     resolution: {integrity: sha512-lb0YfvHY4eTHcXthTWzXjsElLqycGWDhaXGTejwMkUV5TtJVZircRS12/tMpqzd32sL+WZ2PWQ4m0+ThKrGF8A==}
     peerDependencies:
@@ -345,14 +336,8 @@ packages:
       zod:
         optional: true
 
-  '@ag-ui/encoder@1.0.2':
-    resolution: {integrity: sha512-SE8pQ7dpXwtqpD1WzW2Of9h4uZRDPVGZqT7kdrQ17w9+eOxAolqqRybVLBqJTqCZiUNgX0hFUNlAJSOV0z0UDg==}
-
   '@ag-ui/encoder@1.0.3':
     resolution: {integrity: sha512-Uj/znRLejAQ7PWcY/Qio2ucymbJNuiDMKU34aTQV+v0EeB6Up9vj6nHNtH+eAAVSVZADs4/U+8gXVnN0on51ew==}
-
-  '@ag-ui/proto@1.0.2':
-    resolution: {integrity: sha512-uIp6TkQdos03Bkjl01Z46cK/D7QAKNO26RYIIX1WfxNy4penVatU0b/TFTjVrOtwSnp5mtl8Rpzkiiu9cZHwlg==}
 
   '@ag-ui/proto@1.0.3':
     resolution: {integrity: sha512-L3YVEJN1hCYx3P7Zfrf4e1obA1pwzykkkPZkNHAdcXyUZ05/ezvWCkErnfNoUlER8QCasBwRjKiDjicu3Tt7+g==}
@@ -478,22 +463,6 @@ packages:
 
   '@bytecodealliance/preview2-shim@0.17.6':
     resolution: {integrity: sha512-n3cM88gTen5980UOBAD6xDcNNL3ocTK8keab21bpx1ONdA+ARj7uD1qoFxOWCyKlkpSi195FH+GeAut7Oc6zZw==}
-
-  '@cacheplane/json-stream@0.1.0':
-    resolution: {integrity: sha512-Fz68jl+7hu6/YtEgD31NU2r62Ti7Zp2eUVjrlj1KNAcwVfIj3skzSEJ9x3a+teNjvOW1c89yp+QQCsx5/2PbEw==}
-    engines: {node: '>=20'}
-
-  '@cacheplane/json-stream@0.1.1':
-    resolution: {integrity: sha512-q70Z9g86lG0755iD1SdVwOqyCTspabMN/YK+wcrk9bRvS45aJAwJxQ5yaVpGq+kN4Yaw8QDghPS73PP8ScSY3A==}
-    engines: {node: '>=20'}
-
-  '@cacheplane/partial-json@0.3.0':
-    resolution: {integrity: sha512-CCah/Z/oC8bWi3rGpSksFoUyIhkvI72dNaqROCDYSzWaVkx9PPHDfamq3yM6k96+j3EZ0PfFZg01Fcx2jsA9Ew==}
-    engines: {node: '>=20'}
-
-  '@cacheplane/partial-markdown@0.5.12':
-    resolution: {integrity: sha512-sme54U9XJO133T6gwhyCpc1i6tDM1E58GWas2NH2IVoEDpzekAxRuHeQNIc1hV+hPi2qkmV35OlEcjPglIBrHA==}
-    engines: {node: '>=20'}
 
   '@clerk/backend@3.11.5':
     resolution: {integrity: sha512-HEpf9XlEna1uK+JhFSvIseyvviO1C4rdjv8qe3CSu/qSNMCZD69BSA12IkwBrXuopbrmngNFv/unsNV9jcUepw==}
@@ -1464,23 +1433,14 @@ packages:
   '@fastify/websocket@11.2.0':
     resolution: {integrity: sha512-3HrDPbAG1CzUCqnslgJxppvzaAZffieOVbLp1DAy1huCSynUWPifSvfdEDUR8HlJLp3sp1A36uOM2tJogADS8w==}
 
+  '@fontsource-variable/inter@5.3.0':
+    resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
+
   '@hashbrownai/anthropic@0.7.0':
     resolution: {integrity: sha512-tKyNZCvMKvmgnnQVHqoaGMeJfTMvcAjrOyRpEpcVJy6ZNSSL8Gn0s+YukCBR+1srCbejDWX3bSGpedHJeXKpYg==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       '@anthropic-ai/sdk': 0.122.0
-
-  '@hashbrownai/core@0.7.0':
-    resolution: {integrity: sha512-iQ4cCTiSVukaDkzxBnwn7MRqF6Xucc8jUmuY14yWHmXEyL3Pkf/JdPeUTU5yxiDYxQd2H/arS7ATbupxPRdwqw==}
-    engines: {node: '>=20'}
-
-  '@hashbrownai/react@0.7.0':
-    resolution: {integrity: sha512-0eoOCdVwG67zmQcYHWQah5dxpkToNs09rto/6GMOkRSvy9E6MlC3KXk/n0exP7egBd7qeS1tJ5oNTzUqwfh2XA==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      '@hashbrownai/core': 0.7.0
-      react: '>=18 <20'
-      react-dom: '>=18 <20'
 
   '@hono/node-server@1.19.11':
     resolution: {integrity: sha512-dr8/3zEaB+p0D2n/IUrlPF1HZm586qgJNXK1a9fhg/PzdtkK7Ksd5l312tJX2yBuALqDYBlG20QEbayqPyxn+g==}
@@ -2507,9 +2467,6 @@ packages:
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
 
-  '@types/uuid@10.0.0':
-    resolution: {integrity: sha512-7gqG38EyHgyP1S+7+xomFtL+ZNHcKv6DwNaCZmJmo1vgMugyF3TCnXVg4t1uk89mLNwnLtnY3TpOpCOyp1/xHQ==}
-
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
@@ -3105,9 +3062,6 @@ packages:
     resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
     engines: {node: '>=18'}
 
-  compare-versions@6.1.1:
-    resolution: {integrity: sha512-4hm4VPpIecmlg59CHXnRDnqGplJFrbLG4aFEl5vl6cK1u76ws3LLvX7ikFnTDl5vo39sjWD6AaDPYodJp/NNHg==}
-
   compress-commons@6.0.2:
     resolution: {integrity: sha512-6FqVXeETqWPoGcfzrXb37E50NP0LXT8kAMu5ooZayhWWdgEY4lBEEcbQNXtkuKQsGduxiIcI4gOTsxTmuq/bSg==}
     engines: {node: '>= 14'}
@@ -3642,9 +3596,6 @@ packages:
     resolution: {integrity: sha512-7MptL8U0cqcFdzIzwOTHoilX9x5BrNqye7Z/LuC7kCMRio1EMSyqRK3BEAUD7sXRq4iT4AzTVuZdhgQ2TCvYLg==}
     engines: {node: '>=8.6.0'}
 
-  fast-json-patch@3.1.1:
-    resolution: {integrity: sha512-vf6IHUX2SBcA+5/+4883dsIjpBTqmfBjmYiWK1savxQmFk4JfBMLa7ynTYOs1Rolp/T1betJxHiGD3g1Mn8lUQ==}
-
   fast-json-stable-stringify@2.1.0:
     resolution: {integrity: sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==}
 
@@ -3665,10 +3616,6 @@ packages:
 
   fastify-plugin@5.1.0:
     resolution: {integrity: sha512-FAIDA8eovSt5qcDgcBvDuX/v0Cjz0ohGhENZ/wpc3y+oZCY2afZ9Baqql3g/lC+OHRnciQol4ww7tuthOb9idw==}
-
-  fastify-raw-body@5.0.0:
-    resolution: {integrity: sha512-2qfoaQ3BQDhZ1gtbkKZd6n0kKxJISJGM6u/skD9ljdWItAscjXrtZ1lnjr7PavmXX9j4EyCPmBDiIsLn07d5vA==}
-    engines: {node: '>= 10'}
 
   fastify@5.7.4:
     resolution: {integrity: sha512-e6l5NsRdaEP8rdD8VR0ErJASeyaRbzXYpmkrpr2SuvuMq6Si3lvsaVy5C+7gLanEkvjpMDzBXWE5HPeb/hgTxA==}
@@ -5130,9 +5077,6 @@ packages:
   run-parallel@1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}
 
-  rxjs@7.8.1:
-    resolution: {integrity: sha512-AA3TVj+0A2iuIoQkWEK/tqFjBq2j+6PO6Y0zJcvzLAFhEFIO3HL0vls9hWLncZbAAbK0mar7oZ4V079I/qPMxg==}
-
   rxjs@7.8.2:
     resolution: {integrity: sha512-dhKf903U/PQZY6boNNtAGdWbG85WAbjT/1xYoZIC7FAY0yWapOBQVsVrDl58W86//e1VpMNBtRV4MaXfdMySFA==}
 
@@ -5166,9 +5110,6 @@ packages:
 
   scheduler@0.27.0:
     resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
-
-  secure-json-parse@2.7.0:
-    resolution: {integrity: sha512-6aU+Rwsezw7VR8/nyvKTx8QpWH9FrcYiXXlqC4z5d5XQBDRqtbfsRjnwGyqbi3gddNtWHuEk9OANUotL26qKUw==}
 
   secure-json-parse@4.1.0:
     resolution: {integrity: sha512-l4KnYfEyqYJxDwlNVyRfO2E4NTHfMKAWdUuA8J0yve2Dz/E/PdBepY03RvyJpssIpRFwJoCD55wA+mEDs6ByWA==}
@@ -5371,15 +5312,6 @@ packages:
 
   strip-literal@3.1.0:
     resolution: {integrity: sha512-8r3mkIM/2+PpjHoOtiAW8Rg3jJLHaV7xPwG+YRGrv6FP0wwk/toTpATxWYOW0BKdWwl82VT2tFYi5DlROa0Mxg==}
-
-  stripe@20.4.1:
-    resolution: {integrity: sha512-axCguHItc8Sxt0HC6aSkdVRPffjYPV7EQqZRb2GkIa8FzWDycE7nHJM19C6xAIynH1Qp1/BHiopSi96jGBxT0w==}
-    engines: {node: '>=16'}
-    peerDependencies:
-      '@types/node': '>=16'
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
 
   style-to-js@1.1.21:
     resolution: {integrity: sha512-RjQetxJrrUJLQPHbLku6U/ocGtzyjbJMP9lCNK7Ag0CNh690nSH8woqWH9u16nMjYBAok+i7JO1NP2pOy8IsPQ==}
@@ -5646,9 +5578,6 @@ packages:
     resolution: {integrity: sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ==}
     engines: {node: '>= 0.8'}
 
-  untruncate-json@0.0.1:
-    resolution: {integrity: sha512-4W9enDK4X1y1s2S/Rz7ysw6kDuMS3VmRjMFg7GZrNO+98OSe+x5Lh7PKYoVjy3lW/1wmhs6HW0lusnQRHgMarA==}
-
   update-browserslist-db@1.2.3:
     resolution: {integrity: sha512-Js0m9cx+qOgDxo0eMiFGEueWztz+d4+M3rGlmKPT+T4IS/jP4ylw3Nwpu6cpTTP8R1MAC1kF4VbdLt3ARf209w==}
     hasBin: true
@@ -5665,10 +5594,6 @@ packages:
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
-
-  uuid@11.1.1:
-    resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
-    hasBin: true
 
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
@@ -5948,19 +5873,6 @@ snapshots:
 
   '@adobe/css-tools@4.4.4': {}
 
-  '@ag-ui/client@1.0.2':
-    dependencies:
-      '@ag-ui/core': 1.0.2(zod@3.25.76)
-      '@ag-ui/encoder': 1.0.2(zod@3.25.76)
-      '@ag-ui/proto': 1.0.2
-      '@types/uuid': 10.0.0
-      compare-versions: 6.1.1
-      fast-json-patch: 3.1.1
-      rxjs: 7.8.1
-      untruncate-json: 0.0.1
-      uuid: 11.1.1
-      zod: 3.25.76
-
   '@ag-ui/core@1.0.2(zod@3.25.76)':
     optionalDependencies:
       zod: 3.25.76
@@ -5969,26 +5881,12 @@ snapshots:
     optionalDependencies:
       zod: 3.25.76
 
-  '@ag-ui/encoder@1.0.2(zod@3.25.76)':
-    dependencies:
-      '@ag-ui/core': 1.0.2(zod@3.25.76)
-      '@ag-ui/proto': 1.0.2
-    transitivePeerDependencies:
-      - zod
-
   '@ag-ui/encoder@1.0.3(zod@3.25.76)':
     dependencies:
       '@ag-ui/core': 1.0.3(zod@3.25.76)
       '@ag-ui/proto': 1.0.3
     transitivePeerDependencies:
       - zod
-
-  '@ag-ui/proto@1.0.2':
-    dependencies:
-      '@ag-ui/core': 1.0.2(zod@3.25.76)
-      '@bufbuild/protobuf': 2.16.0
-      '@protobuf-ts/protoc': 2.11.1
-      zod: 3.25.76
 
   '@ag-ui/proto@1.0.3':
     dependencies:
@@ -6157,16 +6055,6 @@ snapshots:
   '@bufbuild/protobuf@2.16.0': {}
 
   '@bytecodealliance/preview2-shim@0.17.6': {}
-
-  '@cacheplane/json-stream@0.1.0': {}
-
-  '@cacheplane/json-stream@0.1.1': {}
-
-  '@cacheplane/partial-json@0.3.0':
-    dependencies:
-      '@cacheplane/json-stream': 0.1.1
-
-  '@cacheplane/partial-markdown@0.5.12': {}
 
   '@clerk/backend@3.11.5(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
@@ -6773,6 +6661,8 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
+  '@fontsource-variable/inter@5.3.0': {}
+
   '@hashbrownai/anthropic@0.7.0(@anthropic-ai/sdk@0.39.0)(zod@3.25.76)':
     dependencies:
       '@ag-ui/core': 1.0.2(zod@3.25.76)
@@ -6780,22 +6670,6 @@ snapshots:
       tslib: 2.8.1
     transitivePeerDependencies:
       - zod
-
-  '@hashbrownai/core@0.7.0(zod@3.25.76)':
-    dependencies:
-      '@ag-ui/client': 1.0.2
-      '@ag-ui/core': 1.0.2(zod@3.25.76)
-      '@cacheplane/json-stream': 0.1.0
-    transitivePeerDependencies:
-      - zod
-
-  '@hashbrownai/react@0.7.0(@hashbrownai/core@0.7.0(zod@3.25.76))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
-    dependencies:
-      '@cacheplane/partial-json': 0.3.0
-      '@cacheplane/partial-markdown': 0.5.12
-      '@hashbrownai/core': 0.7.0(zod@3.25.76)
-      react: 19.2.4
-      react-dom: 19.2.4(react@19.2.4)
 
   '@hono/node-server@1.19.11(hono@4.12.5)':
     dependencies:
@@ -6886,28 +6760,6 @@ snapshots:
       raw-body: 3.0.2
       zod: 3.25.76
       zod-to-json-schema: 3.25.1(zod@3.25.76)
-    transitivePeerDependencies:
-      - supports-color
-
-  '@modelcontextprotocol/sdk@1.27.1(zod@4.3.6)':
-    dependencies:
-      '@hono/node-server': 1.19.11(hono@4.12.5)
-      ajv: 8.18.0
-      ajv-formats: 3.0.1(ajv@8.18.0)
-      content-type: 1.0.5
-      cors: 2.8.6
-      cross-spawn: 7.0.6
-      eventsource: 3.0.7
-      eventsource-parser: 3.0.6
-      express: 5.2.1
-      express-rate-limit: 8.3.0(express@5.2.1)
-      hono: 4.12.5
-      jose: 6.2.0
-      json-schema-typed: 8.0.2
-      pkce-challenge: 5.0.1
-      raw-body: 3.0.2
-      zod: 4.3.6
-      zod-to-json-schema: 3.25.1(zod@4.3.6)
     transitivePeerDependencies:
       - supports-color
 
@@ -7817,8 +7669,6 @@ snapshots:
 
   '@types/unist@3.0.3': {}
 
-  '@types/uuid@10.0.0': {}
-
   '@types/ws@8.18.1':
     dependencies:
       '@types/node': 22.19.11
@@ -8675,8 +8525,6 @@ snapshots:
 
   commander@12.1.0: {}
 
-  compare-versions@6.1.1: {}
-
   compress-commons@6.0.2:
     dependencies:
       crc-32: 1.2.2
@@ -9264,8 +9112,6 @@ snapshots:
       merge2: 1.4.1
       micromatch: 4.0.8
 
-  fast-json-patch@3.1.1: {}
-
   fast-json-stable-stringify@2.1.0: {}
 
   fast-json-stringify@6.3.0:
@@ -9288,12 +9134,6 @@ snapshots:
   fast-uri@3.1.0: {}
 
   fastify-plugin@5.1.0: {}
-
-  fastify-raw-body@5.0.0:
-    dependencies:
-      fastify-plugin: 5.1.0
-      raw-body: 3.0.2
-      secure-json-parse: 2.7.0
 
   fastify@5.7.4:
     dependencies:
@@ -11019,10 +10859,6 @@ snapshots:
     dependencies:
       queue-microtask: 1.2.3
 
-  rxjs@7.8.1:
-    dependencies:
-      tslib: 2.8.1
-
   rxjs@7.8.2:
     dependencies:
       tslib: 2.8.1
@@ -11056,8 +10892,6 @@ snapshots:
       xmlchars: 2.2.0
 
   scheduler@0.27.0: {}
-
-  secure-json-parse@2.7.0: {}
 
   secure-json-parse@4.1.0: {}
 
@@ -11279,10 +11113,6 @@ snapshots:
   strip-literal@3.1.0:
     dependencies:
       js-tokens: 9.0.1
-
-  stripe@20.4.1(@types/node@22.19.11):
-    optionalDependencies:
-      '@types/node': 22.19.11
 
   style-to-js@1.1.21:
     dependencies:
@@ -11557,8 +11387,6 @@ snapshots:
 
   unpipe@1.0.0: {}
 
-  untruncate-json@0.0.1: {}
-
   update-browserslist-db@1.2.3(browserslist@4.28.1):
     dependencies:
       browserslist: 4.28.1
@@ -11574,8 +11402,6 @@ snapshots:
       react: 19.2.4
 
   util-deprecate@1.0.2: {}
-
-  uuid@11.1.1: {}
 
   vary@1.1.2: {}
 
@@ -11927,10 +11753,6 @@ snapshots:
   zod-to-json-schema@3.25.1(zod@3.25.76):
     dependencies:
       zod: 3.25.76
-
-  zod-to-json-schema@3.25.1(zod@4.3.6):
-    dependencies:
-      zod: 4.3.6
 
   zod@3.22.4: {}
 

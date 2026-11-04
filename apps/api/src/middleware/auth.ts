@@ -289,7 +289,6 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     '/api/slack/callback',
     '/api/waitlist',
     '/api/invitations',
-    '/api/billing/webhooks/stripe',
     // MCP endpoint and OAuth discovery — the MCP route validates sd_ keys itself
     '/api/mcp',
     '/.well-known/',

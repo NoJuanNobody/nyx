@@ -17,7 +17,6 @@ const mockConfig: Record<string, unknown> = {
   HEALTH_PROBE_TIMEOUT_MS: 3000,
   HEALTH_LOG_FAILURES: false,
   CLERK_PUBLISHABLE_KEY: 'pk_test_dGVzdC5jbGVyay5hY2NvdW50cy5kZXYk',
-  STRIPE_SECRET_KEY: 'sk_test_fake',
   DATABASE_URL: 'postgresql://test:test@localhost:5432/test',
   PORT: 3001,
   HOST: '0.0.0.0',
@@ -64,7 +63,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   // Reset config overrides
   mockConfig.CLERK_PUBLISHABLE_KEY = 'pk_test_dGVzdC5jbGVyay5hY2NvdW50cy5kZXYk';
-  mockConfig.STRIPE_SECRET_KEY = 'sk_test_fake';
   mockConfig.HEALTH_PROBE_TIMEOUT_MS = 3000;
   mockConfig.HEALTH_LOG_FAILURES = false;
   // Reset db.execute fully (clear queued once-values) then set default
@@ -125,7 +123,6 @@ describe('GET /health/ready', () => {
     expect(typeof body.checks.database.latencyMs).toBe('number');
     expect(body.checks.clerk.status).toBe('ok');
     expect(body.checks.github.status).toBe('ok');
-    expect(body.checks.stripe.status).toBe('ok');
     expect(typeof body.version).toBe('string');
     expect(body.version.length).toBeGreaterThan(0);
     expect(typeof body.uptime).toBe('number');
@@ -186,19 +183,6 @@ describe('GET /health/ready', () => {
     expect(body.checks.clerk.error).toContain('not configured');
   });
 
-  it('reports unavailable for stripe when STRIPE_SECRET_KEY is not configured', async () => {
-    mockConfig.STRIPE_SECRET_KEY = undefined;
-    mockExecute.mockResolvedValue([{ '?column?': 1 }]);
-    mockFetch.mockResolvedValue(okFetchResponse() as Response);
-
-    const app = await buildApp();
-    const res = await app.inject({ method: 'GET', url: '/health/ready' });
-    const body = res.json();
-
-    expect(body.checks.stripe.status).toBe('unavailable');
-    expect(body.checks.stripe.error).toContain('not configured');
-  });
-
   it('handles non-2xx HTTP responses from dependencies', async () => {
     mockExecute.mockResolvedValue([{ '?column?': 1 }]);
     mockFetch.mockResolvedValue(errorFetchResponse(500, 'Internal Server Error') as Response);
@@ -211,7 +195,6 @@ describe('GET /health/ready', () => {
     expect(body.checks.clerk.status).toBe('unavailable');
     expect(body.checks.clerk.error).toContain('HTTP 500');
     expect(body.checks.github.status).toBe('unavailable');
-    expect(body.checks.stripe.status).toBe('unavailable');
   });
 
   it('includes version and uptime in response', async () => {

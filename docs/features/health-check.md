@@ -5,7 +5,7 @@
 Nyx exposes two health check endpoints on the Fastify API server following the Kubernetes liveness/readiness probe pattern. These endpoints allow orchestrators, load balancers, and monitoring systems to determine whether the service is alive and whether it is ready to accept traffic.
 
 - **Liveness probe** — confirms the process is running and can handle HTTP requests. It does not verify any external dependencies.
-- **Readiness probe** — confirms the process is running *and* all critical dependencies (database, Clerk, GitHub, Stripe) are reachable and responding within acceptable latency thresholds.
+- **Readiness probe** — confirms the process is running *and* all critical dependencies (database, Clerk, GitHub) are reachable and responding within acceptable latency thresholds.
 
 ---
 
@@ -39,8 +39,7 @@ Returns `200 OK` only when all critical dependencies are healthy. Returns `503 S
   "checks": {
     "database": { "status": "ok", "latencyMs": 12 },
     "clerk": { "status": "ok", "latencyMs": 45 },
-    "github": { "status": "ok", "latencyMs": 102 },
-    "stripe": { "status": "ok", "latencyMs": 88 }
+    "github": { "status": "ok", "latencyMs": 102 }
   },
   "version": "1.2.0",
   "uptime": 84321
@@ -55,8 +54,7 @@ Returns `200 OK` only when all critical dependencies are healthy. Returns `503 S
   "checks": {
     "database": { "status": "ok", "latencyMs": 14 },
     "clerk": { "status": "ok", "latencyMs": 52 },
-    "github": { "status": "unavailable", "latencyMs": null, "error": "connect ETIMEDOUT" },
-    "stripe": { "status": "ok", "latencyMs": 91 }
+    "github": { "status": "unavailable", "latencyMs": null, "error": "connect ETIMEDOUT" }
   },
   "version": "1.2.0",
   "uptime": 84321
@@ -71,8 +69,7 @@ Returns `200 OK` only when all critical dependencies are healthy. Returns `503 S
   "checks": {
     "database": { "status": "unavailable", "latencyMs": null, "error": "connect ECONNREFUSED" },
     "clerk": { "status": "unavailable", "latencyMs": null, "error": "connect ETIMEDOUT" },
-    "github": { "status": "unavailable", "latencyMs": null, "error": "connect ETIMEDOUT" },
-    "stripe": { "status": "unavailable", "latencyMs": null, "error": "connect ETIMEDOUT" }
+    "github": { "status": "unavailable", "latencyMs": null, "error": "connect ETIMEDOUT" }
   },
   "version": "1.2.0",
   "uptime": 84321
@@ -92,7 +89,6 @@ Each dependency is checked with a lightweight, read-only request. Probes run con
 | **Database** | SQL query | `SELECT 1` via the Drizzle ORM connection pool | Query returns within the configured timeout |
 | **Clerk** | HTTP GET | JWKS endpoint (`/.well-known/jwks.json` on Clerk's API) | 200 response within timeout |
 | **GitHub** | HTTP GET | `https://api.github.com/rate_limit` | 200 response within timeout (does not consume rate limit) |
-| **Stripe** | HTTP GET | `https://api.stripe.com/v1/balance` with the API secret key | 200 response within timeout |
 
 ### Probe Implementation Notes
 
