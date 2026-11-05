@@ -799,3 +799,48 @@ export const onboardingProgress = pgTable('onboarding_progress', {
   uniqueIndex('onboarding_progress_user_step_idx').on(table.userId, table.stepKey),
 ]);
 
+// ── Document Categories ───────────────────────────────
+// Lightweight team-scoped groupings for documents and cards.
+
+export const documentCategories = pgTable('document_categories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').notNull().references(() => teams.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  slug: text('slug').notNull(),
+  description: text('description').notNull().default(''),
+  color: text('color').notNull().default('#6366f1'),
+  createdBy: uuid('created_by').notNull().references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('document_categories_team_slug_idx').on(table.teamId, table.slug),
+]);
+
+// ── Document Cards ────────────────────────────────────
+// Shareable published views of a spec: a cover image, description, and
+// category/template metadata that non-technical stakeholders can browse
+// without full app access.
+//
+// Fields mirror the truncated Card entity from the System Architecture
+// Document (issue #396): id, title, description, category_id, template_id,
+// artwork_urls[], created_at, updated_at, is_published, metadata, created_by.
+
+export const documentCards = pgTable('document_cards', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title').notNull(),
+  description: text('description').notNull().default(''),
+  categoryId: uuid('category_id').references(() => documentCategories.id, { onDelete: 'set null' }),
+  templateId: uuid('template_id').references(() => documentTemplates.id, { onDelete: 'set null' }),
+  artworkUrls: text('artwork_urls').array().notNull().default([]),
+  isPublished: boolean('is_published').notNull().default(false),
+  metadata: jsonb('metadata').notNull().default({}),
+  createdBy: uuid('created_by').notNull().references(() => users.id),
+  teamId: uuid('team_id').notNull().references(() => teams.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('document_cards_category_id_idx').on(table.categoryId),
+  index('document_cards_is_published_idx').on(table.isPublished),
+  index('document_cards_team_created_by_idx').on(table.teamId, table.createdBy),
+]);
+
