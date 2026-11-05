@@ -92,13 +92,11 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `build`, `perf`
 
 ## Sign-off: DCO or CLA
 
-**Status: pending the license decision.** The project license has not been chosen yet; the proposal and open questions are in [docs/oss/license-decision.md](docs/oss/license-decision.md). The memo recommends the Developer Certificate of Origin (DCO), with a CLA only if the owner wants the right to relicense.
+Nyx is dual-licensed under MIT OR Apache-2.0. Copyright 2026 Alejandro Londono / NoJuanNobody. See [LICENSE-MIT](LICENSE-MIT) and [LICENSE-APACHE](LICENSE-APACHE).
 
-Until that is settled:
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
 
-- Add a `Signed-off-by` line to every commit (`git commit -s`). This certifies the [DCO 1.1](https://developercertificate.org/) and costs nothing.
-- Contributions may be asked to be re-affirmed under a CLA if that path is chosen. This section will be updated, and a DCO check added to CI, once the decision is recorded.
-- No `LICENSE` file exists yet. Do not add one in a PR.
+Add a `Signed-off-by` line to every commit (`git commit -s`). This certifies the [Developer Certificate of Origin 1.1](https://developercertificate.org/). A CLA is not required.
 
 ## How to add a lifecycle pipeline
 

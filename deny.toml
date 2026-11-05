@@ -30,7 +30,7 @@ allow = [
   "CDLA-Permissive-2.0", # webpki-root-certs: Mozilla CA bundle data (permissive)
 ]
 confidence-threshold = 0.8
-# Workspace crates carry `LicenseRef-TBD` until the project license is chosen.
+# Workspace crates are unpublished (`publish = false`) and licensed `MIT OR Apache-2.0`.
 private = { ignore = true }
 
 [bans]

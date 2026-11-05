@@ -7,7 +7,7 @@ Generated 2026-10-30 from the npm workspace (`pnpm install --offline`, installed
 - 92 direct dependency entries across 7 manifests (root, apps/api, apps/web, packages/cli, harness-core, mcp-server, shared).
 - Licenses: Apache-2.0 10, MIT 74, (project) 5, BSD-2-Clause 1, Unlicense 1, (MPL-2.0 OR Apache-2.0) 1.
 - Dispositions: keep 39, drop 27, rust 26. (`rust` = replaced by a Rust crate or in-repo Rust port; `drop` = removed with no equivalent; `keep` = stays in the web/test toolchain.)
-- **Copyleft / non-OSI / unknown among direct deps: none.** Nothing blocks Apache-2.0 or MIT distribution. The license choice itself remains pending (AI-79).
+- **Copyleft / non-OSI / unknown among direct deps: none.** Nothing blocks distribution under MIT OR Apache-2.0, which is the project license.
 
 ## Flags
 

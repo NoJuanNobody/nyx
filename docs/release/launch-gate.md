@@ -8,7 +8,7 @@ Alejandro's explicit OK.
 
 | # | Decision | Where the analysis is |
 |---|----------|----------------------|
-| 1 | License (Apache-2.0 alone, MIT OR Apache-2.0, other) and DCO vs CLA | `docs/oss/license-decision.md`, apply steps in `docs/oss/license-apply-checklist.md` |
+| 1 | License decided: MIT OR Apache-2.0 (copyright 2026 Alejandro Londono / NoJuanNobody). DCO sign-off stays; no CLA | `LICENSE-MIT`, `LICENSE-APACHE`, `docs/oss/license-decision.md` |
 | 2 | Copyright holder of existing code; whether trademark policy for "Nyx" is wanted | `docs/oss/license-decision.md` |
 | 3 | New logo: pick one concept (recommended: 02 Constellation N) | `docs/brand/README.md`, `docs/brand/designer-brief.md` |
 | 4 | History: publish as-is, scrub history, or squash into a fresh repo | `docs/oss/repo-audit.md` |
@@ -35,7 +35,7 @@ Alejandro's explicit OK.
 
 ## Release steps once the owner approves (do not run before)
 
-1. Apply the license per the checklist; commit LICENSE, NOTICE, Cargo and package license fields.
+1. License is applied: `LICENSE-MIT`, `LICENSE-APACHE`, and `MIT OR Apache-2.0` on Cargo, package.json, and Tauri metadata.
 2. Merge the integration PR; tag `v0.1.0`; the release workflow creates a **draft** GitHub Release.
 3. Review the draft, attach notes, publish.
 4. Update nyx-creative.com copy and links (separate change, owner-driven).

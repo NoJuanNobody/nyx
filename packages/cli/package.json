@@ -1,6 +1,7 @@
 {
   "name": "@nyx/cli",
   "version": "0.1.0",
+  "license": "MIT OR Apache-2.0",
   "type": "module",
   "description": "CLI wrapper for the Nyx API",
   "main": "dist/index.js",

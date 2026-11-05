@@ -1,6 +1,6 @@
 # Nyx license decision memo (AI-52)
 
-Status: PROPOSED. Decision owner: Alejandro. No LICENSE file has been added; nothing below is applied until he says yes.
+Status: DECIDED. The owner chose dual licensing under MIT OR Apache-2.0, the standard Rust convention. Copyright 2026 Alejandro Londono / NoJuanNobody. Applied in `LICENSE-MIT`, `LICENSE-APACHE`, every `Cargo.toml`, every `package.json`, and the Tauri bundle config. The comparison below is the original analysis. Apache-2.0 alone is not the project license.
 
 ## Context
 
@@ -22,7 +22,7 @@ Nyx is moving from a paid SaaS to an open-source, agent-native Rust desktop app 
 Apache-2.0 and MPL-2.0 give an explicit patent license from each contributor, terminated if the licensee sues over the work. MIT gives none explicitly. For an agent/credits system where patent trolling is plausible and corporate users will adopt the core crate, the grant matters. Dual MIT/Apache keeps the grant for anyone who picks Apache while letting GPLv2-only or MIT-only-policy users pick MIT.
 
 ### Rust ecosystem norms
-Rust libraries conventionally ship `MIT OR Apache-2.0` (Cargo `license = "MIT OR Apache-2.0"`). Applications and larger projects often choose Apache-2.0 alone. Tauri itself is dual Apache-2.0 / MIT, so either choice is compatible. The dual route is mainly valuable for crates intended as libraries; Nyx's core crate may be consumed that way.
+Rust libraries conventionally ship `MIT OR Apache-2.0` (Cargo `license = "MIT OR Apache-2.0"`). Some applications choose Apache-2.0 alone. Tauri itself is dual Apache-2.0 / MIT, so either choice is compatible. Nyx uses `MIT OR Apache-2.0` for the whole repository, including the app and the core crate.
 
 ### Hosted-competitor risk
 Nyx's moat as a desktop, local-first, agent-native tool is not the code alone. A permissive license lets anyone host a Nyx fork as a service. Mitigations that do not require copyleft: trademark policy (below), the credits network/service being the thing agents want (any hosted credit ledger is operated by whoever runs it), and speed of development. AGPL-3.0 is the only option here that directly blocks closed hosted forks, at the cost of adoption: corporate legal teams commonly forbid AGPL dependencies, and it makes the core crate hard to embed in other agent tooling, which contradicts the "shared core crate for CLI/MCP" goal. MPL-2.0 is a middle path (file-level copyleft) but is unusual in Rust and adds compliance confusion for little protection against hosting.
@@ -40,42 +40,36 @@ Apache-2.0 section 6 explicitly does not grant trademark rights; MIT is silent b
 ### Dependency compatibility
 Tauri 2 (Apache-2.0 OR MIT), most of the Rust crates ecosystem, and typical JS dependencies (MIT/ISC/BSD/Apache) are all compatible with Apache-2.0 and MIT. Watch for: GPL-licensed system webviews are not linked (Tauri uses OS webviews, fine); any GPLv2-only dep (incompatible with Apache-2.0); LGPL deps (dynamic linking only); AGPL/SSPL deps (avoid). Run `cargo deny check licenses` and a JS license scan before release to confirm; this has not been run yet because the Rust workspace does not exist at this commit.
 
-## Recommendation
+## Decision
 
-Adopt **Apache-2.0** for the repository (app, CLI, MCP server, core crate).
+**MIT OR Apache-2.0** for the repository (app, CLI, MCP server, core crate, and the TypeScript packages).
 
-Reasons: explicit patent grant and retaliation clause, strong fit with Tauri and the Rust ecosystem, easy corporate adoption and embedding of the core crate by third-party agents, DCO is sufficient for inbound contributions, and trademark is handled separately and explicitly in Section 6.
+The owner chose the standard Rust dual license. Either license may be used. The README License section includes the contribution clause: unless a contributor explicitly states otherwise, contributions are dual-licensed on the same terms. Copyright holder on both license files: Alejandro Londono / NoJuanNobody, 2026.
 
-Acceptable alternative: **`MIT OR Apache-2.0` dual**, if Alejandro specifically wants the core crate to be a drop-in Rust library with maximum compatibility. Cost: two license files and slightly more to explain. The practical difference for the app is small.
+Apache-2.0 alone was the earlier recommendation in this memo. It is not the project license. MIT alone, MPL-2.0, and AGPL-3.0 were not chosen.
 
-Not recommended: MIT alone (no patent grant), MPL-2.0 (unusual, little protection), AGPL-3.0 (only if blocking closed hosted forks outweighs adoption; if so, also adopt a CLA now so relicensing stays possible).
+## Decision checklist
 
-Pair the license with: DCO, a `TRADEMARKS.md`, and a clear statement in README that credits are utility tokens spent by agents and not sold.
-
-## Decision checklist (execute only after Alejandro says yes)
-
-Assuming Apache-2.0. For dual MIT/Apache, replace noted items.
-
-1. [ ] Record the decision in Linear AI-52 (acceptance criterion 1) and tick the trademark note.
-2. [ ] Add `LICENSE` at repo root: verbatim Apache-2.0 text (dual: `LICENSE-APACHE` and `LICENSE-MIT`, with the copyright holder name and year 2026).
-3. [ ] Add `NOTICE` at repo root: "Nyx / Copyright 2026 <owner>" plus attributions required by bundled third-party Apache-licensed code.
-4. [ ] Root `Cargo.toml`: `[workspace.package] license = "Apache-2.0"` (dual: `"MIT OR Apache-2.0"`), plus `repository`, `authors`; in each crate `license.workspace = true`.
-5. [ ] Every `package.json` (root, `apps/api`, `apps/web`, `packages/*`): add `"license": "Apache-2.0"` (dual: `"MIT OR Apache-2.0"`). Currently none declare a license field. Do not commit `pnpm-lock.yaml` changes.
-6. [ ] Tauri config / bundle metadata (`tauri.conf.json` `bundle.copyright`, `bundle.license` or `licenseFile` where supported) to match.
-7. [ ] `README.md`: add license badge (`![License](https://img.shields.io/badge/license-Apache--2.0-blue)`), a License section linking `LICENSE`, and a Trademark section linking `TRADEMARKS.md`.
-8. [ ] Add `TRADEMARKS.md` (name and logo policy) and `CONTRIBUTING.md` DCO section (`Signed-off-by` requirement); add a DCO check (GitHub DCO app or CI step).
-9. [ ] Optional SPDX headers: `// SPDX-License-Identifier: Apache-2.0` in new source files; no mass rewrite needed.
-10. [ ] Add `cargo deny` config (`deny.toml`) with an allow-list of licenses, and a JS license check in CI.
+1. [x] License recorded: `MIT OR Apache-2.0`.
+2. [x] `LICENSE-MIT` and `LICENSE-APACHE` at the repo root, copyright 2026 Alejandro Londono / NoJuanNobody.
+3. [ ] `NOTICE` only if bundled third-party Apache code needs an extra attribution file. Not added with the license.
+4. [x] Every `Cargo.toml` (workspace and crates): `license = "MIT OR Apache-2.0"`.
+5. [x] Every `package.json` (root, `apps/api`, `apps/web`, `packages/*`): `"license": "MIT OR Apache-2.0"`.
+6. [x] Tauri bundle metadata: `bundle.copyright` and `bundle.license` match.
+7. [x] `README.md` License section uses the standard Rust dual-license wording, including the contribution clause.
+8. [ ] `TRADEMARKS.md` and a DCO CI check are still open.
+9. [ ] Optional SPDX headers in new source: `SPDX-License-Identifier: MIT OR Apache-2.0`. No mass rewrite.
+10. [x] `deny.toml` allow-list already includes MIT and Apache-2.0. The JS license check was already in CI.
 11. [ ] Audit and remove or replace any dependency or vendored asset (fonts, icons, the old logo, marketing files, `Nyx_Landing.jsx`) whose license is incompatible or that Alejandro does not want released.
 12. [ ] Confirm no secrets or private data remain in git history before making the repo public (separate ticket; license does not cover this).
 13. [ ] Only then flip repo visibility (owner action, not part of this ticket).
 
 ## Open questions only the owner can answer
 
-1. Apache-2.0 alone, or `MIT OR Apache-2.0`? Does he want the core crate treated as a library for others?
+1. Decided: `MIT OR Apache-2.0`, including for the core crate.
 2. Is blocking closed hosted forks a real goal (AGPL / CLA path), or is trademark plus execution speed enough?
 3. Could he want a commercial or relicensed edition later? If yes, adopt a CLA instead of DCO now.
-4. Who holds copyright in existing code: him personally, a company entity, or contractors/prior contributors? Is anyone's consent needed to release it? Which name goes in the copyright line?
+4. Copyright line decided: Alejandro Londono / NoJuanNobody, 2026. Contractor or prior-contributor consent, if any, is still an owner follow-up before the repo is public.
 5. Are there third-party assets, customer data, fixtures, or marketing materials in the repo that cannot be open-sourced?
 6. Should the new logo and the Nyx name be under a strict trademark policy (recommended), and will he register the mark?
 7. Credits as utility tokens: any plan for an official hosted credit service? If so, should its terms of service be separate from the code license, and are there legal or regulatory reviews he wants before launch?

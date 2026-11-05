@@ -2,6 +2,7 @@
   "name": "@nyx/api",
   "version": "0.0.1",
   "private": true,
+  "license": "MIT OR Apache-2.0",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"tsx watch src/index.ts\" \"ngrok http 3000 --url=osteopathically-pedatifid-giana.ngrok-free.dev\"",

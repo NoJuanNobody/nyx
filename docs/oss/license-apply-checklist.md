@@ -1,12 +1,12 @@
 # License apply checklist (AI-79)
 
-Status: BLOCKED on the owner's decision in [license-decision.md](./license-decision.md). No `LICENSE` file, no `license` fields and no license badge have been added. Run this list in one commit once the choice is made (examples assume Apache-2.0; for dual use `MIT OR Apache-2.0` and two license files).
+Status: license applied. The owner chose MIT OR Apache-2.0. See [license-decision.md](./license-decision.md).
 
-1. [ ] Add `LICENSE` (verbatim text, correct copyright holder and year) and, if needed, `NOTICE`.
-2. [ ] Root `Cargo.toml`: replace `license = "LicenseRef-TBD"` with the SPDX id; each crate already inherits via `license.workspace = true` (verify). Update the "Licence is `LicenseRef-TBD`" line in `docs/rust-workspace.md`.
-3. [ ] Add `"license": "<SPDX-ID>"` to `package.json` in the root, `apps/api`, `apps/web`, `packages/*`. Do not commit `pnpm-lock.yaml` changes.
-4. [ ] Tauri bundle metadata in `apps/desktop/src-tauri/tauri.conf.json` (`bundle.copyright`, `bundle.license`/`licenseFile`).
-5. [ ] `README.md`: replace the `License` section (look for `LICENSE-PLACEHOLDER`) with "Licensed under <SPDX-ID>. See LICENSE.", add a badge, link `TRADEMARKS.md`, and drop the "no license is granted" sentence.
+1. [x] Add `LICENSE-MIT` and `LICENSE-APACHE` (copyright 2026 Alejandro Londono / NoJuanNobody). `NOTICE` was not required for this change.
+2. [x] Every `Cargo.toml` sets `license = "MIT OR Apache-2.0"`. `docs/rust-workspace.md` matches.
+3. [x] `"license": "MIT OR Apache-2.0"` in `package.json` at the root, `apps/api`, `apps/web`, and `packages/*`. `pnpm-lock.yaml` unchanged.
+4. [x] Tauri bundle metadata in `apps/desktop/src-tauri/tauri.conf.json`: `bundle.copyright` and `bundle.license` (`MIT OR Apache-2.0`). No single `licenseFile`, so the bundle metadata does not pick one license.
+5. [x] `README.md` License section uses the standard Rust dual-license wording, including the contribution clause. The "no license is granted" sentence is gone.
 6. [ ] Add `TRADEMARKS.md`, `CONTRIBUTING.md` with the DCO (or CLA) section, and a DCO check.
 7. [ ] Add `deny.toml` (`cargo deny check licenses`) and a JS license check in CI (CI changes belong to the workflow ticket).
 8. [ ] Confirm copyright ownership and that no third-party assets or customer data are in the tree (see open questions in the memo).

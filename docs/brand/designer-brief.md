@@ -41,7 +41,7 @@ Check WCAG contrast on every pairing; violet `#8B5CF6` is for dark backgrounds, 
 5. App icon set for Tauri bundles: `icon.png` 1024, 512, 256, 128, 32, `icon.icns` (macOS), `icon.ico` (Windows multi-size 16-256), plus `128x128@2x`; macOS squircle safe-area applied and a flat Linux variant.
 6. Favicon set: `favicon.svg`, `favicon.ico`, 180px apple-touch, 192/512 PWA.
 7. Social: 1280x640 GitHub social preview, 400x400 avatar.
-8. Source files (Figma, SVG) and a one-page usage guide. All delivered under an open license compatible with the project (license decision pending, Alejandro).
+8. Source files (Figma, SVG) and a one-page usage guide. All delivered under a license compatible with MIT OR Apache-2.0.
 
 ## 7. Do
 - Keep the mark on night navy or white with at least 4.5:1 contrast.

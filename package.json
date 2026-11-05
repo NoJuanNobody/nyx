@@ -1,6 +1,7 @@
 {
   "name": "nyx",
   "private": true,
+  "license": "MIT OR Apache-2.0",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",

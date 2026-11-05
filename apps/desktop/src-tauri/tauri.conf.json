@@ -55,6 +55,8 @@
     ],
     "createUpdaterArtifacts": true,
     "category": "DeveloperTool",
+    "copyright": "Copyright (c) 2026 Alejandro Londono / NoJuanNobody",
+    "license": "MIT OR Apache-2.0",
     "shortDescription": "Agent-native workspace with utility-token metering.",
     "icon": [
       "icons/icon.png"

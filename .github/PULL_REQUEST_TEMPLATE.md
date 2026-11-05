@@ -22,7 +22,7 @@
 - [ ] Docs updated where relevant
 - [ ] Commits are signed off (`git commit -s`); see [CONTRIBUTING.md](../CONTRIBUTING.md#sign-off-dco-or-cla)
 - [ ] No secrets, credentials or personal data included
-- [ ] I did not add a purchase/payment flow, an embedded agent, or a `LICENSE` file
+- [ ] I did not add a purchase/payment flow or an embedded agent
 - [ ] `pnpm-lock.yaml` is only changed if I changed dependencies
 
 ## Notes for reviewers

@@ -9,7 +9,7 @@ default-members = ["crates/nyx-core", "crates/nyx-net", "crates/nyx-app", "crate
 version = "0.0.1"
 edition = "2021"
 rust-version = "1.80"
-license = "LicenseRef-TBD"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/NoJuanNobody/nyx"
 publish = false
 

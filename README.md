@@ -128,14 +128,22 @@ Full specification: [docs/credits/utility-tokens-spec.md](./docs/credits/utility
 
 ## Contributing
 
-The project is pre-release and the architecture is still moving. Open an issue before large changes. Run the gates before sending a patch: `cargo fmt --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`, and for TypeScript `pnpm typecheck && pnpm test`. A DCO sign-off (`git commit -s`) is the proposed contribution mechanism, pending the license decision.
+The project is pre-release and the architecture is still moving. Open an issue before large changes. Run the gates before sending a patch: `cargo fmt --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`, and for TypeScript `pnpm typecheck && pnpm test`.
 
 ## License
 
-**Pending.** The license has not been chosen yet; see [docs/oss/license-decision.md](./docs/oss/license-decision.md). Until a `LICENSE` file is added to this repository, no license is granted and all rights are reserved.
+Licensed under either of
 
-<!-- LICENSE-PLACEHOLDER: once Alejandro decides, replace this section with
-     "Licensed under <SPDX-ID>. See LICENSE." and follow docs/oss/license-apply-checklist.md. -->
+ * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
 
 ---
 

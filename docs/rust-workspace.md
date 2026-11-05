@@ -33,5 +33,5 @@ includes it. To run the app: `cargo install tauri-cli --version "^2"` then
 
 - Shared version, edition, `rust-version` (MSRV) and lints live in the root `Cargo.toml`.
 - `unsafe_code` is forbidden; `unwrap` is denied outside tests.
-- Licence is `LicenseRef-TBD` until chosen; do not add a LICENSE file yet.
+- Licence is `MIT OR Apache-2.0` (`LICENSE-MIT` and `LICENSE-APACHE`). Copyright 2026 Alejandro Londono / NoJuanNobody.
 - `src-tauri/icons/icon.png` is a placeholder until the new logo lands.

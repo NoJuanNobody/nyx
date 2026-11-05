@@ -55,7 +55,7 @@ Negative / risks:
 
 Open items:
 - Verify the hello-world desktop build on macOS, Windows and Linux in CI (acceptance criterion; only macOS has been checked locally so far).
-- License is not yet chosen; all crates use `license = "LicenseRef-TBD"`.
+- License is `MIT OR Apache-2.0` in every crate (`LICENSE-MIT` and `LICENSE-APACHE`). Copyright 2026 Alejandro Londono / NoJuanNobody.
 
 ## Crate layout
 

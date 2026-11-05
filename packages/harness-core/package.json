@@ -2,6 +2,7 @@
   "name": "@nyx/harness-core",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT OR Apache-2.0",
   "type": "module",
   "description": "Model-agnostic Nyx tool definitions and API client — no MCP/OpenAI SDK dependencies",
   "main": "dist/index.js",
