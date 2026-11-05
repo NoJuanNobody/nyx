@@ -34,7 +34,17 @@ describe('Team Routes', () => {
   it('GET /api/teams auto-provisions personal team when user has none', async () => {
     const team = makeTeam({ name: 'My Workspace' });
 
-    // First select: no teams
+    // Listing teams first auto-accepts pending invitations. That select must be
+    // queued ahead of the membership lookup; otherwise this test's later
+    // mockReturnValueOnce insert stubs are never consumed and leak into the
+    // invite-by-email test (insert().values().returning is not a function).
+    mockDb.select.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([]),
+      }),
+    } as any);
+
+    // Membership select: no teams
     mockDb.select.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
         innerJoin: vi.fn().mockReturnValue({
@@ -55,7 +65,7 @@ describe('Team Routes', () => {
       values: vi.fn().mockResolvedValue(undefined),
     } as any);
 
-    // Second select: now has team
+    // Membership select after provision: the new personal team
     mockDb.select.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
         innerJoin: vi.fn().mockReturnValue({
@@ -71,6 +81,8 @@ describe('Team Routes', () => {
     const body = JSON.parse(res.body);
     expect(body).toHaveLength(1);
     expect(body[0].name).toBe('My Workspace');
+    // Team row + owner membership. Guards the auto-provision branch actually ran.
+    expect(mockDb.insert).toHaveBeenCalledTimes(2);
   });
 
   it('POST /:id/members with existing user email → adds directly, type: "added"', async () => {
@@ -118,6 +130,15 @@ describe('Team Routes', () => {
     const invitation = makeInvitation();
 
     // user lookup: not found
+    mockDb.select.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+    } as any);
+
+    // no existing pending invitation for this email
     mockDb.select.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
