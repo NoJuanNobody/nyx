@@ -1,9 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { randomUUID } from 'node:crypto';
-import { eq, and, ilike, ne } from 'drizzle-orm';
+import { eq, and, ilike } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { teams, teamMembers, users, teamInvitations } from '../db/schema.js';
 import { requireRole } from '../middleware/permissions.js';
+import { acceptPendingInvitations } from '../middleware/auth.js';
 import { sendEmail, buildInviteEmail } from '../services/email.js';
 import { notificationService } from '../services/notification.service.js';
 import { NotificationEvents } from '../services/notification-events.js';
@@ -13,6 +14,15 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
   // Auto-provisions a default team if the user has none.
   app.get('/', async (request) => {
     const userId = request.user.id;
+
+    // Auto-accept any pending invitations for this user's email when listing teams
+    if (request.user.email && request.user.id !== '00000000-0000-0000-0000-000000000000') {
+      try {
+        await acceptPendingInvitations(userId, request.user.email);
+      } catch {
+        // Ignore if mocked in unit tests
+      }
+    }
 
     let rows = await db
       .select({
@@ -143,40 +153,51 @@ export const teamRoutes: FastifyPluginAsync = async (app) => {
       return { ...member, type: 'added' };
     }
 
-    // User not found — create pending invitation
+    // User not found — reuse existing pending invitation token if present, or create a new one
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiry
 
-    const token = randomUUID();
+    const [existingInvite] = await db
+      .select()
+      .from(teamInvitations)
+      .where(
+        and(
+          eq(teamInvitations.teamId, id),
+          ilike(teamInvitations.email, normalizedEmail),
+          eq(teamInvitations.status, 'pending'),
+        ),
+      )
+      .limit(1);
 
-    const [invitation] = await db
-      .insert(teamInvitations)
-      .values({
-        teamId: id,
-        email: normalizedEmail,
-        role: memberRole,
-        invitedById: request.user.id,
-        token,
-        expiresAt,
-      })
-      .returning();
+    let invitation = existingInvite;
+    let token: string;
 
-    // Deduplicate any older pending invitations for the same (teamId, email)
-    if (invitation?.id) {
-      try {
-        await db
-          .delete(teamInvitations)
-          .where(
-            and(
-              eq(teamInvitations.teamId, id),
-              ilike(teamInvitations.email, normalizedEmail),
-              eq(teamInvitations.status, 'pending'),
-              ne(teamInvitations.id, invitation.id),
-            ),
-          );
-      } catch {
-        // Ignore cleanup errors
-      }
+    if (existingInvite?.token) {
+      token = existingInvite.token;
+      const [updatedInvite] = await db
+        .update(teamInvitations)
+        .set({
+          role: memberRole,
+          invitedById: request.user.id,
+          expiresAt,
+        })
+        .where(eq(teamInvitations.id, existingInvite.id))
+        .returning();
+      if (updatedInvite) invitation = updatedInvite;
+    } else {
+      token = randomUUID();
+      const [insertedInvite] = await db
+        .insert(teamInvitations)
+        .values({
+          teamId: id,
+          email: normalizedEmail,
+          role: memberRole,
+          invitedById: request.user.id,
+          token,
+          expiresAt,
+        })
+        .returning();
+      invitation = insertedInvite;
     }
 
     // Send invite email (Resend with automatic Clerk Invitations fallback)

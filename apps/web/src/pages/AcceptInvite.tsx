@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useClerk } from '@clerk/clerk-react';
 import { getInvitation, acceptInvitation, setAuthTokenGetter } from '../lib/api';
 import { useAuthStore } from '../stores/auth.store';
 
@@ -44,6 +44,7 @@ function ErrorCard({ onHome }: { onHome: () => void }) {
 
 interface InvitationData {
   id: string;
+  teamId?: string;
   email: string;
   role: string;
   status: string;
@@ -60,6 +61,7 @@ function InvitationCard({
   onClearError,
   onSignUp,
   onSignIn,
+  onSwitchAccount,
   onDashboard,
 }: {
   invitation: InvitationData;
@@ -70,6 +72,7 @@ function InvitationCard({
   onClearError: () => void;
   onSignUp: () => void;
   onSignIn: () => void;
+  onSwitchAccount?: () => void;
   onDashboard: () => void;
 }) {
   const isExpired = new Date(invitation.expiresAt) < new Date();
@@ -176,8 +179,17 @@ function InvitationCard({
               </button>
 
               {acceptError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-center">
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-center space-y-2">
                   <p className="text-sm text-red-700">{acceptError}</p>
+                  {onSwitchAccount && (
+                    <button
+                      type="button"
+                      onClick={onSwitchAccount}
+                      className="inline-flex items-center rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 transition-colors"
+                    >
+                      Sign in with {invitation.email}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -192,9 +204,12 @@ function InvitationCard({
 
 function ClerkAcceptInvite() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [acceptError, setAcceptError] = useState<string | null>(null);
   const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { signOut } = useClerk();
+  const autoAcceptedRef = useRef(false);
 
   const { data: invitation, isLoading, error } = useQuery({
     queryKey: ['invitation', token],
@@ -220,10 +235,35 @@ function ClerkAcceptInvite() {
     },
   });
 
+  // Automatically accept when the user returns to /invite/:token already signed in
+  useEffect(() => {
+    if (
+      isLoaded &&
+      isSignedIn &&
+      invitation &&
+      invitation.status === 'pending' &&
+      new Date(invitation.expiresAt) >= new Date() &&
+      !autoAcceptedRef.current
+    ) {
+      autoAcceptedRef.current = true;
+      acceptMutation.mutate();
+    }
+  }, [isLoaded, isSignedIn, invitation]);
+
   if (!isLoaded || isLoading) return <Spinner />;
   if (error || !invitation) return <ErrorCard onHome={() => navigate('/')} />;
 
   const redirectUrl = `/invite/${token}`;
+  const clerkTicket = searchParams.get('__clerk_ticket');
+  const clerkStatus = searchParams.get('__clerk_status');
+
+  const buildAuthUrl = (basePath: '/sign-up' | '/sign-in') => {
+    const params = new URLSearchParams();
+    params.set('redirect_url', redirectUrl);
+    if (clerkTicket) params.set('__clerk_ticket', clerkTicket);
+    if (clerkStatus) params.set('__clerk_status', clerkStatus);
+    return `${basePath}?${params.toString()}`;
+  };
 
   return (
     <InvitationCard
@@ -233,9 +273,18 @@ function ClerkAcceptInvite() {
       isAccepting={acceptMutation.isPending}
       acceptError={acceptError}
       onClearError={() => setAcceptError(null)}
-      onSignUp={() => navigate(`/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}`)}
-      onSignIn={() => navigate(`/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`)}
-      onDashboard={() => navigate('/app/dashboard', { replace: true })}
+      onSignUp={() => navigate(buildAuthUrl('/sign-up'))}
+      onSignIn={() => navigate(buildAuthUrl('/sign-in'))}
+      onSwitchAccount={async () => {
+        useAuthStore.getState().clear();
+        await signOut({ redirectUrl: buildAuthUrl('/sign-in') });
+      }}
+      onDashboard={() => {
+        if (invitation.teamId) {
+          useAuthStore.getState().setCurrentTeamId(invitation.teamId);
+        }
+        navigate('/app/dashboard', { replace: true });
+      }}
     />
   );
 }

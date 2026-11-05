@@ -11,6 +11,7 @@ export const invitationRoutes: FastifyPluginAsync = async (app) => {
     const [invitation] = await db
       .select({
         id: teamInvitations.id,
+        teamId: teamInvitations.teamId,
         email: teamInvitations.email,
         role: teamInvitations.role,
         status: teamInvitations.status,
@@ -54,17 +55,6 @@ export const invitationRoutes: FastifyPluginAsync = async (app) => {
       return { error: 'Invitation not found' };
     }
 
-    if (invitation.status !== 'pending') {
-      reply.code(409);
-      return { error: `Invitation has already been ${invitation.status}` };
-    }
-
-    if (new Date(invitation.expiresAt) < new Date()) {
-      await db.update(teamInvitations).set({ status: 'expired' }).where(eq(teamInvitations.id, invitation.id));
-      reply.code(410);
-      return { error: 'Invitation has expired' };
-    }
-
     // Check user is authenticated
     if (!request.user?.id) {
       reply.code(401);
@@ -75,6 +65,37 @@ export const invitationRoutes: FastifyPluginAsync = async (app) => {
     if (request.user.email.toLowerCase() !== invitation.email.toLowerCase()) {
       reply.code(403);
       return { error: 'This invitation was sent to a different email address' };
+    }
+
+    // If the invitation was already auto-accepted (e.g. during auth middleware user upsert),
+    // ensure the user is in teamMembers and return success idempotently instead of a 409 error.
+    if (invitation.status === 'accepted') {
+      const [existingMember] = await db
+        .select()
+        .from(teamMembers)
+        .where(and(eq(teamMembers.teamId, invitation.teamId), eq(teamMembers.userId, request.user.id)))
+        .limit(1);
+
+      if (!existingMember) {
+        await db.insert(teamMembers).values({
+          teamId: invitation.teamId,
+          userId: request.user.id,
+          role: invitation.role,
+        });
+      }
+
+      return { teamId: invitation.teamId, role: invitation.role, alreadyMember: true };
+    }
+
+    if (invitation.status !== 'pending') {
+      reply.code(409);
+      return { error: `Invitation has already been ${invitation.status}` };
+    }
+
+    if (new Date(invitation.expiresAt) < new Date()) {
+      await db.update(teamInvitations).set({ status: 'expired' }).where(eq(teamInvitations.id, invitation.id));
+      reply.code(410);
+      return { error: 'Invitation has expired' };
     }
 
     // Check not already a member

@@ -3,7 +3,6 @@ import { useNavigate, Navigate, Outlet } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useAuthStore } from '../stores/auth.store';
 import { API_BASE, setAuthTokenGetter, fetchTeams } from '../lib/api';
-import { trackSignUp } from '../lib/analytics';
 
 const CLERK_ENABLED = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -20,17 +19,42 @@ function ClerkAuthGuard() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const { user: clerkUser } = useUser();
   const navigate = useNavigate();
-  const { setUser, setTeams, setCurrentTeamId, currentTeamId, isLoading } = useAuthStore();
+  const { setUser, setTeams, setCurrentTeamId, currentTeamId, isLoading, user } = useAuthStore();
 
   useEffect(() => {
     if (!isLoaded) return;
+    let cancelled = false;
+
     if (!isSignedIn) {
+      if (import.meta.env.DEV) {
+        (async () => {
+          try {
+            const [devUser, teams] = await Promise.all([fetchDevUser(), fetchTeams()]);
+            if (cancelled) return;
+            setUser({
+              id: devUser.id,
+              name: devUser.name,
+              email: devUser.email,
+              role: devUser.role,
+              imageUrl: devUser.avatarUrl ?? undefined,
+            });
+            setTeams(teams.map((t) => ({ id: t.id, name: t.name, role: (t as Record<string, string>).role ?? 'viewer' })));
+            if (!currentTeamId && teams.length > 0) {
+              setCurrentTeamId(teams[0].id);
+            }
+            useAuthStore.setState({ isLoading: false });
+            return;
+          } catch {
+            if (!cancelled) navigate('/sign-in', { replace: true });
+          }
+        })();
+        return () => { cancelled = true; };
+      }
       navigate('/sign-in', { replace: true });
       return;
     }
 
     // Set up auth token for API requests
-    let cancelled = false;
     // Register the token getter so every API request gets a fresh token
     setAuthTokenGetter(() => getToken());
     (async () => {
@@ -44,16 +68,18 @@ function ClerkAuthGuard() {
           role: 'owner',
           imageUrl: clerkUser.imageUrl,
         });
-        // Fire the signup conversion once per user (proxy for a new account).
-        trackSignUp(clerkUser.id);
       }
 
       try {
         const teams = await fetchTeams();
         if (cancelled) return;
-        setTeams(teams.map((t) => ({ id: t.id, name: t.name, role: (t as Record<string, string>).role ?? 'viewer' })));
-        if (!currentTeamId && teams.length > 0) {
-          setCurrentTeamId(teams[0].id);
+        const mappedTeams = teams.map((t) => ({ id: t.id, name: t.name, role: (t as Record<string, string>).role ?? 'viewer' }));
+        setTeams(mappedTeams);
+        const hasValidCurrent = currentTeamId && mappedTeams.some((t) => t.id === currentTeamId);
+        if (!hasValidCurrent && mappedTeams.length > 0) {
+          // Prefer a team the user was invited to over an auto-created personal workspace
+          const invitedTeam = mappedTeams.find((t) => !(t.name === 'My Workspace' && t.role === 'owner')) ?? mappedTeams[0];
+          setCurrentTeamId(invitedTeam.id);
         }
       } catch {
         // teams fetch can fail in early setup
@@ -73,7 +99,14 @@ function ClerkAuthGuard() {
     );
   }
 
-  if (!isSignedIn) {
+  if (!isSignedIn && !user) {
+    if (import.meta.env.DEV && isLoading) {
+      return (
+        <div className="flex h-screen items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        </div>
+      );
+    }
     return <Navigate to="/sign-in" replace />;
   }
 

@@ -118,12 +118,12 @@ export function buildApp() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://clerk.nyx-creative.com", "https://accounts.nyx-creative.com"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://clerk.nyx-creative.com", "https://accounts.nyx-creative.com", "https://*.clerk.accounts.dev", "https://challenges.cloudflare.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        connectSrc: ["'self'", "https://api.anthropic.com", "https://openrouter.ai", "https://fonts.googleapis.com", "https://clerk.nyx-creative.com", "https://accounts.nyx-creative.com"],
+        connectSrc: ["'self'", "https://api.anthropic.com", "https://openrouter.ai", "https://fonts.googleapis.com", "https://clerk.nyx-creative.com", "https://accounts.nyx-creative.com", "https://*.clerk.accounts.dev", "https://challenges.cloudflare.com", "https://clerk-telemetry.com"],
         imgSrc: ["'self'", "data:", "https:"],
-        frameSrc: ["'self'", "blob:", "https://accounts.nyx-creative.com"],
+        frameSrc: ["'self'", "blob:", "https://clerk.nyx-creative.com", "https://accounts.nyx-creative.com", "https://*.clerk.accounts.dev", "https://challenges.cloudflare.com"],
       },
     },
     hsts: {

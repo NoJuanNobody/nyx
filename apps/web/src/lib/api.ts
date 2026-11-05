@@ -734,6 +734,7 @@ export function cancelInvitation(teamId: string, invitationId: string): Promise<
 
 export async function getInvitation(token: string): Promise<{
   id: string;
+  teamId?: string;
   email: string;
   role: string;
   status: string;

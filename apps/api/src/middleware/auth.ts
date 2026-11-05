@@ -91,6 +91,7 @@ async function upsertUser(clerkUserId: string, email: string, name: string, avat
       .set({ clerkId: clerkUserId, name, avatarUrl, updatedAt: new Date() })
       .where(eq(users.id, byEmail.id));
 
+    await acceptPendingInvitations(byEmail.id, email);
     const role = await resolveRole(byEmail.id);
     return { id: byEmail.id, clerkId: clerkUserId, email, name, avatarUrl, role };
   }
@@ -133,7 +134,8 @@ async function upsertUser(clerkUserId: string, email: string, name: string, avat
 /**
  * Accept any pending team invitations matching this email address.
  */
-async function acceptPendingInvitations(userId: string, email: string): Promise<void> {
+export async function acceptPendingInvitations(userId: string, email: string): Promise<void> {
+  if (!email) return;
   const pendingInvites = await db
     .select()
     .from(teamInvitations)
@@ -288,7 +290,6 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     '/api/integrations/atlassian/callback',
     '/api/slack/callback',
     '/api/waitlist',
-    '/api/invitations',
     '/api/billing/webhooks/stripe',
     // MCP endpoint and OAuth discovery — the MCP route validates sd_ keys itself
     '/api/mcp',
@@ -296,8 +297,10 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
   ];
 
   fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
-    // ── Skip auth for OAuth redirect routes ─────────────
-    if (AUTH_EXEMPT_PATHS.some((p) => request.url.startsWith(p))) {
+    // ── Skip auth for OAuth redirect routes & public GET /api/invitations/:token ──
+    const isPublicInvitationGet =
+      request.method === 'GET' && request.url.startsWith('/api/invitations/');
+    if (isPublicInvitationGet || AUTH_EXEMPT_PATHS.some((p) => request.url.startsWith(p))) {
       request.user = DEV_USER; // provide a minimal user; OAuth state carries real identity
       return;
     }

@@ -39,19 +39,42 @@ export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
 
   // Fallback for team invitations: send via Clerk Backend Invitations API
   if (options.inviteRedirectUrl && config.CLERK_SECRET_KEY) {
-    try {
-      const clerkRes = await fetch('https://api.clerk.com/v1/invitations', {
+    const normalizedTo = options.to.trim().toLowerCase();
+    const createClerkInvite = () =>
+      fetch('https://api.clerk.com/v1/invitations', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${config.CLERK_SECRET_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email_address: options.to.trim().toLowerCase(),
+          email_address: normalizedTo,
           redirect_url: options.inviteRedirectUrl,
           ignore_existing: true,
         }),
       });
+
+    try {
+      let clerkRes = await createClerkInvite();
+
+      // If a pending Clerk invitation already exists for this email, revoke it and resend
+      if (!clerkRes.ok && (clerkRes.status === 400 || clerkRes.status === 422)) {
+        const listRes = await fetch('https://api.clerk.com/v1/invitations?status=pending&limit=100', {
+          headers: { 'Authorization': `Bearer ${config.CLERK_SECRET_KEY}` },
+        });
+        if (listRes.ok) {
+          const pendingList = (await listRes.json()) as Array<{ id: string; email_address?: string }>;
+          for (const inv of Array.isArray(pendingList) ? pendingList : []) {
+            if (inv.email_address?.toLowerCase() === normalizedTo) {
+              await fetch(`https://api.clerk.com/v1/invitations/${inv.id}/revoke`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${config.CLERK_SECRET_KEY}` },
+              });
+            }
+          }
+          clerkRes = await createClerkInvite();
+        }
+      }
 
       if (clerkRes.ok) {
         return true;
