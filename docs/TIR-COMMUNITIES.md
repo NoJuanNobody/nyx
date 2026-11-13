@@ -5,7 +5,8 @@
 > **Status:** Research only, checked Nov 12, 2026. Nothing was joined and no messages were sent. Topics come from public information, not from inside the groups. Related: [Nyx platform overview](./NYX.md).
 
 ---
-> **Method:** Everything was checked on **Nov 12, 2026, around 7:30 PM ET**. Discord numbers come from the public invite API (`discord.com/api/v9/invites/<code>?with_counts=true`). That returns `approximate_member_count`, and `approximate_presence_count`, which counts members **online** right then. Telegram numbers come from the public `t.me/<name>` preview page. I checked each invite against the project's own site, docs, or X account wherever I could, and the **Verified via** column names the source. Online/members is only a rough snapshot of activity. I joined nothing and posted nothing.
+
+> **Method:** Everything was checked on **Nov 12, 2026, around 7:30 PM ET**. Discord numbers come from the public invite API (`discord.com/api/v9/invites/<code>?with_counts=true`). That returns `approximate_member_count`, and `approximate_presence_count`, which counts members **online** right then. Telegram numbers come from the public `t.me/<name>` preview page. I checked each invite against the project's own site, docs, or X account wherever I could, and the section notes name the source. Online/members is only a rough snapshot of activity. I joined nothing and posted nothing.
 >
 > I did not read message content in any group, because doing so would have meant joining. So "dominant topics" comes from each project's official descriptions, newsletters, and public posts, and should be treated as inferred, not observed.
 
